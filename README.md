@@ -1,308 +1,168 @@
 # Synthetic Socio Wind Tunnel
 
-An AI multi-agent urban social simulation system for studying **hyperlocal boundary penetration (超在地性边界渗透)** — how digital interventions can dissolve invisible social barriers in high-density urban communities. Built on a **CQRS (Command Query Responsibility Segregation)** architecture.
+> *A simulation environment for testing hyperlocal social interventions — before deploying them in the real world.*
 
-## Implementation Status
+---
 
-| Component | Status | Description |
-|-----------|--------|-------------|
-| Atlas (布景组) | ✅ Complete | Static map with buildings, rooms, doors, containers |
-| Ledger (道具组) | ✅ Complete | Dynamic state with entities, items, door/container states |
-| SimulationService | ✅ Complete | Movement, door operations, clue discovery |
-| CollapseService | ✅ Complete | Schrödinger detail generation with spatial budget |
-| PerceptionPipeline | ✅ Complete | Multi-modal perception with filter chain |
-| Cartography | ✅ Complete | GeoJSON import and programmatic building |
-| Spatial Budget | ✅ Complete | Container capacity limits |
-| Evidence Blueprint | ✅ Complete | Plot-required evidence constraints |
-| Door/Lock System | ✅ Complete | Doors with key requirements |
-| Rashomon Effect | ✅ Complete | Observer-dependent perception |
-| NavigationService | ✅ Complete | Route planning with door awareness |
-| ExplorationService | ✅ Complete | Visibility-based cognitive map |
-| Error Codes & Events | ✅ Complete | Structured error handling and event system |
+## The Problem
 
-## The Theater Model (剧组模型)
+Modern high-density urban communities harbor a paradox:
+
+**Physical distance has never been smaller. Social distance has never been greater.**
+
+In places like Sydney's Zetland/Green Square, residents share corridors, elevators, and train exits — yet have near-zero social connection. The biggest barrier isn't a wall. It's **attention displacement**: algorithms route every glance toward global news and distant events, leaving a 1,000-metre blind spot around each person's actual life.
+
+Four invisible boundaries stack on top of each other:
+
+| Boundary | Mechanism | Effect |
+|----------|-----------|--------|
+| Digital attention | Screens capture gaze | Physical environment becomes invisible |
+| Algorithmic information | Recommenders filter out local | Hyperlocal stories never surface |
+| Spatial habit | Optimised commute routes | Public space reduced to transit corridors |
+| Social psychology | Stranger anxiety, urban norm of non-interaction | Eye contact becomes a threat signal |
+
+---
+
+## What This Is
+
+A **synthetic wind tunnel for social experiments** — the same logic as aerodynamic testing. You don't bolt a new wing shape onto a plane and fly it; you run it through a wind tunnel first. Here, the "wing shape" is a hyperlocal digital intervention (a rerouted news feed, an unlocked courtyard door, a shared hidden task), and the "wind tunnel" is a simulated urban neighbourhood populated by ~1,000 AI agents.
+
+The system runs three classes of experiment:
+
+### Experiment 1 — Digital Lure
+*Does hyperlocal information change physical movement?*
+Push location-specific micro-news to agents. Measure trajectory deviation and space activation in formerly dead zones.
+
+### Experiment 2 — Spatial Unlock
+*Does a minimal rule change trigger an ecological chain reaction?*
+Unlock a previously closed passage; place a bench in a dead zone. Measure emergent desire paths and dwell-time shifts.
+
+### Experiment 3 — Shared Perception
+*Does a shared hidden goal collapse psychological distance?*
+Assign a common ambient task (e.g. find the lost cat) to otherwise isolated agents. Measure convergence across demographic clusters.
+
+Each experiment produces a four-act output:
 
 ```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                           应用层 (Application)                           │
-│                 CharacterAgents │ Game │ CLI                            │
-└────────────────────────────────────────────────────────────────────────┘
-                                   │
-        ┌──────────────────────────┼──────────────────────────┐
-        │                          │                          │
-        ▼                          ▼                          ▼
-┌────────────────────┐    ┌────────────────────┐    ┌────────────────────┐
-│  引擎层 (WRITE)     │    │  感知层 (READ)      │    │  制图服务 (OFFLINE)  │
-│                    │    │                    │    │                    │
-│  SimulationService │    │  PerceptionPipeline│    │  GeoJSONImporter   │
-│  CollapseService   │    │  Filters           │    │  RegionBuilder     │
-└────────────────────┘    └────────────────────┘    └────────────────────┘
-        │                          │                          │
-        │ write                    │ read                     │ output
-        ▼                          ▼                          ▼
-┌────────────────────────────────────────────────────────────────────────┐
-│                           数据层 (Data Layer)                            │
-│  ┌─────────────────────┐    ┌─────────────────────┐                    │
-│  │  Atlas (布景组)       │    │  Ledger (道具组)     │                    │
-│  │  只读静态地图         │    │  读写动态状态         │                    │
-│  │  墙、门、容器定义      │    │  位置、物品、证据     │                    │
-│  └─────────────────────┘    └─────────────────────┘                    │
-└────────────────────────────────────────────────────────────────────────┘
+ACT I   BEFORE      → heatmaps showing isolation and dead zones
+ACT II  INTERVENTION → the policy hack introduced
+ACT III AFTER       → trajectory entanglement, space activation
+ACT IV  STORIES     → Rashomon-effect narratives from multiple agents
 ```
 
-## Installation
+---
 
-```bash
-cd Synthetic_Socio_Wind_Tunnel
-pip install -e ".[dev]"      # Development with pytest
-pip install -e ".[full]"     # With LLM + Web editor (optional)
+## How It Works
+
+The simulation is built in two layers.
+
+### Layer 1 — Map Engine (adapted, open to modification)
+
+A CQRS spatial engine that models urban geography with the fidelity needed for social simulation. Built around a "Theater Model":
+
+```
+┌──────────────────────────────────────────────────────────────────┐
+│                        Agent Layer (actors)                      │
+└───────────────────────────┬──────────────────────────────────────┘
+                            │
+        ┌───────────────────┼────────────────────┐
+        ▼                   ▼                    ▼
+┌───────────────┐  ┌────────────────┐  ┌──────────────────┐
+│ Engine (WRITE)│  │Perception(READ)│  │Cartography(SETUP)│
+│ movement      │  │ per-agent view │  │ OSM import       │
+│ doors, items  │  │ filter chain   │  │ map builder      │
+└───────┬───────┘  └───────┬────────┘  └──────────────────┘
+        │                  │
+        ▼                  ▼
+┌─────────────────────────────────────────┐
+│  Atlas (static map)  │  Ledger (state)  │
+│  buildings, rooms,   │  positions,      │
+│  doors, geometry     │  items, doors    │
+└─────────────────────────────────────────┘
 ```
 
-## Quick Start
+Key properties of the engine:
+- **Atlas** — immutable geography (OpenStreetMap → GeoJSON → region)
+- **Ledger** — mutable world state (where everyone and everything is)
+- **Rashomon Effect** — same space, different subjective experiences per agent (skill, emotion, knowledge all filter perception)
+- **Schrödinger Details** — room contents don't exist until an agent looks; generated on demand, constrained by spatial budget
+- **Cognitive Map** — agents don't know the full layout; they discover it by moving
 
-```python
-from synthetic_socio_wind_tunnel import (
-    Atlas, Ledger, SimulationService, CollapseService,
-    PerceptionPipeline, ObserverContext, ExplorationService
-)
-from synthetic_socio_wind_tunnel.cartography.builder import RegionBuilder
-from synthetic_socio_wind_tunnel.atlas.models import Material
+### Layer 2 — Agent System (in development)
 
-# Build a simple map programmatically
-region = (
-    RegionBuilder("my_town", "My Town")
-    .add_building("house", "Old House")
-        .material(Material.WOOD)
-        .polygon([(0, 0), (10, 0), (10, 8), (0, 8)])
-        .add_room("living_room", "Living Room")
-            .room_polygon([(0, 0), (6, 0), (6, 8), (0, 8)])
-            .add_container("bookshelf", "Bookshelf", "bookshelf", item_capacity=20)
-            .end_room()
-        .add_room("kitchen", "Kitchen")
-            .room_polygon([(6, 0), (10, 0), (10, 8), (6, 8)])
-            .connects_to("living_room")
-            .end_room()
-        .end_building()
-    .build()
-)
+1,000 agents with differentiated resolution:
 
-# Create services
-atlas = Atlas(region)
-ledger = Ledger()
-sim = SimulationService(atlas, ledger)
-perception = PerceptionPipeline(atlas, ledger)
+| Tier | Count | Model | Memory |
+|------|-------|-------|--------|
+| Protagonists | 10 | Full LLM (Sonnet) | Full episodic memory |
+| Supporting cast | ~200 | Mid-tier, context-triggered | Summary memory |
+| Background crowd | ~790 | Rule-based + lightweight LLM | Pattern memory |
 
-# Move character
-result = sim.move_entity("emma", "living_room")
-print(f"Move: {result.message}")
+**Plan-based execution** keeps costs viable: each agent generates a daily plan in one LLM call (~$3–5/day for the full 1,000-agent run), then follows it — replanning only when interrupted by an intervention or social encounter.
 
-# Get subjective view
-view = perception.render(ObserverContext(
-    entity_id="emma",
-    position=atlas.get_center("living_room"),
-    skills={"investigation": 0.9},
-))
-print(view.narrative)
-```
-
-## Key Features
-
-### 1. Spatial Budget System (空间预算系统)
-
-Containers have capacity limits defined in Atlas:
-
-```python
-# Atlas defines the physical container
-container_def = atlas.get_container_def("desk")
-# → item_capacity=8, surface_capacity=6
-
-# CollapseService respects these limits when generating
-budget = collapse.get_room_spatial_budget("office")
-# → total_capacity=39, containers={desk: {capacity: 8, used: 0}, ...}
-```
-
-### 2. Evidence Blueprint System (证据蓝图系统)
-
-Plot-required evidence is guaranteed to appear:
-
-```python
-# In ledger
-evidence_blueprints = {
-    "poison_bottle": {
-        "required_in": "desk_drawer_bottom",
-        "must_contain": ["small glass bottle", "residue"],
-        "discoverable_facts": ["The poison was purchased recently"]
-    }
-}
-
-# When examined, CollapseService ensures evidence appears
-detail = collapse.examine_container("desk_drawer_bottom", "emma", "office")
-# → Includes poison bottle with constrained details
-```
-
-### 3. Door/Lock System (门锁系统)
-
-Doors have static definitions in Atlas and dynamic state in Ledger:
-
-```python
-# Static definition
-door = atlas.get_door("door_lobby_office")
-# → can_lock=True, lock_key_id="office_key"
-
-# Dynamic state
-sim.lock_door("door_lobby_office", "librarian")  # Requires key
-sim.unlock_door("door_lobby_office", "librarian")
-```
-
-### 4. Navigation Service (导航服务)
-
-Complete route planning with door awareness:
-
-```python
-from synthetic_socio_wind_tunnel import NavigationService
-from synthetic_socio_wind_tunnel.engine.navigation import PathStrategy
-
-nav = NavigationService(atlas, ledger)
-
-# Find route between any two locations
-result = nav.find_route("reading_room", "kitchen")
-print(result.describe())
-
-# Different path strategies
-result = nav.find_route("office", "kitchen", strategy=PathStrategy.AVOID_LOCKED)
-result = nav.find_route("office", "kitchen", strategy=PathStrategy.FEWEST_DOORS)
-
-# Get reachable locations
-nearby = nav.get_reachable_locations("lobby", max_distance=50.0)
-```
-
-### 5. Exploration Service (探索服务 / 认知地图)
-
-Characters don't instantly know all building layouts - they must explore:
-
-```python
-from synthetic_socio_wind_tunnel import ExplorationService
-
-exploration = ExplorationService(atlas, ledger)
-
-# What can Emma see from the lobby?
-visible = exploration.what_can_i_see("emma", "lobby")
-
-# Get detailed layout info
-layout = exploration.get_visible_layout("emma", "lobby")
-print(layout.current_room)      # Full info (current location)
-print(layout.visible_adjacent)  # Partial info (through doors)
-print(layout.known_locations)   # Memory (previously explored)
-
-# Moving auto-records exploration
-result = sim.move_entity("emma", "kitchen")
-print(result.data["is_new_discovery"])  # True if first visit
-```
-
-### 6. Rashomon Effect (罗生门效应)
-
-Same location, different experiences:
-
-```python
-# Detective Emma (high skill, relevant knowledge)
-emma_ctx = ObserverContext(
-    entity_id="emma",
-    position=atlas.get_center("office"),
-    skills={"investigation": 0.9},
-    knowledge=["victim was poisoned"],
-    suspicions=["linda"],
-)
-emma_view = perception.render(emma_ctx)
-# → Notices clues, interprets evidence
-
-# Random Visitor (low skill, no context)
-visitor_ctx = ObserverContext(
-    entity_id="visitor",
-    position=atlas.get_center("office"),
-    skills={"investigation": 0.2},
-)
-visitor_view = perception.render(visitor_ctx)
-# → Basic observation, misses subtleties
-```
-
-### 7. Multi-Modal Perception (多模态感知)
-
-Visual, auditory, and olfactory observations:
-
-```python
-view = perception.render(context)
-print(view.ambient_sounds)  # ['page_turning', 'clock_ticking']
-print(view.ambient_smells)  # ['old_books', 'wood_polish']
-
-# Observations include sense type
-for obs in view.observations:
-    print(f"{obs.sense}: {obs.interpreted}")
-```
-
-### 8. Filter Chain (滤镜链)
-
-Pluggable filters modify observations:
-
-```python
-from synthetic_socio_wind_tunnel.perception.filters import EnvironmentalFilter, SkillFilter
-
-pipeline = PerceptionPipeline(atlas, ledger, filters=[
-    EnvironmentalFilter(atlas, ledger),  # Lighting/weather effects
-    SkillFilter(atlas, ledger),          # Skill-based filtering
-])
-```
+---
 
 ## Project Structure
 
 ```
-synthetic_socio_wind_tunnel/
-├── synthetic_socio_wind_tunnel/
-│   ├── __init__.py           # Public API
-│   ├── core/                  # Shared types (Coord, Polygon)
-│   ├── atlas/                 # 🎭 Static Map (Read-Only)
-│   │   ├── models.py          # Region, Building, Room, DoorDef, ContainerDef
-│   │   └── service.py         # Atlas queries
-│   ├── ledger/                # 📋 Dynamic State (Read-Write)
-│   │   ├── models.py          # EntityState, ItemState, DoorState, EvidenceBlueprint
-│   │   └── service.py         # Ledger CRUD
-│   ├── engine/                # ⚙️ Write Operations
-│   │   ├── simulation.py      # SimulationService
-│   │   └── collapse.py        # CollapseService
-│   ├── perception/            # 📷 Read Operations
-│   │   ├── models.py          # ObserverContext, SubjectiveView, Snapshots
-│   │   ├── pipeline.py        # PerceptionPipeline
-│   │   ├── exploration.py     # ExplorationService (cognitive map)
-│   │   └── filters/           # Environmental, Audio, Olfactory, Skill
-│   └── cartography/           # 🗺️ Map Building (Offline)
-│       ├── importer.py        # GeoJSON import
-│       └── builder.py         # Programmatic building
-├── tests/                     # Test suite
-└── docs/                      # Documentation
+Synthetic_Socio_Wind_Tunnel/
+├── synthetic_socio_wind_tunnel/     # Map engine (adapted)
+│   ├── core/                        # Geometry primitives
+│   ├── atlas/                       # Static map layer
+│   ├── ledger/                      # Dynamic state layer
+│   ├── engine/                      # Write operations (movement, doors)
+│   ├── perception/                  # Read operations (per-agent views)
+│   │   └── filters/                 # Environmental, audio, olfactory, skill
+│   ├── cartography/                 # Map building from OSM/GeoJSON
+│   └── agent/                       # Agent profile, planner, runtime
+├── tests/                           # Test suite
+└── docs/
+    ├── 项目Brief.md                  # Full research brief
+    ├── agent_system/                 # Agent architecture (01–06)
+    └── map_pipeline/                 # Map building guide (01–03)
 ```
 
-## Testing
+---
+
+## Development Status
+
+| Component | Status |
+|-----------|--------|
+| Map engine (Atlas + Ledger) | ✅ Complete |
+| Simulation service (movement, doors, items) | ✅ Complete |
+| Perception pipeline + filter chain | ✅ Complete |
+| Navigation (door-aware pathfinding) | ✅ Complete |
+| Cognitive map (exploration memory) | ✅ Complete |
+| OSM/GeoJSON map import | ✅ Complete |
+| Agent profile + daily planner | 🔧 In progress |
+| Orchestrator + simulation clock | 🔧 In progress |
+| Intervention engine (Policy Hack) | 📋 Designed |
+| Model budget allocation (dynamic tiering) | 📋 Designed |
+| Experiment visualisation (heatmaps, trajectories) | 📋 Designed |
+
+---
+
+## Getting Started
 
 ```bash
-# Run all tests
-python -m pytest tests/ -v
+git clone git@github.com:york-zhouuu/-Synthetic-Socio-Wind-Tunnel-.git
+cd -Synthetic-Socio-Wind-Tunnel-
+pip install -e ".[dev]"
 
-# Verify imports
-python -c "from synthetic_socio_wind_tunnel import *; print('All imports OK')"
+python -m pytest tests/ -v
 ```
 
-## Architecture Benefits
+---
 
-1. **High Cohesion, Low Coupling**: Each module has single responsibility
-2. **CQRS Pattern**: Read/write operations are separated
-3. **Save/Load Simplicity**: Only Ledger needs serialization
-4. **Test Friendly**: Each component can be tested independently
-5. **AI Separation**: CollapseService (creation) vs PerceptionPipeline (rendering)
+## Context
 
-## See Also
+This project responds to the design brief *Border Crossings: Instruments of Erasure and Infiltration* — exploring new forms of social boundary that emerge at the intersection of digital and physical space in contemporary cities, and designing tools to penetrate them.
 
-- [项目Brief](docs/项目Brief.md) - Full project brief: theory, experiments, and research framework
-- [Agent System Design](docs/agent_system/) - Architecture for the 1,000-agent simulation
-- [Map Pipeline](docs/map_pipeline/) - OSM import and programmatic map building guide
+**Disciplines:** Social Design · Computational Social Science · Interactive System Design
+
+**Site:** High-density urban residential communities (reference case: Zetland/Green Square, Sydney)
+
+---
 
 ## License
 
