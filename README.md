@@ -164,6 +164,22 @@ This project responds to the design brief *Border Crossings: Instruments of Eras
 
 ---
 
+## Data sources & attribution
+
+The Lane Cove reference region is built from public geospatial data:
+
+| Source | Role | License |
+|---|---|---|
+| **OpenStreetMap** (via Overpass) | Roads, buildings, land use | [ODbL 1.0](https://www.openstreetmap.org/copyright) — © OpenStreetMap contributors |
+| **Overture Maps Foundation** — Buildings & Places themes | Building footprints + POI enrichment | [Overture attribution](https://docs.overturemaps.org/attribution/) — mixed ODbL / CDLA-P 2.0 |
+| **Geoscape G-NAF** | Optional address-level resolution (not yet wired) | [Open G-NAF EULA](https://data.gov.au/data/dataset/geocoded-national-address-file-g-naf) — © Geoscape Australia |
+| **Microsoft Global ML Building Footprints** | Reserved as fallback for geometry gaps | [CDLA-Permissive 2.0](https://github.com/microsoft/GlobalMLBuildingFootprints) |
+| **NSW DCS Spatial Services — Geoscape Buildings** | *Not used* (public-sector only) | — |
+
+Derived artifacts committed under `data/` (e.g. `lanecove_osm.geojson`,
+`lanecove_enriched.geojson`, `lanecove_atlas.json`) are combinations of the
+above; each downstream consumer must keep the attributions above intact.
+
 ## License
 
-MIT
+MIT (for project code).  Map data remains under the licences above.

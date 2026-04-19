@@ -210,6 +210,152 @@ class EvidenceBlueprint(BaseModel):
     generated_description: str | None = None
 
 
+class DynamicConnection(BaseModel):
+    """
+    A connection added at runtime (e.g., Space Unlock experiment).
+
+    Dynamic connections live in Ledger because Atlas is frozen.
+    NavigationService should check both Atlas.connections AND
+    Ledger.dynamic_connections when building its graph.
+    """
+    connection_id: str
+    from_id: str
+    to_id: str
+    path_type: str = "path"
+    distance: float = 10.0
+    bidirectional: bool = True
+    description: str = ""
+    added_at_tick: int | None = None
+
+
+class BorderOverride(BaseModel):
+    """
+    Runtime override for a border zone's permeability.
+
+    Used by Space Unlock experiments to dynamically change border permeability
+    without modifying the frozen Atlas data.
+    """
+    border_id: str
+    permeability: float  # 0.0 = impassable, 1.0 = fully open
+    changed_at_tick: int | None = None
+    reason: str = ""
+
+
+# ============================================================
+# 场所痕迹系统 (Location Trace — social layer written by agents)
+# ============================================================
+
+class TraceEvent(BaseModel):
+    """
+    A single event recorded at a location by agent activity.
+
+    These accumulate over time to form the social history of a place.
+    They are narrative (non-structured) so the LLM can interpret them freely.
+
+    Written by: SimulationService when agents visit, converse, leave objects, etc.
+    Read by: MapService when an agent queries what happened at a location.
+    """
+    sim_time: str  # e.g. "Day 1 09:30"
+    event_type: str  # "visit", "conversation", "object_placed", "activity", "incident"
+    agent_id: str | None = None  # who caused this event (None = environment)
+    description: str  # free-text narrative, e.g. "陈大爷在长椅上坐了40分钟，与路过的李阿姨聊了新街市的事"
+
+
+class LocationTrace(BaseModel):
+    """
+    The accumulated social history of a location, written by agent behavior.
+
+    This IS the social layer — it is not pre-defined in Atlas,
+    it emerges from what agents actually do here.
+    """
+    loc_id: str
+    events: list[TraceEvent] = Field(default_factory=list)
+
+    def recent(self, n: int = 10) -> list[TraceEvent]:
+        """Return the n most recent events."""
+        return self.events[-n:]
+
+
+# ============================================================
+# Agent Knowledge Map (每个 agent 对地图的主观认知)
+# ============================================================
+
+class LocationFamiliarity(str, Enum):
+    """How well an agent knows a location."""
+    UNKNOWN = "unknown"           # Agent has no idea this place exists
+    HEARD_OF = "heard_of"         # Someone mentioned it, or intervention notification
+    SEEN_EXTERIOR = "seen_exterior"  # Walked past, saw the facade
+    VISITED = "visited"           # Has been inside / spent time here
+    REGULAR = "regular"           # Goes here often, knows the routines
+
+
+class AgentLocationKnowledge(BaseModel):
+    """
+    An agent's subjective knowledge of a single location.
+
+    This is NOT objective data — it is what THIS agent knows/believes
+    about this location, which may be incomplete or outdated.
+    """
+    loc_id: str
+    familiarity: LocationFamiliarity = LocationFamiliarity.UNKNOWN
+    known_name: str | None = None  # what the agent calls this place
+    known_affordances: list[str] = Field(default_factory=list)  # what agent thinks they can do here
+    subjective_impression: str | None = None  # agent's own description/feeling (free text)
+    last_visit: str | None = None  # sim_time of last visit
+    visit_count: int = 0
+    learned_from: str = "unknown"  # "self_visit" / "agent:chen_daye" / "intervention:policy_hack_1"
+
+
+class AgentKnowledgeMap(BaseModel):
+    """
+    An agent's complete subjective map of the world.
+
+    Agents literally don't know places exist until they walk past them,
+    hear about them from others, or receive an intervention notification.
+    This is the core of informational borders.
+    """
+    agent_id: str
+    locations: dict[str, AgentLocationKnowledge] = Field(default_factory=dict)
+
+    def get(self, loc_id: str) -> AgentLocationKnowledge:
+        """Get knowledge about a location (returns UNKNOWN if not in map)."""
+        return self.locations.get(loc_id, AgentLocationKnowledge(loc_id=loc_id))
+
+    def knows(self, loc_id: str) -> bool:
+        """Returns True if agent knows this place exists (familiarity != UNKNOWN)."""
+        k = self.locations.get(loc_id)
+        return k is not None and k.familiarity != LocationFamiliarity.UNKNOWN
+
+    def update(
+        self,
+        loc_id: str,
+        familiarity: LocationFamiliarity,
+        learned_from: str = "self_visit",
+        **kwargs,
+    ) -> None:
+        """Update or create knowledge entry. Only upgrades familiarity (never downgrades)."""
+        existing = self.locations.get(loc_id)
+        if existing is None:
+            self.locations[loc_id] = AgentLocationKnowledge(
+                loc_id=loc_id,
+                familiarity=familiarity,
+                learned_from=learned_from,
+                **kwargs,
+            )
+        else:
+            # Only upgrade familiarity
+            order = list(LocationFamiliarity)
+            if order.index(familiarity) > order.index(existing.familiarity):
+                existing.familiarity = familiarity
+            for key, val in kwargs.items():
+                if hasattr(existing, key):
+                    setattr(existing, key, val)
+
+    def known_locations(self) -> list[AgentLocationKnowledge]:
+        """Return all locations the agent knows about."""
+        return [k for k in self.locations.values() if k.familiarity != LocationFamiliarity.UNKNOWN]
+
+
 class LedgerData(BaseModel):
     """Complete world state. Serializable for save/load."""
     # Time
@@ -229,6 +375,12 @@ class LedgerData(BaseModel):
     # Door states (dynamic state, definitions in Atlas)
     door_states: dict[str, DoorState] = Field(default_factory=dict)
 
+    # Dynamic connections (added at runtime, e.g., Space Unlock)
+    dynamic_connections: dict[str, DynamicConnection] = Field(default_factory=dict)
+
+    # Border overrides (runtime permeability changes)
+    border_overrides: dict[str, BorderOverride] = Field(default_factory=dict)
+
     # Evidence blueprints (plot-required evidence)
     evidence_blueprints: dict[str, EvidenceBlueprint] = Field(default_factory=dict)
 
@@ -245,6 +397,12 @@ class LedgerData(BaseModel):
     # Exploration tracking (认知地图)
     # Maps entity_id -> set of location_ids they have explored
     explored_locations: dict[str, set[str]] = Field(default_factory=dict)
+
+    # Location social traces (agent-written social history of places)
+    location_traces: dict[str, LocationTrace] = Field(default_factory=dict)
+
+    # Agent knowledge maps (subjective per-agent map of the world)
+    agent_knowledge_maps: dict[str, AgentKnowledgeMap] = Field(default_factory=dict)
 
     # Event log
     events: list[dict[str, Any]] = Field(default_factory=list)

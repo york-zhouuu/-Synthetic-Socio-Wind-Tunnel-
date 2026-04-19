@@ -1,14 +1,20 @@
 """
 Atlas Service - Read-only queries on static map data.
 
-Atlas is the "Stage" - it provides spatial queries but never modifies data.
+Atlas is the "Stage" — it provides spatial queries but never modifies data.
 All methods are pure functions with no side effects.
+
+Designed for urban community social simulation:
+- Location queries (buildings, streets, outdoor areas)
+- Spatial queries (radius search, containment)
+- Pathfinding (A* with connection graph)
+- Line of sight / sound propagation
+- Border zone queries
 """
 
 from __future__ import annotations
 import json
 from pathlib import Path
-from typing import Protocol
 import heapq
 
 from synthetic_socio_wind_tunnel.atlas.models import (
@@ -22,6 +28,8 @@ from synthetic_socio_wind_tunnel.atlas.models import (
     Material,
     ContainerDef,
     DoorDef,
+    BorderZone,
+    BorderType,
 )
 
 
@@ -29,13 +37,7 @@ class Atlas:
     """
     Read-only service for querying static map data.
 
-    Atlas is immutable after construction. It provides:
-    - Location lookups
-    - Spatial queries (containment, distance)
-    - Pathfinding
-    - Line of sight / sound propagation
-
-    Thread-safe (no mutable state).
+    Atlas is immutable after construction. Thread-safe (no mutable state).
     """
 
     __slots__ = ("_region", "_connection_graph")
@@ -68,6 +70,10 @@ class Atlas:
     @property
     def region_name(self) -> str:
         return self._region.name
+
+    @property
+    def region(self) -> Region:
+        return self._region
 
     # ========== Location Queries ==========
 
@@ -114,26 +120,63 @@ class Atlas:
                 return building
         return None
 
+    # ========== Type-based Queries (按类型查询) ==========
+
+    def list_buildings_by_type(self, building_type: str) -> list[Building]:
+        """List all buildings of a given type (cafe, residential, etc.)."""
+        return [
+            b for b in self._region.buildings.values()
+            if b.building_type == building_type
+        ]
+
+    def list_residential_buildings(self) -> list[Building]:
+        """All residential buildings, as candidate homes for agent placement.
+
+        Used by orchestrators / agent factories to assign `AgentProfile.home_location`.
+        Each residential building carries a default `reside` affordance with a
+        `capacity` hint so callers can spread agents without overfilling.
+        Phase 2 (see openspec/changes/phase-2-roadmap) will layer tenant and
+        household demographics on top of this list.
+        """
+        return self.list_buildings_by_type("residential")
+
+    def list_street_segments(self) -> list[OutdoorArea]:
+        """List all street segments."""
+        return [
+            a for a in self._region.outdoor_areas.values()
+            if a.is_street
+        ]
+
+    def list_street_segments_by_road(self, road_name: str) -> list[OutdoorArea]:
+        """List all segments of a specific road, ordered by segment_index."""
+        segments = [
+            a for a in self._region.outdoor_areas.values()
+            if a.is_street and a.road_name == road_name
+        ]
+        segments.sort(key=lambda s: s.segment_index or 0)
+        return segments
+
+    def list_open_spaces(self) -> list[OutdoorArea]:
+        """List all non-street outdoor areas (parks, plazas, etc.)."""
+        return [
+            a for a in self._region.outdoor_areas.values()
+            if not a.is_street
+        ]
+
+    def list_road_names(self) -> list[str]:
+        """List all unique road names."""
+        names: set[str] = set()
+        for area in self._region.outdoor_areas.values():
+            if area.is_street and area.road_name:
+                names.add(area.road_name)
+        return sorted(names)
+
     # ========== Hierarchical Queries (层级查询) ==========
 
     def get_building_info(self, building_id: str) -> dict | None:
         """
         获取建筑的完整信息，包括所有房间摘要。
-
         Agent 到达新建筑时调用此方法了解内部结构。
-
-        Returns:
-            {
-                "id": "library",
-                "name": "Maple Creek Public Library",
-                "type": "public",
-                "rooms": [
-                    {"id": "lobby", "name": "Lobby", "type": "lobby", "connected_to": ["office", "reading_room"]},
-                    ...
-                ],
-                "entrance": {"x": 10.0, "y": 5.0},
-                "doors": [{"id": "door_lobby_office", "from": "lobby", "to": "office", "can_lock": True}, ...]
-            }
         """
         building = self.get_building(building_id)
         if not building:
@@ -164,32 +207,20 @@ class Atlas:
             "id": building.id,
             "name": building.name,
             "type": building.building_type,
+            "description": building.description,
             "rooms": rooms_info,
-            "entrance": {"x": building.entrance_coord.x, "y": building.entrance_coord.y} if building.entrance_coord else None,
+            "entrance": {
+                "x": building.entrance_coord.x,
+                "y": building.entrance_coord.y,
+            } if building.entrance_coord else None,
             "doors": doors_info,
+            "active_hours": building.active_hours,
         }
 
     def get_room_info(self, room_id: str) -> dict | None:
         """
         获取房间的完整信息，包括容器和连接。
-
         Agent 进入房间时调用此方法了解可交互对象。
-
-        Returns:
-            {
-                "id": "office",
-                "name": "Office",
-                "type": "office",
-                "building_id": "library",
-                "connected_rooms": ["lobby"],
-                "containers": [
-                    {"id": "desk", "name": "Oak Desk", "type": "desk", "can_lock": True},
-                    ...
-                ],
-                "doors": [{"id": "door_lobby_office", "to": "lobby", "can_lock": True}],
-                "typical_sounds": ["clock_ticking"],
-                "typical_smells": ["old_books"]
-            }
         """
         room = self.get_room(room_id)
         if not room:
@@ -233,26 +264,7 @@ class Atlas:
     def get_region_overview(self) -> dict:
         """
         获取整个区域的概览。
-
         Agent 初始化时调用此方法了解世界结构。
-
-        Returns:
-            {
-                "id": "maple_creek",
-                "name": "Maple Creek",
-                "buildings": [
-                    {"id": "library", "name": "Maple Creek Public Library", "type": "public", "room_count": 4},
-                    ...
-                ],
-                "outdoor_areas": [
-                    {"id": "town_square", "name": "Town Square", "type": "plaza"},
-                    ...
-                ],
-                "connections": [
-                    {"from": "library", "to": "town_square", "type": "path", "distance": 15.0},
-                    ...
-                ]
-            }
         """
         buildings_info = []
         for building in self._region.buildings.values():
@@ -261,6 +273,7 @@ class Atlas:
                 "name": building.name,
                 "type": building.building_type,
                 "room_count": len(building.rooms),
+                "description": building.description,
             })
 
         outdoor_info = []
@@ -269,6 +282,8 @@ class Atlas:
                 "id": area.id,
                 "name": area.name,
                 "type": area.area_type,
+                "is_street": area.is_street,
+                "road_name": area.road_name,
             })
 
         connections_info = []
@@ -281,21 +296,27 @@ class Atlas:
                 "bidirectional": conn.bidirectional,
             })
 
+        borders_info = []
+        for border in self._region.borders.values():
+            borders_info.append({
+                "id": border.border_id,
+                "name": border.name,
+                "type": border.border_type.value,
+                "permeability": border.permeability,
+            })
+
         return {
             "id": self._region.id,
             "name": self._region.name,
             "buildings": buildings_info,
             "outdoor_areas": outdoor_info,
             "connections": connections_info,
+            "borders": borders_info,
+            "road_names": self.list_road_names(),
         }
 
     def list_containers_in_room(self, room_id: str) -> list[dict]:
-        """
-        列出房间内所有容器的摘要信息。
-
-        Returns:
-            [{"id": "desk", "name": "Oak Desk", "type": "desk", "can_lock": True}, ...]
-        """
+        """列出房间内所有容器的摘要信息。"""
         room = self.get_room(room_id)
         if not room or not room.containers:
             return []
@@ -312,43 +333,34 @@ class Atlas:
         ]
 
     def list_all_locations(self) -> list[dict]:
-        """
-        列出所有可访问的位置。
-
-        Returns:
-            [
-                {"id": "library", "name": "...", "type": "building"},
-                {"id": "lobby", "name": "...", "type": "room", "parent": "library"},
-                {"id": "town_square", "name": "...", "type": "outdoor"},
-                ...
-            ]
-        """
+        """列出所有可访问的位置。"""
         locations = []
 
-        # Buildings
         for building in self._region.buildings.values():
             locations.append({
                 "id": building.id,
                 "name": building.name,
                 "type": "building",
+                "building_type": building.building_type,
                 "parent": None,
             })
-            # Rooms in building
             for room in building.rooms.values():
                 locations.append({
                     "id": room.id,
                     "name": room.name,
                     "type": "room",
+                    "room_type": room.room_type,
                     "parent": building.id,
                 })
 
-        # Outdoor areas
         for area in self._region.outdoor_areas.values():
             locations.append({
                 "id": area.id,
                 "name": area.name,
-                "type": "outdoor",
+                "type": "street" if area.is_street else "outdoor",
+                "area_type": area.area_type,
                 "parent": None,
+                "road_name": area.road_name,
             })
 
         return locations
@@ -374,6 +386,51 @@ class Atlas:
     def get_door_between(self, room_a: str, room_b: str) -> DoorDef | None:
         """Get door connecting two rooms, if any."""
         return self._region.get_door_between(room_a, room_b)
+
+    # ========== Border Queries (边界查询) ==========
+
+    def get_border(self, border_id: str) -> BorderZone | None:
+        """Get border zone by ID."""
+        return self._region.borders.get(border_id)
+
+    def list_borders(self, border_type: BorderType | None = None) -> list[BorderZone]:
+        """List all borders, optionally filtered by type."""
+        borders = list(self._region.borders.values())
+        if border_type is not None:
+            borders = [b for b in borders if b.border_type == border_type]
+        return borders
+
+    def get_border_between_locations(
+        self, loc_a: str, loc_b: str,
+    ) -> BorderZone | None:
+        """Find a border that separates two locations (one on each side)."""
+        for border in self._region.borders.values():
+            a_in_a = loc_a in border.side_a
+            a_in_b = loc_a in border.side_b
+            b_in_a = loc_b in border.side_a
+            b_in_b = loc_b in border.side_b
+            if (a_in_a and b_in_b) or (a_in_b and b_in_a):
+                return border
+        return None
+
+    def get_border_side(self, border_id: str, location_id: str) -> str | None:
+        """Determine which side of a border a location is on. Returns 'a', 'b', or None."""
+        border = self._region.borders.get(border_id)
+        if not border:
+            return None
+        if location_id in border.side_a:
+            return "a"
+        if location_id in border.side_b:
+            return "b"
+        return None
+
+    def locations_on_same_side(self, border_id: str, loc_a: str, loc_b: str) -> bool | None:
+        """Check if two locations are on the same side of a border. None if either not in border."""
+        side_a = self.get_border_side(border_id, loc_a)
+        side_b = self.get_border_side(border_id, loc_b)
+        if side_a is None or side_b is None:
+            return None
+        return side_a == side_b
 
     # ========== Spatial Queries ==========
 
@@ -406,14 +463,47 @@ class Atlas:
             return None
         return from_center.distance_to(to_center)
 
+    def locations_within_radius(
+        self, center: Coord, radius: float,
+    ) -> list[tuple[str, float]]:
+        """
+        Find all locations whose center is within radius of a point.
+
+        Returns list of (location_id, distance) sorted by distance.
+        """
+        results: list[tuple[str, float]] = []
+
+        for building in self._region.buildings.values():
+            d = building.center.distance_to(center)
+            if d <= radius:
+                results.append((building.id, d))
+
+        for area in self._region.outdoor_areas.values():
+            d = area.center.distance_to(center)
+            if d <= radius:
+                results.append((area.id, d))
+
+        results.sort(key=lambda x: x[1])
+        return results
+
+    def locations_within_radius_of(
+        self, location_id: str, radius: float,
+    ) -> list[tuple[str, float]]:
+        """Find all locations within radius of another location's center."""
+        center = self.get_center(location_id)
+        if center is None:
+            return []
+        return [
+            (lid, d) for lid, d in self.locations_within_radius(center, radius)
+            if lid != location_id
+        ]
+
     # ========== Line of Sight ==========
 
     def can_see(self, from_coord: Coord, to_coord: Coord) -> tuple[bool, list[str]]:
         """
         Check line of sight between two points.
-
-        Returns:
-            (can_see, list of blocking obstacle IDs)
+        Returns (can_see, list of blocking obstacle IDs).
         """
         obstacles: list[str] = []
         for building in self._region.buildings.values():
@@ -433,15 +523,11 @@ class Atlas:
     def sound_attenuation(self, from_coord: Coord, to_coord: Coord) -> float:
         """
         Calculate sound attenuation between two points.
-
-        Returns:
-            Factor from 0.0 (silent) to 1.0 (full volume)
+        Returns factor from 0.0 (silent) to 1.0 (full volume).
         """
         dist = from_coord.distance_to(to_coord)
-        # Inverse square law (simplified)
         base = min(1.0, 10.0 / max(1.0, dist))
 
-        # Wall absorption
         factor = 1.0
         for building in self._region.buildings.values():
             if self._line_intersects_polygon(from_coord, to_coord, building.polygon):
@@ -457,9 +543,7 @@ class Atlas:
     def find_path(self, from_id: str, to_id: str) -> tuple[bool, list[str], float]:
         """
         Find shortest path between two locations.
-
-        Returns:
-            (success, path as list of location IDs, total distance)
+        Returns (success, path as list of location IDs, total distance).
         """
         if from_id == to_id:
             return True, [from_id], 0.0

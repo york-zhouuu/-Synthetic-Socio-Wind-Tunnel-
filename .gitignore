@@ -65,3 +65,12 @@ venv.bak/
 # OS
 .DS_Store
 Thumbs.db
+
+# Map enrichment snapshots — timestamped raw pulls are big and regeneratable;
+# the "latest" aliases (data/overture_buildings.geojson, data/overture_places.geojson)
+# and the merged product (data/lanecove_enriched.geojson) are NOT ignored and
+# should be committed so that pipeline is reproducible without re-pulling.
+data/sources/
+
+# Local AI / tooling caches
+.claude/

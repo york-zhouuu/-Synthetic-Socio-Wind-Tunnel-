@@ -1,0 +1,36 @@
+schema: spec-driven
+
+# Project context shown to AI when creating artifacts.
+context: |
+  项目：Synthetic Socio Wind Tunnel
+  定位：AI 多智能体城市社会推演系统，研究"超在地性边界渗透"——
+        数字干预如何打破高密度城市社区中的无形社会壁垒。
+
+  技术栈：Python 3.11+、Pydantic、pytest；可选 anthropic SDK、GeoJSON/OSM。
+  架构：CQRS 分离（Atlas 只读静态布景 / Ledger 可读写动态状态），
+        服务层（Engine/Perception）无状态业务逻辑。
+  核心隐喻："剧组模型"——导演（Collapse/LLM）、布景（Atlas）、
+           道具（Ledger）、演员（Agent）、摄影机（Perception）。
+
+  关键不变量：
+  - Atlas 不可变；Ledger 是唯一可变事实来源。
+  - 薛定谔细节：物品/房间细节在首次观察前不存在，一经生成永久化。
+  - 感知主观性：同一场景通过不同 ObserverContext 产生不同 SubjectiveView。
+  - 信息边界：agent 仅可见自己 AgentKnowledgeMap 中的位置。
+  - 街道即位置：路段是可导航 OutdoorArea，agent 会在路上相遇。
+
+  编码规范：Pydantic BaseModel / dataclass、类型注解完整、pytest 覆盖公共契约。
+  注释偏好：优先命名表达意图；仅在 WHY 非显然时写注释。
+  文档语言：中文为主，专有术语保留英文。
+
+# Per-artifact rules
+rules:
+  proposal:
+    - 必须说明"为什么要改"，而不仅是"改什么"
+    - 明确列出非目标（Non-goals）以控制范围
+  spec:
+    - 每条 Requirement 使用 SHALL / MUST / SHOULD 措辞
+    - 至少配一个 Scenario（WHEN/THEN）作为可验证契约
+    - 引用代码符号时用 `module.ClassName` 全称
+  tasks:
+    - 单任务 ≤ 2 小时；跨模块改动拆分为独立任务

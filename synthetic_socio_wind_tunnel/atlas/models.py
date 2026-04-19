@@ -1,14 +1,16 @@
 """
-Atlas Data Models - Immutable geographic structures.
+Atlas Data Models - Immutable geographic structures for community simulation.
 
-These models define the physical reality of the game world.
-They are:
-- Immutable after loading
+These models define the physical reality of an urban community:
+- Buildings with functional types (cafe, residential, library...)
+- Outdoor areas with area types (park, plaza, street segment...)
+- Connections between locations (paths, entrances, intersections)
+- Border zones representing social/physical/informational boundaries
+
+Key principles:
+- Immutable after loading (frozen Pydantic models)
 - Observer-independent (physics is the same for everyone)
-- Pure geometry and materials (no descriptions, no state)
-
-Key principle: Atlas models have NO behavior, only data.
-All queries go through the Atlas service.
+- All queries go through the Atlas service
 """
 
 from __future__ import annotations
@@ -20,8 +22,9 @@ from synthetic_socio_wind_tunnel.core.types import Coord, Polygon
 
 __all__ = [
     "Coord", "Polygon",  # Re-exported from core
-    "Material", "SlotSize", "FurnitureSlot", "ContainerDef",
+    "Material", "ActivityAffordance", "EntrySignals", "ContainerDef",
     "Room", "Building", "OutdoorArea", "Connection", "DoorDef", "Region",
+    "BorderType", "BorderZone",
 ]
 
 
@@ -34,6 +37,8 @@ class Material(str, Enum):
     METAL = "metal"
     FABRIC = "fabric"
     VEGETATION = "vegetation"
+    CONCRETE = "concrete"
+    ASPHALT = "asphalt"
 
     @property
     def sound_absorption(self) -> float:
@@ -46,6 +51,8 @@ class Material(str, Enum):
             Material.BRICK: 0.6,
             Material.STONE: 0.7,
             Material.METAL: 0.8,
+            Material.CONCRETE: 0.7,
+            Material.ASPHALT: 0.5,
         }.get(self, 0.5)
 
     @property
@@ -59,30 +66,66 @@ class Material(str, Enum):
 
 
 # ============================================================
-# 空间预算系统 (Spatial Budget System)
+# Activity Affordance (空间功能性编码 — 这里能做什么)
 # ============================================================
 
-class SlotSize(str, Enum):
-    """Furniture slot sizes."""
-    LARGE = "large"      # Desk, bookshelf, bed
-    MEDIUM = "medium"    # Chair, small table
-    SMALL = "small"      # Lamp, vase
-    SURFACE = "surface"  # Items on surfaces (unlimited conceptually)
-
-
-class FurnitureSlot(BaseModel):
+class ActivityAffordance(BaseModel):
     """
-    A slot where furniture can be placed.
+    What activities this space physically supports, and under what conditions.
 
-    Part of the Spatial Budget System - limits what can exist in a room.
+    This is NOT a social judgment — it is a physical fact about what can happen here.
+    The agent (LLM) decides whether those conditions match their situation.
+
+    Example:
+        ActivityAffordance(
+            activity_type="buy_coffee",
+            time_range=(7, 22),
+            requires=("payment",),
+            language_of_service=("English", "Mandarin"),
+            description="Espresso bar, table service. Average drink ¥38.",
+        )
     """
-    slot_id: str
-    size: SlotSize
-    position_hint: str = "any"  # "corner", "wall", "center", "window"
-    suitable_for: tuple[str, ...] = ()  # "desk", "bookshelf", etc.
+    activity_type: str  # buy_food, work, rest, socialize, exercise, transit, shop, buy_coffee
+    time_range: tuple[int, int] = (0, 24)  # hours when available
+    capacity: int | None = None  # max simultaneous occupants, None = unlimited
+    requires: tuple[str, ...] = ()  # physical prerequisites: "payment", "membership", "reservation"
+    language_of_service: tuple[str, ...] = ()  # languages staff can serve in
+    description: str = ""  # non-judgmental factual description
 
     model_config = {"frozen": True}
 
+
+# ============================================================
+# Entry Signals (从外部可观察到的信息)
+# ============================================================
+
+class EntrySignals(BaseModel):
+    """
+    What an agent can observe from outside before deciding to enter.
+
+    These are physical, observable facts — NOT social judgments.
+    The agent (LLM) interprets these signals based on their own background.
+
+    Example:
+        EntrySignals(
+            visible_from_street=("glass facade", "people with laptops inside", "espresso machine"),
+            signage=("SUNRISE CAFÉ", "Wi-Fi Available", "English menu posted outside"),
+            price_visible="Coffee ¥35–48",
+            facade_description="Modern glass storefront, chalk menu board in English and Mandarin, "
+                               "bright interior with pendant lights.",
+        )
+    """
+    visible_from_street: tuple[str, ...] = ()  # what you can see through windows / from entrance
+    signage: tuple[str, ...] = ()  # text visible on signs, menus, boards
+    price_visible: str | None = None  # price info legible from outside
+    facade_description: str = ""  # physical description of exterior
+
+    model_config = {"frozen": True}
+
+
+# ============================================================
+# Container (保留，供室内细节按需生成使用)
+# ============================================================
 
 class ContainerDef(BaseModel):
     """
@@ -96,22 +139,22 @@ class ContainerDef(BaseModel):
     container_type: str  # "desk", "drawer", "bookshelf", "cabinet", "box"
 
     # Spatial budget for contents
-    item_capacity: int = 5          # Max number of items
-    surface_capacity: int = 3       # Items that can sit on top
+    item_capacity: int = 5
+    surface_capacity: int = 3
 
     # Interaction properties
     can_lock: bool = False
-    lock_key_id: str | None = None  # Item ID that can unlock this container
-    search_difficulty: float = 0.0  # 0-1, skill needed to search thoroughly
+    lock_key_id: str | None = None
+    search_difficulty: float = 0.0  # 0-1
 
     # Nested containers (e.g., desk has drawers)
-    sub_containers: tuple[str, ...] = ()  # IDs of nested containers
+    sub_containers: tuple[str, ...] = ()
 
     model_config = {"frozen": True}
 
 
 # ============================================================
-# Room with Spatial Budget
+# Room (建筑内部空间，按需生成)
 # ============================================================
 
 class Room(BaseModel):
@@ -119,6 +162,7 @@ class Room(BaseModel):
     id: str
     name: str
     polygon: Polygon
+    room_type: str = "generic"  # lobby, office, kitchen, bedroom, storage...
     floor: int = 0
     ceiling_height: float = 2.8
     floor_material: Material = Material.WOOD
@@ -126,18 +170,13 @@ class Room(BaseModel):
     has_windows: bool = True
     connected_rooms: frozenset[str] = Field(default_factory=frozenset)
 
-    # ===== Spatial Budget System =====
-    # Furniture slots define WHERE things can be placed
-    furniture_slots: dict[str, FurnitureSlot] = Field(default_factory=dict)
-
     # Container definitions - WHAT containers exist (static)
-    # The actual state (filled, locked) is in Ledger
     containers: dict[str, ContainerDef] = Field(default_factory=dict)
 
     # Ambient properties affecting perception
     typical_lighting: str = "normal"  # "dark", "dim", "normal", "bright"
-    typical_sounds: tuple[str, ...] = ()  # "clock_ticking", "traffic"
-    typical_smells: tuple[str, ...] = ()  # "old_books", "coffee"
+    typical_sounds: tuple[str, ...] = ()
+    typical_smells: tuple[str, ...] = ()
 
     model_config = {"frozen": True}
 
@@ -152,14 +191,36 @@ class Room(BaseModel):
 
 
 class Building(BaseModel):
-    """A building structure containing rooms."""
+    """A building in the community."""
     id: str
     name: str
     polygon: Polygon
+
+    # Functional classification
+    building_type: str = "generic"  # residential, cafe, library, shop, school, office...
+    osm_tags: dict[str, str] = Field(default_factory=dict)
+    description: str = ""
+
+    # Physical properties
     floors: int = 1
     exterior_material: Material = Material.BRICK
-    rooms: dict[str, Room] = Field(default_factory=dict)
     entrance_coord: Coord | None = None
+
+    # Rooms (may be empty initially, generated on-demand via CollapseService)
+    rooms: dict[str, Room] = Field(default_factory=dict)
+
+    # Activity schedule (24h format, None = always accessible)
+    active_hours: tuple[int, int] | None = None  # e.g. (7, 22) = 7:00-22:00
+
+    # Ambient properties for perception
+    typical_sounds: tuple[str, ...] = ()
+    typical_smells: tuple[str, ...] = ()
+
+    # What this space affords (physical activities possible here)
+    affordances: tuple[ActivityAffordance, ...] = Field(default_factory=tuple)
+
+    # What is observable from outside before entering
+    entry_signals: EntrySignals = Field(default_factory=EntrySignals)
 
     model_config = {"frozen": True}
 
@@ -169,12 +230,38 @@ class Building(BaseModel):
 
 
 class OutdoorArea(BaseModel):
-    """An outdoor area (park, plaza, garden)."""
+    """
+    An outdoor area: park, plaza, street segment, or other open space.
+
+    Street segments are the key innovation — roads are modeled as walkable
+    OutdoorAreas so agents can encounter each other while traveling.
+    """
     id: str
     name: str
     polygon: Polygon
-    surface: str = "grass"
+
+    # Type classification
+    area_type: str = "park"  # park, plaza, street, playground, garden, parking
+    osm_tags: dict[str, str] = Field(default_factory=dict)
+    description: str = ""
+
+    # Physical properties
+    surface: str = "grass"  # grass, asphalt, concrete, cobblestone, gravel
     vegetation_density: float = 0.3  # 0-1, affects visibility
+
+    # Street-specific fields (only relevant when area_type == "street")
+    road_name: str | None = None  # e.g. "Main Street"
+    segment_index: int | None = None  # position in the road's segment sequence
+
+    # Ambient properties for perception
+    typical_sounds: tuple[str, ...] = ()
+    typical_smells: tuple[str, ...] = ()
+
+    # What this space affords (physical activities possible here)
+    affordances: tuple[ActivityAffordance, ...] = Field(default_factory=tuple)
+
+    # What is observable from outside / passing by
+    entry_signals: EntrySignals = Field(default_factory=EntrySignals)
 
     model_config = {"frozen": True}
 
@@ -182,12 +269,16 @@ class OutdoorArea(BaseModel):
     def center(self) -> Coord:
         return self.polygon.center
 
+    @property
+    def is_street(self) -> bool:
+        return self.area_type == "street"
+
 
 class Connection(BaseModel):
     """Physical connection between two locations."""
     from_id: str
     to_id: str
-    path_type: str = "path"  # path, road, door, stairs
+    path_type: str = "path"  # path, road, entrance, intersection, door, stairs
     distance: float
     bidirectional: bool = True
 
@@ -205,10 +296,56 @@ class DoorDef(BaseModel):
     from_room: str
     to_room: str
     can_lock: bool = False
-    lock_key_id: str | None = None  # Item ID that can unlock this door
+    lock_key_id: str | None = None
 
     model_config = {"frozen": True}
 
+
+# ============================================================
+# Border Zone (社会/物理/信息边界)
+# ============================================================
+
+class BorderType(str, Enum):
+    """Types of boundaries in the community."""
+    PHYSICAL = "physical"          # walls, fences, roads, terrain
+    SOCIAL = "social"              # class, culture, community rules
+    INFORMATIONAL = "informational"  # information silos, attention gaps
+
+
+class BorderZone(BaseModel):
+    """
+    A boundary between areas that affects movement and social interaction.
+
+    Borders are the core research object — experiments test how digital
+    interventions can strengthen, weaken, or dissolve these borders.
+
+    Example:
+        BorderZone(
+            border_id="railway_divide",
+            name="Railway Divide",
+            border_type=BorderType.PHYSICAL,
+            side_a=("block_a_seg_1", "block_a_seg_2", "house_1"),
+            side_b=("block_b_seg_1", "block_b_seg_2", "shop_1"),
+            permeability=0.2,
+            crossing_connections=("railway_underpass",),
+            description="The railway line divides the north and south neighborhoods.",
+        )
+    """
+    border_id: str
+    name: str
+    border_type: BorderType
+    side_a: tuple[str, ...] = ()  # location IDs on side A
+    side_b: tuple[str, ...] = ()  # location IDs on side B
+    permeability: float = 0.0  # 0.0 = impassable, 1.0 = fully open
+    crossing_connections: tuple[str, ...] = ()  # Connection IDs that cross this border
+    description: str = ""
+
+    model_config = {"frozen": True}
+
+
+# ============================================================
+# Region (根数据结构)
+# ============================================================
 
 class Region(BaseModel):
     """Complete static map data for a region. The root Atlas data structure."""
@@ -220,6 +357,7 @@ class Region(BaseModel):
     outdoor_areas: dict[str, OutdoorArea] = Field(default_factory=dict)
     connections: tuple[Connection, ...] = Field(default_factory=tuple)
     doors: dict[str, DoorDef] = Field(default_factory=dict)
+    borders: dict[str, BorderZone] = Field(default_factory=dict)
 
     model_config = {"frozen": True}
 

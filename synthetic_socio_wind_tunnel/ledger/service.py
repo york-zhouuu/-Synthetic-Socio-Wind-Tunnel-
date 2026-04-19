@@ -21,9 +21,16 @@ from synthetic_socio_wind_tunnel.ledger.models import (
     ClueState,
     ContainerState,
     DoorState,
+    DynamicConnection,
+    BorderOverride,
     EvidenceBlueprint,
     TimeOfDay,
     Weather,
+    TraceEvent,
+    LocationTrace,
+    AgentKnowledgeMap,
+    AgentLocationKnowledge,
+    LocationFamiliarity,
 )
 
 
@@ -397,6 +404,183 @@ class Ledger:
         if entity_id in self._data.explored_locations:
             del self._data.explored_locations[entity_id]
             self._log_event("exploration_cleared", entity_id=entity_id)
+
+    # ========== Dynamic Connections (Space Unlock) ==========
+
+    def add_dynamic_connection(
+        self,
+        connection_id: str,
+        from_id: str,
+        to_id: str,
+        path_type: str = "path",
+        distance: float = 10.0,
+        bidirectional: bool = True,
+        description: str = "",
+        tick: int | None = None,
+    ) -> DynamicConnection:
+        """
+        Add a new connection at runtime (e.g., Space Unlock experiment).
+
+        This connection is stored in Ledger and should be merged into
+        NavigationService's graph when computing paths.
+        """
+        conn = DynamicConnection(
+            connection_id=connection_id,
+            from_id=from_id,
+            to_id=to_id,
+            path_type=path_type,
+            distance=distance,
+            bidirectional=bidirectional,
+            description=description,
+            added_at_tick=tick,
+        )
+        self._data.dynamic_connections[connection_id] = conn
+        self._log_event(
+            "dynamic_connection_added",
+            connection_id=connection_id,
+            from_id=from_id,
+            to_id=to_id,
+        )
+        return conn
+
+    def remove_dynamic_connection(self, connection_id: str) -> bool:
+        """Remove a dynamic connection. Returns True if existed."""
+        if connection_id in self._data.dynamic_connections:
+            del self._data.dynamic_connections[connection_id]
+            self._log_event("dynamic_connection_removed", connection_id=connection_id)
+            return True
+        return False
+
+    def get_dynamic_connection(self, connection_id: str) -> DynamicConnection | None:
+        """Get a dynamic connection by ID."""
+        return self._data.dynamic_connections.get(connection_id)
+
+    def list_dynamic_connections(self) -> list[DynamicConnection]:
+        """List all dynamic connections."""
+        return list(self._data.dynamic_connections.values())
+
+    # ========== Border Overrides ==========
+
+    def set_border_permeability(
+        self,
+        border_id: str,
+        permeability: float,
+        tick: int | None = None,
+        reason: str = "",
+    ) -> BorderOverride:
+        """
+        Override a border zone's permeability at runtime.
+
+        Used by experiments to dynamically open/close borders.
+        """
+        override = BorderOverride(
+            border_id=border_id,
+            permeability=permeability,
+            changed_at_tick=tick,
+            reason=reason,
+        )
+        self._data.border_overrides[border_id] = override
+        self._log_event(
+            "border_permeability_changed",
+            border_id=border_id,
+            permeability=permeability,
+            reason=reason,
+        )
+        return override
+
+    def get_border_permeability(self, border_id: str) -> float | None:
+        """Get overridden permeability for a border. None if no override."""
+        override = self._data.border_overrides.get(border_id)
+        return override.permeability if override else None
+
+    def clear_border_override(self, border_id: str) -> bool:
+        """Remove a border override (revert to Atlas default). Returns True if existed."""
+        if border_id in self._data.border_overrides:
+            del self._data.border_overrides[border_id]
+            self._log_event("border_override_cleared", border_id=border_id)
+            return True
+        return False
+
+    # ========== Location Traces (社会层) ==========
+
+    def record_trace_event(
+        self,
+        loc_id: str,
+        event_type: str,
+        description: str,
+        sim_time: str,
+        agent_id: str | None = None,
+    ) -> TraceEvent:
+        """Record a social event at a location (written by agent activity)."""
+        event = TraceEvent(
+            sim_time=sim_time,
+            event_type=event_type,
+            agent_id=agent_id,
+            description=description,
+        )
+        if loc_id not in self._data.location_traces:
+            self._data.location_traces[loc_id] = LocationTrace(loc_id=loc_id)
+        self._data.location_traces[loc_id].events.append(event)
+        return event
+
+    def get_location_trace(self, loc_id: str) -> LocationTrace | None:
+        """Get social trace for a location. None if no events recorded yet."""
+        return self._data.location_traces.get(loc_id)
+
+    # ========== Agent Knowledge Maps (主观认知地图) ==========
+
+    def get_agent_knowledge_map(self, agent_id: str) -> AgentKnowledgeMap:
+        """Get (or create empty) knowledge map for an agent."""
+        if agent_id not in self._data.agent_knowledge_maps:
+            self._data.agent_knowledge_maps[agent_id] = AgentKnowledgeMap(agent_id=agent_id)
+        return self._data.agent_knowledge_maps[agent_id]
+
+    def set_agent_knowledge_map(self, knowledge_map: AgentKnowledgeMap) -> None:
+        """Store a full knowledge map (e.g., initial setup for demo agents)."""
+        self._data.agent_knowledge_maps[knowledge_map.agent_id] = knowledge_map
+
+    def update_agent_knowledge(
+        self,
+        agent_id: str,
+        loc_id: str,
+        familiarity: LocationFamiliarity,
+        learned_from: str = "self_visit",
+        **kwargs,
+    ) -> None:
+        """Update an agent's knowledge of a location."""
+        km = self.get_agent_knowledge_map(agent_id)
+        km.update(loc_id, familiarity, learned_from=learned_from, **kwargs)
+
+    def inject_knowledge(
+        self,
+        agent_id: str,
+        loc_id: str,
+        known_name: str,
+        known_affordances: list[str] | None = None,
+        subjective_impression: str | None = None,
+        source: str = "intervention",
+    ) -> None:
+        """
+        Policy Hack / Info Injection: give an agent HEARD_OF knowledge about a location.
+
+        This is how digital interventions change behavior — directly updating
+        what an agent knows exists, so they can add it to their plan.
+        """
+        km = self.get_agent_knowledge_map(agent_id)
+        km.update(
+            loc_id,
+            LocationFamiliarity.HEARD_OF,
+            learned_from=source,
+            known_name=known_name,
+            known_affordances=known_affordances or [],
+            subjective_impression=subjective_impression,
+        )
+        self._log_event(
+            "knowledge_injected",
+            agent_id=agent_id,
+            loc_id=loc_id,
+            source=source,
+        )
 
     # ========== Events ==========
 

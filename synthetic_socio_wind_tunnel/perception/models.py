@@ -151,6 +151,27 @@ class ObserverContext(BaseModel):
         return self.get_emotion("anxiety")
 
 
+class AgentProfile(BaseModel):
+    """
+    Agent background identity for social perception filtering.
+
+    Distinct from ObserverContext (which captures real-time sensory state),
+    AgentProfile captures the stable socio-cultural identity that shapes
+    how an agent reads and interprets social spaces.
+
+    Same physical location → same SocialProfile → different AgentProfile
+    → different comfort/belonging/exclusion experience.
+    """
+    agent_id: str
+    name: str
+    age_group: str = "adult"          # "elderly", "adult", "youth"
+    class_background: str = "middle"  # "working_class", "middle", "upper_middle"
+    languages: tuple[str, ...] = ("English",)
+    income_level: str = "mid"         # "low", "mid", "high"
+    home_side: str = "none"           # "old", "new", "both", "none"
+    social_groups: tuple[str, ...] = ()
+
+
 class Observation(BaseModel):
     """A single sensory observation."""
     sense: SenseType

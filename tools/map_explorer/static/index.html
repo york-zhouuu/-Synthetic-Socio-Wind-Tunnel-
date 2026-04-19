@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Map Explorer — Synthetic Socio Wind Tunnel</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+  <!-- ── Header ─────────────────────────────────────── -->
+  <header>
+    <h1>Map Explorer</h1>
+    <span class="region-name" id="region-name">加载中…</span>
+
+    <!-- Agent selector -->
+    <div class="agent-selector-wrap">
+      <span class="agent-selector-label">视角</span>
+      <select class="agent-select" id="agent-select">
+        <option value="none">上帝视角</option>
+        <option value="chen_daye">陈大爷 · 70岁 · 旧区老居民</option>
+        <option value="alex">Alex · 28岁 · 科技从业者</option>
+        <option value="mei">Mei · 32岁 · 自由设计师</option>
+        <option value="aisha">Aisha · 35岁 · 外籍人士</option>
+      </select>
+    </div>
+
+    <div class="header-controls">
+      <button class="toggle-btn active" id="btn-perception">感知范围</button>
+      <button class="toggle-btn" id="btn-connections">连接线</button>
+      <button class="toggle-btn active" id="btn-borders">边界线</button>
+      <button class="toggle-btn" id="btn-labels">标签</button>
+    </div>
+  </header>
+
+  <!-- ── Main ───────────────────────────────────────── -->
+  <div class="main">
+
+    <!-- Map -->
+    <div id="map-panel">
+      <div id="loading">加载地图数据…</div>
+      <svg id="map-svg"></svg>
+
+      <!-- Perception legend (shown in agent mode) -->
+      <div id="perception-legend" style="display:none">
+        <div class="perc-row"><div class="perc-swatch selected-swatch"></div>当前位置</div>
+        <div class="perc-row"><div class="perc-swatch visible-swatch"></div>视线可达</div>
+        <div class="perc-row"><div class="perc-swatch audible-swatch"></div>听觉可达</div>
+        <div class="perc-row"><div class="perc-swatch dim-swatch"></div>感知范围外</div>
+      </div>
+
+      <!-- Familiarity legend (shown in agent mode) -->
+      <div id="familiarity-legend" style="display:none">
+        <div class="fam-title">认知程度</div>
+        <div class="fam-row"><div class="fam-dot" style="background:#a0c4ff"></div>常去</div>
+        <div class="fam-row"><div class="fam-dot" style="background:#6c8ef7"></div>去过</div>
+        <div class="fam-row"><div class="fam-dot" style="background:#5a6080"></div>见过外观</div>
+        <div class="fam-row"><div class="fam-dot" style="background:#5a4a80"></div>听说过</div>
+        <div class="fam-row"><div class="fam-dot" style="background:#181922"></div>未知</div>
+      </div>
+
+      <!-- Type legend -->
+      <div id="legend">
+        <div class="legend-row"><div class="legend-swatch" style="background:#4a7fa5"></div>Residential</div>
+        <div class="legend-row"><div class="legend-swatch" style="background:#b5a040"></div>Shop</div>
+        <div class="legend-row"><div class="legend-swatch" style="background:#d4845a"></div>Cafe / Restaurant</div>
+        <div class="legend-row"><div class="legend-swatch" style="background:#606888"></div>Office</div>
+        <div class="legend-row"><div class="legend-swatch" style="background:#6a9e8f"></div>School</div>
+        <div class="legend-row"><div class="legend-swatch" style="background:#5a9e6f"></div>Community</div>
+        <div class="legend-row"><div class="legend-swatch" style="background:#3a3d52"></div>Street</div>
+        <div class="legend-row"><div class="legend-swatch" style="background:#3d7a52"></div>Park / Garden</div>
+        <div class="legend-row"><div class="legend-swatch" style="background:#4a4d62"></div>Generic</div>
+      </div>
+    </div>
+
+    <!-- Info Panel -->
+    <div id="info-panel">
+      <div class="info-placeholder" id="info-placeholder">
+        <div class="icon">🗺</div>
+        <div>点击地图区域</div>
+        <div style="font-size:11px;color:#555870;margin-top:4px">以当前视角查看场所信息</div>
+        <div style="font-size:10px;color:#3a3c52;margin-top:10px;line-height:1.7;text-align:left;background:#13141e;padding:10px;border-radius:6px;border:1px solid #1e2030">
+          <div style="color:#6c8ef7;font-size:9px;font-weight:700;letter-spacing:0.08em;margin-bottom:6px">视角说明</div>
+          <div style="color:#555870">上帝视角</div>
+          <div style="margin-bottom:6px;color:#3a3c52">完整物理事实，不含社会判断</div>
+          <div style="color:#555870">Agent 视角</div>
+          <div style="color:#3a3c52">仅显示该 Agent 认知地图中的地点<br>未知地点在地图上完全隐去</div>
+        </div>
+      </div>
+      <div id="info-content"></div>
+    </div>
+
+  </div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
