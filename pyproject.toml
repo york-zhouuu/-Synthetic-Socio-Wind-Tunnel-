@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "synthetic-socio-wind-tunnel"
-version = "0.4.1"
+version = "0.5.0"
 description = "AI multi-agent urban social simulation system for studying hyperlocal boundary penetration"
 readme = "README.md"
 license = {text = "MIT"}

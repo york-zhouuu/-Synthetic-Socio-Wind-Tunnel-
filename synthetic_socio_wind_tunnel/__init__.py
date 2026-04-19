@@ -12,6 +12,10 @@ Public API exports the main services and models.
 
 v0.4.0: Added structured error codes, events, director context, snapshots
 v0.4.1: Added ExplorationService for visibility-based exploration
+v0.5.0: Map enrichment (Overture Buildings + Places conflation), residential
+        semantics for agent home enumeration, cartography connectivity fixes
+        (OSM-shared-node intersection detection, ID dedup), project layout
+        tidy (production code separated from demos, full OpenSpec scaffolding)
 """
 
 from synthetic_socio_wind_tunnel.atlas import Atlas
@@ -52,7 +56,7 @@ from synthetic_socio_wind_tunnel.perception.models import (
     ClueSnapshot,
 )
 
-__version__ = "0.4.1"
+__version__ = "0.5.0"
 __all__ = [
     # Data Layer
     "Atlas",
