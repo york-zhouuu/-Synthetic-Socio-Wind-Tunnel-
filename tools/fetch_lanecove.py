@@ -1,222 +1,142 @@
 #!/usr/bin/env python3
 """
-Fetch OpenStreetMap data for Lane Cove, NSW 2066, Australia via Overpass API.
-
-Outputs GeoJSON to data/lanecove_osm.geojson.
+Fetch Lane Cove (NSW 2066) OSM data via separate Overpass queries
+to avoid timeout issues with a single large query.
 """
 
 import json
-import os
-import sys
 import time
-from pathlib import Path
+import requests
 from collections import defaultdict
 
-import requests
-
 OVERPASS_URL = "https://overpass-api.de/api/interpreter"
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
-OUTPUT_DIR = PROJECT_ROOT / "data"
-OUTPUT_FILE = OUTPUT_DIR / "lanecove_osm.geojson"
+REQUEST_TIMEOUT = 200  # seconds
+QUERY_DELAY = 5  # seconds between queries
+MAX_RETRIES = 3
 
-# Lane Cove 2066 bounding box: S, W, N, E
-# Covers: Lane Cove, Lane Cove West, Linley Point, Longueville
-# North: M2 / Lane Cove Tunnel
-# East:  Pacific Highway
-# South: Longueville / River Rd
-# West:  Lane Cove River
-BBOX = (-33.843, 151.145, -33.798, 151.178)
+# Lane Cove 2066 bounding box
+BBOX = "-33.843,151.145,-33.798,151.178"
+# Larger bbox for water features (Lane Cove River)
+WATER_BBOX = "-33.855,151.130,-33.790,151.190"
 
-
-def build_query_area(area_filter: str) -> str:
-    """Build an Overpass QL query using an area filter."""
-    return f"""
-[out:json][timeout:60];
-{area_filter}
-(
-  way["building"](area.searchArea);
-  way["highway"](area.searchArea);
-  way["leisure"](area.searchArea);
-  node["amenity"](area.searchArea);
-  node["shop"](area.searchArea);
-);
-out body;
->;
-out skel qt;
-"""
+POLYGON_TAGS = {"building", "leisure", "landuse", "water", "natural"}
 
 
-def build_query_bbox() -> str:
-    """Build an Overpass QL query using bounding box."""
-    s, w, n, e = BBOX
-    bbox = f"{s},{w},{n},{e}"
-    return f"""
-[out:json][timeout:120];
-(
-  way["building"]({bbox});
-  way["highway"]({bbox});
-  way["leisure"]({bbox});
-  way["landuse"]({bbox});
-  way["natural"="water"]({bbox});
-  way["natural"="coastline"]({bbox});
-  way["waterway"]({bbox});
-  relation["natural"="water"]({bbox});
-  node["amenity"]({bbox});
-  node["shop"]({bbox});
-);
-out body;
->;
-out skel qt;
-"""
-
-
-AREA_STRATEGIES = [
-    ('area["name"="Lane Cove"]["admin_level"="10"]->.searchArea;', "admin_level=10"),
-    ('area["name"="Lane Cove"]["boundary"="administrative"]->.searchArea;', "boundary=administrative"),
-    ('area["postal_code"="2066"]->.searchArea;', "postal_code=2066"),
-]
-
-
-def query_overpass(query: str) -> dict | None:
-    """Send a query to Overpass API and return parsed JSON, or None on failure."""
-    print(f"  Sending query ({len(query)} chars)...")
-    try:
-        resp = requests.post(OVERPASS_URL, data={"data": query}, timeout=120)
-        resp.raise_for_status()
-        data = resp.json()
-        n_elements = len(data.get("elements", []))
-        print(f"  Received {n_elements} elements.")
-        return data if n_elements > 0 else None
-    except requests.RequestException as exc:
-        print(f"  Request failed: {exc}")
-        return None
-
-
-def fetch_osm_data() -> dict:
-    """Use bounding box to fetch full 2066 area. Return Overpass JSON."""
-    print("Strategy: bounding box (full Lane Cove 2066 + LGA)")
-    query = build_query_bbox()
-    data = query_overpass(query)
-    if data:
-        return data
-
-    # Fallback: try area strategies
-    for area_filter, label in AREA_STRATEGIES:
-        print(f"Fallback strategy: {label}")
-        query = build_query_area(area_filter)
-        data = query_overpass(query)
-        if data:
-            return data
-        print("  No results, trying next strategy...")
-        time.sleep(2)
-
-    print("ERROR: All strategies failed.", file=sys.stderr)
-    sys.exit(1)
-
-
-# ---------------------------------------------------------------------------
-# Overpass JSON -> GeoJSON conversion
-# ---------------------------------------------------------------------------
-
-def overpass_to_geojson(data: dict) -> dict:
-    """Convert Overpass JSON to GeoJSON FeatureCollection.
-
-    - Nodes with tags become Point features.
-    - Ways with tags become LineString or Polygon features
-      (closed ways with building/leisure tags become Polygons).
-    - Bare nodes (no tags, used only as way references) are skipped.
-    """
-    elements = data.get("elements", [])
-
-    # Build node index: id -> (lon, lat)
-    node_index: dict[int, tuple[float, float]] = {}
-    way_index: dict[int, dict] = {}
-    for el in elements:
-        if el["type"] == "node":
-            node_index[el["id"]] = (el.get("lon", 0.0), el.get("lat", 0.0))
-        elif el["type"] == "way":
-            way_index[el["id"]] = el
-
-    features = []
-    stats: dict[str, int] = defaultdict(int)
-
-    for el in elements:
-        tags = el.get("tags", {})
-
-        if el["type"] == "node" and tags:
-            # Tagged node -> Point
-            coords = [el.get("lon", 0.0), el.get("lat", 0.0)]
-            cat = _categorize(tags)
-            stats[cat] += 1
-            features.append({
-                "type": "Feature",
-                "id": f"node/{el['id']}",
-                "properties": {**tags, "_osm_type": "node", "_osm_id": el["id"], "_category": cat},
-                "geometry": {"type": "Point", "coordinates": coords},
-            })
-
-        elif el["type"] == "way" and tags:
-            nds = el.get("nodes", [])
-            coords = [list(node_index[n]) for n in nds if n in node_index]
-            if len(coords) < 2:
+def overpass_query(query_text: str, label: str) -> dict:
+    """Run an Overpass query with retry logic."""
+    for attempt in range(1, MAX_RETRIES + 1):
+        print(f"  [{label}] Sending query (attempt {attempt}/{MAX_RETRIES})...")
+        try:
+            resp = requests.post(
+                OVERPASS_URL,
+                data={"data": query_text},
+                timeout=REQUEST_TIMEOUT,
+            )
+            if resp.status_code == 429:
+                wait = 15 * attempt
+                print(f"  [{label}] Rate limited (429). Waiting {wait}s...")
+                time.sleep(wait)
                 continue
-
-            cat = _categorize(tags)
-            stats[cat] += 1
-
-            # Determine geometry type
-            is_closed = len(coords) >= 4 and coords[0] == coords[-1]
-            is_area = "building" in tags or "leisure" in tags or "landuse" in tags or tags.get("natural") == "water"
-            if is_closed and is_area:
-                geom = {"type": "Polygon", "coordinates": [coords]}
-            else:
-                geom = {"type": "LineString", "coordinates": coords}
-
-            features.append({
-                "type": "Feature",
-                "id": f"way/{el['id']}",
-                "properties": {**tags, "_osm_type": "way", "_osm_id": el["id"], "_category": cat},
-                "geometry": geom,
-            })
-
-        elif el["type"] == "relation" and tags:
-            # Handle multipolygon relations (water bodies, etc.)
-            cat = _categorize(tags)
-            members = el.get("members", [])
-            outer_ways = [m for m in members if m.get("role") == "outer" and m.get("type") == "way"]
-            for ow in outer_ways:
-                way_id = ow["ref"]
-                # Find this way in elements
-                way_el = way_index.get(way_id)
-                if not way_el:
-                    continue
-                nds = way_el.get("nodes", [])
-                coords = [list(node_index[n]) for n in nds if n in node_index]
-                if len(coords) < 3:
-                    continue
-                is_closed = len(coords) >= 4 and coords[0] == coords[-1]
-                if is_closed:
-                    geom = {"type": "Polygon", "coordinates": [coords]}
-                else:
-                    geom = {"type": "LineString", "coordinates": coords}
-                stats[cat] += 1
-                features.append({
-                    "type": "Feature",
-                    "id": f"relation/{el['id']}/way/{way_id}",
-                    "properties": {**tags, "_osm_type": "relation", "_osm_id": el["id"], "_category": cat},
-                    "geometry": geom,
-                })
-
-    return features, stats
+            if resp.status_code == 504:
+                wait = 10 * attempt
+                print(f"  [{label}] Gateway timeout (504). Waiting {wait}s...")
+                time.sleep(wait)
+                continue
+            resp.raise_for_status()
+            data = resp.json()
+            elements = data.get("elements", [])
+            print(f"  [{label}] Got {len(elements)} elements")
+            return data
+        except requests.exceptions.ReadTimeout:
+            wait = 10 * attempt
+            print(f"  [{label}] Read timeout. Waiting {wait}s...")
+            time.sleep(wait)
+            continue
+    raise RuntimeError(f"[{label}] Failed after {MAX_RETRIES} attempts")
 
 
-def _categorize(tags: dict) -> str:
+def build_queries():
+    """Return list of (label, query_string) tuples."""
+    queries = []
+
+    # 1. Buildings
+    queries.append(("buildings", f"""
+[out:json][timeout:90];
+(
+  way["building"]({BBOX});
+);
+out body;
+>;
+out skel qt;
+"""))
+
+    # 2. Highways
+    queries.append(("highways", f"""
+[out:json][timeout:90];
+(
+  way["highway"]({BBOX});
+);
+out body;
+>;
+out skel qt;
+"""))
+
+    # 3. Leisure + Landuse
+    queries.append(("leisure_landuse", f"""
+[out:json][timeout:90];
+(
+  way["leisure"]({BBOX});
+  way["landuse"]({BBOX});
+);
+out body;
+>;
+out skel qt;
+"""))
+
+    # 4a. Water ways (larger bbox for river)
+    queries.append(("water_ways", f"""
+[out:json][timeout:180];
+(
+  way["natural"="water"]({WATER_BBOX});
+  way["waterway"]({WATER_BBOX});
+);
+out body;
+>;
+out skel qt;
+"""))
+
+    # 4b. Water relations (larger bbox for river)
+    queries.append(("water_relations", f"""
+[out:json][timeout:180];
+(
+  relation["natural"="water"]({WATER_BBOX});
+);
+out body;
+>;
+out skel qt;
+"""))
+
+    # 5. Amenities + Shops (nodes)
+    queries.append(("amenities_shops", f"""
+[out:json][timeout:90];
+(
+  node["amenity"]({BBOX});
+  node["shop"]({BBOX});
+);
+out body;
+"""))
+
+    return queries
+
+
+def categorize(tags: dict) -> str:
+    """Determine the category string from OSM tags."""
     if "building" in tags:
         return "building"
+    if tags.get("natural") == "water" or "waterway" in tags:
+        return "water"
     if "highway" in tags:
         return "highway"
-    if tags.get("natural") in ("water", "coastline") or "waterway" in tags:
-        return "water"
     if "leisure" in tags:
         return "leisure"
     if "landuse" in tags:
@@ -228,34 +148,197 @@ def _categorize(tags: dict) -> str:
     return "other"
 
 
+def should_be_polygon(tags: dict) -> bool:
+    """Determine if a way should be rendered as a Polygon."""
+    for key in POLYGON_TAGS:
+        if key in tags:
+            return True
+        if tags.get("natural") == "water":
+            return True
+    return False
+
+
+def resolve_way_coords(way_nds: list, node_index: dict) -> list:
+    """Resolve node IDs to [lon, lat] coordinates."""
+    coords = []
+    for nd in way_nds:
+        if nd in node_index:
+            n = node_index[nd]
+            coords.append([n["lon"], n["lat"]])
+    return coords
+
+
+def way_is_closed(coords: list) -> bool:
+    return len(coords) >= 4 and coords[0] == coords[-1]
+
+
 def main():
-    print("=" * 60)
-    print("Fetching OSM data for Lane Cove, NSW 2066")
-    print("=" * 60)
+    queries = build_queries()
+    all_elements = []
+    seen_ids = set()
+    stats = {}
 
-    osm_data = fetch_osm_data()
+    for i, (label, query_text) in enumerate(queries):
+        if i > 0:
+            print(f"  Waiting {QUERY_DELAY}s...")
+            time.sleep(QUERY_DELAY)
+        data = overpass_query(query_text, label)
+        elements = data.get("elements", [])
+        new_count = 0
+        for el in elements:
+            key = (el["type"], el["id"])
+            if key not in seen_ids:
+                seen_ids.add(key)
+                all_elements.append(el)
+                new_count += 1
+        stats[label] = {"total": len(elements), "new": new_count}
 
-    print("\nConverting to GeoJSON...")
-    features, stats = overpass_to_geojson(osm_data)
+    print("\n--- Query Stats ---")
+    for label, s in stats.items():
+        print(f"  {label}: {s['total']} elements ({s['new']} new after dedup)")
+    print(f"  Total unique elements: {len(all_elements)}")
+
+    # Build node index
+    node_index = {}
+    for el in all_elements:
+        if el["type"] == "node":
+            node_index[el["id"]] = el
+
+    # Build way index (needed for relations)
+    way_index = {}
+    for el in all_elements:
+        if el["type"] == "way":
+            way_index[el["id"]] = el
+
+    features = []
+    way_count = 0
+    node_feature_count = 0
+    relation_count = 0
+
+    # Process ways
+    for el in all_elements:
+        if el["type"] != "way":
+            continue
+        tags = el.get("tags", {})
+        if not tags:
+            continue  # skip bare geometry ways (just nodes)
+
+        nds = el.get("nodes", [])
+        coords = resolve_way_coords(nds, node_index)
+        if len(coords) < 2:
+            continue
+
+        category = categorize(tags)
+        props = dict(tags)
+        props["@id"] = f"way/{el['id']}"
+        props["@category"] = category
+
+        if should_be_polygon(tags) and way_is_closed(coords):
+            geom = {"type": "Polygon", "coordinates": [coords]}
+        else:
+            geom = {"type": "LineString", "coordinates": coords}
+
+        features.append({
+            "type": "Feature",
+            "geometry": geom,
+            "properties": props,
+        })
+        way_count += 1
+
+    # Process relations (multipolygon water bodies)
+    for el in all_elements:
+        if el["type"] != "relation":
+            continue
+        tags = el.get("tags", {})
+        if not tags:
+            continue
+
+        category = categorize(tags)
+        props = dict(tags)
+        props["@id"] = f"relation/{el['id']}"
+        props["@category"] = category
+
+        members = el.get("members", [])
+        outer_ways = [m for m in members if m.get("role") == "outer" and m.get("type") == "way"]
+
+        for ow in outer_ways:
+            way_id = ow["ref"]
+            way_el = way_index.get(way_id)
+            if not way_el:
+                continue
+            nds = way_el.get("nodes", [])
+            coords = resolve_way_coords(nds, node_index)
+            if len(coords) < 4:
+                continue
+            if not way_is_closed(coords):
+                continue
+
+            geom = {"type": "Polygon", "coordinates": [coords]}
+            feat_props = dict(props)
+            feat_props["@outer_way"] = f"way/{way_id}"
+            features.append({
+                "type": "Feature",
+                "geometry": geom,
+                "properties": feat_props,
+            })
+            relation_count += 1
+
+    # Process tagged nodes (amenities, shops)
+    for el in all_elements:
+        if el["type"] != "node":
+            continue
+        tags = el.get("tags", {})
+        if not tags:
+            continue
+
+        category = categorize(tags)
+        if category == "other":
+            continue
+
+        props = dict(tags)
+        props["@id"] = f"node/{el['id']}"
+        props["@category"] = category
+
+        geom = {"type": "Point", "coordinates": [el["lon"], el["lat"]]}
+        features.append({
+            "type": "Feature",
+            "geometry": geom,
+            "properties": props,
+        })
+        node_feature_count += 1
 
     geojson = {
         "type": "FeatureCollection",
-        "name": "Lane Cove NSW 2066 OSM Extract",
         "features": features,
     }
 
-    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
-    with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
-        json.dump(geojson, f, ensure_ascii=False, indent=2)
+    # Category breakdown
+    cat_counts = defaultdict(int)
+    geom_counts = defaultdict(int)
+    for f in features:
+        cat_counts[f["properties"].get("@category", "?")] += 1
+        geom_counts[f["geometry"]["type"]] += 1
 
-    size_kb = OUTPUT_FILE.stat().st_size / 1024
-    print(f"\nSaved to: {OUTPUT_FILE}")
-    print(f"File size: {size_kb:.1f} KB")
-    print(f"Total features: {len(features)}")
-    print("\nBreakdown by category:")
-    for cat in sorted(stats):
-        print(f"  {cat:12s}: {stats[cat]}")
-    print("Done.")
+    print(f"\n--- Final GeoJSON ---")
+    print(f"  Total features: {len(features)}")
+    print(f"    from ways: {way_count}")
+    print(f"    from relations (outer): {relation_count}")
+    print(f"    from nodes: {node_feature_count}")
+    print(f"\n  By category:")
+    for cat in sorted(cat_counts):
+        print(f"    {cat}: {cat_counts[cat]}")
+    print(f"\n  By geometry type:")
+    for gt in sorted(geom_counts):
+        print(f"    {gt}: {geom_counts[gt]}")
+
+    out_path = "/Users/york_z/Desktop/IDEA地图-agent模拟/Synthetic_Socio_Wind_Tunnel/data/lanecove_osm.geojson"
+    with open(out_path, "w", encoding="utf-8") as f:
+        json.dump(geojson, f, ensure_ascii=False)
+
+    file_size_mb = len(json.dumps(geojson, ensure_ascii=False)) / (1024 * 1024)
+    print(f"\n  Saved to: {out_path}")
+    print(f"  File size: {file_size_mb:.2f} MB")
+    print("\nDone!")
 
 
 if __name__ == "__main__":

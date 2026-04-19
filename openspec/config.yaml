@@ -23,6 +23,15 @@ context: |
   注释偏好：优先命名表达意图；仅在 WHY 非显然时写注释。
   文档语言：中文为主，专有术语保留英文。
 
+  命名惯例：
+  - 生产代码路径不得含 `mock_` / `demo_` / `_v2` / `_old` / `_tmp`
+    （演示代码放在 `tools/map_explorer/demo_*.py`；
+     场景特异生产代码如 Lane Cove 放在 `synthetic_socio_wind_tunnel/cartography/lanecove.py`）。
+  - kebab-case 用于 OpenSpec change / spec / 能力名、Markdown 文件名；
+  - snake_case 用于 Python 模块与文件名；
+  - 顶层公共 API 在 `synthetic_socio_wind_tunnel/__init__.py` 一处 re-export，
+    新增模块必须同步加入（否则 CLAUDE.md 声称的能力对外不可 import）。
+
 # Per-artifact rules
 rules:
   proposal:

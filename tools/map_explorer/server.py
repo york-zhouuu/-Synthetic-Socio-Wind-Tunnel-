@@ -19,9 +19,12 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 import json as _json
 import math as _math
 
-from tools.map_explorer.mock_map import (
-    create_atlas, create_atlas_from_osm, create_ledger_with_demo_knowledge,
+from synthetic_socio_wind_tunnel.cartography.lanecove import (
+    create_atlas_from_osm,
     OSM_DATA_PATH, ATLAS_CACHE_PATH, PROJ_CENTER_PATH,
+)
+from tools.map_explorer.demo_map import (
+    create_atlas, create_ledger_with_demo_knowledge,
 )
 from synthetic_socio_wind_tunnel.map_service.service import MapService
 from synthetic_socio_wind_tunnel.atlas.models import Building, OutdoorArea

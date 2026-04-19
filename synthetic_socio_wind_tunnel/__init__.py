@@ -29,6 +29,20 @@ from synthetic_socio_wind_tunnel.perception import (
     SubjectiveView,
     ExplorationService,
 )
+from synthetic_socio_wind_tunnel.agent import (
+    AgentProfile,
+    AgentRuntime,
+    DailyPlan,
+    LLMClient,
+    PlanStep,
+    Planner,
+)
+from synthetic_socio_wind_tunnel.map_service import (
+    MapService,
+    KnownDestination,
+    CurrentScene,
+    LocationDetail,
+)
 from synthetic_socio_wind_tunnel.core.errors import SimulationErrorCode, EventType
 from synthetic_socio_wind_tunnel.core.events import WorldEvent
 from synthetic_socio_wind_tunnel.perception.models import (
@@ -54,6 +68,18 @@ __all__ = [
     "ObserverContext",
     "SubjectiveView",
     "ExplorationService",
+    # Agent Layer (Phase 1)
+    "AgentProfile",
+    "AgentRuntime",
+    "Planner",
+    "DailyPlan",
+    "PlanStep",
+    "LLMClient",
+    # Map Service (agent-facing query façade)
+    "MapService",
+    "KnownDestination",
+    "CurrentScene",
+    "LocationDetail",
     # Snapshot Models
     "EntitySnapshot",
     "ItemSnapshot",
