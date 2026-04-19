@@ -1,0 +1,31 @@
+{
+  "osm_features_in": 6815,
+  "overture_buildings_merged": 2376,
+  "overture_buildings_added": 4332,
+  "places_bound": 771,
+  "places_stubbed": 677,
+  "places_dropped": 128,
+  "anonymous_names_replaced": 295,
+  "dropped_reasons_sample": [
+    "low_confidence:0.08:home_cleaning",
+    "low_confidence:0.17:sporting_goods",
+    "low_confidence:0.28:real_estate",
+    "low_confidence:0.24:sports_and_fitness_instruction",
+    "low_confidence:0.31:software_development",
+    "low_confidence:0.20:construction_services",
+    "low_confidence:0.05:roofing",
+    "low_confidence:0.11:construction_services",
+    "low_confidence:0.07:contractor",
+    "low_confidence:0.25:boat_service_and_repair",
+    "low_confidence:0.29:construction_services",
+    "low_confidence:0.40:telecommunications_company",
+    "low_confidence:0.29:engineering_services",
+    "low_confidence:0.48:construction_services",
+    "low_confidence:0.34:audio_visual_equipment_store",
+    "low_confidence:0.25:wedding_planning",
+    "low_confidence:0.26:contractor",
+    "low_confidence:0.47:glass_and_mirror_sales_service",
+    "low_confidence:0.19:hvac_services",
+    "low_confidence:0.29:auto_restoration_services"
+  ]
+}
