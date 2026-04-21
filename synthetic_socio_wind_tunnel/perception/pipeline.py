@@ -28,6 +28,7 @@ from synthetic_socio_wind_tunnel.perception.filters.base import Filter
 
 if TYPE_CHECKING:
     from synthetic_socio_wind_tunnel.atlas import Atlas
+    from synthetic_socio_wind_tunnel.attention import AttentionService
     from synthetic_socio_wind_tunnel.ledger import Ledger
 
 
@@ -83,7 +84,14 @@ class PerceptionPipeline:
     4. Render: Generate narrative text
     """
 
-    __slots__ = ("_atlas", "_ledger", "_renderer", "_filters")
+    __slots__ = (
+        "_atlas",
+        "_ledger",
+        "_renderer",
+        "_filters",
+        "_include_digital_filter",
+        "_attention_service",
+    )
 
     def __init__(
         self,
@@ -91,6 +99,9 @@ class PerceptionPipeline:
         ledger: "Ledger",
         renderer: NarrativeRenderer | None = None,
         filters: list[Filter] | None = None,
+        *,
+        include_digital_filter: bool = False,
+        attention_service: "AttentionService | None" = None,
     ):
         """
         Initialize pipeline.
@@ -100,11 +111,27 @@ class PerceptionPipeline:
             ledger: Read-only access to dynamic state
             renderer: Narrative renderer (defaults to template)
             filters: Optional list of observation filters to apply
+            include_digital_filter: If True, append DigitalAttentionFilter to
+                the chain (Phase 1 default is False for backward compat).
+            attention_service: Source of DIGITAL observations; required when
+                include_digital_filter=True to gather pending notifications.
         """
+        if include_digital_filter and attention_service is None:
+            raise ValueError(
+                "include_digital_filter=True requires attention_service to be "
+                "provided; otherwise DIGITAL observations can't be gathered."
+            )
         self._atlas = atlas
         self._ledger = ledger
         self._renderer = renderer or default_renderer
-        self._filters = filters or []
+        self._filters = list(filters) if filters else []
+        self._include_digital_filter = include_digital_filter
+        self._attention_service = attention_service
+        if include_digital_filter:
+            from synthetic_socio_wind_tunnel.perception.filters.digital_attention import (
+                DigitalAttentionFilter,
+            )
+            self._filters.append(DigitalAttentionFilter())
 
     def set_renderer(self, renderer: NarrativeRenderer) -> None:
         """Replace the narrative renderer (e.g., switch to LLM)."""
@@ -202,6 +229,15 @@ class PerceptionPipeline:
         # Observe container contents (collapsed, open containers)
         view.observations.extend(self._observe_container_contents(context, location_id))
 
+        # Gather DIGITAL observations (attention-channel).
+        # Only runs when filter is enabled and attention_service is wired;
+        # digital observations go through the filter chain like others.
+        digital_feed_ids: list[str] = []
+        if self._include_digital_filter and self._attention_service is not None:
+            digital_observations = self._gather_digital_observations(context)
+            view.observations.extend(digital_observations)
+            digital_feed_ids = [o.source_id for o in digital_observations]
+
         # Apply filter chain to all observations
         view.observations = self._apply_filters(view.observations, context)
 
@@ -220,6 +256,15 @@ class PerceptionPipeline:
 
         # Render narrative
         view.narrative = self._renderer(view, context)
+
+        # Mark digital feed items as surfaced for this agent so they aren't
+        # re-injected on the next render. Done after render (and after filter
+        # chain) so any observation that was filtered out still counts as
+        # "consumed"—the agent's digital attention processed it either way.
+        if digital_feed_ids and self._attention_service is not None:
+            self._attention_service.mark_consumed(
+                context.entity_id, digital_feed_ids
+            )
 
         return view
 
@@ -510,6 +555,44 @@ class PerceptionPipeline:
                     tags=tags,
                 ))
 
+        return observations
+
+    def _gather_digital_observations(
+        self,
+        context: ObserverContext,
+    ) -> list[Observation]:
+        """
+        Pull pending FeedItems from AttentionService and convert each into
+        an Observation(sense=DIGITAL).
+
+        Confidence initialises from digital_state.notification_responsiveness
+        (which AgentRuntime copies from profile.digital.notification_responsiveness).
+        The filter chain (DigitalAttentionFilter) then applies missed tags.
+        """
+        if self._attention_service is None or context.digital_state is None:
+            return []
+
+        base_confidence = context.digital_state.notification_responsiveness
+
+        observations: list[Observation] = []
+        for feed_item_id in context.digital_state.pending_notifications:
+            item = self._attention_service.get_feed_item(feed_item_id)
+            if item is None:
+                content = f"[unknown feed item {feed_item_id}]"
+                source_category = "feed_item"
+            else:
+                content = item.content
+                source_category = item.source
+            observations.append(Observation(
+                sense=SenseType.DIGITAL,
+                source_id=feed_item_id,
+                source_type="feed_item",
+                confidence=base_confidence,
+                raw=content,
+                interpreted=content,
+                is_notable=True,
+                tags=[f"feed_source:{source_category}"],
+            ))
         return observations
 
     def _compute_lighting(self, location_id: str) -> str:

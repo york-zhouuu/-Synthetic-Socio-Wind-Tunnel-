@@ -37,9 +37,59 @@ from synthetic_socio_wind_tunnel.agent import (
     AgentProfile,
     AgentRuntime,
     DailyPlan,
+    EmotionalState,
+    ExamineIntent,
+    Intent,
+    LANE_COVE_PROFILE,
     LLMClient,
+    LockIntent,
+    MoveIntent,
+    OpenDoorIntent,
+    PersonalityTraits,
+    PickupIntent,
+    PlanAction,
     PlanStep,
     Planner,
+    PopulationProfile,
+    Skills,
+    SocialIntent,
+    UnlockIntent,
+    WaitIntent,
+    sample_population,
+)
+from synthetic_socio_wind_tunnel.memory import (
+    DailySummary,
+    EmbeddingProvider,
+    MemoryEvent,
+    MemoryQuery,
+    MemoryRetriever,
+    MemoryService,
+    MemoryStore,
+    NullEmbedding,
+)
+from synthetic_socio_wind_tunnel.orchestrator import (
+    CommitRecord,
+    EncounterCandidate,
+    Orchestrator,
+    SimulationSummary,
+    TickContext,
+    TickResult,
+)
+from synthetic_socio_wind_tunnel.attention import (
+    AttentionService,
+    AttentionState,
+    DigitalProfile,
+    FeedDeliveryRecord,
+    FeedItem,
+    NotificationEvent,
+    create_notification_event,
+)
+from synthetic_socio_wind_tunnel.fitness import (
+    AuditResult,
+    AuditStatus,
+    CategoryResult,
+    FitnessReport,
+    run_audit,
 )
 from synthetic_socio_wind_tunnel.map_service import (
     MapService,
@@ -56,7 +106,7 @@ from synthetic_socio_wind_tunnel.perception.models import (
     ClueSnapshot,
 )
 
-__version__ = "0.5.0"
+__version__ = "0.9.0"
 __all__ = [
     # Data Layer
     "Atlas",
@@ -79,6 +129,55 @@ __all__ = [
     "DailyPlan",
     "PlanStep",
     "LLMClient",
+    # Agent Population (realign-to-social-thesis)
+    "PopulationProfile",
+    "LANE_COVE_PROFILE",
+    "sample_population",
+    # Attention Channel (realign-to-social-thesis)
+    "AttentionService",
+    "AttentionState",
+    "DigitalProfile",
+    "FeedItem",
+    "FeedDeliveryRecord",
+    "NotificationEvent",
+    "create_notification_event",
+    # Fitness Audit (realign-to-social-thesis)
+    "run_audit",
+    "FitnessReport",
+    "AuditResult",
+    "AuditStatus",
+    "CategoryResult",
+    # Orchestrator (phase 2)
+    "Orchestrator",
+    "TickContext",
+    "TickResult",
+    "CommitRecord",
+    "EncounterCandidate",
+    "SimulationSummary",
+    # Intents (phase 2 — used with orchestrator)
+    "Intent",
+    "MoveIntent",
+    "WaitIntent",
+    "ExamineIntent",
+    "PickupIntent",
+    "OpenDoorIntent",
+    "UnlockIntent",
+    "LockIntent",
+    # Typed personality (typed-personality)
+    "PersonalityTraits",
+    "Skills",
+    "EmotionalState",
+    "PlanAction",
+    "SocialIntent",
+    # Memory (memory)
+    "MemoryService",
+    "MemoryEvent",
+    "MemoryQuery",
+    "MemoryStore",
+    "MemoryRetriever",
+    "DailySummary",
+    "EmbeddingProvider",
+    "NullEmbedding",
     # Map Service (agent-facing query façade)
     "MapService",
     "KnownDestination",

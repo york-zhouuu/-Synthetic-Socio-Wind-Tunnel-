@@ -114,6 +114,8 @@ def community_nav(community_atlas, community_ledger):
 
 @pytest.fixture
 def emma_profile() -> AgentProfile:
+    from synthetic_socio_wind_tunnel.agent.personality import PersonalityTraits
+
     return AgentProfile(
         agent_id="emma",
         name="Emma Chen",
@@ -121,8 +123,7 @@ def emma_profile() -> AgentProfile:
         occupation="software_engineer",
         household="single",
         home_location="maple_apartments",
-        personality_traits={"extroversion": 0.3, "curiosity": 0.8},
-        personality_description="你性格偏内向但好奇心强，喜欢观察周围环境。",
+        personality=PersonalityTraits(extraversion=0.3, curiosity=0.8),
         preferred_social_size=2,
         interests=["coffee", "reading", "walking"],
         languages=["mandarin", "english"],
@@ -141,10 +142,12 @@ class TestAgentProfile:
         assert emma_profile.name == "Emma Chen"
         assert emma_profile.home_location == "maple_apartments"
 
-    def test_trait_access(self, emma_profile: AgentProfile):
-        assert emma_profile.trait("curiosity") == 0.8
-        assert emma_profile.trait("nonexistent") == 0.5  # default
-        assert emma_profile.trait("nonexistent", 0.0) == 0.0
+    def test_typed_personality_access(self, emma_profile: AgentProfile):
+        # typed-personality change: dict + trait() removed; use typed access
+        assert emma_profile.personality.curiosity == 0.8
+        assert emma_profile.personality.extraversion == 0.3
+        # Unassigned fields default to 0.5
+        assert emma_profile.personality.openness == 0.5
 
     def test_frozen(self, emma_profile: AgentProfile):
         with pytest.raises(Exception):

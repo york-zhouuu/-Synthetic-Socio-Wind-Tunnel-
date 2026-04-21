@@ -84,3 +84,8 @@ class EventType(str, Enum):
     NPC_ALERTED = "npc_alerted"
     NPC_FLED = "npc_fled"
     NPC_NOTICED_PLAYER = "npc_noticed_player"
+
+    # 数字注意力通道事件 (attention-channel 能力，走 digital 通道，不经物理传播)
+    NOTIFICATION_RECEIVED = "notification_received"
+    FEED_VIEWED = "feed_viewed"
+    ATTENTION_TARGET_CHANGED = "attention_target_changed"

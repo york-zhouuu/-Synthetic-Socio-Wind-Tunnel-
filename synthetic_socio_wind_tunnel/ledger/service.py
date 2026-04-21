@@ -10,7 +10,10 @@ from __future__ import annotations
 import json
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Iterator
+from typing import TYPE_CHECKING, Any, Iterator
+
+if TYPE_CHECKING:
+    from synthetic_socio_wind_tunnel.attention.models import NotificationEvent
 
 from synthetic_socio_wind_tunnel.atlas.models import Coord
 from synthetic_socio_wind_tunnel.ledger.models import (
@@ -598,6 +601,43 @@ class Ledger:
     def get_recent_events(self, limit: int = 10) -> list[dict]:
         """Get recent events."""
         return self._data.events[-limit:]
+
+    # ========== Digital Notifications (attention-channel) ==========
+
+    def add_notification(self, event: "NotificationEvent") -> None:
+        """
+        Append a notification to the Ledger.
+
+        Stored as dict for Pydantic round-tripping; exposed as typed
+        NotificationEvent via notifications_for().
+        """
+        self._data.notifications.append(event.to_dict())
+
+    def notifications_for(
+        self,
+        agent_id: str,
+        *,
+        since: datetime | None = None,
+    ) -> list["NotificationEvent"]:
+        """Return notifications delivered to `agent_id`, optionally since a timestamp."""
+        from synthetic_socio_wind_tunnel.attention.models import NotificationEvent
+
+        results: list[NotificationEvent] = []
+        for raw in self._data.notifications:
+            properties = raw.get("properties") or {}
+            if properties.get("recipient_entity_id") != agent_id:
+                continue
+            event = NotificationEvent.from_dict(raw)
+            if since is not None and event.timestamp < since:
+                continue
+            results.append(event)
+        return results
+
+    def all_notifications(self) -> list["NotificationEvent"]:
+        """Return all notifications (for audit / log export)."""
+        from synthetic_socio_wind_tunnel.attention.models import NotificationEvent
+
+        return [NotificationEvent.from_dict(raw) for raw in self._data.notifications]
 
     # ========== Serialization ==========
 

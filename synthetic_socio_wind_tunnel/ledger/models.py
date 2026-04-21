@@ -407,6 +407,11 @@ class LedgerData(BaseModel):
     # Event log
     events: list[dict[str, Any]] = Field(default_factory=list)
 
+    # Digital notifications (attention-channel capability)
+    # Stored as serialized dicts (same pattern as events) for Pydantic
+    # round-tripping; Ledger exposes typed NotificationEvent objects via CRUD.
+    notifications: list[dict[str, Any]] = Field(default_factory=list)
+
     @field_validator('discovered_clue_ids', mode='before')
     @classmethod
     def convert_discovered_clues_to_set(cls, v):

@@ -289,3 +289,51 @@
 
 *文档版本：WIP v1.0*
 *整理日期：2026年3月10日*
+
+---
+
+## Phase 1.5 审计结论（由 `realign-to-social-thesis` 引入）
+
+Phase 1 交付完成后，发现项目血统偏向"LLM 驱动的侦探推理游戏"，而 thesis
+要的是"数字注意力在社区中制造社交边界"的风洞。为此新建了：
+
+- `attention-channel` 能力：`FeedItem` / `NotificationEvent` / `AttentionState`
+  / `DigitalProfile` / `AttentionService`，把数字注意力提升为一级机制；
+- `agent` 的 `AgentProfile` 结构性扩展：ethnicity / housing_tenure / income_tier /
+  work_mode / digital；
+- `agent.population` 采样：按画像（LANE_COVE_PROFILE）生成 1000 个 agent；
+- `perception` 新增 `digital_attention` filter 与 `SenseType.DIGITAL`；
+- `fitness-audit` 能力：8 类审计、结构化报告、Phase 2 前置门禁。
+
+**当前 Lane Cove atlas 下的审计结果**（跑 `make fitness-audit`）：
+
+| category | 结果 | 说明 |
+|---|---|---|
+| e1-digital-lure | 3 pass | 推送分发、注意力抑制、日志导出 OK |
+| e2-spatial-unlock | 3 skip | Lane Cove OSM 无门；审计指向 `cartography` |
+| e3-shared-perception | 1 pass + 1 skip | 共同视觉对齐 OK；共享任务持久化指向 `memory` |
+| profile-distribution | 3 pass | 1000 人 profile 覆盖 4 结构维度 |
+| ledger-observability | 3 pass | 轨迹 / 相遇 / 决定性导出都 OK |
+| site-fitness | 4 pass（诊断） | Lane Cove 96% 住宅、474 buildings/km²、11% 建筑有命名 |
+| scale-baseline | pass | 100×72 约 5s、p99 ≈ 85ms/tick（仅 render；未含 move/LLM）|
+| cost-baseline | pass | 估算 $12–41/天；主角越多区间越大 |
+
+### 场地决策
+
+场地已冻结为 Lane Cove（底板已工程化、连通度门禁就位）。thesis 适用性
+以 Lane Cove 为准，不再保留其它场地的假设占位。若后续需要换场地，
+开独立 change 说明数据来源与迁移计划。
+
+### 审计的自我合理化（套娃）修复
+
+初版审计把"本 change 新增的能力"和"本 change 审计的对象"合在一起，
+导致 e1/profile-distribution 等条目对 Phase 1 裸代码缺口"看起来已通过"。
+已拆为三类：
+- `phase1-baseline.*` / `phase2-gaps.*`：存在性探针，对裸 Phase 1 会 FAIL，
+  mitigation 指向补齐的 change（给 Phase 2 提供真正的锚点）；
+- `e1/e2/e3/profile/ledger`：集成测试（假设能力已存在）；
+- `site/scale/cost`：纯数据诊断。
+
+---
+
+*审计补充日期：2026年4月20日*

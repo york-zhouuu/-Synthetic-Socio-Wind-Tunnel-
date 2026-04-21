@@ -152,6 +152,35 @@ pip install -e ".[dev]"
 python -m pytest tests/ -v
 ```
 
+## Fitness audit (Phase 1.5)
+
+The `fitness-audit` capability checks whether the Phase 1 infrastructure actually
+supports the three experiments described above. It is the gate that Phase 2
+changes (memory / orchestrator / policy-hack / …) must reference before opening
+implementation:
+
+```bash
+make fitness-audit          # quick: 100 agents × 72 ticks  (~5s)
+make fitness-audit-full     # full:  1000 agents × 288 ticks (slower)
+```
+
+Output: `data/fitness-report.json` (not committed — it's a point-in-time snapshot).
+
+Each audit result carries one of three statuses:
+
+| status | meaning |
+|---|---|
+| `pass` | Phase 1 supports this check |
+| `fail` | Phase 1 has a gap; `mitigation_change` points at which Phase 2 capability must fix it |
+| `skip` | Expected gap (e.g. "no per-agent task store yet"); `mitigation_change` identifies the capability that will add it |
+
+Phase 2 change proposals **SHALL** cite at least one `fail` or `skip` entry in
+their `## Why` section so every capability has documented motivation tied back
+to observed infrastructure gaps.
+
+See `openspec/changes/realign-to-social-thesis/` for the design rationale and
+`docs/agent_system/07-审计报告解读.md` for how to read the report.
+
 ---
 
 ## Context

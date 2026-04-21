@@ -15,7 +15,9 @@ from enum import Enum
 from typing import Any
 from pydantic import BaseModel, Field
 
+from synthetic_socio_wind_tunnel.agent.personality import EmotionalState, Skills
 from synthetic_socio_wind_tunnel.atlas.models import Coord
+from synthetic_socio_wind_tunnel.attention.models import AttentionState
 
 
 class SenseType(str, Enum):
@@ -23,6 +25,10 @@ class SenseType(str, Enum):
     VISUAL = "visual"
     AUDITORY = "auditory"
     OLFACTORY = "olfactory"
+    # Digital attention channel (realign-to-social-thesis).
+    # Observations with sense=DIGITAL come from FeedItem / NotificationEvent,
+    # not physical senses. source_id points to FeedItem.feed_item_id.
+    DIGITAL = "digital"
 
 
 # ========== Snapshot Models (v0.4.0) ==========
@@ -105,18 +111,16 @@ class ObserverContext(BaseModel):
     position: Coord
     location_id: str | None = None  # Current location (room/area ID)
 
-    # Capabilities
-    skills: dict[str, float] = Field(default_factory=dict)
-    # Common skills: "investigation", "perception", "stealth"
+    # Capabilities (typed-personality: dict → Skills)
+    skills: Skills = Field(default_factory=Skills)
 
     # Knowledge
     knowledge: list[str] = Field(default_factory=list)  # Known facts
     suspicions: list[str] = Field(default_factory=list)  # Suspected entities
     secrets: list[str] = Field(default_factory=list)  # Own secrets
 
-    # Emotional state
-    emotional_state: dict[str, float] = Field(default_factory=dict)
-    # Common: "guilt", "anxiety", "curiosity", "fear"
+    # Emotional state (typed-personality: dict → EmotionalState)
+    emotional_state: EmotionalState = Field(default_factory=EmotionalState)
 
     # Focus
     looking_for: list[str] = Field(default_factory=list)  # Active search targets
@@ -126,29 +130,26 @@ class ObserverContext(BaseModel):
     vision_impaired: bool = False
     hearing_impaired: bool = False
 
-    def get_skill(self, skill: str, default: float = 0.5) -> float:
-        """Get skill level with default."""
-        return self.skills.get(skill, default)
-
-    def get_emotion(self, emotion: str, default: float = 0.0) -> float:
-        """Get emotion level with default."""
-        return self.emotional_state.get(emotion, default)
+    # Digital attention state (realign-to-social-thesis).
+    # When None, DigitalAttentionFilter passes through; when set, the filter
+    # applies attention-leakage and injects DIGITAL observations from pending.
+    digital_state: AttentionState | None = None
 
     @property
     def investigation_skill(self) -> float:
-        return self.get_skill("investigation")
+        return self.skills.investigation
 
     @property
     def perception_skill(self) -> float:
-        return self.get_skill("perception")
+        return self.skills.perception
 
     @property
     def guilt_level(self) -> float:
-        return self.get_emotion("guilt")
+        return self.emotional_state.guilt
 
     @property
     def anxiety_level(self) -> float:
-        return self.get_emotion("anxiety")
+        return self.emotional_state.anxiety
 
 
 class AgentProfile(BaseModel):
@@ -232,6 +233,10 @@ class SubjectiveView(BaseModel):
     def get_observations_by_type(self, source_type: str) -> list[Observation]:
         """Filter observations by source type."""
         return [o for o in self.observations if o.source_type == source_type]
+
+    def get_observations_by_sense(self, sense: SenseType) -> list[Observation]:
+        """Filter observations by sense channel (e.g. DIGITAL for feed items)."""
+        return [o for o in self.observations if o.sense == sense]
 
     def get_notable_observations(self) -> list[Observation]:
         """Get observations marked as notable."""

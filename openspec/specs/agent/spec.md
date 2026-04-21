@@ -90,3 +90,409 @@ agent 模块在生成/执行计划时 SHALL 只通过：
 #### Scenario: runtime 无副作用读
 - **WHEN** `build_observer_context()` 被调用
 - **THEN** SHALL 仅调用 ledger / atlas 的读方法，不产生任何状态更改
+
+---
+
+<!-- Added by realign-to-social-thesis (archived 2026-04-20) -->
+
+### Requirement: AgentProfile 结构性身份维度
+
+`agent.profile.AgentProfile` SHALL 新增一组**结构性**字段，表达 thesis 所需
+的社会结构异质性。所有字段默认值 SHALL 使老构造签名保持兼容。
+
+- `ethnicity_group: str | None = None`
+  值 SHALL 使用区域码（例如 `"AU-born"`、`"AU-migrant-1gen-asia"`、
+  `"AU-migrant-2gen-europe"`），**不**使用具体国籍或族群名词；
+- `migration_tenure_years: float | None = None`
+  负值 SHALL 被 Pydantic 校验拒绝；
+- `housing_tenure: Literal["owner_occupier", "renter", "public_housing"] | None = None`；
+- `income_tier: Literal["low", "mid", "high"] | None = None`；
+- `work_mode: Literal["commute", "remote", "shift", "nonworking"] | None = None`；
+- `digital: DigitalProfile = DigitalProfile()`（定义见 `attention-channel`）。
+
+这些字段 SHALL 与既有 `personality_traits` 正交：LLM prompt 可以把两者一起
+喂入，但基建层不做跨字段合成指标。
+
+#### Scenario: 旧构造签名仍工作
+- **WHEN** 调用 `AgentProfile(agent_id, name, age, occupation, household, home_location)`
+  （无任何结构性参数）
+- **THEN** profile 构造 SHALL 成功；结构性字段 SHALL 全部为 `None`，
+  `digital` SHALL 为默认 DigitalProfile
+
+#### Scenario: 结构性字段校验
+- **WHEN** 构造 `AgentProfile(..., migration_tenure_years=-3)`
+- **THEN** Pydantic SHALL 抛校验错误，拒绝负数
+
+#### Scenario: LLM prompt 可读取结构性字段
+- **WHEN** `Planner.generate_daily_plan` 构造 prompt
+- **THEN** prompt SHALL 能通过 profile 读取 `ethnicity_group` /
+  `housing_tenure` / `income_tier` / `work_mode` / `digital.feed_bias`
+  的字面值（由 planner 自行决定是否注入）
+
+### Requirement: Population 采样子模块
+
+系统 SHALL 在 `synthetic_socio_wind_tunnel/agent/population.py` 中提供：
+
+- `PopulationProfile`：声明一个社区的人群画像，字段包括
+  `size: int`、`ethnicity_distribution: dict[str, float]`（权重和为 1.0）、
+  `housing_distribution: dict[str, float]`、`income_distribution: dict[str, float]`、
+  `work_mode_distribution: dict[str, float]`、`digital_profile_params: DigitalParams`、
+  `age_bracket_distribution: dict[str, float]`、
+  `language_distribution: dict[str, float]`。
+- `sample_population(profile: PopulationProfile, *, seed: int) -> list[AgentProfile]`
+  按画像采样，返回长度为 `profile.size` 的 AgentProfile 列表。
+- 内置 preset：`LANE_COVE_PROFILE`。数值为占位（非 ABS-ground-truthed），
+  后续 change 做一次性对齐。
+
+采样 SHALL：
+- 完全由 `seed` 决定，同一 seed 产出逐字段一致的结果（可复现）；
+- 分布权重之和 SHALL 为 1.0 ± 1e-6；偏差超阈值 SHALL 抛错；
+- Profile 生成的 `agent_id` SHALL 为 `"a_{seed}_{index:04d}"` 格式，全局可追溯。
+
+#### Scenario: 确定性采样
+- **WHEN** 两次调用 `sample_population(LANE_COVE_PROFILE, seed=42)`
+- **THEN** 两次返回的 profile 列表 SHALL 逐字段一致
+
+#### Scenario: 分布权重校验
+- **WHEN** 画像的 `ethnicity_distribution` 权重之和为 0.8
+- **THEN** `sample_population` SHALL 在预检阶段抛 `ValueError`
+
+#### Scenario: 主角分配
+- **WHEN** 采样 1000 人时请求 `num_protagonists=10`
+- **THEN** 返回列表中恰好 10 个 profile 的 `is_protagonist=True`，
+  其 `base_model` SHALL 为 Sonnet 档；其余 990 个为 Haiku 档
+
+### Requirement: ObserverContext 构造从 Profile 读取 digital
+
+`AgentRuntime.build_observer_context()` SHALL 把 `profile.digital` 与
+`AttentionService.pending_for(agent_id)` 合成为 `AttentionState` 并挂到
+`ObserverContext.digital_state`。
+
+- 若 `AttentionService` 未注入（向后兼容路径），`digital_state` SHALL 为 `None`。
+- 合成逻辑 SHALL 为纯函数（无副作用）；MUST NOT 写入 Ledger。
+
+#### Scenario: 无 AttentionService 的退化
+- **WHEN** `AgentRuntime.build_observer_context()` 在未注入 AttentionService
+  的环境下被调用
+- **THEN** 返回的 `ObserverContext.digital_state` SHALL 为 `None`；
+  其余字段行为与本 change 之前一致
+
+#### Scenario: 有推送时 pending 非空
+- **WHEN** AttentionService 已为该 agent 注入 2 条 feed item，
+  且 agent `profile.digital.notification_responsiveness > 0`
+- **THEN** `build_observer_context().digital_state.pending_notifications`
+  SHALL 包含这两个 feed_item_id
+
+---
+
+<!-- Added by orchestrator (archived 2026-04-20) -->
+
+### Requirement: Intent 层次
+
+系统 SHALL 在 `synthetic_socio_wind_tunnel/agent/intent.py` 中定义
+Intent 类型层次：
+
+- `Intent` 基类（frozen / 可哈希）。
+- **非独占**（orchestrator 不走裁决器，直接提交）：
+  - `MoveIntent(to_location: str)`
+  - `WaitIntent(reason: str = "")`
+  - `ExamineIntent(target_id: str)`
+- **独占**（orchestrator 走 IntentResolver 按字典序选赢家）：
+  - `PickupIntent(item_id: str)`
+  - `OpenDoorIntent(door_id: str)`
+  - `UnlockIntent(door_id: str, key_id: str | None = None)`
+  - `LockIntent(door_id: str, key_id: str | None = None)`
+
+- 所有 Intent SHALL 为 frozen，暴露 `exclusive: bool` property 便于
+  orchestrator 分流；独占 Intent 额外暴露 `target_id` property。
+- Intent MUST NOT 包含执行结果字段（结果由 `SimulationResult` 承载）。
+
+#### Scenario: 非独占 Intent 标识
+- **WHEN** 构造 `MoveIntent(to_location="cafe_a")`
+- **THEN** `intent.exclusive` SHALL 为 `False`
+
+#### Scenario: 独占 Intent 暴露 target_id
+- **WHEN** 构造 `PickupIntent(item_id="umbrella_01")`
+- **THEN** `intent.exclusive` SHALL 为 `True`；`intent.target_id` SHALL
+  为 `"umbrella_01"`
+
+#### Scenario: Intent 可哈希
+- **WHEN** 两个 `MoveIntent(to_location="cafe_a")` 实例
+- **THEN** SHALL 具备相同 hash 且相等；可作为 dict key
+
+### Requirement: AgentRuntime.step 产出本 tick 的 Intent
+
+`AgentRuntime` SHALL 新增方法：
+
+```
+step(tick_ctx: TickContext) -> Intent
+```
+
+- 输入 `TickContext` 含 `tick_index / simulated_time / observer_context`
+  （`TickContext` 在 `orchestrator` 模块定义；`agent.intent` 模块通过
+  `typing.TYPE_CHECKING` 引用，避免运行时循环依赖）。
+- 返回**恰好一个** Intent。
+- `step()` SHALL 在内部自管 plan advance——当 `current_step` 的时间窗
+  已过（`simulated_time >= step.time + step.duration_minutes`）时，
+  自动调用 `self.plan.advance()`；orchestrator MUST NOT 直接调
+  `plan.advance()`。
+- 映射规则（本 change 范围内）：
+  - `action == "move"` 且 `current_location != destination` → `MoveIntent(to_location=destination)`
+  - `action == "move"` 且 `current_location == destination` → `WaitIntent(reason="at_destination")`
+  - 其它 `action`（`stay` / `interact` / `explore`）→ `WaitIntent(reason=action or activity)`
+  - plan 为 None 或已耗尽 → `WaitIntent(reason="plan_exhausted")`
+- 本 change **不**产出 `ExamineIntent` / `PickupIntent` / `OpenDoorIntent` /
+  `UnlockIntent` / `LockIntent`——类型存在但由未来 change（policy-hack /
+  conversation / memory）通过扩展 PlanStep 字段或外部插入机制产出。
+- `step()` 是**幂等的状态读**（对 plan 状态可能有 advance 副作用，但不写
+  Ledger）；MUST NOT 调用 LLM。
+
+#### Scenario: plan 步骤映射到 MoveIntent
+- **WHEN** `plan.current()` 为 `PlanStep(action="move",
+  destination="cafe_a")` 且 `current_location != "cafe_a"`
+- **THEN** `agent.step(tick_ctx)` SHALL 返回 `MoveIntent(to_location="cafe_a")`
+
+#### Scenario: 到达目的地后返回 WaitIntent
+- **WHEN** `plan.current()` 为 `PlanStep(action="move", destination="cafe_a",
+  duration_minutes=30)`，agent 已 `current_location=="cafe_a"`，
+  但 simulated_time 仍在该 step 时间窗内
+- **THEN** `agent.step(tick_ctx)` SHALL 返回
+  `WaitIntent(reason="at_destination")`
+
+#### Scenario: 时间窗过期自动 advance
+- **WHEN** `plan.current()` 为 `PlanStep(time="7:00", duration_minutes=30)`，
+  `tick_ctx.simulated_time` 为 07:35
+- **THEN** `step()` 内部 SHALL 自动调 `plan.advance()`；返回值基于
+  **新的** current step
+
+#### Scenario: 计划耗尽时返回 WaitIntent
+- **WHEN** `agent.plan` 为 None 或所有 step 都已 advance 过
+- **THEN** `agent.step(tick_ctx)` SHALL 返回
+  `WaitIntent(reason="plan_exhausted")`
+
+#### Scenario: 本 change 不产出独占类 Intent
+- **WHEN** PlanStep 的 action 为 `"interact"` 或 `"explore"`
+- **THEN** `step()` SHALL 返回 `WaitIntent`，MUST NOT 返回
+  `ExamineIntent / PickupIntent / OpenDoorIntent / UnlockIntent / LockIntent`
+
+### Requirement: 老方法保留并内部复用
+
+系统 SHALL 保留 `AgentRuntime` 现有方法 `current_step()` /
+`advance_plan()` / `next_move_location()` / `start_moving()` /
+`cancel_movement()` 的原签名与语义，不打 deprecated 标记。
+
+- `step(tick_ctx)` 内部 SHOULD 复用这些低层方法。
+- 现有测试 (`tests/test_agent_phase1.py`) 中对这些方法的断言 SHALL 继续
+  PASS。
+
+#### Scenario: 老 API 不破坏
+- **WHEN** 运行 `tests/test_agent_phase1.py`
+- **THEN** 所有测试 SHALL 继续通过，与本 change 之前一致
+
+---
+
+<!-- Added by typed-personality (archived 2026-04-21) -->
+<!-- 这些 Requirement 在语义上 MODIFY 了"AgentProfile 作为静态身份"——
+     personality_traits dict 被 typed PersonalityTraits 替换，
+     personality_description / trait() 方法被移除。以"追加 + 覆盖老描述"
+     方式保留历史；运行时代码以这些新 Requirement 为准。 -->
+
+### Requirement: PersonalityTraits 为 typed 人格模型
+
+系统 SHALL 在 `synthetic_socio_wind_tunnel/agent/personality.py` 中定义
+`PersonalityTraits` Pydantic 模型：
+
+- 字段（全部 `float`，默认 0.5，`[0.0, 1.0]` 范围校验）：
+  - `openness`
+  - `conscientiousness`
+  - `extraversion`
+  - `agreeableness`
+  - `neuroticism`
+  - `curiosity`
+  - `routine_adherence`
+  - `risk_tolerance`
+- `model_config = {"frozen": True}`，可哈希
+- 越界值 SHALL 被 Pydantic 拒绝
+
+#### Scenario: 默认构造全是 0.5
+- **WHEN** 构造 `PersonalityTraits()`
+- **THEN** 所有 8 个字段 SHALL 为 0.5
+
+#### Scenario: 越界值被拒
+- **WHEN** 构造 `PersonalityTraits(curiosity=1.5)`
+- **THEN** SHALL 抛 Pydantic ValidationError
+
+#### Scenario: frozen
+- **WHEN** 对构造好的 PersonalityTraits 赋值
+- **THEN** SHALL 抛 ValidationError
+
+### Requirement: Skills 与 EmotionalState typed 模型
+
+系统 SHALL 在同文件提供：
+
+```
+class Skills(BaseModel):
+    perception: float = 0.5      # [0, 1]
+    investigation: float = 0.5
+    stealth: float = 0.5
+
+class EmotionalState(BaseModel):
+    guilt: float = 0.0           # [0, 1]
+    anxiety: float = 0.0
+    curiosity: float = 0.0
+    fear: float = 0.0
+```
+
+- 字段越界 SHALL 被拒
+- `model_config = {"frozen": True}`
+
+#### Scenario: 默认 Skills 0.5 / 默认 Emotion 0.0
+- **WHEN** 分别构造 `Skills()` 与 `EmotionalState()`
+- **THEN** 前者默认 0.5，后者默认 0.0
+
+### Requirement: AgentProfile 使用 typed personality
+
+`AgentProfile` SHALL：
+- 移除字段 `personality_traits: dict[str, float]`
+- 移除字段 `personality_description: str`
+- 移除方法 `trait(name, default)`
+- 新增字段 `personality: PersonalityTraits = Field(default_factory=PersonalityTraits)`
+- 保留其它现有字段
+
+- 调用方读取 trait 时 SHALL 使用 `profile.personality.curiosity` 等
+  typed 访问，不再使用字符串索引。
+
+#### Scenario: 直接读取 typed trait
+- **WHEN** `profile = AgentProfile(agent_id=..., ...)`
+- **THEN** `profile.personality.curiosity` SHALL 为 0.5（默认），可直接
+  被 IDE 类型检查
+
+#### Scenario: trait() 便利方法已移除
+- **WHEN** 调用 `profile.trait("curiosity")`
+- **THEN** SHALL 抛 AttributeError（方法不存在）
+
+### Requirement: PlanStep 的 action / social_intent Literal 化
+
+`PlanStep` 字段 SHALL 使用 Literal 类型：
+
+- `action: Literal["move", "stay", "interact", "explore"]`
+- `social_intent: Literal["alone", "open_to_chat", "seeking_company"] = "alone"`
+
+- `AgentProfile.household: Literal["single", "couple", "family_with_kids"]`
+
+- LLM 产出的 JSON 若 action 值不在允许集合，Pydantic SHALL 在
+  `_parse_plan_response` 的 `PlanStep(**data)` 处抛 ValidationError；
+  Planner 现有 try/except 捕获后返回空 plan。
+
+#### Scenario: Literal 拒绝无效 action
+- **WHEN** 构造 `PlanStep(time="7:00", action="walk")`（"walk" 不在允许集）
+- **THEN** SHALL 抛 Pydantic ValidationError
+
+#### Scenario: LLM 吐错字母被捕获
+- **WHEN** Planner 解析一段 LLM 输出，其中一个 step 的 action 为
+  "moves"（拼写错误）
+- **THEN** Planner SHALL 捕获 ValidationError 并返回空 DailyPlan，
+  日志记录原始 LLM 输出
+
+### Requirement: PopulationProfile 使用 PersonalityParams 采样
+
+`PopulationProfile` SHALL 新增字段
+`personality_params: PersonalityParams = Field(default_factory=PersonalityParams)`。
+
+`PersonalityParams` SHALL 为 Pydantic 模型，每个 PersonalityTraits 维度
+对应一个 `(mean, std)` tuple，默认全部 `(0.5, 0.2)`。
+
+`sample_population` SHALL 对每个 agent 按
+`clamp(random.gauss(mean, std), 0.0, 1.0)` 独立采样 8 个维度，构造
+PersonalityTraits 并放入 AgentProfile。
+
+#### Scenario: 1000 样本人格异质性
+- **WHEN** `sample_population(LANE_COVE_PROFILE, seed=42)` 产出 1000
+  AgentProfile
+- **THEN** 这些 agent 的 `personality.curiosity` std SHALL ≥ 0.15
+  （默认 (0.5, 0.2) 采样自然满足）
+
+#### Scenario: seed 可复现
+- **WHEN** 两次 `sample_population(profile, seed=42)`
+- **THEN** 所有 agent 的 PersonalityTraits 所有字段 SHALL 逐字段相等
+
+### Requirement: Planner prompt 引用 typed trait
+
+`Planner._build_prompt`（或同效代码路径）SHALL 在 prompt 中以结构化文本
+引用 `profile.personality` 的 8 个字段（每个两位小数），而非旧的
+`personality_description` 自由文本。
+
+#### Scenario: prompt 含人格数值
+- **WHEN** 对某 agent `profile.personality.curiosity = 0.87` 构造 prompt
+- **THEN** prompt 字符串 SHALL 包含 `"0.87"` 或 `"0.9"` 之类的数值表示，
+  LLM 能够直接读到具体好奇心强度
+
+---
+
+<!-- Added by memory (archived 2026-04-21) -->
+
+### Requirement: AgentRuntime.should_replan 纯代码规则
+
+`AgentRuntime` SHALL 新增方法：
+
+```
+should_replan(
+  memory_view: Sequence[MemoryEvent],
+  candidate: MemoryEvent,
+) -> bool
+```
+
+- 方法 SHALL 为**纯代码规则**，MUST NOT 调用 LLM（每 tick 每 agent 触发，
+  LLM 成本禁区）。
+- 默认实现基于 `profile.personality.routine_adherence` /
+  `profile.personality.curiosity` typed 字段（typed-personality change 引入）
+  以及 `candidate.kind` 分支决定；具体规则由 `memory` spec 的
+  process_tick Requirement 与 `docs/agent_system/09` 文档说明。
+- 子类或策略对象可覆盖 `should_replan`；基类版本保持为"合理默认"。
+- 方法不得修改 memory_view 或 candidate（只读分析）。
+
+#### Scenario: 高好奇心 agent 对通知返回 True
+- **WHEN** agent `profile.personality.routine_adherence=0.2,
+  profile.personality.curiosity=0.9`，candidate 是 `kind="notification"` 且
+  `urgency=0.8`
+- **THEN** `should_replan(memory_view, candidate)` SHALL 返回 `True`
+
+#### Scenario: 高坚持 agent 对通知返回 False
+- **WHEN** agent `profile.personality.routine_adherence=0.9`，同样的通知
+  candidate
+- **THEN** `should_replan(memory_view, candidate)` SHALL 返回 `False`
+
+#### Scenario: 方法不调用 LLM
+- **WHEN** `should_replan` 被调用 10000 次
+- **THEN** 任何 LLMClient / anthropic SDK / 网络请求 SHALL 不被触发；
+  耗时 SHALL 在毫秒量级
+
+### Requirement: Planner.replan 方法
+
+`Planner` SHALL 新增异步方法：
+
+```
+async replan(
+  profile: AgentProfile,
+  current_plan: DailyPlan,
+  interrupt_ctx: dict,
+) -> DailyPlan
+```
+
+- `interrupt_ctx` 至少含 `trigger_event: MemoryEvent` 与
+  `recent_memories: list[MemoryEvent]`。
+- SHALL 调用 `llm_client.generate(prompt, model=profile.base_model)`
+  恰好 1 次。
+- 产出新 DailyPlan：`current_step_index` 保留为原值；
+  `steps[:current_step_index]` 不变；`steps[current_step_index:]` 替换为
+  LLM 新产的 step 列表。
+- LLM 解析失败时 SHALL 返回 `current_plan` 的副本（fallback），不抛异常。
+
+#### Scenario: 成功 replan
+- **WHEN** 当前 plan 有 10 step，`current_step_index=4`；replan 触发
+- **THEN** 返回的新 plan SHALL 保留 `steps[:4]`，替换 `steps[4:]`；
+  llm_client.generate SHALL 被调用 1 次
+
+#### Scenario: LLM 失败 fallback
+- **WHEN** llm_client.generate 抛异常
+- **THEN** `replan` SHALL 返回原 plan 的副本，不抛；日志 SHALL 含"replan_failed"

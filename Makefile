@@ -1,5 +1,6 @@
 .PHONY: help test test-cartography enrich-map fetch-overture conflate \
-        regenerate-atlas diagnose-atlas clean-atlas-cache
+        regenerate-atlas diagnose-atlas clean-atlas-cache \
+        fitness-audit fitness-audit-full
 
 help:
 	@echo "Targets:"
@@ -11,6 +12,8 @@ help:
 	@echo "  regenerate-atlas   Delete atlas cache and import from the best-available source"
 	@echo "  diagnose-atlas     Print connectivity + enrichment metrics on current atlas"
 	@echo "  clean-atlas-cache  Remove data/lanecove_atlas.json so next load rebuilds"
+	@echo "  fitness-audit      Run Phase 1.5 fitness audit (quick; ~1min)"
+	@echo "  fitness-audit-full Run Phase 1.5 fitness audit at full scale (1000×288)"
 
 test:
 	python3 -m pytest tests/ -v
@@ -35,3 +38,9 @@ diagnose-atlas:
 
 enrich-map: fetch-overture conflate regenerate-atlas diagnose-atlas
 	@echo "Enrichment pipeline complete."
+
+fitness-audit:
+	python3 tools/run_fitness_audit.py --verbose
+
+fitness-audit-full:
+	python3 tools/run_fitness_audit.py --scale full --verbose
