@@ -3,6 +3,18 @@
 本目录按能力（capability）维度组织项目的契约。参考原始文档见
 `docs/项目Brief.md`、`docs/agent_system/*`、`docs/map_pipeline/*`。
 
+## Project Thesis（每块 change 开工前必读）
+
+项目研究的**主边界**：`Attention-induced Nearby Blindness`（注意力位移
+造成的附近性盲区）。其余三层（`algorithmic-input` / `spatial-output` /
+`social-downstream`）是机制链上的上下游位置，不是平列边界。
+
+Canonical thesis + `Chain-Position` 门禁：
+[`docs/agent_system/00-thesis.md`](../docs/agent_system/00-thesis.md)。
+
+每块 Phase 2 change 的 `## Why` SHALL 声明 Chain-Position（见 00-thesis.md
+的"Chain-Position 门禁"章节）。
+
 ## 已冻结能力（Phase 1 — 已实现）
 
 位于 `specs/<capability>/spec.md`：

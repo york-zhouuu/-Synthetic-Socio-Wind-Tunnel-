@@ -33,15 +33,41 @@
 
 ## Page 2: Border Survey / Precedent Research
 
-### 边界分类框架
+### 边界分类框架（v2：一主三机制）
 
-我们将边界分为三种类型：
+> **2026-04-21 由 `thesis-focus` change 收敛**。v1 的"物理 / 制度社会 /
+> 信息"三分法在下一小节保留为开题期参考。Canonical thesis 见
+> `docs/agent_system/00-thesis.md`。
+
+项目研究的是**一条主边界 + 三层机制链**：
+
+**主边界**：`Attention-induced Nearby Blindness`（注意力位移造成的附近性盲区）
+
+```
+algorithmic-input  →  attention-main  →  spatial-output  →  social-downstream
+   (来源侧)             (主边界 MAIN)       (空间侧产出)         (下游验证)
+```
+
+| 位置 | 角色 | 测量 |
+|---|---|---|
+| `algorithmic-input` | feed 来源偏全球而非 hyperlocal | feed 内容 hyperlocal 比例 |
+| **`attention-main`** | **手机注意力位移——主研究对象** | `AttentionState`、notification 接收率 |
+| `spatial-output` | 附近可达路径被忽略、transit 化 | trajectory 偏离、空间激活 |
+| `social-downstream` | 擦肩而过、无对视、无社交触发 | encounter → conversation 转化率 |
+
+### 边界分类（v1 开题期参考）
+
+v1 阶段我们把边界分为三种类型（现降级为**历史记录**）：
 
 | 边界类型 | 定义 | 示例 |
 |---------|------|------|
 | **Physical Borders** | 物理空间中可见的阻隔 | 墙、围栏、封闭的门、道路分割、地形障碍 |
 | **Institutional / Social Borders** | 制度或社会习惯形成的隐性边界 | 社区规约、阶层区隔、文化差异、社交规范 |
 | **Informational Borders** | 信息流动中的屏障与过滤 | 算法推荐、信息茧房、本地新闻缺失、注意力垄断 |
+
+> **v1 → v2 映射**：Physical 在新结构中由 `spatial-output` 层的 metrics
+> 测量；Informational 归入 `algorithmic-input`；Institutional/Social 归入
+> `social-downstream`。三者不再平列，而是沿机制链分布。
 
 ### Precedent Research
 

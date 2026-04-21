@@ -146,7 +146,16 @@ Agent 从 Apartments 去 Park，NavigationService 用 A* 找到最短路径：
 
 ## 四、BorderZone（边界）：Brief 的核心研究对象
 
-Brief 定义了四重边界（注意力、算法、通勤、心理）。在代码中，边界被建模为 `BorderZone`：
+> **Thesis 位置说明**（2026-04-21 由 `thesis-focus` change 收敛）：
+> `BorderZone` 是**空间层面**的边界建模，属于 `spatial-output` 层的
+> 基础数据结构，**不等于 thesis 的主边界**。v2 thesis 的主边界是
+> `attention-main`（注意力位移造成的附近性盲区），见
+> `docs/agent_system/00-thesis.md`。以下"四重边界"为 Brief v1 遗留的
+> 表述；`BorderZone` 的 `BorderType` 枚举仍然用于地图标注，但不再是
+> 并列 thesis 研究对象。
+
+Brief v1 定义了四重边界（注意力、算法、通勤、心理，现已在 `thesis-focus`
+中收敛为"一主三机制链"）。在地图层，这些边界被建模为 `BorderZone`：
 
 ```python
 BorderZone(

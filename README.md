@@ -10,16 +10,26 @@ Modern high-density urban communities harbor a paradox:
 
 **Physical distance has never been smaller. Social distance has never been greater.**
 
-In places like Sydney's Zetland/Green Square, residents share corridors, elevators, and train exits — yet have near-zero social connection. The biggest barrier isn't a wall. It's **attention displacement**: algorithms route every glance toward global news and distant events, leaving a 1,000-metre blind spot around each person's actual life.
+In places like Sydney's Zetland/Green Square or Lane Cove 2066, residents share corridors, elevators, and train exits — yet have near-zero social connection. The biggest barrier isn't a wall. It's **attention displacement**: algorithms route every glance toward global news and distant events, leaving a 1,000-metre blind spot around each person's actual life.
 
-Four invisible boundaries stack on top of each other:
+### Main boundary: Attention-induced Nearby Blindness
 
-| Boundary | Mechanism | Effect |
-|----------|-----------|--------|
-| Digital attention | Screens capture gaze | Physical environment becomes invisible |
-| Algorithmic information | Recommenders filter out local | Hyperlocal stories never surface |
-| Spatial habit | Optimised commute routes | Public space reduced to transit corridors |
-| Social psychology | Stranger anxiety, urban norm of non-interaction | Eye contact becomes a threat signal |
+One **main boundary** sits at the centre of this phenomenon. Three further layers stack around it as an input → output → validation chain — not parallel boundaries, but positions on a single mechanism chain:
+
+```
+algorithmic-input  →  attention-main  →  spatial-output  →  social-downstream
+   (source)             (MAIN)              (spatial        (downstream
+                                             symptom)        validation)
+```
+
+| Chain position | What it is | Measurement |
+|---|---|---|
+| `algorithmic-input` | Recommender bias toward global over hyperlocal | feed content hyperlocal ratio |
+| **`attention-main`** | **Phone gaze displaces the physical <500m environment** | `AttentionState`, notification reach |
+| `spatial-output` | Commute paths ossify; public space reduced to transit | trajectory deviation, space activation |
+| `social-downstream` | Serendipity and weak ties disappear | encounter → conversation conversion |
+
+See [`docs/agent_system/00-thesis.md`](docs/agent_system/00-thesis.md) for the canonical thesis statement, mechanism chain, and `Chain-Position` gate that every Phase 2 change must cite.
 
 ---
 

@@ -57,6 +57,38 @@
 
 ## 三、边界的重新定义
 
+> **v2 收敛说明（2026-04-21 由 `thesis-focus` change 写入）**：
+> 本章 §3.0 为收敛后的正式 thesis 结构；§3.1 / §3.2 保留为 v1 开题期的
+> 概念撒网表述。Canonical thesis 见
+> [`docs/agent_system/00-thesis.md`](agent_system/00-thesis.md)。
+
+### 3.0 v2 收敛：主边界 + 机制链
+
+项目实际研究的是**一条主边界 + 三层机制链**，而不是 §3.2 所列的"四重
+平列边界"：
+
+**主边界**：`Attention-induced Nearby Blindness`（注意力位移造成的附近性盲区）
+
+**机制链**：
+
+```
+algorithmic-input  →  attention-main  →  spatial-output  →  social-downstream
+   (来源侧)             (主边界 MAIN)       (空间侧产出)         (下游验证)
+```
+
+§3.2 的四重边界在 v2 中的归位：
+
+| §3.2 旧名称 | v2 位置 | 降级/升级说明 |
+|---|---|---|
+| 数字注意力边界 | `attention-main` | **升为主边界**（研究焦点、唯一干预入口） |
+| 算法信息边界 | `algorithmic-input` | 降为输入侧，通过 policy-hack 驱动 |
+| 空间通勤边界 | `spatial-output` | 降为空间侧产出，由 metrics 测量 |
+| 社交心理边界 | `social-downstream` | 升为下游验证层，闭环 thesis |
+
+详见 `docs/agent_system/00-thesis.md`。本 Brief 剩余章节（§4~§11）的语义
+仍然适用，只需按 v2 位置重读；`policy-hack` 的五类干预（§4.4）都落在
+`algorithmic-input` 层，通过 `attention-main` 生效。
+
 ### 3.1 传统边界 vs 当代边界
 
 | 维度 | 传统边界 | 当代新型边界 |
@@ -67,7 +99,11 @@
 | 建造者 | 国家、机构 | 科技公司、平台算法 |
 | 跨越方式 | 翻越、绕行、破坏 | Policy Hack、反向渗透 |
 
-### 3.2 本项目定义的四重边界
+### 3.2 本项目定义的四重边界（v1 开题期表述 — 保留作历史附录）
+
+> **历史记录**：以下四重边界是 v1 开题期的概念撒网。v2 已在 §3.0
+> 收敛为"一主三机制"结构，原文保留仅作研究过程的证据链。阅读本节
+> 前请先读 §3.0 与 `docs/agent_system/00-thesis.md`。
 
 #### 边界一：数字注意力边界
 - **表现**：手机屏幕捕获视线，全球化内容占据认知带宽
