@@ -266,6 +266,15 @@ class Planner:
             )
             return current_plan.model_copy(deep=True)
 
+        # D.2 修复：LLM 可能吐出早于 current_time 的 step.time，
+        # AgentRuntime._current_step_expired 会自动 advance 跳过 → agent 静默忽略。
+        # 这里 parse 后保底重写：任何 step.time < current_time 的，改写为
+        # current_time + 1 分钟。
+        if current_time is not None:
+            new_future_steps = [
+                _ensure_future_step_time(step, current_time) for step in new_future_steps
+            ]
+
         # 保留已走过的 steps，替换未来部分
         kept = current_plan.steps[: current_plan.current_step_index]
         merged = kept + new_future_steps
@@ -275,6 +284,36 @@ class Planner:
             steps=merged,
             current_step_index=current_plan.current_step_index,
         )
+
+
+def _ensure_future_step_time(step: "PlanStep", current_time) -> "PlanStep":
+    """
+    如果 step.time 早于 current_time（或不可解析），rewrite 为
+    current_time + 1 分钟，让 AgentRuntime._current_step_expired 不会
+    立刻判它为过期。
+
+    D.2 修复。
+    """
+    from datetime import timedelta
+
+    time_str = step.time or ""
+    try:
+        hour_str, minute_str = time_str.split(":", 1)
+        hour = int(hour_str)
+        minute = int(minute_str)
+        if not (0 <= hour < 24 and 0 <= minute < 60):
+            raise ValueError
+        step_dt = current_time.replace(
+            hour=hour, minute=minute, second=0, microsecond=0
+        )
+    except (ValueError, AttributeError):
+        step_dt = None
+
+    if step_dt is None or step_dt < current_time:
+        safe_dt = current_time + timedelta(minutes=1)
+        safe_time_str = f"{safe_dt.hour}:{safe_dt.minute:02d}"
+        return step.model_copy(update={"time": safe_time_str})
+    return step
 
 
 def _build_replan_prompt(
@@ -321,7 +360,7 @@ def _build_replan_prompt(
 请重新规划从现在起的步骤：基于这个新事件，你会改变行为吗？
 
 输出 JSON 数组（与 DailyPlan.steps 同格式），每条含：
-- time: 开始时间（如 "7:35"）
+- time: 开始时间（如 "7:35"）；**必须 >= 当前时刻 {current_time}**
 - action: 必须为 "move" / "stay" / "interact" / "explore" 之一
 - destination: 目标 location（可选）
 - activity: 做什么

@@ -40,7 +40,7 @@ class MemoryService:
         "_embedding",
         "_retriever",
         "_attention_service",
-        "_last_seen_notification_time",
+        "_consumed_feed_item_ids",
         "_event_counter",
     )
 
@@ -55,8 +55,11 @@ class MemoryService:
         self._embedding: EmbeddingProvider = embedding_provider or NullEmbedding()
         self._retriever = MemoryRetriever(weights=retriever_weights)
         self._attention_service = attention_service
-        # 跟踪每 agent 上次读到的最后 notification 时间，避免重复消费
-        self._last_seen_notification_time: dict[str, datetime] = {}
+        # D.1 修复：per-agent feed_item_id 去重集合。
+        # 旧实现用 last_seen_timestamp 过滤；AttentionService.notifications_for
+        # 的 `>=` 语义会让同 timestamp 的 notification 在下一次 tick 被
+        # 重新 ingest。改为直接记住 "这个 agent 已经 ingest 过的 feed_item_id"。
+        self._consumed_feed_item_ids: dict[str, set[str]] = {}
         self._event_counter = 0
 
     def _store_for(self, agent_id: str) -> MemoryStore:
@@ -96,7 +99,10 @@ class MemoryService:
     def recent(self, agent_id: str, last_ticks: int = 1) -> list[MemoryEvent]:
         """
         返回最近 `last_ticks` 个 tick 范围的事件。
-        简化实现：取 store 末尾的所有 tick >= (max_tick - last_ticks + 1) 的 event。
+
+        锚点：store 内最大 tick。若后续 tick 没有新事件（退化场景），
+        max_tick 会"卡住"导致旧事件反复被视为最新——真实 orchestrator
+        每 tick 有 action 写入不会卡；退化/测试场景用 `events_at_tick`。
         """
         store = self._stores.get(agent_id)
         if store is None:
@@ -108,6 +114,13 @@ class MemoryService:
         min_tick = max_tick - last_ticks + 1
         return [e for e in all_events if e.tick >= min_tick]
 
+    def events_at_tick(self, agent_id: str, tick: int) -> list[MemoryEvent]:
+        """返回 agent 在**指定** tick 的所有事件（不依赖 max_tick 锚点）。"""
+        store = self._stores.get(agent_id)
+        if store is None:
+            return []
+        return [e for e in store.all() if e.tick == tick]
+
     def all_for(self, agent_id: str) -> list[MemoryEvent]:
         store = self._stores.get(agent_id)
         if store is None:
@@ -116,18 +129,12 @@ class MemoryService:
 
     # ---- orchestrator 集成 ----
 
-    def attach_to(self, orchestrator: "Orchestrator") -> None:
-        """一键注册 on_tick_end hook。"""
-        # on_tick_end 给一个 lambda，内部从 orchestrator 拿 agents + planner
-        # （orchestrator 的 __slots__ 包含 _agents；不暴露公共读接口，所以
-        # 调用方需保持对 agents/planner 的引用——这里只接 TickResult）
-        # 由于 orchestrator 构造时不接 planner，MemoryService 自己外部保管
-        # 这些引用，这里不注册任何闭包——调用方用 process_tick_from 显式调。
-        raise NotImplementedError(
-            "Use MemoryService.process_tick(tick_result, agents, planner) "
-            "from an on_tick_end hook callback registered externally. "
-            "See docs/agent_system/09-memory-and-replan.md for integration example."
-        )
+    # 注：没有 attach_to 方法。MemoryService 不知道 agents 字典与 planner
+    # 实例的所有权；调用方持有它们，手工注册一个 on_tick_end callback 即可：
+    #   orch.register_on_tick_end(
+    #       lambda tr: memory.process_tick(tr, agents_by_id, planner)
+    #   )
+    # 见 docs/agent_system/09-memory-and-replan.md 的集成示例。
 
     def process_tick(
         self,
@@ -184,7 +191,10 @@ class MemoryService:
             return replans
 
         for agent_id, agent in agents.items():
-            recent = self.recent(agent_id, last_ticks=1)
+            # 用 events_at_tick 而不是 recent(last_ticks=1)：
+            # 后者基于 max_tick，在"没有其它事件写入"时会把旧 tick 的
+            # 事件反复视为 recent，导致 replan 重复触发。
+            recent = self.events_at_tick(agent_id, tick_result.tick_index)
             if not recent:
                 continue
             for candidate in recent:
@@ -232,17 +242,21 @@ class MemoryService:
     def _ingest_notifications(
         self, agent_id: str, tick: int, sim_time: datetime
     ) -> None:
-        """Pull notifications newer than last seen for this agent."""
+        """
+        Pull new-to-this-agent notifications and record them as MemoryEvents.
+
+        D.1 修复：用 per-agent `set[feed_item_id]` 去重而非 timestamp since。
+        """
         assert self._attention_service is not None
-        since = self._last_seen_notification_time.get(agent_id)
-        new_events = self._attention_service.notifications_for(
-            agent_id, since=since
-        )
-        for ne in new_events:
+        consumed = self._consumed_feed_item_ids.setdefault(agent_id, set())
+        all_events = self._attention_service.notifications_for(agent_id)
+        for ne in all_events:
             feed_item_id = ne.feed_item_id
+            if feed_item_id in consumed:
+                continue  # 已经消费过，跳过
             feed_item = self._attention_service.get_feed_item(feed_item_id)
             if feed_item is None:
-                # Feed item registered elsewhere; skip rather than crash
+                # Feed item not registered; skip rather than crash
                 continue
             kind = "task_received" if feed_item.category == "task" else "notification"
             event = MemoryEvent(
@@ -259,8 +273,7 @@ class MemoryService:
                 tags=(feed_item.source, feed_item.category),
             )
             self.record(agent_id, event)
-        # 记住已消费位置
-        self._last_seen_notification_time[agent_id] = sim_time
+            consumed.add(feed_item_id)
 
     # ---- Daily summary ----
 
