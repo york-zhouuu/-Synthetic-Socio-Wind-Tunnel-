@@ -68,3 +68,20 @@
 - [ ] X.1 为新增模块建立统一的"写入即事件"约定，维持 CQRS 单源头
 - [ ] X.2 补齐 pytest 夹具以覆盖跨模块集成（orchestrator 驱动下的多 agent）
 - [ ] X.3 更新 `README.md` 与 `docs/WIP-progress-report.md` 的进度标记
+
+## 已知债务（来自 2026-04-21 smoke demo 发现，见 docs/agent_system/11）
+
+每个债务都是下次迭代对应能力时的已知问题，proposal 的 `## Why` 应引用。
+
+- [ ] D.1 **MemoryService notification 去重基于 timestamp 有漏**：
+      `_ingest_notifications` 用 `since=last_seen_timestamp` + attention 的
+      `>=` 语义导致同一 notification 每 tick 被重复 ingest；真实 LLM 下
+      会爆 replan 成本。修法：per-agent `set[feed_item_id]` 去重。
+      → 归属 memory 下次迭代 change，或独立 `memory-consumption-tracking`。
+
+- [ ] D.2 **Planner.replan 的 step.time 可能早于 current_time**：
+      `AgentRuntime._current_step_expired` 会把过期 step 自动 advance 跳过，
+      LLM 返回的 step 若 time 字段早于 current_time 会被静默忽略。
+      修法：Planner.replan parse 后保底重写 time，或在 prompt 里强制
+      "time 必须 ≥ current_time"。
+      → 归属 memory 下次迭代，或未来 replan 独立 change。
