@@ -35,6 +35,9 @@ attention / social 层提供事件与反思基底）
 `Chain-Position: social-downstream`（thesis 闭环：encounter → tie →
 弱关系演化）
 
+前置：`experimental-design` spec（实验协议/严谨度/报告结构）
++ `multi-day-simulation` 基建（14 天 runner）
+
 - [ ] 2.1 为 `social-graph` 写独立 proposal，定义关系边与强度
 - [ ] 2.1a 在 proposal `## Why` 中引用 `fitness-report.json` 中
       `mitigation_change == "social-graph"` 的 AuditResult（若现无 skip/fail 条目指向
@@ -67,6 +70,9 @@ LLM 调用点提供约束）
 `Chain-Position: algorithmic-input`（反向扰动 feed 来源，触发 attention-main
 的变化；与 attention-channel 的分工：channel 是通道、hack 是扰动生成器）
 
+前置：`experimental-design` spec（rival hypothesis 结构 + 4 variant 跨 class
+要求 + mirror 规则）+ `multi-day-simulation` 基建
+
 - [ ] 5.1 为 `policy-hack` 写独立 proposal，汇总 5 类干预
       （广告牌 / 推送 / 海报 / 活动事件 / 邻里消息）
 - [ ] 5.1a 在 proposal `## Why` 中引用 `fitness-report.json` 中
@@ -89,6 +95,9 @@ LLM 调用点提供约束）
 `Chain-Position: observability`（跨层采集；测量的是链条的四个位置：
 algorithmic-input 层的 feed 分布、attention-main 层的注意力位移、
 spatial-output 层的轨迹偏离、social-downstream 层的弱关系增量）
+
+前置：`experimental-design` spec（β 严谨度 + 报告结构 + 产出类型约束）
++ `multi-day-simulation` 基建（MultiDayResult.combine 跨 seed 聚合）
 
 - [ ] 7.1 为 `metrics` 写独立 proposal，列出四类指标：
       轨迹偏离、网络密度、弱关系数、叙事质量

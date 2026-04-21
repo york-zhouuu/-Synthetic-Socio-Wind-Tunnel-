@@ -21,6 +21,13 @@ algorithmic-input  →  attention-main  →  spatial-output  →  social-downstr
 | `conversation` | `social-downstream` | 把 encounter 转化为可测量的社交转化率 |
 | `metrics` | `observability` | 跨层采集链条四层的测量信号 |
 
+**实验层依赖（`research-design` 引入）**：所有实验实现（`policy-hack` /
+`metrics` / `social-graph`）的 `## Why` SHALL 引用
+`openspec/specs/experimental-design/spec.md` 的条款（Rival Hypothesis
+structure / 14-day protocol / β rigor / Hybrid ethics / Mirror rule /
+Diagnosis-Cure-Outcome-Interpretation report）作为前置锚点；执行基建见
+`openspec/changes/multi-day-simulation/`。
+
 完成"反向注意力干预打破附近性盲区"的 thesis 验证仍缺以下能力（见
 `docs/agent_system/00-thesis.md` 与 `docs/agent_system/03-干预机制与实验指标.md`）：
 

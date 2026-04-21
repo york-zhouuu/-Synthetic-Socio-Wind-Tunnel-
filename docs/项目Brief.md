@@ -355,7 +355,14 @@ algorithmic-input  →  attention-main  →  spatial-output  →  social-downstr
 
 **预期结论**：边界不仅仅是物理的墙，更是我们认知世界的滤镜。通过共享某种在地化的目标/情绪，陌生人之间的心理高墙可以被瞬间瓦解。
 
-### 5.4 实验输出的"戏剧结构"
+### 5.4 实验输出的"戏剧结构"（v1 四幕剧 — 已被 v2 五幕结构替代）
+
+> **v2 收敛说明（2026-04-22 由 `research-design` change 写入）**：
+> 本节的"四幕剧（BEFORE / INTERVENTION / AFTER / STORIES）"为 v1 开题期
+> 的叙事结构。v2 采用**五幕结构**（Baseline → Four Doctors → The Contest →
+> Decay → The Mirror）+ 每 variant **Diagnosis-Cure-Outcome-Interpretation**
+> 四段式，canonical 定义见 [`agent_system/13-research-design.md`](agent_system/13-research-design.md)
+> Part VI。v1 原文保留为历史附录。
 
 整个实验可以按照四幕剧的形式组织和呈现：
 

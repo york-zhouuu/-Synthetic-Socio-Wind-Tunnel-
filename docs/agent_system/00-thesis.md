@@ -78,6 +78,29 @@ change 有 Phase 1 实测缺口锚点，本门禁保证 change 在 thesis 链条
 
 ---
 
+## Experimental Design Framework
+
+实验哲学、实验协议、严谨度标准、伦理立场、报告结构——canonical 定义在
+[`13-research-design.md`](13-research-design.md)；正式契约在
+`openspec/specs/experimental-design/spec.md`。
+
+要点摘录（以 canonical 文档为准）：
+- **Rival Hypothesis Framing**：4 条 variant 绑定 4 种关于"附近性消亡"
+  的 rival hypothesis（H_info / H_pull / H_meaning / H_structure）；
+  实验是**诊断 contest**，不是 method testing
+- **14-Day Protocol**：Baseline 4d + Intervention 6d + Post 4d；习惯形成
+  + decay 同时可测
+- **β 严谨度**：30 seed × median+IQR/CI；单 run 数字仅限 preliminary
+- **Hybrid 伦理 + 4+1 Mirror**：A + A'（Global Distraction）等级交付；
+  其它 3 条 mirror 文档化不实现
+- **Diagnosis-Cure-Outcome-Interpretation 报告**：五幕结构 + 每 variant
+  四段式
+
+所有后续实验 change（`policy-hack` / `metrics` / `social-graph`）SHALL
+引用 `experimental-design` spec 作为前置锚点。
+
+---
+
 ## 当前证据（smoke experiment 2026-04-21）
 
 `tools/smoke_experiment_demo.py` on Lane Cove atlas：

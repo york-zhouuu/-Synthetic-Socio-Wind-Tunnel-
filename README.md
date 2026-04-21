@@ -53,12 +53,31 @@ Assign a common ambient task (e.g. find the lost cat) to otherwise isolated agen
 
 Each experiment produces a four-act output:
 
-```
-ACT I   BEFORE      → heatmaps showing isolation and dead zones
-ACT II  INTERVENTION → the policy hack introduced
-ACT III AFTER       → trajectory entanglement, space activation
-ACT IV  STORIES     → Rashomon-effect narratives from multiple agents
-```
+Updated five-act structure and the rival-hypothesis framing that organises
+these experiments live in [`docs/agent_system/13-research-design.md`](docs/agent_system/13-research-design.md).
+The four-act sketch above is preserved as historical shorthand.
+
+---
+
+## Research Posture
+
+This is an **exploratory research instrument** — functionally closer to a
+physics cloud chamber than to a deployable policy engine.
+
+- **Exploratory instrument, not policy engine.** The goal is to make the
+  phenomenon of attention-induced nearby blindness visible and navigable,
+  not to produce deployable recommendations.
+- **Dual-use explicit.** Every intervention we test has a paired "mirror"
+  scenario that weaponises the same mechanism in the opposite direction;
+  our primary deliverable includes at least one mirror at equal rigor.
+- **No deployment endorsement.** We do not claim the tool is ready to run
+  on real residents. Real deployment requires consent, governance, and
+  feedback — all out of scope here.
+- **Rigor: β standard.** Publishable effect sizes use 30-seed × 14-day
+  runs reported as median + IQR/CI. Single-run numbers are preliminary.
+
+Canonical thesis statement: [`docs/agent_system/00-thesis.md`](docs/agent_system/00-thesis.md).
+Canonical research design + experimental protocol: [`docs/agent_system/13-research-design.md`](docs/agent_system/13-research-design.md).
 
 ---
 

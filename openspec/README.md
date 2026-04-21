@@ -15,6 +15,16 @@ Canonical thesis + `Chain-Position` 门禁：
 每块 Phase 2 change 的 `## Why` SHALL 声明 Chain-Position（见 00-thesis.md
 的"Chain-Position 门禁"章节）。
 
+## Experimental Design（每块实验 change 必读）
+
+实验哲学、14 天协议、β 严谨度、Hybrid 伦理立场、五幕报告结构——canonical
+在 [`docs/agent_system/13-research-design.md`](../docs/agent_system/13-research-design.md)；
+正式契约（6 条 SHALL）在 `specs/experimental-design/spec.md`（归档后）。
+
+所有实验实现 change（`policy-hack` / `metrics` / `social-graph` 等）的
+`## Why` SHALL 引用 `experimental-design` spec。基建执行能力见
+`changes/multi-day-simulation/`。
+
 ## 已冻结能力（Phase 1 — 已实现）
 
 位于 `specs/<capability>/spec.md`：
