@@ -67,12 +67,13 @@ def _ledger_with_agents(*agents: AgentRuntime, start_time: datetime | None = Non
 class TestConstruction:
 
     def test_multi_day_rejected(self):
+        """Orchestrator.run() 单日语义；多日走 MultiDayRunner。"""
         atlas = _small_atlas()
         agent = _agent("alpha")
         ledger = _ledger_with_agents(agent)
-        with pytest.raises(NotImplementedError) as exc:
+        with pytest.raises(ValueError) as exc:
             Orchestrator(atlas, ledger, [agent], num_days=2)
-        assert "memory" in str(exc.value)
+        assert "MultiDayRunner" in str(exc.value)
 
     def test_negative_num_days_rejected(self):
         atlas = _small_atlas()

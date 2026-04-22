@@ -7,7 +7,7 @@ Orchestrator 数据模型 — frozen dataclasses。
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import date, datetime
 from typing import TYPE_CHECKING, Literal
 
 if TYPE_CHECKING:
@@ -33,11 +33,17 @@ class TickContext:
       （tick 还没开始 per-agent 感知）。
     - 在 `AgentRuntime.step(ctx)` 时：`observer_context` 是该 agent 自己的
       ObserverContext（已含 digital_state / position 等）。
+
+    `simulated_date` 与 `day_index` 由 multi-day 路径填充；单日调用时
+    orchestrator 从 Ledger.current_time.date() 派生 simulated_date，
+    day_index 默认 0。
     """
 
     tick_index: int
     simulated_time: datetime
     observer_context: "ObserverContext | None" = None
+    simulated_date: date | None = None
+    day_index: int = 0
 
 
 @dataclass(frozen=True)
@@ -47,6 +53,8 @@ class CommitRecord:
     agent_id: str
     intent: "Intent"
     result: "SimulationResult"
+    simulated_date: date | None = None
+    day_index: int = 0
 
 
 @dataclass(frozen=True)
@@ -78,6 +86,8 @@ class TickResult:
     simulated_time: datetime
     commits: tuple[CommitRecord, ...]
     encounter_candidates: tuple[EncounterCandidate, ...]
+    simulated_date: date | None = None
+    day_index: int = 0
 
 
 @dataclass(frozen=True)
@@ -90,6 +100,8 @@ class SimulationContext:
     seed: int
     agent_ids: tuple[str, ...]
     started_at: datetime
+    simulated_date: date | None = None
+    day_index: int = 0
 
 
 @dataclass(frozen=True)
@@ -103,3 +115,5 @@ class SimulationSummary:
     seed: int
     started_at: datetime
     ended_at: datetime
+    simulated_date: date | None = None
+    day_index: int = 0

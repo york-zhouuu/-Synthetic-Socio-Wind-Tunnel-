@@ -58,6 +58,7 @@ from synthetic_socio_wind_tunnel.agent import (
     sample_population,
 )
 from synthetic_socio_wind_tunnel.memory import (
+    CarryoverContext,
     DailySummary,
     EmbeddingProvider,
     MemoryEvent,
@@ -69,8 +70,13 @@ from synthetic_socio_wind_tunnel.memory import (
 )
 from synthetic_socio_wind_tunnel.orchestrator import (
     CommitRecord,
+    DayRunSummary,
     EncounterCandidate,
+    MultiDayAggregate,
+    MultiDayResult,
+    MultiDayRunner,
     Orchestrator,
+    RunMode,
     SimulationSummary,
     TickContext,
     TickResult,
@@ -154,6 +160,12 @@ __all__ = [
     "CommitRecord",
     "EncounterCandidate",
     "SimulationSummary",
+    # Multi-day runner (multi-day-simulation)
+    "MultiDayRunner",
+    "MultiDayResult",
+    "MultiDayAggregate",
+    "DayRunSummary",
+    "RunMode",
     # Intents (phase 2 — used with orchestrator)
     "Intent",
     "MoveIntent",
@@ -178,6 +190,8 @@ __all__ = [
     "DailySummary",
     "EmbeddingProvider",
     "NullEmbedding",
+    # Memory carryover (multi-day-simulation)
+    "CarryoverContext",
     # Map Service (agent-facing query façade)
     "MapService",
     "KnownDestination",

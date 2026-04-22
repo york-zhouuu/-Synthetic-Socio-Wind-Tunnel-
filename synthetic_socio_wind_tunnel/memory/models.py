@@ -38,6 +38,9 @@ class MemoryEvent:
     actor_id: str | None = None            # 对方 agent / 推送源 / 互动对象
     location_id: str | None = None
 
+    # 多日 run 偏移（multi-day-simulation 引入；单日路径默认 0）
+    day_index: int = 0
+
     # 显式 behavior-driving 字段（替代"藏在 tag 里的数值"反模式）
     urgency: float = 0.0                   # [0, 1]：事件紧迫度（应 replan 的信号）
     importance: float = 0.5                # [0, 1]：用户感知重要性（检索打分用）

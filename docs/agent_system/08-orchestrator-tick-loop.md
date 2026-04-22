@@ -88,3 +88,18 @@ on_simulation_end(SimulationSummary)     ← run() 结束前一次
 | `policy-hack` | 构造器传入或 on_simulation_start 注入 FeedItem |
 | `model-budget` | agent.step() 在内部决定是否调 LLM |
 | `metrics` | on_tick_end 全量订阅 TickResult，序列化到磁盘 |
+
+---
+
+## 附录：多日调用（multi-day-simulation change）
+
+`Orchestrator.run()` 本身只跑 1 天；N 天由 `MultiDayRunner.run_multi_day`
+分天调用 `run(day_index=i, simulated_date=...)` 实现。参数为 kwarg-only
+默认 0 / None，单日调用完全不受影响。
+
+每 tick 的 `TickContext` / `TickResult` / `CommitRecord` 现在都带
+`simulated_date` + `day_index` 字段（默认 0 / 从 Ledger 派生），订阅者
+按需读即可。
+
+完整细节与 hook 时序示例见
+[`14-multi-day-simulation.md`](14-multi-day-simulation.md)。

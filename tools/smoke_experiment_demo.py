@@ -590,7 +590,37 @@ def main() -> int:
     p.add_argument("--intervention-tick", type=int, default=96)
     p.add_argument("--trace-agent", type=str, default=None,
                    help="print tick-by-tick trajectory for this agent_id")
+    p.add_argument("--multi-day", action="store_true",
+                   help="use MultiDayRunner for a 3-day dev-mode run "
+                        "(basic pipeline smoke; not publishable)")
     args = p.parse_args()
+
+    if args.multi_day:
+        # Lightweight dispatch to the multi-day CLI for a smoke run.
+        # Experiment variants and metrics don't live here — see
+        # tools/run_multi_day_experiment.py for a richer entry.
+        from datetime import date
+        from synthetic_socio_wind_tunnel.orchestrator import MultiDayRunner
+        print("[smoke --multi-day] 3 day × 1 seed × "
+              f"{args.agents} agents dev-mode smoke ...")
+        # Reuse the richer CLI for this code path.
+        from run_multi_day_experiment import build_single_seed_run
+        t0 = time.time()
+        result = build_single_seed_run(
+            seed=args.seed,
+            n_agents=args.agents,
+            start_date=date(2026, 4, 22),
+            num_days=3,
+            mode="dev",
+        )
+        dt = time.time() - t0
+        print(f"[smoke --multi-day] wall={dt:.1f}s "
+              f"ticks={result.total_ticks} encs={result.total_encounters}")
+        per_day = result.per_day_summaries
+        for d in per_day:
+            print(f"  day {d.day_index} ({d.simulated_date}): "
+                  f"ticks={d.tick_count} encs={d.encounter_count}")
+        return 0
 
     cfg = SmokeConfig(
         n_agents=args.agents,

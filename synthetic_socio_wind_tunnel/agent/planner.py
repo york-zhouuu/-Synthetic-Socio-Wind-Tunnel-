@@ -4,11 +4,14 @@ from __future__ import annotations
 
 import json
 from datetime import datetime
-from typing import Any, Literal, Protocol
+from typing import TYPE_CHECKING, Any, Literal, Protocol
 
 from pydantic import BaseModel, Field
 
 from .profile import AgentProfile
+
+if TYPE_CHECKING:
+    from synthetic_socio_wind_tunnel.memory.carryover import CarryoverContext
 
 
 # ---------------------------------------------------------------------------
@@ -80,6 +83,7 @@ class DailyPlan(BaseModel):
 # Phase 1 的 prompt 模板 — 精简版，不依赖 Memory (Phase 2 再加)
 # typed-personality: {personality_description} → {personality_block}（结构化
 # 数值，替换自由描述）
+# multi-day-simulation: 新增 {carryover_section}（默认空串，不影响单日路径）
 _PLAN_PROMPT_TEMPLATE = """\
 你是 {name}，{age}岁，职业是{occupation}。
 你住在 {home_location}。
@@ -92,7 +96,7 @@ _PLAN_PROMPT_TEMPLATE = """\
 你的兴趣: {interests}
 
 今天是 {date} ({day_of_week})，天气是 {weather}。
-
+{carryover_section}
 请生成你今天的日程计划，从 {wake_time} 到 {sleep_time}。
 社区中可用的地点: {available_locations}
 
@@ -107,6 +111,70 @@ _PLAN_PROMPT_TEMPLATE = """\
 
 只输出 JSON 数组，不要其他内容。
 """
+
+
+# multi-day-simulation: 防 prompt 爆炸
+_CARRYOVER_MAX_CHARS = 1500
+_SUMMARY_TRUNCATE_CHARS = 300
+
+
+def _truncate(text: str, max_chars: int) -> str:
+    if len(text) <= max_chars:
+        return text
+    return text[: max_chars - 1] + "…"
+
+
+def _format_carryover_section(carryover) -> str:
+    """
+    把 CarryoverContext 渲染成 prompt 段落。
+
+    - 三段结构：昨日摘要 / 近 3 日反思 / 未完成任务锚点
+    - 若总长超过 _CARRYOVER_MAX_CHARS：对 yesterday_summary.summary_text 截断到
+      _SUMMARY_TRUNCATE_CHARS
+    - carryover=None 或所有字段为空时返回空串（不注入任何段落，单日行为不变）
+    """
+    if carryover is None:
+        return ""
+
+    yesterday = carryover.yesterday_summary
+    reflections = carryover.recent_reflections
+    tasks = carryover.pending_task_anchors
+
+    if yesterday is None and not reflections and not tasks:
+        return ""
+
+    parts: list[str] = ["\n"]
+
+    yest_text = yesterday.summary_text if yesterday else None
+
+    def _render(yest_s: str | None) -> str:
+        p: list[str] = []
+        if yest_s:
+            p.append(f"【昨日经历摘要】\n{yest_s}")
+        if reflections:
+            lines = ["【近 3 日反思】"]
+            for s in reflections:
+                snippet = _truncate(s.summary_text.strip().replace("\n", " "), 120)
+                lines.append(f"- day {s.date}: {snippet}")
+            p.append("\n".join(lines))
+        if tasks:
+            lines = ["【未完成任务锚点】"]
+            for t in tasks:
+                snippet = _truncate(t.content.strip().replace("\n", " "), 120)
+                lines.append(f"- {snippet}")
+            p.append("\n".join(lines))
+        p.append(
+            "（注：上面是你过去几天的经历；请生成**与历史一致但允许偏离**的"
+            "新 plan。）"
+        )
+        return "\n\n".join(p)
+
+    rendered = _render(yest_text)
+    if len(rendered) > _CARRYOVER_MAX_CHARS and yest_text is not None:
+        # truncate yesterday 再重渲染
+        rendered = _render(_truncate(yest_text, _SUMMARY_TRUNCATE_CHARS))
+
+    return "\n" + rendered + "\n"
 
 
 def _format_personality_block(profile: AgentProfile) -> str:
@@ -139,8 +207,16 @@ class Planner:
         weather: str = "晴",
         available_locations: list[str] | None = None,
         life_patterns: list[str] | None = None,
+        carryover: "CarryoverContext | None" = None,
     ) -> DailyPlan:
-        """调用 LLM 生成一天的计划。"""
+        """
+        调用 LLM 生成一天的计划。
+
+        multi-day-simulation: `carryover` 非 None 时，prompt 额外包含"昨日
+        摘要 / 近 3 日反思 / 未完成任务"三段；字符数 cap 1500，yesterday
+        summary 过长时截断到 300 字符。carryover=None 时 prompt 与单日
+        路径完全一致（向后兼容）。
+        """
 
         life_section = ""
         if life_patterns:
@@ -162,6 +238,7 @@ class Planner:
             wake_time=profile.wake_time,
             sleep_time=profile.sleep_time,
             available_locations=", ".join(available_locations or []),
+            carryover_section=_format_carryover_section(carryover),
         )
 
         raw = await self._llm.generate(prompt, model=profile.base_model)

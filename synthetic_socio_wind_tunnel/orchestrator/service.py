@@ -14,7 +14,7 @@ tick 内顺序（见 design D4）：
 from __future__ import annotations
 
 from collections import defaultdict
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from typing import TYPE_CHECKING, Callable
 
 from synthetic_socio_wind_tunnel.agent.intent import (
@@ -100,14 +100,19 @@ class Orchestrator:
         num_days: int = 1,
     ) -> None:
         # -- validate --
-        if num_days > 1:
-            raise NotImplementedError(
-                "Multi-day simulation requires `memory` capability for daily "
-                "reflection + next-day plan generation. See phase-2-roadmap; "
-                "orchestrator currently supports num_days=1 only."
-            )
+        # num_days=1 是单日默认；>1 由 MultiDayRunner 按天循环调 run()
+        # 实现（Orchestrator 本身只负责 1 天的 288 tick 循环）。若调用方
+        # 传 num_days>1 又直接调 run()，结果是"跑 N 天量的 tick 在一天
+        # 的 Ledger 时间上"——非预期；给出明确指引。
         if num_days < 1:
             raise ValueError(f"num_days must be >= 1, got {num_days}")
+        if num_days > 1:
+            raise ValueError(
+                "Orchestrator.run() only runs a single simulated day. "
+                "For multi-day protocols use MultiDayRunner "
+                "(synthetic_socio_wind_tunnel.orchestrator.multi_day). "
+                "Construct Orchestrator with num_days=1 here."
+            )
         if not isinstance(tick_minutes, int) or tick_minutes <= 0:
             raise ValueError(f"tick_minutes must be a positive integer, got {tick_minutes}")
         if 1440 % tick_minutes != 0:
@@ -159,8 +164,22 @@ class Orchestrator:
 
     # ---- Main entry ----
 
-    def run(self) -> SimulationSummary:
+    def run(
+        self,
+        *,
+        day_index: int = 0,
+        simulated_date: date | None = None,
+    ) -> SimulationSummary:
+        """
+        跑完一天 288 tick。
+
+        - `day_index` 默认 0（单日调用）；`MultiDayRunner` 按 0, 1, 2, ... 传入
+        - `simulated_date` 未传时从 `Ledger.current_time.date()` 派生
+        - 两者被填入 TickContext / TickResult / CommitRecord /
+          SimulationContext / SimulationSummary，但**不影响**单日行为
+        """
         started_at = datetime.now()
+        resolved_date = simulated_date or self._ledger.current_time.date()
         sim_ctx = SimulationContext(
             num_days=self._num_days,
             ticks_per_day=self._ticks_per_day,
@@ -168,6 +187,8 @@ class Orchestrator:
             seed=self._seed,
             agent_ids=tuple(sorted(a.profile.agent_id for a in self._agents)),
             started_at=started_at,
+            simulated_date=resolved_date,
+            day_index=day_index,
         )
         self._fire("on_simulation_start", sim_ctx)
 
@@ -181,7 +202,13 @@ class Orchestrator:
         sorted_agent_ids = tuple(sorted(agents_by_id.keys()))
 
         for tick_index in range(num_ticks):
-            tick_result = self._run_tick(tick_index, agents_by_id, sorted_agent_ids)
+            tick_result = self._run_tick(
+                tick_index,
+                agents_by_id,
+                sorted_agent_ids,
+                day_index=day_index,
+                simulated_date=resolved_date,
+            )
             for commit in tick_result.commits:
                 if commit.result.success:
                     total_commits_succeeded += 1
@@ -199,6 +226,8 @@ class Orchestrator:
             seed=self._seed,
             started_at=started_at,
             ended_at=ended_at,
+            simulated_date=resolved_date,
+            day_index=day_index,
         )
         self._fire("on_simulation_end", summary)
         return summary
@@ -210,14 +239,20 @@ class Orchestrator:
         tick_index: int,
         agents_by_id: dict[str, "AgentRuntime"],
         sorted_agent_ids: tuple[str, ...],
+        *,
+        day_index: int = 0,
+        simulated_date: date | None = None,
     ) -> TickResult:
         tick_start_time = self._ledger.current_time
+        resolved_date = simulated_date or tick_start_time.date()
 
         # 1. on_tick_start — fires ONCE before any per-agent work
         start_ctx = TickContext(
             tick_index=tick_index,
             simulated_time=tick_start_time,
             observer_context=None,
+            simulated_date=resolved_date,
+            day_index=day_index,
         )
         self._fire("on_tick_start", start_ctx)
 
@@ -230,6 +265,8 @@ class Orchestrator:
                 tick_index=tick_index,
                 simulated_time=tick_start_time,
                 observer_context=observer_ctx,
+                simulated_date=resolved_date,
+                day_index=day_index,
             )
             intent_pool[agent_id] = agent.step(tick_ctx)
 
@@ -251,6 +288,8 @@ class Orchestrator:
                     agent_id=decision.agent_id,
                     intent=decision.intent,
                     result=result,
+                    simulated_date=resolved_date,
+                    day_index=day_index,
                 ))
                 continue
 
@@ -259,6 +298,8 @@ class Orchestrator:
                 agent_id=decision.agent_id,
                 intent=decision.intent,
                 result=result,
+                simulated_date=resolved_date,
+                day_index=day_index,
             ))
             if trace is not None:
                 traces[decision.agent_id] = trace
@@ -275,6 +316,8 @@ class Orchestrator:
             simulated_time=tick_start_time,
             commits=tuple(commits),
             encounter_candidates=tuple(encounter_candidates),
+            simulated_date=resolved_date,
+            day_index=day_index,
         )
 
     # ---- Observer context with position bridge (D11) ----

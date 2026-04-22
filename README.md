@@ -163,8 +163,9 @@ Synthetic_Socio_Wind_Tunnel/
 | Navigation (door-aware pathfinding) | ✅ Complete |
 | Cognitive map (exploration memory) | ✅ Complete |
 | OSM/GeoJSON map import | ✅ Complete |
-| Agent profile + daily planner | 🔧 In progress |
-| Orchestrator + simulation clock | 🔧 In progress |
+| Agent profile + daily planner | ✅ Complete |
+| Orchestrator + simulation clock (single-day) | ✅ Complete |
+| Multi-day orchestration (N-day runner + memory carryover) | ✅ Complete |
 | Intervention engine (Policy Hack) | 📋 Designed |
 | Model budget allocation (dynamic tiering) | 📋 Designed |
 | Experiment visualisation (heatmaps, trajectories) | 📋 Designed |

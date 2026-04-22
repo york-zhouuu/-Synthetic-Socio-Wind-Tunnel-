@@ -11,6 +11,7 @@ Memory — per-agent 事件流 / 检索 / replan 触发
 shared-task 状态机（policy-hack 职责）。
 """
 
+from synthetic_socio_wind_tunnel.memory.carryover import CarryoverContext
 from synthetic_socio_wind_tunnel.memory.models import (
     DailySummary,
     MemoryEvent,
@@ -26,6 +27,7 @@ from synthetic_socio_wind_tunnel.memory.retrieval import MemoryRetriever
 from synthetic_socio_wind_tunnel.memory.service import MemoryService
 
 __all__ = [
+    "CarryoverContext",
     "DailySummary",
     "EmbeddingProvider",
     "MemoryEvent",

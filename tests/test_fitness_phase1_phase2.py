@@ -88,7 +88,8 @@ class TestPhase2Gaps:
 
     def test_seven_probes_total(self):
         cat = audit_phase2_gaps()
-        assert len(cat.results) == 7  # 7 Phase 2 capabilities
+        # 7 roadmap capabilities + multi-day-run (multi-day-simulation) = 8
+        assert len(cat.results) == 8
 
     def test_unimplemented_capabilities_still_fail(self):
         """Capabilities still in roadmap (not yet implemented) must remain FAIL."""
@@ -126,6 +127,7 @@ class TestPhase2Gaps:
                 probed_caps.add(cap)
         expected = {
             "orchestrator",
+            "multi-day-run",
             "memory",
             "social-graph",
             "model-budget",

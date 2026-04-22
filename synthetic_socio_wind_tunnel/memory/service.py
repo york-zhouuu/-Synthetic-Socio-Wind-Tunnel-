@@ -16,6 +16,7 @@ import asyncio
 from datetime import datetime
 from typing import TYPE_CHECKING, Mapping
 
+from synthetic_socio_wind_tunnel.memory.carryover import CarryoverContext
 from synthetic_socio_wind_tunnel.memory.embedding import EmbeddingProvider, NullEmbedding
 from synthetic_socio_wind_tunnel.memory.models import (
     DailySummary,
@@ -127,6 +128,104 @@ class MemoryService:
             return []
         return list(store.all())
 
+    # ---- 跨日检索（multi-day-simulation 引入） ----
+
+    def get_daily_summary(
+        self, agent_id: str, day_index: int,
+    ) -> DailySummary | None:
+        """返回该 agent 在指定 day_index 的 DailySummary；缺失为 None。"""
+        store = self._stores.get(agent_id)
+        if store is None:
+            return None
+        for ev in store.by_kind("daily_summary"):
+            if ev.day_index == day_index:
+                return DailySummary(
+                    agent_id=agent_id,
+                    date=ev.simulated_time.date().isoformat(),
+                    summary_text=ev.content,
+                )
+        return None
+
+    def get_recent_daily_summaries(
+        self,
+        agent_id: str,
+        *,
+        last_n_days: int = 3,
+        ref_day_index: int | None = None,
+    ) -> tuple[DailySummary, ...]:
+        """
+        返回从 ref_day_index - last_n_days 到 ref_day_index - 1（含端）的
+        历史摘要（不含 ref_day_index 本身），按 day_index 升序。
+
+        ref_day_index=None 时取 store 中最大 daily_summary day_index 作参考。
+        """
+        store = self._stores.get(agent_id)
+        if store is None:
+            return ()
+        summaries_ev = store.by_kind("daily_summary")
+        if not summaries_ev:
+            return ()
+
+        if ref_day_index is None:
+            ref_day_index = max(ev.day_index for ev in summaries_ev)
+
+        lo = ref_day_index - last_n_days
+        hi = ref_day_index  # exclusive
+        selected = [
+            ev for ev in summaries_ev
+            if lo <= ev.day_index < hi
+        ]
+        selected.sort(key=lambda e: e.day_index)
+        return tuple(
+            DailySummary(
+                agent_id=agent_id,
+                date=ev.simulated_time.date().isoformat(),
+                summary_text=ev.content,
+            )
+            for ev in selected
+        )
+
+    def get_carryover_context(
+        self,
+        agent_id: str,
+        *,
+        current_day_index: int,
+    ) -> CarryoverContext:
+        """
+        组装 planner 次日 prompt 所需的历史上下文。
+
+        - yesterday_summary: day_index == current-1（若有）
+        - recent_reflections: last 3 days（不含 yesterday_summary）
+        - pending_task_anchors: task_received 且 importance top 5
+        """
+        if current_day_index <= 0:
+            # day 0：没有历史
+            return CarryoverContext()
+
+        yesterday = self.get_daily_summary(agent_id, current_day_index - 1)
+
+        # 取 (current-4, current-1) 范围的 3 条（不含 current-1）
+        # 即 day_index ∈ [current-4, current-2]
+        recent = self.get_recent_daily_summaries(
+            agent_id,
+            last_n_days=3,
+            ref_day_index=current_day_index - 1,
+        )
+
+        store = self._stores.get(agent_id)
+        pending: tuple[MemoryEvent, ...] = ()
+        if store is not None:
+            task_evs = list(store.by_kind("task_received"))
+            # 按 importance 降序，top 5
+            task_evs.sort(key=lambda e: e.importance, reverse=True)
+            pending = tuple(task_evs[:5])
+
+        return CarryoverContext(
+            yesterday_summary=yesterday,
+            recent_reflections=recent,
+            pending_task_anchors=pending,
+        )
+
     # ---- orchestrator 集成 ----
 
     # 注：没有 attach_to 方法。MemoryService 不知道 agents 字典与 planner
@@ -151,6 +250,7 @@ class MemoryService:
         """
         tick = tick_result.tick_index
         sim_time = tick_result.simulated_time
+        day_index = tick_result.day_index
 
         # 1. 从 commits 派生 action events
         for commit in tick_result.commits:
@@ -159,6 +259,7 @@ class MemoryService:
                 commit=commit,
                 tick=tick,
                 sim_time=sim_time,
+                day_index=day_index,
             )
 
         # 2. 从 encounter_candidates 派生双向 encounter events
@@ -177,13 +278,14 @@ class MemoryService:
                     importance=0.5,
                     participants=(other,),
                     tags=("encounter",),
+                    day_index=day_index,
                 )
                 self.record(me, event)
 
         # 3. 从 AttentionService 派生 notification / task_received events
         if self._attention_service is not None:
             for agent_id in agents:
-                self._ingest_notifications(agent_id, tick, sim_time)
+                self._ingest_notifications(agent_id, tick, sim_time, day_index=day_index)
 
         # 4. Replan 检查 & 执行
         replans: list[tuple[str, MemoryEvent]] = []
@@ -217,7 +319,7 @@ class MemoryService:
 
         return replans
 
-    def _record_action(self, *, agent_id, commit, tick, sim_time) -> None:
+    def _record_action(self, *, agent_id, commit, tick, sim_time, day_index: int = 0) -> None:
         """From a CommitRecord produce an action MemoryEvent."""
         intent_name = type(commit.intent).__name__
         result_ok = commit.result.success
@@ -236,11 +338,12 @@ class MemoryService:
             urgency=0.0,  # 自己动作不是 replan 触发
             importance=0.3 if result_ok else 0.6,  # 失败更值得记住
             tags=("action", intent_name.lower()),
+            day_index=day_index,
         )
         self.record(agent_id, event)
 
     def _ingest_notifications(
-        self, agent_id: str, tick: int, sim_time: datetime
+        self, agent_id: str, tick: int, sim_time: datetime, *, day_index: int = 0,
     ) -> None:
         """
         Pull new-to-this-agent notifications and record them as MemoryEvents.
@@ -271,6 +374,7 @@ class MemoryService:
                 urgency=feed_item.urgency,
                 importance=0.6,
                 tags=(feed_item.source, feed_item.category),
+                day_index=day_index,
             )
             self.record(agent_id, event)
             consumed.add(feed_item_id)
@@ -298,8 +402,20 @@ class MemoryService:
                     summary_text="(no events)",
                 )
                 continue
-            date_str = str(all_events[0].simulated_time.date())
-            prompt = self._build_summary_prompt(agent, all_events)
+
+            # 只拿当前"最大 day_index"那一天的事件来总结——避免把历史天的
+            # 事件重复 summarize（多日 run 关键：每天独立 daily_summary）
+            current_day_index = max(ev.day_index for ev in all_events)
+            today_events = [
+                ev for ev in all_events
+                if ev.day_index == current_day_index and ev.kind != "daily_summary"
+            ]
+            if not today_events:
+                # 没有当日非-summary 事件（可能是 run 起步无动作）；跳过
+                continue
+
+            date_str = str(today_events[0].simulated_time.date())
+            prompt = self._build_summary_prompt(agent, today_events)
             try:
                 raw = await llm_client.generate(
                     prompt, model=agent.profile.base_model
@@ -317,17 +433,18 @@ class MemoryService:
                 )
             summaries[agent_id] = summary
 
-            # 写一条 daily_summary 事件作为索引入口
+            # 写一条 daily_summary 事件作为索引入口；day_index 继承当天
             self.record(agent_id, MemoryEvent(
                 event_id=self._next_event_id(agent_id, -1),
                 agent_id=agent_id,
                 tick=-1,  # special "end-of-day" tick
-                simulated_time=all_events[-1].simulated_time,
+                simulated_time=today_events[-1].simulated_time,
                 kind="daily_summary",
                 content=summary.summary_text,
                 urgency=0.0,
                 importance=0.8,
                 tags=("summary",),
+                day_index=current_day_index,
             ))
         return summaries
 

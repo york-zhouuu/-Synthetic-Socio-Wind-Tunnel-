@@ -33,6 +33,12 @@ _PHASE2_PROBES: tuple[tuple[str, str, str, str], ...] = (
         "orchestrator",
     ),
     (
+        "phase2-gaps.multi-day-run",
+        "synthetic_socio_wind_tunnel.orchestrator.multi_day",
+        "Multi-day run module — N-day orchestration, memory carryover, cross-seed aggregation",
+        "multi-day-simulation",
+    ),
+    (
         "phase2-gaps.memory",
         "synthetic_socio_wind_tunnel.memory",
         "Memory module — 3-layer memory (event stream / daily summary / reflection)",
