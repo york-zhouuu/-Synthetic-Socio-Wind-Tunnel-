@@ -44,10 +44,17 @@ from synthetic_socio_wind_tunnel.atlas.models import Coord
 from synthetic_socio_wind_tunnel.cartography.lanecove import create_atlas_from_osm
 from synthetic_socio_wind_tunnel.ledger import Ledger
 from synthetic_socio_wind_tunnel.ledger.models import EntityState
+from synthetic_socio_wind_tunnel.attention import AttentionService
 from synthetic_socio_wind_tunnel.orchestrator import (
     MultiDayResult,
     MultiDayRunner,
     Orchestrator,
+)
+from synthetic_socio_wind_tunnel.policy_hack import (
+    VARIANTS,
+    PhaseController,
+    Variant,
+    VariantRunnerAdapter,
 )
 
 
@@ -59,12 +66,45 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--agents", type=int, default=100)
     p.add_argument("--seeds", type=int, default=30,
                    help="Number of seeds to run; each seed is an independent run")
+    available = ["baseline"] + sorted(VARIANTS.keys())
     p.add_argument("--variant", type=str, default="baseline",
-                   help="Variant name (pass-through, see policy-hack change)")
+                   choices=available,
+                   help=("Variant name. 'baseline' = no variant applied; "
+                         "others dispatch to policy_hack.VARIANTS."))
     p.add_argument("--mode", choices=["dev", "publishable"], default="publishable")
+    p.add_argument("--phase-days", type=str, default="4,6,4",
+                   help="baseline,intervention,post days (default 4,6,4)")
     p.add_argument("--output-dir", type=Path, default=Path("data/runs"),
                    help="Base dir; per-run timestamp subdir will be created")
     return p.parse_args()
+
+
+def _build_variant_and_controller(
+    variant_name: str,
+    phase_days: str,
+    target_location: str | None = None,
+) -> tuple[Variant | None, PhaseController | None]:
+    """解析 variant + phase config；baseline 返回 (None, None)。"""
+    if variant_name == "baseline":
+        return None, None
+    cls = VARIANTS[variant_name]
+
+    kwargs: dict = {}
+    if variant_name == "hyperlocal_push" and target_location is not None:
+        kwargs["target_location"] = target_location
+    # 其它 variant 的默认字段覆盖 run 所需
+
+    variant = cls(**kwargs) if kwargs else cls()
+
+    parts = [int(x.strip()) for x in phase_days.split(",")]
+    if len(parts) != 3:
+        raise ValueError(f"--phase-days expects 3 ints like '4,6,4'; got {phase_days!r}")
+    controller = PhaseController(
+        baseline_days=parts[0],
+        intervention_days=parts[1],
+        post_days=parts[2],
+    )
+    return variant, controller
 
 
 def build_single_seed_run(
@@ -74,8 +114,18 @@ def build_single_seed_run(
     start_date: date,
     num_days: int,
     mode: str,
+    variant_name: str = "baseline",
+    phase_days: str = "4,6,4",
 ) -> MultiDayResult:
-    """为单个 seed 搭出最小 orchestrator 栈并跑多日。"""
+    """
+    为单个 seed 搭出最小 orchestrator 栈并跑多日。
+
+    若 `variant_name != "baseline"`：
+    - 先 `VariantRunnerAdapter.setup_run(profiles, rng)` 改人群（D catalyst
+      在此时生效）
+    - 构造 orchestrator + attention_service（policy-hack 的 push 变体需要）
+    - attach adapter，以其 on_day_start 接力 scripted-plan 重置
+    """
     rng = random.Random(seed)
     atlas = create_atlas_from_osm()
     ledger = Ledger()
@@ -83,6 +133,12 @@ def build_single_seed_run(
 
     # 目的地：连通的 20 个 outdoor_area（在 sample_population 前算出供 home 用）
     destinations = _pick_connected_destinations(atlas, 20, rng)
+
+    # ---- variant 解析 ----
+    target_location = destinations[0] if destinations else None
+    variant, controller = _build_variant_and_controller(
+        variant_name, phase_days, target_location=target_location,
+    )
 
     # 采样 agent 人群（复用 smoke demo 的 size 注入手法）
     profile_template = LANE_COVE_PROFILE.model_copy(update={
@@ -94,6 +150,12 @@ def build_single_seed_run(
         seed=seed,
         home_locations=tuple(destinations),
     )
+
+    # D catalyst_seeding 需要在构造 runtime 前改 personality
+    adapter: VariantRunnerAdapter | None = None
+    if variant is not None and controller is not None:
+        adapter = VariantRunnerAdapter(variant, controller, seed=seed)
+        profiles = adapter.setup_run(profiles, random.Random(seed + 13))
 
     # 每个 agent 初始化 Ledger entity + runtime + scripted plan
     runtimes: list[AgentRuntime] = []
@@ -110,8 +172,12 @@ def build_single_seed_run(
         )
         runtimes.append(runtime)
 
+    # attention service 用于 push / shared_anchor variant；无 variant 也无成本
+    attention_service = AttentionService(ledger=ledger, seed=seed)
+
     orchestrator = Orchestrator(
         atlas, ledger, runtimes,
+        attention_service=attention_service,
         tick_minutes=5, seed=seed,
     )
 
@@ -121,14 +187,17 @@ def build_single_seed_run(
         mode=mode,  # type: ignore[arg-type]
     )
 
-    # 每日 on_day_start 重置 scripted plan（不消耗 LLM）
+    if adapter is not None:
+        adapter.attach_to(runner)
+
+    # 每日 on_day_start 重置 scripted plan + 调 variant（if any）
     def _on_day_start(current_date: date, day_index: int) -> None:
+        # 1. scripted plan reset + 位置重置
         local_rng = random.Random(seed + day_index)
         for rt in runtimes:
             rt.plan = build_scripted_plan(
                 rt.profile, destinations, current_date.isoformat(), local_rng,
             )
-            # 同时重置 Ledger 中 entity 位置回家，模拟"新的一天"
             home = rt.profile.home_location or rt.current_location
             ent = ledger.get_entity(rt.profile.agent_id)
             if ent is not None:
@@ -139,12 +208,20 @@ def build_single_seed_run(
                 ))
             rt.current_location = home
             rt.cancel_movement()
+        # 2. variant hook（包含 phase 判断）
+        if adapter is not None:
+            adapter.on_day_start(current_date, day_index)
 
-    return runner.run_multi_day(
+    result = runner.run_multi_day(
         start_date=start_date,
         num_days=num_days,
         on_day_start=_on_day_start,
     )
+
+    if adapter is not None:
+        adapter.augment_result_metadata(result)
+
+    return result
 
 
 def main() -> int:
@@ -171,6 +248,8 @@ def main() -> int:
             start_date=start_date,
             num_days=args.num_days,
             mode=args.mode,
+            variant_name=args.variant,
+            phase_days=args.phase_days,
         )
         te = time.perf_counter()
         per_seed_results.append(result)

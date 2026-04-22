@@ -98,7 +98,7 @@ class TestPhase2Gaps:
         # As of memory change archive, memory is implemented → PASS
         still_unimplemented = {
             "social-graph", "model-budget",
-            "policy-hack", "conversation", "metrics",
+            "conversation", "metrics",
         }
         for cap in still_unimplemented:
             result = by_id[cap]
@@ -155,10 +155,10 @@ class TestAnchorCoverage:
             for r in all_results
             if r.status == AuditStatus.FAIL and r.mitigation_change
         }
-        # Capabilities still waiting for implementation (post-memory archive)
+        # Capabilities still waiting for implementation (post-policy-hack archive)
         unimplemented = {
             "social-graph", "model-budget",
-            "policy-hack", "conversation", "metrics",
+            "conversation", "metrics",
         }
         missing = unimplemented - fail_mitigations
         assert not missing, f"no fail-anchor for unimplemented caps: {missing}"

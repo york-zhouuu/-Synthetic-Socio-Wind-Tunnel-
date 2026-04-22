@@ -103,6 +103,18 @@ from synthetic_socio_wind_tunnel.map_service import (
     CurrentScene,
     LocationDetail,
 )
+from synthetic_socio_wind_tunnel.policy_hack import (
+    VARIANTS,
+    CatalystSeedingVariant,
+    GlobalDistractionVariant,
+    HyperlocalPushVariant,
+    PhaseController,
+    PhoneFrictionVariant,
+    SharedAnchorVariant,
+    Variant,
+    VariantContext,
+    VariantRunnerAdapter,
+)
 from synthetic_socio_wind_tunnel.core.errors import SimulationErrorCode, EventType
 from synthetic_socio_wind_tunnel.core.events import WorldEvent
 from synthetic_socio_wind_tunnel.perception.models import (
@@ -192,6 +204,17 @@ __all__ = [
     "NullEmbedding",
     # Memory carryover (multi-day-simulation)
     "CarryoverContext",
+    # Policy Hack (policy-hack)
+    "Variant",
+    "VariantContext",
+    "VariantRunnerAdapter",
+    "PhaseController",
+    "HyperlocalPushVariant",
+    "GlobalDistractionVariant",
+    "PhoneFrictionVariant",
+    "SharedAnchorVariant",
+    "CatalystSeedingVariant",
+    "VARIANTS",
     # Map Service (agent-facing query façade)
     "MapService",
     "KnownDestination",
