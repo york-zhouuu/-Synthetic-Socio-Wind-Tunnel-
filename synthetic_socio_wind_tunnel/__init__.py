@@ -115,6 +115,19 @@ from synthetic_socio_wind_tunnel.policy_hack import (
     VariantContext,
     VariantRunnerAdapter,
 )
+from synthetic_socio_wind_tunnel.metrics import (
+    ContestReport,
+    ContestRow,
+    DayMetricsSummary,
+    EvidenceAlignment,
+    RunMetrics,
+    SuiteAggregate,
+    TickMetricsRecorder,
+    build_contest_report,
+    build_run_metrics,
+    build_suite_aggregate,
+    write_markdown,
+)
 from synthetic_socio_wind_tunnel.core.errors import SimulationErrorCode, EventType
 from synthetic_socio_wind_tunnel.core.events import WorldEvent
 from synthetic_socio_wind_tunnel.perception.models import (
@@ -215,6 +228,18 @@ __all__ = [
     "SharedAnchorVariant",
     "CatalystSeedingVariant",
     "VARIANTS",
+    # Metrics (metrics)
+    "TickMetricsRecorder",
+    "DayMetricsSummary",
+    "RunMetrics",
+    "SuiteAggregate",
+    "ContestReport",
+    "ContestRow",
+    "EvidenceAlignment",
+    "build_run_metrics",
+    "build_suite_aggregate",
+    "build_contest_report",
+    "write_markdown",
     # Map Service (agent-facing query façade)
     "MapService",
     "KnownDestination",

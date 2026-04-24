@@ -167,6 +167,7 @@ Synthetic_Socio_Wind_Tunnel/
 | Orchestrator + simulation clock (single-day) | ✅ Complete |
 | Multi-day orchestration (N-day runner + memory carryover) | ✅ Complete |
 | Policy hack (4 rival-hypothesis variants + 1 paired mirror) | ✅ Complete |
+| Metrics (rival contest scorer + 5-act Markdown report) | ✅ Complete |
 | Intervention engine (Policy Hack) | 📋 Designed |
 | Model budget allocation (dynamic tiering) | 📋 Designed |
 | Experiment visualisation (heatmaps, trajectories) | 📋 Designed |

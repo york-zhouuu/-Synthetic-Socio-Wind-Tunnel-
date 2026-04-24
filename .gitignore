@@ -82,3 +82,7 @@ data/fitness-report.json
 # Multi-day experiment runs - produced by tools/run_multi_day_experiment.py
 # per-seed JSON + aggregate; point-in-time artifacts, not source
 data/runs/
+
+# Variant-suite experiments - produced by tools/run_variant_suite.py
+# per-variant × per-seed × contest + report scaffold; point-in-time
+data/experiments/
