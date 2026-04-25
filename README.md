@@ -32,6 +32,16 @@ python3 tools/visualize_run.py --run-dir data/experiments/<ts>_<suite>/
 dwell tick；可视化对比 hyperlocal_push（拉向 target_location）/
 shared_anchor（聚集到 community）/ baseline（无明显热点）。
 
+```bash
+# Tick-级 replan 因果链 trace（debug 用；< 2s 跑完小 sim）
+python3 tools/replan_trace.py --variant hyperlocal_push --max-events 30
+python3 tools/replan_trace.py --variant baseline    # → 应 0 plan_changed
+```
+
+输出文本：feed_delivered → plan_changed → moved 的 tick 级序列；按
+(day, agent) 分组。把"variant 真的影响行为"的因果链**可读化**。
+
+
 ---
 
 ## The Problem
