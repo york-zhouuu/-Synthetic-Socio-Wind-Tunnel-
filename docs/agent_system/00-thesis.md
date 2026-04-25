@@ -99,6 +99,10 @@ change 有 Phase 1 实测缺口锚点，本门禁保证 change 在 thesis 链条
 所有后续实验 change（`policy-hack` / `metrics` / `social-graph`）SHALL
 引用 `experimental-design` spec 作为前置锚点。
 
+**Validity taxonomy 与 audit 协议**（接受哪些 validity / 拒绝哪些 /
+publishable artifact 的 8 项 checklist）canonical 见
+[`18-validation-strategy.md`](18-validation-strategy.md)。
+
 ---
 
 ## 当前证据（smoke experiment 2026-04-21）

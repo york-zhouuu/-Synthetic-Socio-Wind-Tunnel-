@@ -78,6 +78,7 @@ physics cloud chamber than to a deployable policy engine.
 
 Canonical thesis statement: [`docs/agent_system/00-thesis.md`](docs/agent_system/00-thesis.md).
 Canonical research design + experimental protocol: [`docs/agent_system/13-research-design.md`](docs/agent_system/13-research-design.md).
+Validity taxonomy + audit protocols + pre-publication checklist: [`docs/agent_system/18-validation-strategy.md`](docs/agent_system/18-validation-strategy.md).
 
 ---
 

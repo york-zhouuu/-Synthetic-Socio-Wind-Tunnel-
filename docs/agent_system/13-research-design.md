@@ -34,6 +34,11 @@
 
 ### 2. 验证轴（多严算够）
 
+> **Validity 类别完整 taxonomy（接受 4 / 拒绝 1 / Stub 1）+ audit
+> 协议** canonical 见 [`18-validation-strategy.md`](18-validation-strategy.md)。
+> 本节是简表；详细判据 + acceptance 阈值 + 下游 calibration / stereotype
+> audit / face validity 协议在那里。
+
 | 严谨度标准 | 本项目 |
 |---|---|
 | External validity（外部推广） | **不要求**——明确限定 Lane Cove 2066 |

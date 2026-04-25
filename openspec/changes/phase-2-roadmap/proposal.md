@@ -62,6 +62,14 @@ Diagnosis-Cure-Outcome-Interpretation report）作为前置锚点；执行基建
    任何 change 引入新的并列"边界"概念**。详见
    `docs/agent_system/00-thesis.md` 的 "Chain-Position 门禁" 章节。
 
+3. **Pre-publication checklist**（`validation-strategy` 引入）：任何
+   产 publishable artifact（report.md / poster / paper draft）的
+   change 在产出前 SHALL 通过 8 项 checklist（calibration / stereotype
+   audit / face validity / mirror / forbidden words / reproducibility
+   lock / Ethics Statement / acceptance language）。详见
+   `openspec/specs/validation-strategy/spec.md` 与
+   `docs/agent_system/18-validation-strategy.md` Part VII。
+
 ## What Changes
 
 - 新增 7 个能力规格（`memory`、`social-graph`、`orchestrator`、

@@ -194,8 +194,15 @@ data/experiments/<timestamp>_<suite_name>/
 2. **`weak_tie_formation_count` / `info_propagation_hops` 留 None**：
    等 `social-graph` / `conversation` change 完成后由对应 recorder 填入
 3. **真实 LLM 下 cost 不纳入 metrics**：参与 `model-budget` change
-4. **Real-world 校准（Google Popular Times / ABS）不在范围**：留给未来
-   `validation-strategy` change
+4. **Real-world 校准（Google Popular Times / ABS）不在范围**：协议已在
+   `validation-strategy` (Part IV / V) 冻结；执行由下游 `agent-calibration`
+   等 change 处理。详见 [`18-validation-strategy.md`](18-validation-strategy.md)。
+
+**Metrics 与 validation-strategy 的分工**：metrics 已实现 contest 内部
+一致性（cross-seed CI / 禁用词 guard / preliminary 标记）；其它 5 类
+validity 与 publishable artifact 的 8 项 pre-publication checklist 由
+`validation-strategy` 规定下游 change 执行。详见
+[`18-validation-strategy.md`](18-validation-strategy.md) Part VIII。
 
 > **2026-04-25 update**：metrics archive 当日 smoke 发现 variants 在
 > scripted-plan 下无法改变 agent 行为（因果链在 `run_variant_suite.py`
