@@ -21,6 +21,17 @@
 完整快照（架构图、数据流、capability 矩阵、历史决策、候选路径）：
 [`docs/agent_system/19-system-snapshot.md`](docs/agent_system/19-system-snapshot.md)
 
+### Quick visualize
+
+```bash
+# 跑完一个 suite 后渲染 trajectory heatmap（per-variant）
+python3 tools/visualize_run.py --run-dir data/experiments/<ts>_<suite>/
+```
+
+输出 `<run-dir>/heatmap.png` —— 6 variant 各一张子图，颜色深浅 = 累计
+dwell tick；可视化对比 hyperlocal_push（拉向 target_location）/
+shared_anchor（聚集到 community）/ baseline（无明显热点）。
+
 ---
 
 ## The Problem
