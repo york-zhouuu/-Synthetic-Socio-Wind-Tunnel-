@@ -4,6 +4,25 @@
 
 ---
 
+## Project Status (as of 2026-04-25)
+
+**装置 100% / 实验产出 0%** — 11 capability 全部归档；全栈 smoke 跑通；
+但 agent 拟真度不足，任何 publishable suite 当前都标
+`[unpublishable preview]`，因为 8 项 pre-publication checklist 缺 ≥ 3 项。
+
+| 维度 | 状态 |
+|---|---|
+| Capabilities archived | **11**（atlas / ledger / engine / perception / cartography / attention-channel / agent / orchestrator / memory / multi-day-run / policy-hack / metrics / suite-wiring 等） |
+| 治理层 spec | **3** — thesis-focus / research-design / validation-strategy |
+| Pytest | 506 passed, 2 skipped |
+| Pre-publication checklist | **3 ✓ / 3 ✗ / 2 ⚠️** （详见 [`19-system-snapshot.md`](docs/agent_system/19-system-snapshot.md)） |
+| 阻塞下一里程碑 | `agent-calibration`、`stereotype-audit`、`face-validity-protocol` 三个未做 |
+
+完整快照（架构图、数据流、capability 矩阵、历史决策、候选路径）：
+[`docs/agent_system/19-system-snapshot.md`](docs/agent_system/19-system-snapshot.md)
+
+---
+
 ## The Problem
 
 Modern high-density urban communities harbor a paradox:
