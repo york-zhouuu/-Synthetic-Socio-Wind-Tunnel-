@@ -186,7 +186,7 @@ data/experiments/<timestamp>_<suite_name>/
 
 ---
 
-## 已知限制（本 change 不解决）
+## 已知限制（metrics change 不解决）
 
 1. **`attention_allocation_ratio` 仅 `phone_feed_proxy` 一个维度**：
    `physical_world / task / conversation` 三项需 perception 层暴露
@@ -196,3 +196,10 @@ data/experiments/<timestamp>_<suite_name>/
 3. **真实 LLM 下 cost 不纳入 metrics**：参与 `model-budget` change
 4. **Real-world 校准（Google Popular Times / ABS）不在范围**：留给未来
    `validation-strategy` change
+
+> **2026-04-25 update**：metrics archive 当日 smoke 发现 variants 在
+> scripted-plan 下无法改变 agent 行为（因果链在 `run_variant_suite.py`
+> 处断开）。已由 follow-up change `suite-wiring` 修复——接入 MemoryService
+> + Planner + StubReplanLLM，让 variants 真正能通过 attention → memory
+> → replan 通路影响 agent trajectory。详见
+> [`17-suite-wiring.md`](17-suite-wiring.md)。

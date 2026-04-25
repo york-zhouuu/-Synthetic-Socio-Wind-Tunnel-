@@ -43,11 +43,18 @@ from smoke_experiment_demo import (  # type: ignore
     _pick_connected_destinations,
 )
 
+from suite_stub_llm import (  # type: ignore
+    _pick_community_location,
+    make_llm_client,
+)
+
 from synthetic_socio_wind_tunnel.agent import (
     AgentRuntime,
     LANE_COVE_PROFILE,
+    Planner,
     sample_population,
 )
+from synthetic_socio_wind_tunnel.memory import MemoryService
 from synthetic_socio_wind_tunnel.atlas.models import Coord
 from synthetic_socio_wind_tunnel.attention import AttentionService
 from synthetic_socio_wind_tunnel.cartography.lanecove import create_atlas_from_osm
@@ -91,6 +98,9 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--start-date", type=str, default="2026-04-22")
     p.add_argument("--output-dir", type=Path, default=Path("data/experiments"))
     p.add_argument("--suite-name", type=str, default="rival_hypothesis_suite")
+    p.add_argument("--use-real-llm", action="store_true",
+                   help="Use anthropic Haiku for planner.replan "
+                        "(default: zero-cost StubReplanLLM)")
     return p.parse_args()
 
 
@@ -128,8 +138,14 @@ def run_seed_with_metrics(
     mode: str,
     variant_name: str,
     phase_days: str,
+    use_real_llm: bool = False,
 ) -> tuple[MultiDayResult, RunMetrics, dict]:
-    """单个 seed 的 metrics-enabled run；返回 (result, run_metrics, variant_metadata)."""
+    """单个 seed 的 metrics-enabled run；返回 (result, run_metrics, variant_metadata).
+
+    suite-wiring change 补：在 orchestrator 栈里接入 MemoryService + Planner +
+    StubReplanLLM，让 variants 真的能通过 attention → memory → replan 改变
+    agent 行为。
+    """
     rng = random.Random(seed)
     atlas = create_atlas_from_osm()
     ledger = Ledger()
@@ -184,6 +200,36 @@ def run_seed_with_metrics(
     recorder = TickMetricsRecorder(ledger=ledger, attention_service=attention_service)
     orchestrator.register_on_tick_end(recorder.on_tick_end)
 
+    # --- suite-wiring: Memory + Planner + StubReplanLLM ---
+    # shared_anchor 的 heuristic target：park/plaza > destinations[0]
+    shared_loc = _pick_community_location(atlas, tuple(destinations))
+    llm_client = make_llm_client(
+        use_real=use_real_llm,
+        variant_name=variant_name,
+        seed=seed,
+        target_location=target_location,
+        shared_location=shared_loc,
+    )
+    planner = Planner(llm_client=llm_client)
+    memory = MemoryService(attention_service=attention_service)
+
+    agents_by_id = {r.profile.agent_id: r for r in runtimes}
+
+    # 跨 day 累加 replan 计数
+    replan_counter = {"total": 0, "by_day": [0] * num_days}
+    current_day_ref = {"idx": 0}
+
+    def _memory_hook(tr) -> None:
+        replans = memory.process_tick(tr, agents_by_id, planner)
+        n = len(replans)
+        replan_counter["total"] += n
+        d = tr.day_index
+        if 0 <= d < num_days:
+            replan_counter["by_day"][d] += n
+        current_day_ref["idx"] = d
+
+    orchestrator.register_on_tick_end(_memory_hook)
+
     runner = MultiDayRunner(
         orchestrator=orchestrator,
         seed=seed,
@@ -235,6 +281,13 @@ def run_seed_with_metrics(
         variant_metadata=variant_metadata,
         phase_config=controller.model_dump(),
     )
+
+    # suite-wiring: replan counters → RunMetrics.extensions
+    run_metrics = run_metrics.with_extensions(
+        replan_count=replan_counter["total"],
+        replan_by_day=list(replan_counter["by_day"]),
+    )
+
     return result, run_metrics, variant_metadata
 
 
@@ -274,6 +327,7 @@ def main() -> int:
                 seed=seed, n_agents=args.agents, start_date=start_date,
                 num_days=args.num_days, mode=args.mode,
                 variant_name=variant_name, phase_days=args.phase_days,
+                use_real_llm=args.use_real_llm,
             )
             t_e = time.perf_counter()
 
