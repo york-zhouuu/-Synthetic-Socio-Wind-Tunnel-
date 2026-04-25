@@ -190,6 +190,9 @@ def setup_run(
     phase_days: str,
     use_real_llm: bool,
     agent_filter: set[str] | None,
+    llm_provider: str = "auto",
+    gemini_model: str = "gemini-3-flash-preview",
+    enable_thinking: bool = False,
 ) -> tuple[ReplanTracer, MultiDayRunner, dict, list[AgentRuntime]]:
     """构造完整 orchestrator 栈 + ReplanTracer，返回供 caller 跑。"""
     rng = random.Random(seed)
@@ -272,6 +275,8 @@ def setup_run(
     llm_client = make_llm_client(
         use_real=use_real_llm, variant_name=variant_name, seed=seed,
         target_location=target_location, shared_location=shared_loc,
+        provider=llm_provider, gemini_model=gemini_model,
+        enable_thinking=enable_thinking,
     )
     planner = Planner(llm_client=llm_client)
     memory = MemoryService(attention_service=attention_service)
@@ -439,6 +444,12 @@ def main() -> int:
     p.add_argument("--filter-agents", default=None,
                    help="comma-separated agent_ids; default first 5 by id sort")
     p.add_argument("--use-real-llm", action="store_true")
+    p.add_argument("--llm-provider", choices=["auto", "gemini", "anthropic", "stub"],
+                   default="auto",
+                   help="default 'auto': 优先检 GEMINI_API_KEY，其次 ANTHROPIC_API_KEY")
+    p.add_argument("--gemini-model", default="gemini-3-flash-preview")
+    p.add_argument("--enable-thinking", action="store_true",
+                   help="Gemini 默认关 thinking；加此 flag 开启（更慢更贵）")
     p.add_argument("--max-events", type=int, default=None,
                    help="cap rendered events; full count still in summary")
     p.add_argument("--format", choices=["text", "json"], default="text")
@@ -459,6 +470,9 @@ def main() -> int:
         num_days=args.num_days, variant_name=args.variant,
         phase_days=args.phase_days, use_real_llm=args.use_real_llm,
         agent_filter=agent_filter,
+        llm_provider=args.llm_provider,
+        gemini_model=args.gemini_model,
+        enable_thinking=args.enable_thinking,
     )
 
     print(f"[run] starting...", file=sys.stderr)
