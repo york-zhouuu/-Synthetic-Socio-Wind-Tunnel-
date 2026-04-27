@@ -356,3 +356,115 @@ acceptance 阈值 spec：
 - **WHEN** stereotype_audit_report 含 `scale: "dev"`
 - **THEN** publishable suite report SHALL 显示 ⚠️ "audit run in dev mode,
   not valid for publishable claim"；checklist #2 SHALL ✗
+
+
+### Requirement: Reproducibility Lock 七字段实施
+
+publishable suite 的每个 RunMetrics SHALL 含以下 7 个 reproducibility
+字段（来自 `validation-strategy` Part VI），通过 `RunMetrics.extensions`
+机制：
+
+1. `seed_pool: list[int]` — 本次 suite 实际跑过的所有 seed
+2. `model_version: str` — `stub:v1` 或 `claude-haiku-4-5-20251001`
+   等具体 model id
+3. `prompt_template_hash: str` — sha256 of `_PLAN_PROMPT_TEMPLATE`；
+   stub 路径下 `"stub:<variant_name>"`
+4. `LANE_COVE_PROFILE_hash: str` — sha256 of `LANE_COVE_PROFILE.model_dump_json
+   (sort_keys=True)`
+5. `variants_loaded: dict[str, str]` — variant_name → sha256 of variant
+   config
+6. `code_commit: str` — `git rev-parse HEAD`；不可用时 `"unknown"`
+7. `phase_config: dict` — `{baseline_days, intervention_days, post_days}`
+
+publishable suite report.md 顶部 SHALL 含 "Reproducibility Lock" section
+列出 7 字段；checklist #6 自动判定 ✓ 当七字段全填齐。
+
+#### Scenario: 七字段全填
+- **WHEN** publishable suite 跑完后读 RunMetrics.extensions
+- **THEN** SHALL 含 seed_pool / model_version / prompt_template_hash /
+  LANE_COVE_PROFILE_hash / variants_loaded / code_commit / phase_config
+  七个 key；任一缺失 → checklist #6 ⚠️ 而非 ✓
+
+#### Scenario: stub mode prompt_template_hash 标 stub
+- **WHEN** suite 跑 `--mode dev` (stub-only)
+- **THEN** prompt_template_hash SHALL == `"stub:<variant_name>"` per variant；
+  非 sha256 hex string
+
+#### Scenario: git 不可用 fallback
+- **WHEN** subprocess `git rev-parse HEAD` 抛 OSError 或 CalledProcessError
+- **THEN** code_commit SHALL == `"unknown"`；其它字段不受影响
+
+
+### Requirement: Ethics Statement 自动注入
+
+publishable suite report.md SHALL 在生成时自动注入 `Research Posture
+Statement` 段落（来自 `validation-strategy` Part V via
+`research-design` Part V），无需作者手填。
+
+ethics 文本 SHALL 作为模块常量存
+`synthetic_socio_wind_tunnel/metrics/ethics.py`，**单一来源**——
+report.md / docs 引用同一常量，避免漂移。
+
+#### Scenario: report.md 含 ethics
+- **WHEN** publishable suite 跑完产出 report.md
+- **THEN** report.md SHALL 含 `## Research Posture Statement` heading +
+  完整 ethics 段；checklist #7 自动判定 ✓
+
+#### Scenario: ethics 常量可 import
+- **WHEN** 调用 `from synthetic_socio_wind_tunnel.metrics.ethics import
+  ETHICS_STATEMENT`
+- **THEN** 返回 str；含关键短语 "云室" 和 "dual-use"
+  （research-design Part V 一致性 anchor）
+
+
+### Requirement: Face Validity Protocol Part III 实施落地
+
+publishable suite SHALL 通过
+`data/calibration/face_validity_report.json` 探测 face validity 状态，
+对应 `validation-strategy` Part III 协议（M=10 narrative × N=20 真人评分）。
+
+publishable checklist 第 3 项 SHALL 当 face_validity_report 含
+`passed: true` 时判 ✓；否则 ✗ / ⚠️。
+
+acceptance 阈值（spec Part III）：
+- 200 ratings 整体 avg ≥ 3.5/5（authenticity + realism 题平均）
+- ≤ 20% ratings 评 ≤ 2
+
+#### Scenario: 报告 passed 状态 → checklist #3 ✓
+- **WHEN** face_validity_report 含 `passed: true`
+- **THEN** suite report.md checklist #3 SHALL 显示 ✓ + avg + pct_low 数值
+
+#### Scenario: 报告 failed → checklist #3 ✗
+- **WHEN** face_validity_report 含 `passed: false`
+- **THEN** checklist #3 SHALL 显示 ✗；report.md 顶部 SHALL 含
+  `[unpublishable preview]` banner；disclosure 段 SHALL 列出
+  failing 原因（avg 太低 / pct_low 太高）
+
+#### Scenario: 报告不存在 → checklist #3 ⚠️
+- **WHEN** publishable suite 跑时 face_validity_report.json 不存在
+- **THEN** checklist #3 SHALL 显示 ⚠️ "face validity not run; see
+  docs/face_validity/01-protocol.md"
+
+
+### Requirement: Face Validity 入口与出口 CLI
+
+`tools/sample_face_validity.py` SHALL 是采样 narrative + 生成
+Prolific-ready 题目模板的唯一 CLI。
+
+`tools/aggregate_face_validity.py` SHALL 是读取 Prolific scores CSV
++ 聚合 → 输出 face_validity_report.json 的唯一 CLI。
+
+中间人类流程（Prolific 招募 / 答题）外置；本 spec 只规定两端代码合约。
+
+#### Scenario: 采样 CLI 输出 M=10 + 每 variant ≥ 1
+- **WHEN** 跑 `python3 tools/sample_face_validity.py --suite-dir <suite>
+  --output narratives.json`
+- **THEN** narratives.json SHALL 含 10 条 narrative；suite 中每个 variant
+  SHALL 至少 1 条覆盖
+
+#### Scenario: 聚合 CLI 输出合规 JSON
+- **WHEN** 跑 `python3 tools/aggregate_face_validity.py --scores-csv
+  <csv> --narratives <json> --output report.json`
+- **THEN** 输出 face_validity_report.json SHALL 含 `passed: bool` /
+  `overall_avg: float` / `pct_low: float` / `n_narratives: int` /
+  `n_reviewers: int` 字段

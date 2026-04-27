@@ -288,6 +288,23 @@ def run_seed_with_metrics(
         replan_by_day=list(replan_counter["by_day"]),
     )
 
+    # publishable-finalize: stamp 7-field reproducibility lock
+    from synthetic_socio_wind_tunnel.metrics.reproducibility import (
+        compute_reproducibility_lock,
+    )
+    rep_lock = compute_reproducibility_lock(
+        seed_pool=[seed],
+        use_real_llm=use_real_llm,
+        variant_names=[variant_name],
+        phase_config={
+            "baseline_days": phase_days[0],
+            "intervention_days": phase_days[1],
+            "post_days": phase_days[2],
+        },
+        provider=None,  # caller doesn't pass; suite-level merges below
+    )
+    run_metrics = run_metrics.with_extensions(reproducibility_lock=rep_lock)
+
     return result, run_metrics, variant_metadata
 
 

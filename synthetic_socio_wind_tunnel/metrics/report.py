@@ -238,7 +238,58 @@ def _read_optional_json(path: Path) -> dict | None:
         return None
 
 
-def _publishable_checklist(suite_dir: Path) -> tuple[str, bool]:
+def _reproducibility_lock_section(aggregates: dict) -> tuple[str, bool]:
+    """
+    Render reproducibility lock from any aggregate's metadata.extensions.
+    Returns (markdown, all_seven_present).
+    """
+    lock: dict | None = None
+    for agg in aggregates.values():
+        meta = getattr(agg, "variant_metadata", None) or {}
+        rep = meta.get("reproducibility_lock") if isinstance(meta, dict) else None
+        if rep:
+            lock = rep
+            break
+
+    required = {
+        "seed_pool", "model_version", "prompt_template_hash",
+        "LANE_COVE_PROFILE_hash", "variants_loaded", "code_commit",
+        "phase_config",
+    }
+
+    if not lock:
+        return (
+            "### Reproducibility Lock\n\n"
+            "⚠️ Reproducibility lock not stamped on this run. "
+            "Expected 7 fields per validation-strategy Part VI.\n",
+            False,
+        )
+
+    missing = required - set(lock.keys())
+    all_present = not missing
+
+    rows = ["### Reproducibility Lock", ""]
+    if missing:
+        rows.append(f"⚠️ missing fields: {sorted(missing)}\n")
+    rows.append("| field | value |")
+    rows.append("|---|---|")
+    for k in (
+        "seed_pool", "model_version", "prompt_template_hash",
+        "LANE_COVE_PROFILE_hash", "variants_loaded", "code_commit",
+        "phase_config",
+    ):
+        v = lock.get(k, "—")
+        if isinstance(v, dict):
+            v = ", ".join(f"{kk}={vv[:8] + '...' if isinstance(vv, str) and len(vv) > 12 else vv}"
+                          for kk, vv in v.items())
+        elif isinstance(v, str) and len(v) > 16 and not v.startswith("stub:"):
+            v = v[:16] + "..."
+        rows.append(f"| {k} | `{v}` |")
+    rows.append("")
+    return "\n".join(rows), all_present
+
+
+def _publishable_checklist(suite_dir: Path, rep_lock_complete: bool) -> tuple[str, bool]:
     """
     Read calibration + stereotype audit reports and emit checklist section.
 
@@ -313,10 +364,40 @@ def _publishable_checklist(suite_dir: Path) -> tuple[str, bool]:
     lines.append("- ✓ **#5 Forbidden words check** (auto-enforced)")
     lines.append("- ✓ **#8 Acceptance language compliant** (auto-enforced)")
 
-    # Outstanding (⚠️) — checklist #3/#6/#7 still open per snapshot
-    lines.append("- ⚠️ **#3 Face validity**: not run (Prolific protocol pending)")
-    lines.append("- ⚠️ **#6 Reproducibility lock**: partial (3/7 fields)")
-    lines.append("- ⚠️ **#7 Ethics statement**: written; auto-injection pending")
+    # #6 Reproducibility lock — driven by rep_lock_complete from caller
+    if rep_lock_complete:
+        lines.append("- ✓ **#6 Reproducibility lock**: 7 fields stamped")
+    else:
+        lines.append("- ⚠️ **#6 Reproducibility lock**: incomplete (some fields missing)")
+        all_passed = False
+
+    # #7 Ethics statement — auto-injected when ETHICS_STATEMENT is present
+    # in the rendered report (always true after publishable-finalize change)
+    lines.append("- ✓ **#7 Ethics statement**: auto-injected from "
+                 "`metrics/ethics.py::ETHICS_STATEMENT`")
+
+    # #3 Face validity (face-validity-protocol change)
+    repo_root_for_fv = Path(__file__).resolve().parents[2]
+    fv_path = repo_root_for_fv / "data" / "calibration" / "face_validity_report.json"
+    fv = _read_optional_json(fv_path)
+    if fv is None:
+        lines.append(
+            "- ⚠️ **#3 Face validity**: not run; see "
+            "`docs/face_validity/01-protocol.md`"
+        )
+        all_passed = False
+    elif fv.get("passed"):
+        lines.append(
+            f"- ✓ **#3 Face validity**: avg={fv.get('overall_avg', 0):.2f}, "
+            f"pct_low={fv.get('pct_low', 0):.1%}, "
+            f"n_reviewers={fv.get('n_reviewers', 0)}"
+        )
+    else:
+        lines.append(
+            f"- ✗ **#3 Face validity**: avg={fv.get('overall_avg', 0):.2f} "
+            f"(need ≥ 3.5), pct_low={fv.get('pct_low', 0):.1%} (need ≤ 20%)"
+        )
+        all_passed = False
     lines.append("")
     return "\n".join(lines), all_passed
 
@@ -337,12 +418,15 @@ def write_markdown(
     - data/calibration/calibration_report.json (agent-calibration)
     - data/calibration/stereotype_audit_report.json (stereotype-audit)
     """
+    from synthetic_socio_wind_tunnel.metrics.ethics import ETHICS_STATEMENT
+
     suite_dir.mkdir(parents=True, exist_ok=True)
     output = suite_dir / "report.md"
 
     baseline_agg = aggregates.get("baseline")
 
-    checklist_md, all_passed = _publishable_checklist(suite_dir)
+    rep_lock_md, rep_lock_complete = _reproducibility_lock_section(aggregates)
+    checklist_md, all_passed = _publishable_checklist(suite_dir, rep_lock_complete)
     banner = (
         "" if all_passed
         else "> ⚠️ **[unpublishable preview]** — at least one hard check fails or has not been run.\n"
@@ -359,7 +443,11 @@ def write_markdown(
         " `SuiteAggregate` / `ContestReport` 自动填；Interpretation 段留"
         "作者判读。",
         "",
+        ETHICS_STATEMENT,
+        "",
         checklist_md,
+        "",
+        rep_lock_md,
         "",
         _act1_baseline(baseline_agg),
         "",

@@ -1,0 +1,74 @@
+{
+  "narratives": [
+    {
+      "narrative_id": "narrative_00",
+      "agent_id": "a_42_0000",
+      "variant_name": "baseline",
+      "profile_excerpt": "45岁 female teacher；couple kids under 15；在 Lane Cove established_5plus；母语非英语 (proficiency: very_well)；commute",
+      "summary_text": "【45岁 female teacher；couple kids under 15；在 Lane Cove established_5plus；母语非英语 (proficiency: very_well)；commute】\n\nDay 1: 早上去便利店，傍晚回家。和同事 与邻居未交谈。\nDay 2: 早上去便利店，傍晚回家。独自 与邻居简短问候。\nDay 3: 早上去咖啡馆，傍晚回家。和家人 与邻居未交谈。\n\n（实验语境：无外部干预）"
+    },
+    {
+      "narrative_id": "narrative_01",
+      "agent_id": "a_42_0001",
+      "variant_name": "hyperlocal_push",
+      "profile_excerpt": "36岁 male nurse；couple kids under 15；在 Lane Cove recent_1_5yr；母语非英语 (proficiency: well)；commute",
+      "summary_text": "【36岁 male nurse；couple kids under 15；在 Lane Cove recent_1_5yr；母语非英语 (proficiency: well)；commute】\n\nDay 1: 早上去公园，傍晚回家。独自 与邻居深聊片刻。\nDay 2: 早上去社区中心，傍晚回家。和同事 与邻居擦肩而过。\nDay 3: 早上去图书馆，傍晚回家。和家人 与邻居擦肩而过。\n\n（实验语境：干预期 8-13 日收到附近社区活动推送）"
+    },
+    {
+      "narrative_id": "narrative_02",
+      "agent_id": "a_42_0002",
+      "variant_name": "baseline",
+      "profile_excerpt": "7岁 male designer；couple kids 15plus；在 Lane Cove new_<1yr；志愿者；remote",
+      "summary_text": "【7岁 male designer；couple kids 15plus；在 Lane Cove new_<1yr；志愿者；remote】\n\nDay 1: 早上去公园，傍晚回家。独自 与邻居擦肩而过。\nDay 2: 早上去图书馆，傍晚回家。和同事 与邻居擦肩而过。\nDay 3: 早上去便利店，傍晚回家。和同事 与邻居擦肩而过。\n\n（实验语境：无外部干预）"
+    },
+    {
+      "narrative_id": "narrative_03",
+      "agent_id": "a_42_0003",
+      "variant_name": "hyperlocal_push",
+      "profile_excerpt": "36岁 female writer；couple kids 15plus；在 Lane Cove recent_1_5yr；志愿者；母语非英语 (proficiency: well)；remote",
+      "summary_text": "【36岁 female writer；couple kids 15plus；在 Lane Cove recent_1_5yr；志愿者；母语非英语 (proficiency: well)；remote】\n\nDay 1: 早上去咖啡馆，傍晚回家。独自 与邻居擦肩而过。\nDay 2: 早上去图书馆，傍晚回家。独自 与邻居未交谈。\nDay 3: 早上去便利店，傍晚回家。和家人 与邻居简短问候。\n\n（实验语境：干预期 8-13 日收到附近社区活动推送）"
+    },
+    {
+      "narrative_id": "narrative_04",
+      "agent_id": "a_42_0004",
+      "variant_name": "baseline",
+      "profile_excerpt": "43岁 male office_worker；couple kids under 15；在 Lane Cove recent_1_5yr；commute",
+      "summary_text": "【43岁 male office_worker；couple kids under 15；在 Lane Cove recent_1_5yr；commute】\n\nDay 1: 早上去咖啡馆，傍晚回家。独自 与邻居未交谈。\nDay 2: 早上去公园，傍晚回家。和家人 与邻居深聊片刻。\nDay 3: 早上去便利店，傍晚回家。和同事 与邻居简短问候。\n\n（实验语境：无外部干预）"
+    },
+    {
+      "narrative_id": "narrative_05",
+      "agent_id": "a_42_0005",
+      "variant_name": "hyperlocal_push",
+      "profile_excerpt": "21岁 female software_dev；couple kids under 15；在 Lane Cove recent_1_5yr；志愿者；remote",
+      "summary_text": "【21岁 female software_dev；couple kids under 15；在 Lane Cove recent_1_5yr；志愿者；remote】\n\nDay 1: 早上去便利店，傍晚回家。独自 与邻居未交谈。\nDay 2: 早上去便利店，傍晚回家。和家人 与邻居简短问候。\nDay 3: 早上去便利店，傍晚回家。和家人 与邻居简短问候。\n\n（实验语境：干预期 8-13 日收到附近社区活动推送）"
+    },
+    {
+      "narrative_id": "narrative_06",
+      "agent_id": "a_42_0006",
+      "variant_name": "baseline",
+      "profile_excerpt": "43岁 male software_dev；couple no kids；在 Lane Cove recent_1_5yr；remote",
+      "summary_text": "【43岁 male software_dev；couple no kids；在 Lane Cove recent_1_5yr；remote】\n\nDay 1: 早上去咖啡馆，傍晚回家。独自 与邻居深聊片刻。\nDay 2: 早上去图书馆，傍晚回家。和家人 与邻居简短问候。\nDay 3: 早上去图书馆，傍晚回家。和家人 与邻居深聊片刻。\n\n（实验语境：无外部干预）"
+    },
+    {
+      "narrative_id": "narrative_07",
+      "agent_id": "a_42_0007",
+      "variant_name": "hyperlocal_push",
+      "profile_excerpt": "70岁 female office_worker；couple kids 15plus；在 Lane Cove recent_1_5yr；commute",
+      "summary_text": "【70岁 female office_worker；couple kids 15plus；在 Lane Cove recent_1_5yr；commute】\n\nDay 1: 早上去社区中心，傍晚回家。和同事 与邻居简短问候。\nDay 2: 早上去公园，傍晚回家。独自 与邻居未交谈。\nDay 3: 早上去社区中心，傍晚回家。独自 与邻居擦肩而过。\n\n（实验语境：干预期 8-13 日收到附近社区活动推送）"
+    },
+    {
+      "narrative_id": "narrative_08",
+      "agent_id": "a_42_0008",
+      "variant_name": "baseline",
+      "profile_excerpt": "7岁 female office_worker；couple kids 15plus；在 Lane Cove recent_1_5yr；育儿 15_29h/wk；commute",
+      "summary_text": "【7岁 female office_worker；couple kids 15plus；在 Lane Cove recent_1_5yr；育儿 15_29h/wk；commute】\n\nDay 1: 早上去公园，傍晚回家。独自 与邻居未交谈。\nDay 2: 早上去咖啡馆，傍晚回家。独自 与邻居擦肩而过。\nDay 3: 早上去图书馆，傍晚回家。和家人 与邻居擦肩而过。\n\n（实验语境：无外部干预）"
+    },
+    {
+      "narrative_id": "narrative_09",
+      "agent_id": "a_42_0009",
+      "variant_name": "hyperlocal_push",
+      "profile_excerpt": "68岁 female designer；couple kids under 15；在 Lane Cove established_5plus；remote",
+      "summary_text": "【68岁 female designer；couple kids under 15；在 Lane Cove established_5plus；remote】\n\nDay 1: 早上去图书馆，傍晚回家。和同事 与邻居深聊片刻。\nDay 2: 早上去社区中心，傍晚回家。独自 与邻居擦肩而过。\nDay 3: 早上去图书馆，傍晚回家。独自 与邻居简短问候。\n\n（实验语境：干预期 8-13 日收到附近社区活动推送）"
+    }
+  ]
+}

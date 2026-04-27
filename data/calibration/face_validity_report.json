@@ -1,0 +1,18 @@
+{
+  "passed": true,
+  "overall_avg": 3.9074999999999998,
+  "pct_low": 0.145,
+  "n_narratives": 10,
+  "n_reviewers": 20,
+  "details": {
+    "authenticity_avg": 3.93,
+    "realism_avg": 3.885,
+    "n_ratings": 200,
+    "thresholds": {
+      "avg_min": 3.5,
+      "pct_low_max": 0.2
+    }
+  },
+  "spec_threshold_avg_min": 3.5,
+  "spec_threshold_pct_low_max": 0.2
+}

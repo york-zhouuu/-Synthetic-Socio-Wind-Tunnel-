@@ -115,9 +115,22 @@ def build_suite_aggregate(
 
     seeds = tuple(r.seed for r in runs)
 
+    # publishable-finalize: lift reproducibility_lock from first run into
+    # variant_metadata so report writer can find it. Also accumulate seeds
+    # across runs (rep_lock.seed_pool is per-run; suite-level needs union).
+    final_meta = dict(variant_metadata or {"name": variant_name})
+    rep_locks = [r.extensions.get("reproducibility_lock") for r in runs
+                 if r.extensions.get("reproducibility_lock")]
+    if rep_locks:
+        merged = dict(rep_locks[0])
+        # Union the seed pool across all runs in this suite-aggregate
+        merged["seed_pool"] = sorted({s for lock in rep_locks
+                                      for s in lock.get("seed_pool", [])})
+        final_meta["reproducibility_lock"] = merged
+
     return SuiteAggregate(
         variant_name=variant_name,
-        variant_metadata=variant_metadata or {"name": variant_name},
+        variant_metadata=final_meta,
         seed_count=len(runs),
         seeds=seeds,
         per_metric_stats=per_metric_stats,
