@@ -11,6 +11,10 @@ from .intent import (
     WaitIntent,
 )
 from .personality import EmotionalState, PersonalityTraits, Skills
+# NOTE: audit module is intentionally NOT re-exported from this package
+# init — it would leak into sim hot path via `from agent import ...`.
+# Import directly: `from synthetic_socio_wind_tunnel.agent.audit import ...`
+# (see stereotype-audit spec; only `tools/run_stereotype_audit.py` imports it).
 from .profile import AgentProfile, Gender, Household, HousingTenure, IncomeTier, WorkMode
 from .scripted_plan import build_scripted_plan
 from .planner import DailyPlan, LLMClient, PlanAction, PlanStep, Planner, SocialIntent

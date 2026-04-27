@@ -195,6 +195,7 @@ face-validity-protocol    → 解第 3 项 (face validity)
 | 2026-04-26 | cartography-fix-water-geometry：multipolygon ring assembly + 涵洞过滤 | Lane Cove River / Sydney Harbour 等大水域终于显形（13→134 水多边形）；加 `_assemble_outer_rings` 算法 |
 | 2026-04-27 | agent-calibration：ABS Census 6 维校准 + scripted_plan 三模式 + gender 字段 | LANE_COVE_PROFILE 5/6 best-effort；解 publishable checklist #1 |
 | 2026-04-27 | agent-profile-enrich：13 thesis-direct ABS 维度（care/tenure/volunteer/...）| 18/19 best-effort；rooted-vs-floating rival hypothesis 切片就绪 |
+| 2026-04-27 | stereotype-audit：swap / blind / cross-model 三协议 + publishable suite 接入 | dev mode CLI + report 自动 disclose；publishable cross-model 跑真 LLM defer |
 
 ---
 

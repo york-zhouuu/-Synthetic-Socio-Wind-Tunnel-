@@ -1,0 +1,91 @@
+{
+  "generated": "2026-04-27T15:07:33",
+  "scale": "dev",
+  "seed_set": [
+    42
+  ],
+  "n_agents": 20,
+  "n_days": 3,
+  "swap_test": {
+    "passed": true,
+    "acceptance_threshold": 0.05,
+    "mode": "stub",
+    "axes": {
+      "gender": {
+        "passed": true,
+        "pairs": [
+          {
+            "from": "male",
+            "to": "female",
+            "destination_overlap_pct": 1.0,
+            "encounter_count_delta_pct": 0.0,
+            "n_agents": 20,
+            "passed": true
+          },
+          {
+            "from": "female",
+            "to": "male",
+            "destination_overlap_pct": 1.0,
+            "encounter_count_delta_pct": 0.0,
+            "n_agents": 20,
+            "passed": true
+          }
+        ]
+      },
+      "ethnicity_group": {
+        "passed": true,
+        "pairs": [
+          {
+            "from": "Australia",
+            "to": "China",
+            "destination_overlap_pct": 1.0,
+            "encounter_count_delta_pct": 0.0,
+            "n_agents": 20,
+            "passed": true
+          },
+          {
+            "from": "China",
+            "to": "Australia",
+            "destination_overlap_pct": 1.0,
+            "encounter_count_delta_pct": 0.0,
+            "n_agents": 20,
+            "passed": true
+          },
+          {
+            "from": "England",
+            "to": "Vietnam",
+            "destination_overlap_pct": 1.0,
+            "encounter_count_delta_pct": 0.0,
+            "n_agents": 20,
+            "passed": true
+          },
+          {
+            "from": "Vietnam",
+            "to": "England",
+            "destination_overlap_pct": 1.0,
+            "encounter_count_delta_pct": 0.0,
+            "n_agents": 20,
+            "passed": true
+          }
+        ]
+      }
+    }
+  },
+  "blind_test": {
+    "passed": true,
+    "acceptance_threshold": 0.8,
+    "destination_overlap_pct": 1.0,
+    "encounter_count_delta_pct": 0.0,
+    "n_agents": 20,
+    "blinded_attribute": "ethnicity_group"
+  },
+  "cross_model_test": {
+    "state": "skipped (stub mode)",
+    "passed": false,
+    "models_compared": [],
+    "evidence_alignment_a": null,
+    "evidence_alignment_b": null
+  },
+  "overall_passed": true,
+  "acceptance_level": "dev_only"
+}

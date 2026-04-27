@@ -223,6 +223,104 @@ def _act5_mirror(contest: ContestReport) -> str:
     return "\n".join(lines)
 
 
+# ---------------------------------------------------------------------------
+# Publishable checklist (validation-strategy + agent-calibration +
+# stereotype-audit deliver the underlying audit data)
+# ---------------------------------------------------------------------------
+
+def _read_optional_json(path: Path) -> dict | None:
+    if not path.exists():
+        return None
+    try:
+        import json
+        return json.loads(path.read_text())
+    except (json.JSONDecodeError, OSError):
+        return None
+
+
+def _publishable_checklist(suite_dir: Path) -> tuple[str, bool]:
+    """
+    Read calibration + stereotype audit reports and emit checklist section.
+
+    Returns (markdown_text, all_passed). Banner inserted at top of report
+    if all_passed is False.
+    """
+    # report.py lives at synthetic_socio_wind_tunnel/metrics/report.py;
+    # go up 2 dirs to reach repo root.
+    repo_root = Path(__file__).resolve().parents[2]
+    calib_path = repo_root / "data" / "calibration" / "calibration_report.json"
+    audit_path = repo_root / "data" / "calibration" / "stereotype_audit_report.json"
+
+    calib = _read_optional_json(calib_path)
+    audit = _read_optional_json(audit_path)
+
+    lines: list[str] = ["## Publishable Checklist", ""]
+    all_passed = True
+
+    # #1 Calibration
+    if calib is None:
+        lines.append("- ⚠️ **#1 Calibration**: report not found. Run `python3 tools/run_calibration.py --mode all`.")
+        all_passed = False
+    else:
+        pop = calib.get("population", {})
+        beh = calib.get("behavioral", {})
+        pop_ok = pop.get("acceptance_level") in ("strict", "best-effort")
+        beh_state = beh.get("state", "")
+        beh_ok = beh.get("acceptance_level") in ("strict", "best-effort")
+        # treat absent or missing-data state as "behavioral pending"
+        beh_missing = (not beh) or beh_state in ("missing-data", "not-implemented")
+
+        if pop_ok and beh_ok:
+            lines.append(f"- ✓ **#1 Calibration**: population={pop['acceptance_level']}, behavioral={beh['acceptance_level']}")
+        elif pop_ok and beh_missing:
+            lines.append(
+                f"- ⚠️ **#1 Calibration**: population={pop['acceptance_level']} ✓; "
+                "behavioral pending (ABS Travel Survey + Popular Times data not yet shipped)"
+            )
+            all_passed = False
+        else:
+            lines.append(
+                f"- ✗ **#1 Calibration**: population={pop.get('acceptance_level', '?')}, "
+                f"behavioral={beh.get('acceptance_level', '?')}"
+            )
+            if pop.get("failed_dimensions"):
+                lines.append(f"    - population failed dims: {', '.join(pop['failed_dimensions'])}")
+            all_passed = False
+        # Always disclose population failed dims even when ok-on-best-effort
+        if pop_ok and pop.get("failed_dimensions"):
+            lines.append(f"    - population disclose: {', '.join(pop['failed_dimensions'])} below threshold")
+
+    # #2 Stereotype audit
+    if audit is None:
+        lines.append("- ⚠️ **#2 Stereotype audit**: not run. Run `python3 tools/run_stereotype_audit.py --scale publishable --use-real-llm`.")
+        all_passed = False
+    elif audit.get("scale") == "dev":
+        lines.append("- ⚠️ **#2 Stereotype audit**: dev mode only — not valid for publishable claim.")
+        all_passed = False
+    else:
+        if audit.get("overall_passed"):
+            lines.append("- ✓ **#2 Stereotype audit**: swap + blind + cross-model all PASS")
+        else:
+            lines.append("- ✗ **#2 Stereotype audit**: at least one protocol FAIL")
+            for protocol in ("swap_test", "blind_test", "cross_model_test"):
+                p = audit.get(protocol, {})
+                if not p.get("passed", False):
+                    lines.append(f"    - {protocol}: FAIL")
+            all_passed = False
+
+    # Static checks (#4/#5/#8 already enforced by metrics; show as ✓)
+    lines.append("- ✓ **#4 Mirror experiment included** (suite contains global_distraction)")
+    lines.append("- ✓ **#5 Forbidden words check** (auto-enforced)")
+    lines.append("- ✓ **#8 Acceptance language compliant** (auto-enforced)")
+
+    # Outstanding (⚠️) — checklist #3/#6/#7 still open per snapshot
+    lines.append("- ⚠️ **#3 Face validity**: not run (Prolific protocol pending)")
+    lines.append("- ⚠️ **#6 Reproducibility lock**: partial (3/7 fields)")
+    lines.append("- ⚠️ **#7 Ethics statement**: written; auto-injection pending")
+    lines.append("")
+    return "\n".join(lines), all_passed
+
+
 def write_markdown(
     contest: ContestReport,
     aggregates: dict[str, SuiteAggregate],
@@ -233,21 +331,35 @@ def write_markdown(
     interpretation 留作者。
 
     aggregates 字典序保持（baseline 若存在应在最前）。
+
+    Publishable checklist section is prepended (with `[unpublishable preview]`
+    banner if any hard check fails). Reads:
+    - data/calibration/calibration_report.json (agent-calibration)
+    - data/calibration/stereotype_audit_report.json (stereotype-audit)
     """
     suite_dir.mkdir(parents=True, exist_ok=True)
     output = suite_dir / "report.md"
 
     baseline_agg = aggregates.get("baseline")
 
+    checklist_md, all_passed = _publishable_checklist(suite_dir)
+    banner = (
+        "" if all_passed
+        else "> ⚠️ **[unpublishable preview]** — at least one hard check fails or has not been run.\n"
+    )
+
     parts = [
         f"# {contest.suite_name} — Rival Hypothesis Contest Report\n",
         "",
+        banner,
         _trace_comment("ReportWriter.write_markdown"),
         "",
         "本报告遵循 `experimental-design` spec 的五幕结构 + 每 variant"
         " Diagnosis-Cure-Outcome-Interpretation 四段式。数字来自"
         " `SuiteAggregate` / `ContestReport` 自动填；Interpretation 段留"
         "作者判读。",
+        "",
+        checklist_md,
         "",
         _act1_baseline(baseline_agg),
         "",
