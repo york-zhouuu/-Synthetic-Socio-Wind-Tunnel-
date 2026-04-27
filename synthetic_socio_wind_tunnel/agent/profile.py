@@ -47,6 +47,26 @@ EducationLevel = Literal[
 ]
 
 
+class LifePattern(BaseModel):
+    """
+    Per-agent sticky routine anchor (agent-realistic-routine, 2026-04-28).
+
+    Sampled once at population creation; persists across the full sim run.
+    `personality.routine_adherence` controls how often plan generation
+    actually uses these preferences (vs exploring fresh destinations).
+    """
+    preferred_cafe: str | None = None
+    preferred_leisure_park: str | None = None
+    preferred_errand_destination: str | None = None
+    morning_commute_minute: int = Field(default=30, ge=0, le=59)
+    """Offset within the 7-9am rush window; gaussian-sampled (mean 30, std 12)."""
+    evening_return_minute: int = Field(default=30, ge=0, le=59)
+    """Offset within the 17-19pm return window."""
+    weekend_outing_destination: str | None = None
+
+    model_config = {"frozen": True}
+
+
 class AgentProfile(BaseModel):
     """Agent 的静态身份和性格定义。模拟期间不变。"""
 
@@ -106,6 +126,9 @@ class AgentProfile(BaseModel):
     indigenous_status: IndigenousStatus | None = None
     disability_status: DisabilityStatus | None = None
     education_level: EducationLevel | None = None
+
+    # === agent-realistic-routine (2026-04-28): per-agent sticky routine anchor
+    life_pattern: LifePattern | None = None
 
     model_config = {"frozen": True, "extra": "forbid"}
     # extra="forbid" so that removed fields like personality_traits / personality_description

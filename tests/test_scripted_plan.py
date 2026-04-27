@@ -8,9 +8,11 @@ from collections import Counter
 from synthetic_socio_wind_tunnel.agent import (
     AgentProfile,
     LANE_COVE_PROFILE,
+    LifePattern,
     build_scripted_plan,
     sample_population,
 )
+from synthetic_socio_wind_tunnel.agent.personality import PersonalityTraits
 
 
 _DESTINATIONS = [f"loc_{i}" for i in range(20)]
@@ -142,3 +144,138 @@ class TestPopulationDispatch:
                 profile, _DESTINATIONS, "2026-04-27", random.Random(0),
             )
             assert plan.steps, f"mode={mode} produced empty plan"
+
+
+# ===========================================================================
+# agent-realistic-routine: weekday/weekend + 8-dim conditioning + LifePattern
+# ===========================================================================
+
+class TestWeekdayWeekendDispatch:
+    """Saturday/Sunday should not produce commute steps."""
+
+    def test_saturday_no_commute(self):
+        rng = random.Random(0)
+        profile = _profile("commute")
+        plan = build_scripted_plan(profile, _DESTINATIONS, "2026-05-02", rng)  # Saturday
+        for step in plan.steps:
+            assert "commute" not in (step.activity or "")
+            assert step.reason != "commute"
+
+    def test_sunday_includes_outing(self):
+        rng = random.Random(0)
+        profile = _profile("commute")
+        plan = build_scripted_plan(profile, _DESTINATIONS, "2026-05-03", rng)  # Sunday
+        activities = " ".join(s.activity or "" for s in plan.steps)
+        assert "outing" in activities or "leisure" in activities
+
+    def test_monday_has_commute_for_commute_workmode(self):
+        rng = random.Random(0)
+        profile = _profile("commute")
+        plan = build_scripted_plan(profile, _DESTINATIONS, "2026-05-04", rng)  # Monday
+        commute_steps = [s for s in plan.steps if s.reason == "commute"]
+        assert len(commute_steps) >= 2  # depart + return
+
+
+class TestProfileDimensionConditioning:
+    """8 profile dims should affect plan generation."""
+
+    def test_couple_kids_under_15_includes_school_pickup(self):
+        rng = random.Random(0)
+        profile = _profile(
+            "commute",
+            family_composition="couple_kids_under_15",  # type: ignore[arg-type]
+        )
+        plan = build_scripted_plan(profile, _DESTINATIONS, "2026-05-04", rng)
+        activities = " ".join(s.activity or "" for s in plan.steps)
+        assert "pickup" in activities or "kids" in activities
+
+    def test_no_school_pickup_for_lone_person(self):
+        rng = random.Random(0)
+        profile = _profile(
+            "commute",
+            family_composition="lone_person",  # type: ignore[arg-type]
+        )
+        plan = build_scripted_plan(profile, _DESTINATIONS, "2026-05-04", rng)
+        activities = " ".join(s.activity or "" for s in plan.steps)
+        assert "pickup" not in activities
+
+    def test_zero_car_commute_has_transit_via(self):
+        rng = random.Random(0)
+        profile = _profile(
+            "commute",
+            vehicles_at_dwelling="0",  # type: ignore[arg-type]
+        )
+        plan = build_scripted_plan(profile, _DESTINATIONS, "2026-05-04", rng)
+        activities = " ".join(s.activity or "" for s in plan.steps)
+        assert "transit" in activities
+
+
+class TestLifePatternUsage:
+    """LifePattern should be used by routine_adherence-gated logic."""
+
+    def test_high_routine_adherence_uses_lifepattern_majority(self):
+        # High routine_adherence + LifePattern.preferred_cafe → most days
+        # the leisure step destination should be preferred_cafe.
+        lp = LifePattern(
+            preferred_cafe="preferred_loc",
+            morning_commute_minute=15,
+            evening_return_minute=30,
+        )
+        profile = _profile(
+            "commute",
+            life_pattern=lp,
+            personality=PersonalityTraits(routine_adherence=0.95),
+        )
+        # Sample over many runs to check majority
+        leisure_dests = []
+        for i in range(50):
+            rng = random.Random(i)
+            plan = build_scripted_plan(profile, _DESTINATIONS, "2026-05-04", rng)
+            for s in plan.steps:
+                if s.reason == "leisure":
+                    leisure_dests.append(s.destination)
+        # At 0.95 adherence, gate fires ~80%; expect ≥ 60% to be preferred
+        if leisure_dests:
+            preferred_count = sum(1 for d in leisure_dests if d == "preferred_loc")
+            ratio = preferred_count / len(leisure_dests)
+            assert ratio > 0.5, f"high adherence used preferred only {ratio:.1%}"
+
+    def test_low_routine_adherence_explores(self):
+        lp = LifePattern(preferred_cafe="preferred_loc")
+        profile = _profile(
+            "commute",
+            life_pattern=lp,
+            personality=PersonalityTraits(routine_adherence=0.1),
+        )
+        leisure_dests = []
+        for i in range(50):
+            rng = random.Random(i)
+            plan = build_scripted_plan(profile, _DESTINATIONS, "2026-05-04", rng)
+            for s in plan.steps:
+                if s.reason == "leisure":
+                    leisure_dests.append(s.destination)
+        if leisure_dests:
+            # At 0.1 adherence, gate fires ~20%; ≥ 60% should be NOT preferred
+            non_preferred = sum(1 for d in leisure_dests if d != "preferred_loc")
+            ratio = non_preferred / len(leisure_dests)
+            assert ratio > 0.5, f"low adherence still used preferred {1-ratio:.1%}"
+
+    def test_lifepattern_minute_used_for_commute_time(self):
+        lp = LifePattern(morning_commute_minute=42, evening_return_minute=15)
+        profile = _profile("commute", life_pattern=lp,
+                           personality=PersonalityTraits(routine_adherence=0.5))
+        rng = random.Random(0)
+        plan = build_scripted_plan(profile, _DESTINATIONS, "2026-05-04", rng)
+        commute_steps = [s for s in plan.steps if s.reason == "commute"]
+        # Morning commute step time should match life_pattern.morning_commute_minute
+        depart = commute_steps[0]
+        assert depart.time.endswith(":42"), f"expected :42 minute, got {depart.time}"
+
+
+class TestNoLifePatternBackwardCompat:
+
+    def test_profile_without_lifepattern_still_plans(self):
+        profile = _profile("commute")  # no life_pattern set
+        plan = build_scripted_plan(profile, _DESTINATIONS, "2026-05-04",
+                                   random.Random(0))
+        assert plan.steps  # should still produce a plan

@@ -1,0 +1,45 @@
+{
+  "generated": "2026-04-28T03:31:43",
+  "n_agents": 100,
+  "n_days": 7,
+  "seed": 42,
+  "f1_temporal": {
+    "morning_peak_ratio": 24.2,
+    "weekday_weekend_diff_pct": 2.447,
+    "popular_times_emd": null,
+    "hourly_encounters": [
+      215,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      206,
+      75,
+      20,
+      484,
+      22,
+      30,
+      169,
+      22,
+      58,
+      66,
+      132,
+      46,
+      0,
+      0
+    ]
+  },
+  "f3_routine": {
+    "high_adherence_repeat_pct": 0.857,
+    "low_adherence_repeat_pct": 0.429,
+    "spearman_adherence_repeat": 0.629,
+    "n_high_adherence": 18,
+    "n_low_adherence": 32
+  },
+  "stage1_passed": true
+}

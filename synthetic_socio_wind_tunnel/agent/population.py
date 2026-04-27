@@ -42,6 +42,7 @@ from synthetic_socio_wind_tunnel.agent.profile import (
     HousingTenure,
     IncomeTier,
     IndigenousStatus,
+    LifePattern,
     VehiclesAtDwelling,
     VolunteerStatus,
     WorkMode,
@@ -236,6 +237,50 @@ def _household_from_family_composition(fc: str | None) -> str | None:
     return _FAMILY_COMP_TO_HOUSEHOLD.get(fc, "single")
 
 
+def _sample_life_pattern(
+    rng: random.Random,
+    *,
+    home_location: str | None,
+    destinations: tuple[str, ...] | None,
+) -> LifePattern:
+    """
+    Sample one agent's sticky 14-day routine anchor.
+
+    Preferred destinations are picked from the `destinations` pool (when
+    provided). When the pool is empty / None, fields stay None so plan
+    generation falls back to per-day random destinations (no sticky anchor).
+
+    Time offsets use gaussian priors centered at minute 30 of their hour
+    window (i.e. 7:30 morning, 17:30 evening), std 12 minutes — matching the
+    bell-shape of real commute departure distributions before ABS Travel
+    Survey data ships.
+    """
+    if not destinations:
+        morning = int(rng.gauss(30, 12)) % 60
+        evening = int(rng.gauss(30, 15)) % 60
+        return LifePattern(
+            morning_commute_minute=max(0, min(59, morning)),
+            evening_return_minute=max(0, min(59, evening)),
+        )
+
+    # Pick distinct preferred destinations; if pool is small, allow reuse
+    pool = list(destinations)
+    if home_location and home_location in pool:
+        pool = [d for d in pool if d != home_location]
+
+    def _pick():
+        return rng.choice(pool) if pool else None
+
+    return LifePattern(
+        preferred_cafe=_pick(),
+        preferred_leisure_park=_pick(),
+        preferred_errand_destination=_pick(),
+        morning_commute_minute=max(0, min(59, int(rng.gauss(30, 12)) % 60)),
+        evening_return_minute=max(0, min(59, int(rng.gauss(30, 15)) % 60)),
+        weekend_outing_destination=_pick(),
+    )
+
+
 def _clamp(value: float, lo: float, hi: float) -> float:
     return max(lo, min(hi, value))
 
@@ -367,6 +412,13 @@ def sample_population(
         else:
             home = f"home_{index:04d}"
 
+        # agent-realistic-routine: per-agent sticky LifePattern. Sampled
+        # last to keep RNG sequence stable for prior fields (preserves
+        # byte-equality on calibration dims that came before).
+        life_pattern = _sample_life_pattern(
+            rng, home_location=home, destinations=home_locations,
+        )
+
         agent_id = f"a_{seed}_{index:04d}"
 
         profiles.append(AgentProfile(
@@ -401,6 +453,7 @@ def sample_population(
             indigenous_status=indigenous,  # type: ignore[arg-type]
             disability_status=disability,  # type: ignore[arg-type]
             education_level=education,  # type: ignore[arg-type]
+            life_pattern=life_pattern,
         ))
 
     # Assign protagonists: pick deterministically from rng

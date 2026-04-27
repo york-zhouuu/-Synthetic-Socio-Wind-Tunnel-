@@ -198,6 +198,7 @@ face-validity-protocol    → 解第 3 项 (face validity)
 | 2026-04-27 | stereotype-audit：swap / blind / cross-model 三协议 + publishable suite 接入 | dev mode CLI + report 自动 disclose；publishable cross-model 跑真 LLM defer |
 | 2026-04-27 | publishable-finalize：Reproducibility lock 7 字段 + Ethics 自动注入 | checklist #6/#7 ⚠️ → ✓ |
 | 2026-04-27 | face-validity-protocol：narrative 采样 + Prolific 聚合两端代码 | checklist #3 ✗ → 框架就绪，等真人评分 |
+| 2026-04-28 | agent-realistic-routine：F1+F2+F3 合一（rush hour + 8 维 conditioning + LifePattern 锚 + weekday/weekend）| 拟真度 stage1_passed ✓；rush hour 出现；个人 routine 锚定 |
 
 ---
 
