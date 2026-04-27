@@ -29,11 +29,23 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 from synthetic_socio_wind_tunnel.agent.personality import PersonalityTraits
 from synthetic_socio_wind_tunnel.agent.profile import (
     AgentProfile,
+    CareHours,
+    CommunityTenure,
+    DisabilityCare,
+    DisabilityStatus,
+    DwellingStructure,
+    EducationLevel,
+    EnglishProficiency,
+    FamilyComposition,
     Gender,
     Household,
     HousingTenure,
     IncomeTier,
+    IndigenousStatus,
+    VehiclesAtDwelling,
+    VolunteerStatus,
     WorkMode,
+    YearOfArrival,
 )
 from synthetic_socio_wind_tunnel.attention.models import DigitalProfile, FeedBias
 
@@ -117,6 +129,24 @@ class PopulationProfile(BaseModel):
         default_factory=lambda: {"male": 0.487, "female": 0.513, "non_binary": 0.0}
     )
 
+    # === agent-profile-enrich (2026-04-27): 13 new distributions ===
+    # Default empty dict means: don't sample this dimension; AgentProfile
+    # field stays None. Override per-PopulationProfile (e.g. LANE_COVE_PROFILE
+    # ships ABS-derived values).
+    community_tenure_distribution: Mapping[CommunityTenure, float] = Field(default_factory=dict)
+    unpaid_child_care_distribution: Mapping[CareHours, float] = Field(default_factory=dict)
+    unpaid_domestic_distribution: Mapping[CareHours, float] = Field(default_factory=dict)
+    unpaid_disability_care_distribution: Mapping[DisabilityCare, float] = Field(default_factory=dict)
+    volunteer_distribution: Mapping[VolunteerStatus, float] = Field(default_factory=dict)
+    english_proficiency_distribution: Mapping[EnglishProficiency, float] = Field(default_factory=dict)
+    family_composition_distribution: Mapping[FamilyComposition, float] = Field(default_factory=dict)
+    dwelling_structure_distribution: Mapping[DwellingStructure, float] = Field(default_factory=dict)
+    vehicles_distribution: Mapping[VehiclesAtDwelling, float] = Field(default_factory=dict)
+    year_of_arrival_distribution: Mapping[YearOfArrival, float] = Field(default_factory=dict)
+    indigenous_distribution: Mapping[IndigenousStatus, float] = Field(default_factory=dict)
+    disability_distribution: Mapping[DisabilityStatus, float] = Field(default_factory=dict)
+    education_distribution: Mapping[EducationLevel, float] = Field(default_factory=dict)
+
     # 年龄区间到 (min, max) 岁数映射
     age_bracket_bounds: Mapping[str, tuple[int, int]] = Field(
         default_factory=lambda: {
@@ -148,11 +178,62 @@ class PopulationProfile(BaseModel):
         _validate_distribution(info.field_name, v)
         return v
 
+    @field_validator(
+        "community_tenure_distribution",
+        "unpaid_child_care_distribution",
+        "unpaid_domestic_distribution",
+        "unpaid_disability_care_distribution",
+        "volunteer_distribution",
+        "english_proficiency_distribution",
+        "family_composition_distribution",
+        "dwelling_structure_distribution",
+        "vehicles_distribution",
+        "year_of_arrival_distribution",
+        "indigenous_distribution",
+        "disability_distribution",
+        "education_distribution",
+    )
+    @classmethod
+    def _optional_dist_sum_to_one(cls, v, info):
+        """Empty dict = don't sample; non-empty = must sum to 1.0."""
+        if v:
+            _validate_distribution(info.field_name, v)
+        return v
+
 
 def _weighted_pick(rng: random.Random, distribution: Mapping[str, float]) -> str:
     keys = list(distribution.keys())
     weights = [distribution[k] for k in keys]
     return rng.choices(keys, weights=weights, k=1)[0]
+
+
+def _optional_pick(
+    rng: random.Random, distribution: Mapping[str, float],
+) -> str | None:
+    """Like _weighted_pick but returns None when distribution is empty."""
+    if not distribution:
+        return None
+    return _weighted_pick(rng, distribution)
+
+
+# family_composition (G27/G29) → household (3-bucket Literal) mapping.
+# Used by sample_population to populate `household` deterministically from
+# `family_composition` while keeping the public Household type unchanged.
+_FAMILY_COMP_TO_HOUSEHOLD: Mapping[str, str] = {
+    "lone_person": "single",
+    "couple_no_kids": "couple",
+    "couple_kids_15plus": "couple",
+    "couple_kids_under_15": "family_with_kids",
+    "one_parent_family": "family_with_kids",
+    "group_household": "single",
+    "other": "single",
+}
+
+
+def _household_from_family_composition(fc: str | None) -> str | None:
+    if fc is None:
+        return None
+    return _FAMILY_COMP_TO_HOUSEHOLD.get(fc, "single")
 
 
 def _clamp(value: float, lo: float, hi: float) -> float:
@@ -241,9 +322,34 @@ def sample_population(
         housing = _weighted_pick(rng, profile.housing_distribution)
         income = _weighted_pick(rng, profile.income_distribution)
         work_mode = _weighted_pick(rng, profile.work_mode_distribution)
+        # Always draw household here to keep RNG sequence stable across the
+        # agent-profile-enrich change (preserves byte-equal output for the
+        # original 6 calibration dims). Override below if family_composition
+        # is sampled.
         household = _weighted_pick(rng, profile.household_distribution)
         language = _weighted_pick(rng, profile.language_distribution)
         gender = _weighted_pick(rng, profile.gender_distribution)
+
+        # 13 enrichment fields (agent-profile-enrich change). Each Optional;
+        # returns None when distribution is empty.
+        community_tenure = _optional_pick(rng, profile.community_tenure_distribution)
+        unpaid_child_care = _optional_pick(rng, profile.unpaid_child_care_distribution)
+        unpaid_domestic = _optional_pick(rng, profile.unpaid_domestic_distribution)
+        unpaid_disability_care = _optional_pick(rng, profile.unpaid_disability_care_distribution)
+        volunteer = _optional_pick(rng, profile.volunteer_distribution)
+        english_proficiency = _optional_pick(rng, profile.english_proficiency_distribution)
+        family_composition = _optional_pick(rng, profile.family_composition_distribution)
+        dwelling_structure = _optional_pick(rng, profile.dwelling_structure_distribution)
+        vehicles = _optional_pick(rng, profile.vehicles_distribution)
+        year_of_arrival = _optional_pick(rng, profile.year_of_arrival_distribution)
+        indigenous = _optional_pick(rng, profile.indigenous_distribution)
+        disability = _optional_pick(rng, profile.disability_distribution)
+        education = _optional_pick(rng, profile.education_distribution)
+
+        # Override household from family_composition mapping when present
+        # (richer signal than the legacy 3-bucket distribution).
+        if family_composition is not None:
+            household = _household_from_family_composition(family_composition) or household
 
         # Migration tenure: country-of-birth != Australia → 1st-gen migrant.
         # 2nd-gen migrants (born here to migrant parents) aren't separable from
@@ -281,6 +387,20 @@ def sample_population(
             digital=digital,
             is_protagonist=False,
             base_model=profile.haiku_model,
+            # enrichment fields
+            community_tenure_5yr=community_tenure,  # type: ignore[arg-type]
+            unpaid_child_care_hours=unpaid_child_care,  # type: ignore[arg-type]
+            unpaid_domestic_hours=unpaid_domestic,  # type: ignore[arg-type]
+            unpaid_disability_care_hours=unpaid_disability_care,  # type: ignore[arg-type]
+            volunteer_status=volunteer,  # type: ignore[arg-type]
+            english_proficiency=english_proficiency,  # type: ignore[arg-type]
+            family_composition=family_composition,  # type: ignore[arg-type]
+            dwelling_structure=dwelling_structure,  # type: ignore[arg-type]
+            vehicles_at_dwelling=vehicles,  # type: ignore[arg-type]
+            year_of_arrival_bucket=year_of_arrival,  # type: ignore[arg-type]
+            indigenous_status=indigenous,  # type: ignore[arg-type]
+            disability_status=disability,  # type: ignore[arg-type]
+            education_level=education,  # type: ignore[arg-type]
         ))
 
     # Assign protagonists: pick deterministically from rng
@@ -389,6 +509,85 @@ LANE_COVE_PROFILE = PopulationProfile(
         "Korean": 0.03,
         "Greek": 0.02,
         "other": 0.05,
+    },
+    # === agent-profile-enrich (2026-04-27): 13 thesis-direct dims ===
+    # All values from ABS Census 2021 SA2 121011686 Lane Cove via
+    # tools/convert_abs_census.py --full
+    community_tenure_distribution={
+        "established_5plus": 0.5511,
+        "recent_1_5yr": 0.3591,
+        "new_<1yr": 0.0898,
+    },
+    unpaid_child_care_distribution={
+        "none": 0.6826,
+        "1_14": 0.0000,
+        "15_29": 0.3174,
+        "30plus": 0.0000,
+    },
+    unpaid_domestic_distribution={
+        "none": 0.1998,
+        "1_14": 0.5731,
+        "15_29": 0.1435,
+        "30plus": 0.0836,
+    },
+    unpaid_disability_care_distribution={
+        "none": 0.8890,
+        "yes": 0.1110,
+    },
+    volunteer_distribution={
+        "volunteer": 0.1770,
+        "non_volunteer": 0.8230,
+    },
+    english_proficiency_distribution={
+        "english_only": 0.6981,
+        "very_well": 0.1348,
+        "well": 0.1348,
+        "not_well": 0.0162,
+        "not_at_all": 0.0161,  # sum-fix
+    },
+    family_composition_distribution={
+        "lone_person": 0.0000,
+        "couple_no_kids": 0.2666,
+        "couple_kids_under_15": 0.4923,
+        "couple_kids_15plus": 0.1373,
+        "one_parent_family": 0.0945,
+        "group_household": 0.0000,
+        "other": 0.0093,  # sum-fix
+    },
+    dwelling_structure_distribution={
+        "separate_house": 0.4626,
+        "semi_detached": 0.0724,
+        "flat_apartment": 0.4630,
+        "other_dwelling": 0.0020,
+    },
+    vehicles_distribution={
+        "0": 0.0918,
+        "1": 0.5049,
+        "2": 0.3169,
+        "3plus": 0.0864,
+    },
+    year_of_arrival_distribution={
+        "pre_2000": 0.1632,
+        "2000_2010": 0.0873,
+        "2011_2015": 0.0644,
+        "2016_2021": 0.0710,
+        "australian_born": 0.6141,
+    },
+    indigenous_distribution={
+        "indigenous": 0.0075,
+        "non_indigenous": 0.9925,
+    },
+    disability_distribution={
+        "needs_assistance": 0.0328,
+        "no_assistance": 0.9672,
+    },
+    education_distribution={
+        "postgrad": 0.2133,
+        "bachelor": 0.3569,
+        "diploma": 0.0707,
+        "year_12": 0.2032,
+        "year_11_or_below": 0.1185,
+        "no_qualification": 0.0374,
     },
 )
 

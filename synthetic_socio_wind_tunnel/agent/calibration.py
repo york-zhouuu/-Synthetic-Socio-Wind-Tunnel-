@@ -46,10 +46,26 @@ class CalibrationStatus(BaseModel):
 # ---------------------------------------------------------------------------
 
 # 6 dimensions per validation-strategy Part IV. Discrete fields → chi²;
-# continuous → KS. age is bucketed (5-yr) so discrete here.
+# continuous → KS. age is bucketed so discrete here.
 _POPULATION_DIMENSIONS: tuple[str, ...] = (
     "age", "gender", "housing_tenure", "income_tier",
     "ethnicity_group", "work_mode",
+)
+
+# agent-profile-enrich (2026-04-27): tier-based acceptance.
+# Tier 1 = original 6 + 5 new thesis-core dims.
+# Tier 2 = 5 refinement dims.
+# Tier 3 = 3 completeness dims (no failure budget).
+_TIER1_NEW_DIMENSIONS: tuple[str, ...] = (
+    "community_tenure_5yr", "unpaid_child_care_hours", "unpaid_domestic_hours",
+    "unpaid_disability_care_hours", "volunteer_status",
+)
+_TIER2_DIMENSIONS: tuple[str, ...] = (
+    "english_proficiency", "family_composition", "dwelling_structure",
+    "vehicles_at_dwelling", "year_of_arrival_bucket",
+)
+_TIER3_DIMENSIONS: tuple[str, ...] = (
+    "indigenous_status", "disability_status", "education_level",
 )
 
 
@@ -83,19 +99,36 @@ def _age_bucket(age: int) -> str:
 
 
 def _sample_attribute(profile: AgentProfile, dim: str) -> str | None:
+    """Map calibration dimension name to AgentProfile attribute value."""
     if dim == "age":
         return _age_bucket(profile.age)
-    if dim == "gender":
-        return profile.gender
-    if dim == "housing_tenure":
-        return profile.housing_tenure
-    if dim == "income_tier":
-        return profile.income_tier
-    if dim == "ethnicity_group":
-        return profile.ethnicity_group
-    if dim == "work_mode":
-        return profile.work_mode
-    return None
+    # Direct field names (original 6 + 13 enrichment fields)
+    return getattr(profile, _DIM_TO_FIELD.get(dim, dim), None)
+
+
+_DIM_TO_FIELD: dict[str, str] = {
+    "gender": "gender",
+    "housing_tenure": "housing_tenure",
+    "income_tier": "income_tier",
+    "ethnicity_group": "ethnicity_group",
+    "work_mode": "work_mode",
+    # agent-profile-enrich (Tier 1)
+    "community_tenure_5yr": "community_tenure_5yr",
+    "unpaid_child_care_hours": "unpaid_child_care_hours",
+    "unpaid_domestic_hours": "unpaid_domestic_hours",
+    "unpaid_disability_care_hours": "unpaid_disability_care_hours",
+    "volunteer_status": "volunteer_status",
+    # Tier 2
+    "english_proficiency": "english_proficiency",
+    "family_composition": "family_composition",
+    "dwelling_structure": "dwelling_structure",
+    "vehicles_at_dwelling": "vehicles_at_dwelling",
+    "year_of_arrival_bucket": "year_of_arrival_bucket",
+    # Tier 3
+    "indigenous_status": "indigenous_status",
+    "disability_status": "disability_status",
+    "education_level": "education_level",
+}
 
 
 def _normalize_distribution(
@@ -175,12 +208,17 @@ def compute_population_distance(
 
     abs_data must follow `data/calibration/abs_census_lanecove_2021.json`
     schema: {"distributions": {<dim>: {<bucket>: <prop>, ...}, ...}}.
+
+    Evaluates all dimensions present in abs_data (original 6 + any
+    agent-profile-enrich dims that have been written).
     """
     distributions = abs_data.get("distributions", {})
     p_values: dict[str, float] = {}
-    for dim in _POPULATION_DIMENSIONS:
-        abs_dist = distributions.get(dim)
+    for dim, abs_dist in distributions.items():
         if not abs_dist:
+            continue
+        # Skip dims we don't know how to map to AgentProfile fields
+        if dim != "age" and dim not in _DIM_TO_FIELD:
             continue
         p_values[dim] = _chi_squared_p(samples, abs_dist, dim)
     return p_values
@@ -191,34 +229,106 @@ def assess_population_calibration(
     strict_threshold: float = 0.10,
     best_effort_min_dims: int = 4,
 ) -> CalibrationStatus:
-    """Decide acceptance level from per-dim p-values."""
+    """
+    Decide acceptance level from per-dim p-values, tier-aware.
+
+    Two regimes based on what's evaluated:
+
+    **Original 6 dims only** (no enrichment): legacy behavior:
+    - strict = 6/6 pass; best-effort = ≥ 4/6 pass; else failing.
+
+    **Enrichment dims present** (agent-profile-enrich):
+    - strict   = original 6 all pass AND Tier 1 new (5) all pass
+                 AND Tier 2 (5) ≥ 3 pass
+    - best-effort = original 6 ≥ 4 pass AND Tier 1 new (5) ≥ 3 pass
+    - failing  = otherwise
+    Tier 3 (3 completeness dims) never blocks; status appears in disclosure.
+    """
     if not p_values:
         return CalibrationStatus(
             passed=False, acceptance_level="failing",
             details={"reason": "no dimensions evaluated"},
         )
 
-    passing = [d for d, p in p_values.items() if p > strict_threshold]
-    failing = [d for d, p in p_values.items() if p <= strict_threshold]
-    n_dims = len(p_values)
+    def _passing(dims: tuple[str, ...]) -> int:
+        return sum(1 for d in dims if p_values.get(d, 0.0) > strict_threshold)
 
-    if len(passing) == n_dims:
-        level: AcceptanceLevel = "strict"
+    has_enrichment = any(d in p_values for d in _TIER1_NEW_DIMENSIONS)
+
+    orig_pass = _passing(_POPULATION_DIMENSIONS)
+    n_orig_present = sum(1 for d in _POPULATION_DIMENSIONS if d in p_values)
+
+    if not has_enrichment:
+        # Legacy regime
+        if orig_pass == n_orig_present and n_orig_present > 0:
+            level: AcceptanceLevel = "strict"
+            passed = True
+        elif orig_pass >= best_effort_min_dims:
+            level = "best-effort"
+            passed = True
+        else:
+            level = "failing"
+            passed = False
+
+        return CalibrationStatus(
+            passed=passed, acceptance_level=level,
+            details={
+                "p_values": p_values,
+                "n_passing": orig_pass,
+                "n_total": n_orig_present,
+                "strict_threshold": strict_threshold,
+            },
+            failed_dimensions=[
+                d for d in _POPULATION_DIMENSIONS
+                if d in p_values and p_values[d] <= strict_threshold
+            ],
+        )
+
+    # Tiered regime
+    tier1_new_pass = _passing(_TIER1_NEW_DIMENSIONS)
+    tier1_new_present = sum(1 for d in _TIER1_NEW_DIMENSIONS if d in p_values)
+    tier2_pass = _passing(_TIER2_DIMENSIONS)
+    tier2_present = sum(1 for d in _TIER2_DIMENSIONS if d in p_values)
+    tier3_pass = _passing(_TIER3_DIMENSIONS)
+    tier3_present = sum(1 for d in _TIER3_DIMENSIONS if d in p_values)
+
+    strict_ok = (
+        orig_pass == n_orig_present
+        and tier1_new_pass == tier1_new_present
+        and tier2_pass >= 3
+    )
+    best_effort_ok = orig_pass >= best_effort_min_dims and tier1_new_pass >= 3
+
+    if strict_ok:
+        level = "strict"
         passed = True
-    elif len(passing) >= best_effort_min_dims:
+    elif best_effort_ok:
         level = "best-effort"
         passed = True
     else:
         level = "failing"
         passed = False
 
+    failing = [
+        d for d, p in p_values.items()
+        if p <= strict_threshold and d not in _TIER3_DIMENSIONS
+    ]
+    tier3_failing = [
+        d for d in _TIER3_DIMENSIONS
+        if d in p_values and p_values[d] <= strict_threshold
+    ]
+
     return CalibrationStatus(
-        passed=passed,
-        acceptance_level=level,
+        passed=passed, acceptance_level=level,
         details={
             "p_values": p_values,
-            "n_passing": len(passing),
-            "n_total": n_dims,
+            "tier_breakdown": {
+                "original_6": {"pass": orig_pass, "total": n_orig_present},
+                "tier1_new_5": {"pass": tier1_new_pass, "total": tier1_new_present},
+                "tier2_5": {"pass": tier2_pass, "total": tier2_present},
+                "tier3_3": {"pass": tier3_pass, "total": tier3_present},
+            },
+            "tier3_disclosure": tier3_failing,
             "strict_threshold": strict_threshold,
         },
         failed_dimensions=failing,

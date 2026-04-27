@@ -193,6 +193,8 @@ face-validity-protocol    → 解第 3 项 (face validity)
 | 2026-04-26 | lightweight-llm-format：Planner LLM I/O 改 XML + 同义词映射 | 真 LLM 失败率↓；cross-model 语言差异保留到 PlanStep.activity |
 | 2026-04-26 | cartography-dedup-buildings：IoU 判重 + rv 碰撞 AABB 修正 | atlas 楼数 7552→6176；rv-vs-OSM 重叠从 760→0；加 atlas 几何质量回归测试 |
 | 2026-04-26 | cartography-fix-water-geometry：multipolygon ring assembly + 涵洞过滤 | Lane Cove River / Sydney Harbour 等大水域终于显形（13→134 水多边形）；加 `_assemble_outer_rings` 算法 |
+| 2026-04-27 | agent-calibration：ABS Census 6 维校准 + scripted_plan 三模式 + gender 字段 | LANE_COVE_PROFILE 5/6 best-effort；解 publishable checklist #1 |
+| 2026-04-27 | agent-profile-enrich：13 thesis-direct ABS 维度（care/tenure/volunteer/...）| 18/19 best-effort；rooted-vs-floating rival hypothesis 切片就绪 |
 
 ---
 

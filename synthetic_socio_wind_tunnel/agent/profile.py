@@ -17,6 +17,35 @@ WorkMode = Literal["commute", "remote", "shift", "nonworking"]
 Household = Literal["single", "couple", "family_with_kids"]
 Gender = Literal["male", "female", "non_binary"]
 
+# === agent-profile-enrich (2026-04-27): 13 thesis-direct ABS dimensions ===
+# Tier 1 — thesis core (rooted vs floating)
+CommunityTenure = Literal["new_<1yr", "recent_1_5yr", "established_5plus"]
+CareHours = Literal["none", "1_14", "15_29", "30plus"]  # for unpaid_*_hours
+DisabilityCare = Literal["none", "yes"]  # G25 binary
+VolunteerStatus = Literal["volunteer", "non_volunteer"]
+# Tier 2 — refinements
+EnglishProficiency = Literal[
+    "very_well", "well", "not_well", "not_at_all", "english_only",
+]
+FamilyComposition = Literal[
+    "lone_person", "couple_no_kids", "couple_kids_under_15",
+    "couple_kids_15plus", "one_parent_family", "group_household", "other",
+]
+DwellingStructure = Literal[
+    "separate_house", "semi_detached", "flat_apartment", "other_dwelling",
+]
+VehiclesAtDwelling = Literal["0", "1", "2", "3plus"]
+YearOfArrival = Literal[
+    "pre_2000", "2000_2010", "2011_2015", "2016_2021", "australian_born",
+]
+# Tier 3 — completeness
+IndigenousStatus = Literal["indigenous", "non_indigenous"]
+DisabilityStatus = Literal["needs_assistance", "no_assistance"]
+EducationLevel = Literal[
+    "postgrad", "bachelor", "diploma", "year_12",
+    "year_11_or_below", "no_qualification",
+]
+
 
 class AgentProfile(BaseModel):
     """Agent 的静态身份和性格定义。模拟期间不变。"""
@@ -58,6 +87,25 @@ class AgentProfile(BaseModel):
     # defer 到 stereotype-audit 或独立 change（见 calibration design Open Q5）。
     gender: Gender | None = None
     digital: DigitalProfile = Field(default_factory=DigitalProfile)
+
+    # === agent-profile-enrich (2026-04-27): 13 thesis-direct ABS dimensions ===
+    # All Optional, default None for backwards compat. Literal types defined above.
+    # Tier 1 — thesis core (rooted vs floating)
+    community_tenure_5yr: CommunityTenure | None = None
+    unpaid_child_care_hours: CareHours | None = None
+    unpaid_domestic_hours: CareHours | None = None
+    unpaid_disability_care_hours: DisabilityCare | None = None
+    volunteer_status: VolunteerStatus | None = None
+    # Tier 2 — refinements
+    english_proficiency: EnglishProficiency | None = None
+    family_composition: FamilyComposition | None = None
+    dwelling_structure: DwellingStructure | None = None
+    vehicles_at_dwelling: VehiclesAtDwelling | None = None
+    year_of_arrival_bucket: YearOfArrival | None = None
+    # Tier 3 — completeness
+    indigenous_status: IndigenousStatus | None = None
+    disability_status: DisabilityStatus | None = None
+    education_level: EducationLevel | None = None
 
     model_config = {"frozen": True, "extra": "forbid"}
     # extra="forbid" so that removed fields like personality_traits / personality_description

@@ -1,32 +1,75 @@
 {
-  "generated": "2026-04-27T12:54:44",
+  "generated": "2026-04-27T13:25:24",
   "seed": 42,
   "population": {
     "state": "evaluated",
     "passed": true,
     "acceptance_level": "best-effort",
     "p_values": {
-      "age": 0.8567372985589595,
-      "gender": 0.5594544639021208,
-      "housing_tenure": 0.5094939360421931,
-      "income_tier": 0.9690035294050912,
-      "ethnicity_group": 0.9318503169831595,
-      "work_mode": 1.1029063333265899e-10
+      "age": 0.9645136769644577,
+      "gender": 0.6012398792675111,
+      "housing_tenure": 0.5582772528086484,
+      "income_tier": 0.977841630689805,
+      "ethnicity_group": 0.9626128955776738,
+      "work_mode": 1.936869183379171e-09,
+      "community_tenure_5yr": 0.2513222678796081,
+      "unpaid_child_care_hours": 0.5723412649279525,
+      "unpaid_domestic_hours": 0.9621418032229268,
+      "unpaid_disability_care_hours": 0.6125990126425158,
+      "volunteer_status": 0.5938458693151915,
+      "english_proficiency": 0.6760212957537258,
+      "family_composition": 0.6526894537831565,
+      "dwelling_structure": 0.8378602649244954,
+      "vehicles_at_dwelling": 0.8944329669446434,
+      "year_of_arrival_bucket": 0.9646979669856268,
+      "indigenous_status": 1.0,
+      "disability_status": 1.0,
+      "education_level": 0.8192528152293967
     },
     "failed_dimensions": [
       "work_mode"
     ],
     "details": {
       "p_values": {
-        "age": 0.8567372985589595,
-        "gender": 0.5594544639021208,
-        "housing_tenure": 0.5094939360421931,
-        "income_tier": 0.9690035294050912,
-        "ethnicity_group": 0.9318503169831595,
-        "work_mode": 1.1029063333265899e-10
+        "age": 0.9645136769644577,
+        "gender": 0.6012398792675111,
+        "housing_tenure": 0.5582772528086484,
+        "income_tier": 0.977841630689805,
+        "ethnicity_group": 0.9626128955776738,
+        "work_mode": 1.936869183379171e-09,
+        "community_tenure_5yr": 0.2513222678796081,
+        "unpaid_child_care_hours": 0.5723412649279525,
+        "unpaid_domestic_hours": 0.9621418032229268,
+        "unpaid_disability_care_hours": 0.6125990126425158,
+        "volunteer_status": 0.5938458693151915,
+        "english_proficiency": 0.6760212957537258,
+        "family_composition": 0.6526894537831565,
+        "dwelling_structure": 0.8378602649244954,
+        "vehicles_at_dwelling": 0.8944329669446434,
+        "year_of_arrival_bucket": 0.9646979669856268,
+        "indigenous_status": 1.0,
+        "disability_status": 1.0,
+        "education_level": 0.8192528152293967
       },
-      "n_passing": 5,
-      "n_total": 6,
+      "tier_breakdown": {
+        "original_6": {
+          "pass": 5,
+          "total": 6
+        },
+        "tier1_new_5": {
+          "pass": 5,
+          "total": 5
+        },
+        "tier2_5": {
+          "pass": 5,
+          "total": 5
+        },
+        "tier3_3": {
+          "pass": 3,
+          "total": 3
+        }
+      },
+      "tier3_disclosure": [],
       "strict_threshold": 0.1
     },
     "n_samples": 1000,

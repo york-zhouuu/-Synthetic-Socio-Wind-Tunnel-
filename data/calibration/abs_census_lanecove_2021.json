@@ -9,10 +9,24 @@
     "G09": "Country of Birth by Age by Sex (ethnicity proxy)",
     "G17": "Total Personal Income Weekly by Age by Sex",
     "G37": "Tenure and Landlord Type by Dwelling Structure",
-    "G62": "Method of Travel to Work by Sex (work mode proxy)"
+    "G62": "Method of Travel to Work by Sex (work mode proxy)",
+    "G07": "Indigenous Status by Age by Sex",
+    "G10": "Country of Birth × Year of Arrival",
+    "G13": "Language at Home + English Proficiency",
+    "G16": "Highest Year of School Completed",
+    "G18": "Core Activity Need for Assistance",
+    "G23": "Voluntary Work for Organisation/Group",
+    "G24": "Unpaid Domestic Work Hours",
+    "G25": "Unpaid Assistance to Disabled",
+    "G26": "Unpaid Child Care",
+    "G29": "Family Composition",
+    "G34": "Number of Motor Vehicles per Dwelling",
+    "G36": "Dwelling Structure",
+    "G45": "Place of Usual Residence 5 Years Ago",
+    "G49": "Highest Non-School Qualification"
   },
   "geographic_caveat": "Atlas extent slightly over-extends north into SA2 121011399 (Chatswood West / Lane Cove North). Calibration uses single-SA2 121011686 only; future iteration could blend two SA2s by area share.",
-  "schema_caveat": "shift work mode is 0 in G62-derived distribution (G62 doesn't separate shift); future iteration can blend G46 LFS data.",
+  "schema_caveat": "shift work mode is 0 in G62-derived distribution (G62 doesn't separate shift); future iteration can blend G46 LFS data. G26 lacks hour granularity → unpaid_child_care_hours bucket approximation: any care → 15_29 mid-bucket.",
   "total_population": 15888,
   "distributions": {
     "age": {
@@ -61,6 +75,82 @@
       "remote": 0.554978054978055,
       "shift": 0.0,
       "nonworking": 0.10441210441210441
+    },
+    "community_tenure_5yr": {
+      "established_5plus": 0.5510800215235606,
+      "recent_1_5yr": 0.3591359827811515,
+      "new_<1yr": 0.08978399569528787
+    },
+    "unpaid_child_care_hours": {
+      "none": 0.6825784397509461,
+      "1_14": 0.0,
+      "15_29": 0.3174215602490538,
+      "30plus": 0.0
+    },
+    "unpaid_domestic_hours": {
+      "none": 0.1998209708263824,
+      "1_14": 0.5730561093705497,
+      "15_29": 0.14354884648248362,
+      "30plus": 0.08357407332058428
+    },
+    "unpaid_disability_care_hours": {
+      "none": 0.8889523033020791,
+      "yes": 0.11104769669792092
+    },
+    "volunteer_status": {
+      "volunteer": 0.17700841155674754,
+      "non_volunteer": 0.8229915884432525
+    },
+    "english_proficiency": {
+      "english_only": 0.6981144343302991,
+      "very_well": 0.13475292587776333,
+      "well": 0.13475292587776333,
+      "not_well": 0.016189856957087127,
+      "not_at_all": 0.016189856957087127
+    },
+    "family_composition": {
+      "couple_no_kids": 0.26656767739918724,
+      "couple_kids_under_15": 0.49226320725226635,
+      "couple_kids_15plus": 0.13730853391684902,
+      "one_parent_family": 0.09448265082838388,
+      "other": 0.009377930603313536,
+      "lone_person": 0.0,
+      "group_household": 0.0
+    },
+    "dwelling_structure": {
+      "separate_house": 0.46261744078337963,
+      "semi_detached": 0.07238322085483657,
+      "flat_apartment": 0.4630144237131137,
+      "other_dwelling": 0.001984914648670107
+    },
+    "vehicles_at_dwelling": {
+      "0": 0.09181020474488137,
+      "1": 0.5048748781280468,
+      "2": 0.31686707832304195,
+      "3plus": 0.0864478388040299
+    },
+    "year_of_arrival_bucket": {
+      "australian_born": 0.61409056412851,
+      "pre_2000": 0.16316721477358967,
+      "2000_2010": 0.08733873007842145,
+      "2011_2015": 0.06438148241841639,
+      "2016_2021": 0.07102200860106249
+    },
+    "indigenous_status": {
+      "indigenous": 0.007508185615897031,
+      "non_indigenous": 0.9924918143841029
+    },
+    "disability_status": {
+      "needs_assistance": 0.03278314939609988,
+      "no_assistance": 0.9672168506039002
+    },
+    "education_level": {
+      "postgrad": 0.2133136579767175,
+      "bachelor": 0.35694376127233973,
+      "diploma": 0.07066732251188719,
+      "year_12": 0.20323003771110018,
+      "year_11_or_below": 0.11846204295786195,
+      "no_qualification": 0.037383177570093455
     }
   }
 }
