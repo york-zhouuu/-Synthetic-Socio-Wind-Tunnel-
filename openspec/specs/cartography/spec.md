@@ -86,9 +86,9 @@
 - **THEN** 各自的 4 条 adjacency 连接都应被生成（共 8 条），不会被另一 way 的 5 段覆盖
 
 ### Requirement: 建筑入口带距离上限
-`_connect_to_street` 将建筑 / 非街道 outdoor 连到最近街段；
-距离 SHALL 不超过 200 米，否则放弃连接并保留该位置为"孤岛候选"，
-方便诊断工具surface 而非静默虚假连接。
+`_connect_to_street` SHALL 把建筑 / 非街道 outdoor 连到最近街段，且距离
+MUST NOT 超过 200 米；超过则放弃连接并保留该位置为"孤岛候选"，方便诊断
+工具 surface 而非静默虚假连接。
 
 #### Scenario: 孤岛建筑
 - **WHEN** 某建筑最近的街段距离 > 200 米
@@ -270,10 +270,10 @@ SHALL 在 `data/lanecove_enriched.geojson` 存在时断言：
   `poi_covered_count >= 700` 两行，`TestLaneCoveEnrichedConnectivity` SHALL PASS
 
 ### Requirement: 住宅建筑的默认语义与 agent 接入
-Lane Cove 90% 以上建筑是住宅，若只有商业 POI 会富化，agent 将无法"枚举可住的
-建筑"。为此 importer SHALL 在 `_extract_building` 中为每个
-`building_type == "residential"` 且当前 affordances 为空的建筑，追加一条
-默认 `ActivityAffordance`：
+Importer SHALL 在 `_extract_building` 中为每个 `building_type == "residential"`
+且当前 affordances 为空的建筑追加默认 `ActivityAffordance`，确保 agent 可
+枚举到所有住宅（Lane Cove 90% 以上建筑是住宅，若仅靠商业 POI 富化则会
+全部漏掉）：
 
 - `activity_type = "reside"`
 - `capacity` 按启发式推断：`building == "apartments"` 或 `overture:class ==
@@ -328,9 +328,9 @@ Phase 2 扩展点（不在本 change 实施，但需保持接口不破坏）：
 - **THEN** SHALL 能直接看到所有数据源的许可文本链接与适用范围
 
 ### Requirement: Lane Cove 生产入口位于 cartography.lanecove
-Lane Cove 真实场景的 atlas 加载 / Riverview 合成补齐 / demo 知识地图构建
-SHALL 位于 `synthetic_socio_wind_tunnel.cartography.lanecove` 模块，
-暴露以下公共函数：
+`synthetic_socio_wind_tunnel.cartography.lanecove` 模块 SHALL 是 Lane Cove
+场景代码的唯一生产入口（atlas 加载 / Riverview 合成补齐 / demo 知识地图
+构建），暴露以下公共函数：
 
 - `create_atlas_from_osm(path: Path | None = None, segment_length: float = 60.0) -> Atlas`
 - `create_demo_knowledge_maps(atlas: Atlas) -> dict[str, AgentKnowledgeMap]`
@@ -364,3 +364,157 @@ Lane Cove OSM 数据抓取脚本 SHALL 统一命名为 `tools/fetch_lanecove.py`
 - **WHEN** 新读者查看 `tools/` 目录
 - **THEN** SHALL 只看到一个 `fetch_lanecove.py`（非 `_v1` / `_v2` 变体），
   与 `fetch_overture.py` 并列作为两类数据抓取入口
+
+
+### Requirement: Atlas 几何质量不变量
+
+cartography pipeline 产出的 Region SHALL 满足以下几何质量不变量：
+
+1. **不存在 IoU > 0.5 的建筑物对**——同一栋楼不能在 atlas 里出现两次
+   （或几何上几乎相同的两栋）
+2. **大面积重叠（footprint 交叉 > 30 m²）的建筑对数量** SHALL < 50
+   （为排屋共墙 / OSM 标注误差留余量；当前 baseline ~3000）
+
+设计意图（见 `cartography-dedup-buildings` change design D2-D6）：
+- 多源融合（OSM + Overture）会引入重复建筑；合成 infill 屋会撞上 OSM 真楼
+- 这些 invariant 写成可测试断言后，未来 cartography 改动不再倒退
+- IoU 0.5 阈值在排屋共墙（IoU < 0.05）与近重复楼（IoU > 0.6）之间
+  足够分辨
+
+具体要求：
+
+1. cartography pipeline 在产出 Region 之前 SHALL 调用 dedup pass，把
+   IoU > 0.5 的建筑对合并为一栋；`Region.buildings` 内 MUST NOT 含
+   IoU > 0.5 的楼对
+2. dedup 合并 SHALL 保留信息更丰富的那栋作主体；丢弃栋的非空 osm_tags /
+   affordances / description SHALL 合并到主体
+3. 合成 infill 屋的碰撞检测 SHALL 用 polygon AABB 真实相交，MUST NOT
+   仅用中心距离阈值
+4. 公共 API（Atlas / Building / OutdoorArea / Region）MUST NOT 改变
+
+#### Scenario: 完全重合的两栋楼被合并
+- **WHEN** Region 含两栋 footprint 顶点几乎相同的建筑（IoU = 0.98）
+- **THEN** dedup 后 SHALL 只剩 1 栋；保留信息丰富那栋（如有 name + osm_tags
+  者优先）；丢弃栋的 osm_tags 合并入留下栋
+
+#### Scenario: 排屋共墙不被误合并
+- **WHEN** Region 含两栋 footprint 共一面墙的排屋（IoU < 0.1，重叠面积 < 1 m²）
+- **THEN** dedup 后 SHALL 仍保留 2 栋
+
+#### Scenario: 合成 infill 屋避开真实建筑
+- **WHEN** 在 `_infill_riverview` 区域内有一栋长条 OSM 公寓（footprint 30m × 8m），
+  其中心距某 lot 中心 12 m
+- **THEN** 该 lot SHALL 被跳过（AABB 真实相交 → 碰撞）；MUST NOT 因中心距离
+  > 10 m 误判为可放置
+
+#### Scenario: 几何质量回归测试
+- **WHEN** atlas cache 加载后跑 `tests/test_atlas_quality.py`
+- **THEN** IoU > 0.5 重复对数量 SHALL == 0；
+  > 30 m² 大重叠对数量 SHALL < 50
+
+
+### Requirement: Dedup 实现独立模块化
+
+dedup 逻辑 SHALL 抽取为独立模块 `synthetic_socio_wind_tunnel/cartography/dedup.py`，
+不嵌入 `lanecove.py` 或 `conflation.py`。
+
+设计意图：
+- dedup 处理 Pydantic Region 对象（post-import），与 conflation 的 GeoJSON feature
+  处理（pre-Region）层级不同
+- 独立模块便于单元测试 polygon IoU / 合并策略，不依赖完整 atlas
+- 未来其它 region 项目（不只 Lane Cove）也能复用
+
+具体要求：
+
+1. SHALL 提供 `dedup_buildings(region: Region) -> Region` 公共函数
+2. SHALL 提供 `polygon_iou(a: Polygon, b: Polygon) -> float` 工具函数
+3. MUST NOT 引入 shapely / geopandas 等新依赖；用 stdlib + 已有
+   atlas.models.Polygon
+
+#### Scenario: 模块独立可测
+- **WHEN** 单元测试构造 4 顶点 Polygon a, b 完全重合
+- **THEN** `polygon_iou(a, b)` SHALL 返回接近 1.0 的浮点数（差 < 0.01）
+
+#### Scenario: 不引入新依赖
+- **WHEN** 检查 `pyproject.toml` 在本 change 前后差异
+- **THEN** SHALL MUST NOT 出现 shapely / geopandas / pyproj 等新依赖
+
+
+### Requirement: OSM multipolygon relation 正确组装为闭合环
+
+OSM fetch / 处理工具 SHALL 把 multipolygon relation 的 outer way 端点拼接
+成闭合环并输出为 GeoJSON Polygon；MUST NOT 仅依赖"每个 outer way 自身已
+闭合"的假设——OSM 中大水域（河、湾、海等）的 outer way 普遍是开放分段。
+
+设计意图（见 `cartography-fix-water-geometry` change design D1-D3）：
+- Lane Cove River relation 含 74 条 outer way，0 条自闭合 → 当前实现全部
+  丢弃 → river polygon 完全消失
+- OSM `Relation:multipolygon` wiki 标准算法是逐段端点匹配组成环
+- 本要求只规定 outer ring 行为；inner ring（孔洞）暂不要求
+
+具体要求：
+
+1. 处理 `type=multipolygon` relation 时 SHALL 收集所有 `role=outer` 成员 way
+   的节点 id 序列；按端点 node_id 匹配（不用 lon/lat 浮点比较）拼接成环
+2. 每个闭合环 SHALL 输出为一个 GeoJSON Polygon feature；保留 relation 的
+   tags（如 `name`, `natural`, `water` 等）作 properties
+3. 拼接过程中如某 chain 找不到下一段且首尾不闭合 SHALL 丢弃该 chain 并
+   `logger.warning("unclosed multipolygon outer chain in relation %d", rel_id)`；
+   MUST NOT 强行连接首尾
+4. `role=inner` 成员 way 在本 change 不组装；后续 cartography-quality change
+   补充孔洞支持
+
+#### Scenario: 4 条开放 way 拼成 1 个闭合矩形
+- **WHEN** relation 含 4 条 outer way，分别是矩形的 4 条边（共享端点）
+- **THEN** assemble 函数 SHALL 返回 1 个闭合环 Polygon，含 5 个顶点（首末
+  相同）
+
+#### Scenario: 已闭合的单 way 直接作为环
+- **WHEN** relation 只有 1 条 outer way，且该 way 自身首末节点 id 相同（已
+  闭合）
+- **THEN** SHALL 输出 1 个 Polygon；不需拼接
+
+#### Scenario: 链断裂时 drop 不强行闭环
+- **WHEN** relation 的 outer way 缺一段，导致 chain 走到尾找不到下一段
+- **THEN** 该 chain SHALL 被丢弃；logger.warning SHALL 含 relation_id；其它
+  能闭合的环 SHALL 仍输出
+
+#### Scenario: Lane Cove River 实际数据可装
+- **WHEN** fetch_lanecove.py 处理含 Lane Cove River relation 的 Overpass
+  响应（74 条 outer way）
+- **THEN** 输出的 GeoJSON SHALL 至少含 1 个 water polygon，name 为
+  "Lane Cove River"，footprint 面积 > 50000 m²
+
+
+### Requirement: Map Explorer 过滤地下水道 + 裁切到核心 bbox
+
+`tools/map_explorer/server.py` 加载 OSM 水 features 时 SHALL：(a) 过滤掉
+地下涵洞类水道避免视觉穿街；(b) 把水多边形裁切到 Lane Cove 核心 render
+bbox，避免 Sydney Harbour / Port Jackson 等大水域（数十 km²）淹没核心
+社区视图。
+
+具体要求：
+
+1. SHALL 跳过 `tags["tunnel"] ∈ {"yes", "culvert", "building_passage"}` 的
+   waterway
+2. SHALL 跳过 `tags["layer"] < 0` 的 waterway（数值解析失败时容忍：不过滤）
+3. SHALL 跳过 `tags["covered"] == "yes"` 的 waterway
+4. 水多边形（Polygon）SHALL 通过 Sutherland-Hodgman 算法裁切到 render bbox
+   （Lane Cove 核心 + 适当 padding）；完全在 bbox 外的多边形 MUST NOT 渲染
+
+#### Scenario: 普通溪流保留
+- **WHEN** OSM feature 是 `waterway=stream` 无 tunnel/layer/covered 标签
+- **THEN** server SHALL 把它加入 `context_layers["water"]`
+
+#### Scenario: tunnel=culvert 被跳过
+- **WHEN** OSM feature 是 `waterway=stream` + `tunnel=culvert`
+- **THEN** server MUST NOT 把它加入渲染层
+
+#### Scenario: Sydney Harbour 大水域被裁切
+- **WHEN** OSM 水多边形 footprint 远超 render bbox（如 Sydney Harbour 26 km²）
+- **THEN** server SHALL 把它裁到 render bbox；保留 bbox 内可见的水边缘
+  片段，丢弃外部部分
+
+#### Scenario: 完全在 bbox 外的水域被丢弃
+- **WHEN** OSM 水多边形完全在 render bbox 外（如远海湾）
+- **THEN** server MUST NOT 把它加入渲染层

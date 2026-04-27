@@ -4,19 +4,21 @@ StubReplanLLM — 零成本、seed-reproducible 的 replan 客户端
 按 `variant_name` 分派行为（设计 D2）：
 - `hyperlocal_push`  → 1 条 PlanStep 走向 target_location（模拟注意力被
                        拉向推送地点）
-- `global_distraction` → `"[]"` 空 plan（证明 global news 不拉 scripted agent）
+- `global_distraction` → `"<plan></plan>"` 空 plan（证明 global news 不拉 scripted agent）
 - `shared_anchor`    → 1 条 PlanStep 走向 community heuristic location
-- 其它 / 未知        → `"[]"` 空 plan（Planner.replan 内部 fallback 保持原 plan）
+- 其它 / 未知        → `"<plan></plan>"` 空 plan（Planner.replan 内部 fallback 保持原 plan）
 
 不解析 prompt 内容——variant_name 在构造时注入。
 
 也提供 `_AnthropicClient` 作为 `--use-real-llm` opt-in 时的 drop-in（无
 retry / cost 控制；model-budget 未来 change 的事）。
+
+lightweight-llm-format change 后：输出 XML 而非 JSON，与 Planner 的新
+parser 路径一致。
 """
 
 from __future__ import annotations
 
-import json
 import os
 import sys
 from random import Random
@@ -36,6 +38,9 @@ try:
     _HAS_GEMINI = True
 except ImportError:
     _HAS_GEMINI = False
+
+
+_EMPTY_PLAN_XML = "<plan></plan>"
 
 
 # -----------------------------------------------------------------------------
@@ -74,22 +79,27 @@ def _pick_community_location(
 def _plan_toward(
     destination: str, *, rng: Random,
 ) -> str:
-    """生成一条走向 destination 的 PlanStep JSON（Planner._parse_plan 兼容）。"""
+    """
+    生成一条走向 destination 的 PlanStep XML（Planner._parse_xml_plan 兼容）。
+
+    lightweight-llm-format 后改为 XML 输出；dispatch 行为保持不变。
+    """
     # 随机时间避免所有 agent 同 tick 集中
     hour = 10 + rng.randint(0, 4)
     minute = rng.choice([0, 15, 30, 45])
-    steps: list[dict[str, Any]] = [
-        {
-            "time": f"{hour}:{minute:02d}",
-            "action": "move",
-            "destination": destination,
-            "activity": f"走向推荐地点 {destination}",
-            "duration_minutes": 45,
-            "reason": "被 hyperlocal 推送吸引",
-            "social_intent": "open_to_chat",
-        },
-    ]
-    return json.dumps(steps, ensure_ascii=False)
+    return (
+        "<plan>"
+        "<step>"
+        f"<time>{hour}:{minute:02d}</time>"
+        f"<destination>{destination}</destination>"
+        f"<action>move toward {destination}</action>"
+        f"<activity>走向推荐地点 {destination}</activity>"
+        "<duration>45</duration>"
+        "<reason>被 hyperlocal 推送吸引</reason>"
+        "<social>open_to_chat</social>"
+        "</step>"
+        "</plan>"
+    )
 
 
 # -----------------------------------------------------------------------------
@@ -103,9 +113,9 @@ class StubReplanLLM:
 
     dispatch 表：
         hyperlocal_push   → _plan_toward(target_location)
-        global_distraction → "[]"
+        global_distraction → "<plan></plan>"
         shared_anchor     → _plan_toward(community_heuristic)
-        phone_friction / catalyst_seeding / baseline / 未知 → "[]"
+        phone_friction / catalyst_seeding / baseline / 未知 → "<plan></plan>"
     """
 
     __slots__ = ("_seed", "_variant_name", "_target_location", "_shared_location",
@@ -138,12 +148,12 @@ class StubReplanLLM:
             if self._target_location:
                 return _plan_toward(self._target_location, rng=rng)
         elif name == "global_distraction":
-            return "[]"
+            return _EMPTY_PLAN_XML
         elif name == "shared_anchor":
             if self._shared_location:
                 return _plan_toward(self._shared_location, rng=rng)
         # phone_friction / catalyst_seeding / baseline / unknown
-        return "[]"
+        return _EMPTY_PLAN_XML
 
 
 # -----------------------------------------------------------------------------
@@ -192,9 +202,8 @@ class _GeminiClient:
     默认 gemini-3-flash-preview + thinking 关闭（thinking_budget=0），追求
     速度与低成本——agent.replan 不需要长链推理。
 
-    使用 Gemini 的 structured output 模式（response_schema）强制 JSON +
-    Literal 词汇——避免 prompt 里 "请输出 action='move'/'stay'/..." 不被
-    遵守的实际问题（实测 Gemini 3 会自由发挥成 "visit"/"work" 等）。
+    lightweight-llm-format change 后：不再用 response_schema 强制 JSON +
+    Literal——让 Gemini 自由用 XML，post-hoc 同义词映射在 Planner 内。
 
     无 retry / cost 控制；与 _AnthropicClient 同等地"最小实现"。
     """
@@ -214,7 +223,6 @@ class _GeminiClient:
         self._client = genai.Client()
         self._model = model
         self._enable_thinking = enable_thinking
-        self._plan_schema = _build_plan_schema()
 
     async def generate(
         self, prompt: str, *, model: str = "", **_: Any,
@@ -225,12 +233,7 @@ class _GeminiClient:
         # 真正的"per-agent 模型分派"是未来 model-budget change 的事。
         used_model = self._model
 
-        # Structured output：response_mime_type=json + schema = list[PlanStep]
-        # → Gemini 必须返回符合 schema 的 JSON
-        config_kwargs: dict[str, Any] = {
-            "response_mime_type": "application/json",
-            "response_schema": self._plan_schema,
-        }
+        config_kwargs: dict[str, Any] = {}
         if not self._enable_thinking:
             config_kwargs["thinking_config"] = genai_types.ThinkingConfig(
                 thinking_budget=0,
@@ -239,50 +242,10 @@ class _GeminiClient:
         response = self._client.models.generate_content(
             model=used_model,
             contents=prompt,
-            config=genai_types.GenerateContentConfig(**config_kwargs),
+            config=genai_types.GenerateContentConfig(**config_kwargs)
+            if config_kwargs else None,
         )
         return response.text or ""
-
-
-def _build_plan_schema():
-    """
-    构造 Gemini structured output 用的 schema：list[PlanStep]，含 Literal
-    枚举强制 action / social_intent 词汇。
-
-    与 synthetic_socio_wind_tunnel.agent.planner.PlanStep 字段一致；不直接
-    复用 Pydantic 类，因为 Gemini 的 schema 转换对 Literal | None 处理
-    不一致——手写更可控。
-    """
-    return genai_types.Schema(
-        type=genai_types.Type.ARRAY,
-        items=genai_types.Schema(
-            type=genai_types.Type.OBJECT,
-            properties={
-                "time": genai_types.Schema(type=genai_types.Type.STRING),
-                "action": genai_types.Schema(
-                    type=genai_types.Type.STRING,
-                    enum=["move", "stay", "interact", "explore"],
-                ),
-                "destination": genai_types.Schema(
-                    type=genai_types.Type.STRING,
-                    nullable=True,
-                ),
-                "activity": genai_types.Schema(type=genai_types.Type.STRING),
-                "duration_minutes": genai_types.Schema(
-                    type=genai_types.Type.INTEGER,
-                ),
-                "reason": genai_types.Schema(type=genai_types.Type.STRING),
-                "social_intent": genai_types.Schema(
-                    type=genai_types.Type.STRING,
-                    enum=["alone", "open_to_chat", "seeking_company"],
-                ),
-            },
-            required=[
-                "time", "action", "activity", "duration_minutes",
-                "reason", "social_intent",
-            ],
-        ),
-    )
 
 
 # -----------------------------------------------------------------------------

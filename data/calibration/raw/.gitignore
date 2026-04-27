@@ -1,0 +1,5 @@
+# Raw ABS DataPack downloads are large (34 MB) — keep local only.
+# Excerpts (Lane-Cove-row-only filtered CSVs) DO commit.
+2021_GCP_SA2_for_NSW_short-header/
+*.zip
+*.pdf

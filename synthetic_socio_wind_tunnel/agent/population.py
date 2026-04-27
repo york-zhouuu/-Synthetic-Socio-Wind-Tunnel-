@@ -29,6 +29,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 from synthetic_socio_wind_tunnel.agent.personality import PersonalityTraits
 from synthetic_socio_wind_tunnel.agent.profile import (
     AgentProfile,
+    Gender,
     Household,
     HousingTenure,
     IncomeTier,
@@ -110,6 +111,11 @@ class PopulationProfile(BaseModel):
     household_distribution: Mapping[str, float] = Field(
         default_factory=lambda: {"single": 0.35, "couple": 0.30, "family_with_kids": 0.35}
     )
+    # gender_distribution: ABS Census 2021 typically gives binary;
+    # non_binary defaults to 0 unless community-specific data overrides.
+    gender_distribution: Mapping[Gender, float] = Field(
+        default_factory=lambda: {"male": 0.487, "female": 0.513, "non_binary": 0.0}
+    )
 
     # 年龄区间到 (min, max) 岁数映射
     age_bracket_bounds: Mapping[str, tuple[int, int]] = Field(
@@ -135,6 +141,7 @@ class PopulationProfile(BaseModel):
         "age_bracket_distribution",
         "language_distribution",
         "household_distribution",
+        "gender_distribution",
     )
     @classmethod
     def _dist_sum_to_one(cls, v, info):
@@ -236,12 +243,13 @@ def sample_population(
         work_mode = _weighted_pick(rng, profile.work_mode_distribution)
         household = _weighted_pick(rng, profile.household_distribution)
         language = _weighted_pick(rng, profile.language_distribution)
+        gender = _weighted_pick(rng, profile.gender_distribution)
 
-        # Migration tenure: if ethnicity has "-migrant-" marker, sample a plausible value
-        if "migrant-1gen" in ethnicity:
+        # Migration tenure: country-of-birth != Australia → 1st-gen migrant.
+        # 2nd-gen migrants (born here to migrant parents) aren't separable from
+        # ABS Country-of-Birth alone; we model them as Australia-born here.
+        if ethnicity != "Australia" and ethnicity != "other":
             migration_tenure = _clamp(rng.gauss(8.0, 5.0), 0.0, 40.0)
-        elif "migrant-2gen" in ethnicity:
-            migration_tenure = None  # 2nd-gen: born here, tenure not meaningful
         else:
             migration_tenure = None
 
@@ -269,6 +277,7 @@ def sample_population(
             housing_tenure=housing,
             income_tier=income,
             work_mode=work_mode,
+            gender=gender,  # type: ignore[arg-type]
             digital=digital,
             is_protagonist=False,
             base_model=profile.haiku_model,
@@ -305,36 +314,72 @@ def _occupation_for(work_mode: WorkMode, rng: random.Random) -> str:
 # TODO(realign-to-social-thesis): 这些分布是 placeholder。真实数值应在后续
 # change 中由 ABS 2021 census + Lane Cove council 的人口统计驱动。
 
+# Calibrated against ABS Census 2021 SA2 121011686 Lane Cove (15,888 people)
+# via `tools/convert_abs_census.py` (see `agent-calibration` change).
+# Bucket schema matches `data/calibration/abs_census_lanecove_2021.json` so
+# `tools/run_calibration.py` can compute chi² without bucket re-mapping.
+#
+# Note: 2021 census was conducted during Sydney COVID Delta lockdown — work_mode
+# `remote` (55%) is anomalously high vs steady-state Lane Cove (~18%). We use
+# ABS values directly here so calibration matches the static snapshot;
+# downstream researchers should disclose this in publishable artifacts.
 LANE_COVE_PROFILE = PopulationProfile(
-    name="lanecove_v0_placeholder",
+    name="lanecove_2021_abs_calibrated",
     size=1000,
+    # Country-of-birth proxy; values from ABS G09 SA2 121011686
     ethnicity_distribution={
-        "AU-born": 0.55,
-        "AU-migrant-1gen-europe": 0.10,
-        "AU-migrant-1gen-asia": 0.20,
-        "AU-migrant-2gen-asia": 0.10,
-        "AU-migrant-2gen-europe": 0.05,
+        "Australia": 0.5828,
+        "China": 0.0525,
+        "England": 0.0484,
+        "India": 0.0271,
+        "New_Zealand": 0.0188,
+        "Hong_Kong_SAR_Ch": 0.0157,
+        "South_Africa": 0.0147,
+        "Philippines": 0.0120,
+        "USA": 0.0103,
+        "Vietnam": 0.0046,
+        "other": 0.2131,
     },
     housing_distribution={
-        "owner_occupier": 0.60,
-        "renter": 0.35,
-        "public_housing": 0.05,
+        "owner_occupier": 0.439,
+        "renter": 0.544,
+        "public_housing": 0.017,
     },
     income_distribution={
-        "low": 0.15,
-        "mid": 0.60,
-        "high": 0.25,
+        "low": 0.327,
+        "mid": 0.282,
+        "high": 0.391,
     },
+    # ABS G62 doesn't separate shift work; we estimate 5% from healthcare /
+    # hospitality / retail employment in Lane Cove (Industry of Employment
+    # G54), then re-normalize the other three buckets proportionally to ABS.
+    # Calibration will show small loss on work_mode chi² vs ABS due to this
+    # synthetic split; acceptable at best-effort tier.
     work_mode_distribution={
-        "commute": 0.50,
-        "remote": 0.20,
-        "shift": 0.10,
-        "nonworking": 0.20,
+        "commute": 0.324,
+        "remote": 0.527,
+        "shift": 0.050,
+        "nonworking": 0.099,
     },
+    # 11-bucket age aligned with ABS G01
     age_bracket_distribution={
-        "youth": 0.20,
-        "adult": 0.55,
-        "elderly": 0.25,
+        "0-4": 0.068,
+        "5-14": 0.130,
+        "15-19": 0.049,
+        "20-24": 0.044,
+        "25-34": 0.147,
+        "35-44": 0.188,
+        "45-54": 0.128,
+        "55-64": 0.096,
+        "65-74": 0.078,
+        "75-84": 0.049,
+        "85+": 0.023,
+    },
+    age_bracket_bounds={
+        "0-4": (0, 4), "5-14": (5, 14), "15-19": (15, 19),
+        "20-24": (20, 24), "25-34": (25, 34), "35-44": (35, 44),
+        "45-54": (45, 54), "55-64": (55, 64), "65-74": (65, 74),
+        "75-84": (75, 84), "85+": (85, 100),
     },
     language_distribution={
         "English": 0.70,

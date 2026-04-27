@@ -1,0 +1,66 @@
+{
+  "source": "ABS Census 2021 General Community Profile (GCP) DataPack — SA2 121011686 Lane Cove",
+  "downloaded": "2026-04-27",
+  "url": "https://www.abs.gov.au/census/find-census-data/datapacks (General Community Profile, SA2, NSW)",
+  "sa2_code": "121011686",
+  "sa2_name": "Lane Cove",
+  "tables_used": {
+    "G01": "Selected Person Characteristics by Sex (age + gender)",
+    "G09": "Country of Birth by Age by Sex (ethnicity proxy)",
+    "G17": "Total Personal Income Weekly by Age by Sex",
+    "G37": "Tenure and Landlord Type by Dwelling Structure",
+    "G62": "Method of Travel to Work by Sex (work mode proxy)"
+  },
+  "geographic_caveat": "Atlas extent slightly over-extends north into SA2 121011399 (Chatswood West / Lane Cove North). Calibration uses single-SA2 121011686 only; future iteration could blend two SA2s by area share.",
+  "schema_caveat": "shift work mode is 0 in G62-derived distribution (G62 doesn't separate shift); future iteration can blend G46 LFS data.",
+  "total_population": 15888,
+  "distributions": {
+    "age": {
+      "0-4": 0.06771128311622931,
+      "5-14": 0.12975898307217923,
+      "15-19": 0.0489585299855264,
+      "20-24": 0.043483732930589644,
+      "25-34": 0.14737901957082625,
+      "35-44": 0.18809388962305706,
+      "45-54": 0.12780819331697188,
+      "55-64": 0.09640677112831163,
+      "65-74": 0.07784280410295136,
+      "75-84": 0.04927317349443081,
+      "85+": 0.023283619658926436
+    },
+    "gender": {
+      "male": 0.484236360203889,
+      "female": 0.515763639796111,
+      "non_binary": 0.0
+    },
+    "housing_tenure": {
+      "owner_occupier": 0.4385923195815004,
+      "renter": 0.5442872428962073,
+      "public_housing": 0.017120437522292236
+    },
+    "income_tier": {
+      "low": 0.32667047401484867,
+      "mid": 0.2826956025128498,
+      "high": 0.3906339234723015
+    },
+    "ethnicity_group": {
+      "Australia": 0.5827827071927506,
+      "England": 0.04839217166949846,
+      "China": 0.05254546598703669,
+      "India": 0.02705934176577937,
+      "New_Zealand": 0.018815681832483794,
+      "Philippines": 0.01195645333836763,
+      "Vietnam": 0.004593795230004405,
+      "South_Africa": 0.014662387514945566,
+      "Hong_Kong_SAR_Ch": 0.015732175445220566,
+      "USA": 0.01032030709206469,
+      "other": 0.2131395129318482
+    },
+    "work_mode": {
+      "commute": 0.3406098406098406,
+      "remote": 0.554978054978055,
+      "shift": 0.0,
+      "nonworking": 0.10441210441210441
+    }
+  }
+}

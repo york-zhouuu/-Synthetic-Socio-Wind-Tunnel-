@@ -190,6 +190,9 @@ face-validity-protocol    → 解第 3 项 (face validity)
 | 2026-04-25 | suite-wiring：因果链装配 | hp ≠ gd 方向首次出现 |
 | 2026-04-25 | wiring smoke 暴露 agent 拟真度不足 | validation-strategy 立项 |
 | 2026-04-25 | validation-strategy：方法学治理 | 8 项 checklist 上锁 |
+| 2026-04-26 | lightweight-llm-format：Planner LLM I/O 改 XML + 同义词映射 | 真 LLM 失败率↓；cross-model 语言差异保留到 PlanStep.activity |
+| 2026-04-26 | cartography-dedup-buildings：IoU 判重 + rv 碰撞 AABB 修正 | atlas 楼数 7552→6176；rv-vs-OSM 重叠从 760→0；加 atlas 几何质量回归测试 |
+| 2026-04-26 | cartography-fix-water-geometry：multipolygon ring assembly + 涵洞过滤 | Lane Cove River / Sydney Harbour 等大水域终于显形（13→134 水多边形）；加 `_assemble_outer_rings` 算法 |
 
 ---
 

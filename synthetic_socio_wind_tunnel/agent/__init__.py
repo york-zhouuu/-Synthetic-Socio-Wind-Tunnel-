@@ -11,7 +11,8 @@ from .intent import (
     WaitIntent,
 )
 from .personality import EmotionalState, PersonalityTraits, Skills
-from .profile import AgentProfile, Household, HousingTenure, IncomeTier, WorkMode
+from .profile import AgentProfile, Gender, Household, HousingTenure, IncomeTier, WorkMode
+from .scripted_plan import build_scripted_plan
 from .planner import DailyPlan, LLMClient, PlanAction, PlanStep, Planner, SocialIntent
 from .population import (
     LANE_COVE_PROFILE,
@@ -29,6 +30,7 @@ __all__ = [
     "DigitalParams",
     "EmotionalState",
     "ExamineIntent",
+    "Gender",
     "Household",
     "HousingTenure",
     "IncomeTier",
@@ -50,5 +52,6 @@ __all__ = [
     "UnlockIntent",
     "WaitIntent",
     "WorkMode",
+    "build_scripted_plan",
     "sample_population",
 ]

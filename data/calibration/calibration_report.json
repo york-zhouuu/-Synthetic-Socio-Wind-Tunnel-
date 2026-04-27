@@ -1,0 +1,35 @@
+{
+  "generated": "2026-04-27T12:54:44",
+  "seed": 42,
+  "population": {
+    "state": "evaluated",
+    "passed": true,
+    "acceptance_level": "best-effort",
+    "p_values": {
+      "age": 0.8567372985589595,
+      "gender": 0.5594544639021208,
+      "housing_tenure": 0.5094939360421931,
+      "income_tier": 0.9690035294050912,
+      "ethnicity_group": 0.9318503169831595,
+      "work_mode": 1.1029063333265899e-10
+    },
+    "failed_dimensions": [
+      "work_mode"
+    ],
+    "details": {
+      "p_values": {
+        "age": 0.8567372985589595,
+        "gender": 0.5594544639021208,
+        "housing_tenure": 0.5094939360421931,
+        "income_tier": 0.9690035294050912,
+        "ethnicity_group": 0.9318503169831595,
+        "work_mode": 1.1029063333265899e-10
+      },
+      "n_passing": 5,
+      "n_total": 6,
+      "strict_threshold": 0.1
+    },
+    "n_samples": 1000,
+    "seed": 42
+  }
+}

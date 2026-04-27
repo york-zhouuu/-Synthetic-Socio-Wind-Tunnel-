@@ -1,11 +1,11 @@
 {
-  "osm_features_in": 6815,
-  "overture_buildings_merged": 2376,
-  "overture_buildings_added": 4332,
-  "places_bound": 771,
+  "osm_features_in": 6981,
+  "overture_buildings_merged": 2374,
+  "overture_buildings_added": 4334,
+  "places_bound": 772,
   "places_stubbed": 677,
-  "places_dropped": 128,
-  "anonymous_names_replaced": 295,
+  "places_dropped": 127,
+  "anonymous_names_replaced": 294,
   "dropped_reasons_sample": [
     "low_confidence:0.08:home_cleaning",
     "low_confidence:0.17:sporting_goods",

@@ -36,12 +36,12 @@ import time
 from datetime import date, datetime
 from pathlib import Path
 
-# Reuse smoke_experiment_demo helpers
+# Reuse smoke_experiment_demo helpers (atlas / destination picker only;
+# build_scripted_plan migrated to synthetic_socio_wind_tunnel.agent).
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from smoke_experiment_demo import (  # type: ignore
-    build_scripted_plan,
-    _pick_connected_destinations,
-)
+from smoke_experiment_demo import _pick_connected_destinations  # type: ignore
+
+from synthetic_socio_wind_tunnel.agent import build_scripted_plan
 
 from suite_stub_llm import (  # type: ignore
     _pick_community_location,

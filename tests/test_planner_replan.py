@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import asyncio
-import json
 from datetime import datetime
 
 import pytest
@@ -17,10 +16,17 @@ from synthetic_socio_wind_tunnel.agent import (
 from synthetic_socio_wind_tunnel.memory.models import MemoryEvent
 
 
+_EMPTY_PLAN_XML = "<plan></plan>"
+
+
 class MockLLM:
     """Configurable mock LLM client."""
 
-    def __init__(self, response: str = "[]", raise_exc: Exception | None = None):
+    def __init__(
+        self,
+        response: str = _EMPTY_PLAN_XML,
+        raise_exc: Exception | None = None,
+    ):
         self.response = response
         self.raise_exc = raise_exc
         self.calls: list[tuple[str, str]] = []
@@ -67,13 +73,17 @@ def _trigger() -> MemoryEvent:
 class TestReplanSuccess:
 
     def test_returns_new_future_steps(self):
-        new_steps_json = json.dumps([
-            {"time": "8:30", "action": "move", "destination": "sunset_bar",
-             "duration_minutes": 60, "activity": "tasting"},
-            {"time": "9:30", "action": "stay", "activity": "back_to_work",
-             "duration_minutes": 180},
-        ])
-        planner = Planner(MockLLM(response=new_steps_json))
+        new_steps_xml = (
+            "<plan>"
+            "<step><time>8:30</time><destination>sunset_bar</destination>"
+            "<action>visit sunset bar</action><duration>60</duration>"
+            "<activity>tasting</activity><social>open_to_chat</social></step>"
+            "<step><time>9:30</time><action>back_to_work</action>"
+            "<duration>180</duration><activity>back_to_work</activity>"
+            "<social>alone</social></step>"
+            "</plan>"
+        )
+        planner = Planner(MockLLM(response=new_steps_xml))
         ctx = {
             "trigger_event": _trigger(),
             "recent_memories": [],
@@ -85,9 +95,31 @@ class TestReplanSuccess:
         assert len(new_plan.steps) == 4
         assert new_plan.steps[0].destination == "cafe_a"  # 保留
         assert new_plan.steps[2].destination == "sunset_bar"  # 替换
+        # visit → move（同义词映射）
+        assert new_plan.steps[2].action == "move"
+
+    def test_d2_step_time_before_current_time_rewritten(self):
+        """D.2 修复仍 work：XML step.time 早于 current_time → 重写。"""
+        # 8:00 早于 current=8:30 → 应被改为 8:31
+        xml = (
+            "<plan>"
+            "<step><time>8:00</time><destination>sunset_bar</destination>"
+            "<action>move</action><duration>60</duration></step>"
+            "</plan>"
+        )
+        planner = Planner(MockLLM(response=xml))
+        ctx = {
+            "trigger_event": _trigger(),
+            "recent_memories": [],
+            "current_time": datetime(2026, 4, 21, 8, 30),
+        }
+        new_plan = asyncio.run(planner.replan(_profile(), _plan(), ctx))
+        # current_step_index=2 保留前 2 + 1 个新 step = 3
+        assert len(new_plan.steps) == 3
+        assert new_plan.steps[2].time == "8:31"
 
     def test_1_llm_call(self):
-        mock = MockLLM(response="[]")
+        mock = MockLLM(response=_EMPTY_PLAN_XML)
         planner = Planner(mock)
         ctx = {
             "trigger_event": _trigger(),
@@ -113,7 +145,7 @@ class TestReplanFallback:
         assert len(new_plan.steps) == len(original.steps)
 
     def test_empty_llm_response_returns_original(self):
-        planner = Planner(MockLLM(response="not json"))
+        planner = Planner(MockLLM(response="not xml"))
         original = _plan()
         ctx = {
             "trigger_event": _trigger(),
@@ -127,7 +159,7 @@ class TestReplanFallback:
 class TestReplanPrompt:
 
     def test_prompt_contains_trigger_event(self):
-        mock = MockLLM(response="[]")
+        mock = MockLLM(response=_EMPTY_PLAN_XML)
         planner = Planner(mock)
         trigger = _trigger()
         ctx = {
@@ -141,7 +173,7 @@ class TestReplanPrompt:
         assert "notification" in prompt
 
     def test_prompt_contains_recent_memories(self):
-        mock = MockLLM(response="[]")
+        mock = MockLLM(response=_EMPTY_PLAN_XML)
         planner = Planner(mock)
         memories = [
             MemoryEvent(
@@ -159,11 +191,24 @@ class TestReplanPrompt:
         prompt = mock.calls[0][0]
         assert "coffee" in prompt
 
+    def test_prompt_asks_for_xml(self):
+        mock = MockLLM(response=_EMPTY_PLAN_XML)
+        planner = Planner(mock)
+        ctx = {
+            "trigger_event": _trigger(),
+            "recent_memories": [],
+            "current_time": datetime.now(),
+        }
+        asyncio.run(planner.replan(_profile(), _plan(), ctx))
+        prompt = mock.calls[0][0]
+        assert "<plan>" in prompt
+        assert "<step>" in prompt
+
 
 class TestReplanNoPlan:
 
     def test_no_current_plan_returns_empty(self):
-        planner = Planner(MockLLM(response="[]"))
+        planner = Planner(MockLLM(response=_EMPTY_PLAN_XML))
         ctx = {"trigger_event": _trigger(), "recent_memories": [],
                "current_time": datetime.now()}
         new_plan = asyncio.run(planner.replan(_profile(), None, ctx))

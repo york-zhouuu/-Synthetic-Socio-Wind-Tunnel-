@@ -27,12 +27,12 @@ import time
 from datetime import date, datetime
 from pathlib import Path
 
-# Reuse helpers from smoke demo to avoid duplicating Lane Cove bootstrap logic
+# Reuse helpers from smoke demo to avoid duplicating Lane Cove bootstrap logic.
+# build_scripted_plan migrated to synthetic_socio_wind_tunnel.agent.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from smoke_experiment_demo import (  # type: ignore
-    build_scripted_plan,
-    _pick_connected_destinations,
-)
+from smoke_experiment_demo import _pick_connected_destinations  # type: ignore
+
+from synthetic_socio_wind_tunnel.agent import build_scripted_plan
 
 from synthetic_socio_wind_tunnel.agent import (
     AgentRuntime,

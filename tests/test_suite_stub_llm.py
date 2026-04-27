@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import asyncio
-import json
 import sys
 from pathlib import Path
 
@@ -15,6 +14,10 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "tools"))
 from suite_stub_llm import StubReplanLLM, _plan_toward  # type: ignore
 
 from synthetic_socio_wind_tunnel.agent import AgentProfile, DailyPlan, Planner
+from synthetic_socio_wind_tunnel.agent.planner import _parse_xml_plan
+
+
+_EMPTY_PLAN_XML = "<plan></plan>"
 
 
 class TestStubDispatch:
@@ -24,15 +27,18 @@ class TestStubDispatch:
             target_location="cafe_main",
         )
         raw = asyncio.run(stub.generate("any prompt"))
-        data = json.loads(raw)
-        assert len(data) >= 1
-        assert any(s.get("destination") == "cafe_main" for s in data)
-        assert any(s.get("action") == "move" for s in data)
+        # XML 输出（lightweight-llm-format）
+        assert "<destination>cafe_main</destination>" in raw
+        # 用 Planner 的 parser 验证可解析
+        steps = _parse_xml_plan(raw)
+        assert len(steps) >= 1
+        assert any(s.destination == "cafe_main" for s in steps)
+        assert any(s.action == "move" for s in steps)
 
     def test_global_distraction_returns_empty(self):
         stub = StubReplanLLM(seed=42, variant_name="global_distraction")
         raw = asyncio.run(stub.generate("prompt"))
-        assert raw == "[]"
+        assert raw == _EMPTY_PLAN_XML
 
     def test_shared_anchor_toward_shared_location(self):
         stub = StubReplanLLM(
@@ -40,29 +46,29 @@ class TestStubDispatch:
             shared_location="park_main",
         )
         raw = asyncio.run(stub.generate("prompt"))
-        data = json.loads(raw)
-        assert len(data) >= 1
-        assert any(s.get("destination") == "park_main" for s in data)
+        steps = _parse_xml_plan(raw)
+        assert len(steps) >= 1
+        assert any(s.destination == "park_main" for s in steps)
 
     def test_phone_friction_returns_empty(self):
         stub = StubReplanLLM(seed=42, variant_name="phone_friction")
         raw = asyncio.run(stub.generate("prompt"))
-        assert raw == "[]"
+        assert raw == _EMPTY_PLAN_XML
 
     def test_catalyst_seeding_returns_empty(self):
         stub = StubReplanLLM(seed=42, variant_name="catalyst_seeding")
         raw = asyncio.run(stub.generate("prompt"))
-        assert raw == "[]"
+        assert raw == _EMPTY_PLAN_XML
 
     def test_baseline_returns_empty(self):
         stub = StubReplanLLM(seed=42, variant_name="baseline")
         raw = asyncio.run(stub.generate("prompt"))
-        assert raw == "[]"
+        assert raw == _EMPTY_PLAN_XML
 
     def test_unknown_variant_returns_empty(self):
         stub = StubReplanLLM(seed=42, variant_name="totally_unknown_xyz")
         raw = asyncio.run(stub.generate("prompt"))
-        assert raw == "[]"
+        assert raw == _EMPTY_PLAN_XML
 
 
 class TestReproducibility:
@@ -88,15 +94,16 @@ class TestReproducibility:
         )
         a = asyncio.run(stub_a.generate("p"))
         b = asyncio.run(stub_b.generate("p"))
-        # time field randomized by seed → different output likely
-        # (allow same in unlikely collision — loosely assert shape, not inequality)
-        assert json.loads(a)[0]["destination"] == "cafe"
-        assert json.loads(b)[0]["destination"] == "cafe"
+        # 两边都是合法 XML 且都指向 cafe；time field 由 seed 决定可能不同
+        a_steps = _parse_xml_plan(a)
+        b_steps = _parse_xml_plan(b)
+        assert a_steps[0].destination == "cafe"
+        assert b_steps[0].destination == "cafe"
 
 
 class TestPlannerCompatibility:
     def test_stub_output_accepted_by_planner(self):
-        """Planner.replan 接受 stub 的 JSON 输出——不抛、返回合法 DailyPlan。"""
+        """Planner.replan 接受 stub 的 XML 输出——不抛、返回合法 DailyPlan。"""
         profile = AgentProfile(
             agent_id="emma", name="Emma", age=30, occupation="x",
             household="single", home_location="home",

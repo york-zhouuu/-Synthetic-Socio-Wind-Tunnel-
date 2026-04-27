@@ -30,12 +30,12 @@ from datetime import date, datetime
 from pathlib import Path
 from typing import Any
 
-# Reuse helpers from sibling tools
+# Reuse helpers from sibling tools (build_scripted_plan migrated to
+# synthetic_socio_wind_tunnel.agent in agent-calibration change)
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from smoke_experiment_demo import (  # type: ignore
-    build_scripted_plan,
-    _pick_connected_destinations,
-)
+from smoke_experiment_demo import _pick_connected_destinations  # type: ignore
+
+from synthetic_socio_wind_tunnel.agent import build_scripted_plan
 from suite_stub_llm import _pick_community_location, make_llm_client  # type: ignore
 
 from synthetic_socio_wind_tunnel.agent import (

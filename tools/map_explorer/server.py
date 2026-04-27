@@ -57,8 +57,79 @@ if ATLAS_CACHE_PATH.exists() or OSM_DATA_PATH.exists():
         _SOUTH_CLIP = -33.835
         _WEST_CLIP = 151.148  # cut off west-of-river isolated land
 
+        # Render bbox for water polygon clipping. Sydney Harbour /
+        # Port Jackson are 26-52 km² polygons that drown the core view;
+        # clip them to a slightly-larger-than-atlas viewport.
+        # bbox is (lon_min, lat_min, lon_max, lat_max).
+        _WATER_RENDER_BBOX = (151.140, -33.840, 151.190, -33.795)
+
         def _proj(lon, lat):
             return [(lon - _clon) * _m_lon, -(lat - _clat) * _m_lat]
+
+        def _clip_polygon_to_bbox(
+            ring: list, bbox: tuple,
+        ) -> list:
+            """
+            Sutherland-Hodgman polygon clip against an axis-aligned rectangle.
+            Input: ring as list of [lon, lat]; bbox = (lon_min, lat_min, lon_max, lat_max).
+            Output: clipped ring (may be empty if fully outside).
+            """
+            lon_min, lat_min, lon_max, lat_max = bbox
+            # Each edge clip in turn
+            edges = [
+                ("lon_min", lambda p: p[0] >= lon_min,
+                 lambda a, b: [lon_min, a[1] + (b[1]-a[1]) * (lon_min-a[0])/(b[0]-a[0])]),
+                ("lon_max", lambda p: p[0] <= lon_max,
+                 lambda a, b: [lon_max, a[1] + (b[1]-a[1]) * (lon_max-a[0])/(b[0]-a[0])]),
+                ("lat_min", lambda p: p[1] >= lat_min,
+                 lambda a, b: [a[0] + (b[0]-a[0]) * (lat_min-a[1])/(b[1]-a[1]), lat_min]),
+                ("lat_max", lambda p: p[1] <= lat_max,
+                 lambda a, b: [a[0] + (b[0]-a[0]) * (lat_max-a[1])/(b[1]-a[1]), lat_max]),
+            ]
+            poly = list(ring)
+            for _, inside, intersect in edges:
+                if not poly:
+                    return []
+                output = []
+                s = poly[-1]
+                for e in poly:
+                    if inside(e):
+                        if not inside(s):
+                            try:
+                                output.append(intersect(s, e))
+                            except ZeroDivisionError:
+                                pass
+                        output.append(e)
+                    elif inside(s):
+                        try:
+                            output.append(intersect(s, e))
+                        except ZeroDivisionError:
+                            pass
+                    s = e
+                poly = output
+            # Re-close ring
+            if poly and poly[0] != poly[-1]:
+                poly.append(poly[0])
+            return poly
+
+        # Filter underground waterways: tunnel/culvert/covered/layer<0
+        # otherwise streams render as lines crossing roads visually.
+        def _is_underground_water(p: dict) -> bool:
+            tunnel = p.get("tunnel", "")
+            if tunnel in ("yes", "culvert", "building_passage", "flooded"):
+                return True
+            if p.get("covered") == "yes":
+                return True
+            try:
+                if int(p.get("layer", "0")) < 0:
+                    return True
+            except (ValueError, TypeError):
+                pass
+            return False
+
+        _filtered_underground = 0
+        _clipped_water_polys = 0
+        _dropped_water_polys = 0
 
         for _feat in _raw["features"]:
             _props = _feat["properties"]
@@ -71,6 +142,10 @@ if ATLAS_CACHE_PATH.exists() or OSM_DATA_PATH.exists():
             if not _cat:
                 continue
 
+            if _cat == "water" and _is_underground_water(_props):
+                _filtered_underground += 1
+                continue
+
             if _g["type"] == "Polygon":
                 ring = _g["coordinates"][0]
                 avg_lat = sum(c[1] for c in ring) / len(ring)
@@ -78,6 +153,16 @@ if ATLAS_CACHE_PATH.exists() or OSM_DATA_PATH.exists():
                 # Clip: south of harbour or west of river (isolated land)
                 if _cat != "water" and (avg_lat < _SOUTH_CLIP or avg_lon < _WEST_CLIP):
                     continue
+                # Big water bodies (Sydney Harbour, Port Jackson) extend
+                # tens of km² past the core; clip to render bbox.
+                if _cat == "water":
+                    clipped = _clip_polygon_to_bbox(ring, _WATER_RENDER_BBOX)
+                    if len(clipped) < 4:
+                        _dropped_water_polys += 1
+                        continue
+                    if len(clipped) != len(ring):
+                        _clipped_water_polys += 1
+                    ring = clipped
                 pts = [_proj(c[0], c[1]) for c in ring]
                 context_layers[_cat].append({
                     "type": "polygon", "points": pts,
@@ -122,7 +207,7 @@ if ATLAS_CACHE_PATH.exists() or OSM_DATA_PATH.exists():
                 "type": _poi_type,
                 "cuisine": _props.get("cuisine", ""),
             })
-        print(f"Context layers: {len(context_layers['water'])} water, {len(context_layers['landuse'])} landuse, {len(context_layers['pois'])} POIs")
+        print(f"Context layers: {len(context_layers['water'])} water (filtered {_filtered_underground} underground, clipped {_clipped_water_polys}, dropped {_dropped_water_polys} outside bbox), {len(context_layers['landuse'])} landuse, {len(context_layers['pois'])} POIs")
 else:
     print("No OSM data found, using fictional demo map")
     atlas = create_atlas()

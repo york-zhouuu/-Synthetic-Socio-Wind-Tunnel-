@@ -122,6 +122,14 @@ def create_atlas_from_osm(
             })
         print(f"Clipped {_removed} locations south of harbour")
 
+    # Dedup near-identical buildings (OSM × OSM, OSM × Overture, etc.)
+    # Done before infill so rv houses don't get placed against duplicates that
+    # are about to disappear.
+    from .dedup import dedup_buildings
+    n_before = len(region.buildings)
+    region = dedup_buildings(region)
+    print(f"[dedup] {n_before} → {len(region.buildings)} buildings ({n_before - len(region.buildings)} merged)")
+
     # Infill missing Riverview residential area (OSM has no building footprints there)
     region = _infill_riverview(region)
 
@@ -161,11 +169,24 @@ def _infill_riverview(region) -> "Region":
     SCHOOL_ZONE = ((-750, -350), (1100, 2100))
 
     # ── Existing buildings (for collision) ──
-    existing = [(b.center.x, b.center.y) for b in region.buildings.values()]
+    # AABB-based check: real polygon footprint AABB, not just center distance.
+    # Catches long-narrow OSM apartments that center-distance misses.
+    existing_aabbs: list[tuple[float, float, float, float]] = []
+    for b in region.buildings.values():
+        vs = b.polygon.vertices
+        if not vs:
+            continue
+        existing_aabbs.append((
+            min(v.x for v in vs), min(v.y for v in vs),
+            max(v.x for v in vs), max(v.y for v in vs),
+        ))
 
-    def has_collision(hx, hy, radius=10.0):
-        for ex, ey in existing:
-            if abs(ex - hx) < radius and abs(ey - hy) < radius:
+    def _aabbs_overlap(a, b) -> bool:
+        return not (a[2] < b[0] or a[0] > b[2] or a[3] < b[1] or a[1] > b[3])
+
+    def has_collision(lot_aabb: tuple[float, float, float, float]) -> bool:
+        for ex_aabb in existing_aabbs:
+            if _aabbs_overlap(lot_aabb, ex_aabb):
                 return True
         return False
 
@@ -320,7 +341,18 @@ def _infill_riverview(region) -> "Region":
                     continue
                 if in_park(hx, hy):
                     continue
-                if has_collision(hx, hy):
+                # Compute axis-aligned bbox of the oriented lot rectangle.
+                # Center the AABB on lot center (not house center, which sits
+                # 0.4·depth from the road). Extents = projected half-sides.
+                lot_cx = front_x + side * (lot_depth * 0.5) * nx
+                lot_cy = front_y + side * (lot_depth * 0.5) * ny
+                half_w = lot_frontage / 2
+                half_d = lot_depth / 2
+                ext_x = half_w * abs(ux) + half_d * abs(nx)
+                ext_y = half_w * abs(uy) + half_d * abs(ny)
+                lot_aabb = (lot_cx - ext_x, lot_cy - ext_y,
+                            lot_cx + ext_x, lot_cy + ext_y)
+                if has_collision(lot_aabb):
                     continue
 
                 # Create house within lot
@@ -355,7 +387,12 @@ def _infill_riverview(region) -> "Region":
                     path_type="entrance",
                     distance=max(1.0, lot_depth * 0.4),
                 ))
-                existing.append((hx, hy))
+                # Append real polygon AABB (slightly tighter than lot AABB)
+                house_vs = poly.vertices
+                existing_aabbs.append((
+                    min(v.x for v in house_vs), min(v.y for v in house_vs),
+                    max(v.x for v in house_vs), max(v.y for v in house_vs),
+                ))
                 count += 1
 
     print(f"Riverview infill: placed {count} houses along streets")

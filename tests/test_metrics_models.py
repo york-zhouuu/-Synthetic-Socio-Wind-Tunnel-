@@ -87,8 +87,23 @@ class TestContestReport:
 
 class TestNoHeavyDeps:
     def test_no_numpy_pandas_loaded(self):
-        import synthetic_socio_wind_tunnel.metrics  # noqa: F401
-        # 不应加载 numpy/pandas/scipy
-        assert "numpy" not in sys.modules
-        assert "pandas" not in sys.modules
-        assert "scipy" not in sys.modules
+        """
+        metrics 模块 SHALL NOT 直接或间接拉入 numpy/pandas/scipy。
+        Subprocess-isolated（避免测试套件里别的测试预热 sys.modules 干扰）。
+        """
+        import subprocess
+        result = subprocess.run(
+            [sys.executable, "-c", (
+                "import sys; "
+                "import synthetic_socio_wind_tunnel.metrics; "
+                "import json; "
+                "print(json.dumps({k: k in sys.modules for k in ('numpy','pandas','scipy')}))"
+            )],
+            capture_output=True, text=True, timeout=30,
+        )
+        assert result.returncode == 0, result.stderr
+        import json as _json
+        loaded = _json.loads(result.stdout.strip())
+        assert not loaded["numpy"], "metrics import pulled in numpy"
+        assert not loaded["pandas"], "metrics import pulled in pandas"
+        assert not loaded["scipy"], "metrics import pulled in scipy"

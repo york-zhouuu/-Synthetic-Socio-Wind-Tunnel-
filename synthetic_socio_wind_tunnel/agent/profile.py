@@ -15,6 +15,7 @@ HousingTenure = Literal["owner_occupier", "renter", "public_housing"]
 IncomeTier = Literal["low", "mid", "high"]
 WorkMode = Literal["commute", "remote", "shift", "nonworking"]
 Household = Literal["single", "couple", "family_with_kids"]
+Gender = Literal["male", "female", "non_binary"]
 
 
 class AgentProfile(BaseModel):
@@ -52,6 +53,10 @@ class AgentProfile(BaseModel):
     housing_tenure: HousingTenure | None = None
     income_tier: IncomeTier | None = None
     work_mode: WorkMode | None = None
+    # gender 加入用于 ABS Census calibration（agent-calibration change）。
+    # 注：Planner / name generator 暂未使用此字段——name×gender 一致性
+    # defer 到 stereotype-audit 或独立 change（见 calibration design Open Q5）。
+    gender: Gender | None = None
     digital: DigitalProfile = Field(default_factory=DigitalProfile)
 
     model_config = {"frozen": True, "extra": "forbid"}

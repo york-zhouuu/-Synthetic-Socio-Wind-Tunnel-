@@ -68,50 +68,13 @@ class SmokeConfig:
 
 
 # ============================================================================
-# Rule-based plan generator — 不调 LLM
+# Rule-based plan generator
+# Migrated to synthetic_socio_wind_tunnel.agent.scripted_plan (2026-04-27,
+# agent-calibration change). Re-exported here so legacy tooling that imported
+# `from smoke_experiment_demo import build_scripted_plan` keeps working.
 # ============================================================================
 
-def build_scripted_plan(
-    profile: AgentProfile,
-    destinations: list[str],
-    date: str,
-    rng: random.Random,
-) -> DailyPlan:
-    """
-    基于人格生成一个粗糙的日程：
-      home → work-ish → lunch → afternoon → dinner → home
-    routine_adherence 高 → 目的地更稳定；低 → 更多跳转。
-    """
-    adherence = profile.personality.routine_adherence
-    num_slots = 4 if adherence > 0.5 else 6  # 低坚持者日程更碎
-
-    # 时间锚点
-    steps: list[PlanStep] = []
-    # wake_time 从 profile 读
-    wake_hour = int(profile.wake_time.split(":")[0])
-    current_hour = wake_hour
-
-    # 初始 move 到 "work-like" 目的地
-    for slot_idx in range(num_slots):
-        dest = rng.choice(destinations)
-        duration = rng.choice([30, 60, 90, 120])  # 30-120 分钟
-        steps.append(PlanStep(
-            time=f"{current_hour}:{(slot_idx * 17) % 60:02d}",
-            action="move",
-            destination=dest,
-            duration_minutes=duration,
-            activity=rng.choice(["work", "coffee", "errands", "reading", "walking"]),
-            social_intent=rng.choice(["alone", "open_to_chat"]),
-            reason="scripted plan",
-        ))
-        current_hour = min(22, current_hour + max(1, duration // 60))
-
-    return DailyPlan(
-        agent_id=profile.agent_id,
-        date=date,
-        steps=steps,
-        current_step_index=0,
-    )
+from synthetic_socio_wind_tunnel.agent import build_scripted_plan  # noqa: E402,F401
 
 
 # ============================================================================

@@ -30,6 +30,7 @@ def overpass_query(query_text: str, label: str) -> dict:
             resp = requests.post(
                 OVERPASS_URL,
                 data={"data": query_text},
+                headers={"User-Agent": "sswt-cartography/1.0 (research)"},
                 timeout=REQUEST_TIMEOUT,
             )
             if resp.status_code == 429:
@@ -50,6 +51,12 @@ def overpass_query(query_text: str, label: str) -> dict:
         except requests.exceptions.ReadTimeout:
             wait = 10 * attempt
             print(f"  [{label}] Read timeout. Waiting {wait}s...")
+            time.sleep(wait)
+            continue
+        except (requests.exceptions.ChunkedEncodingError,
+                requests.exceptions.ConnectionError) as e:
+            wait = 10 * attempt
+            print(f"  [{label}] Network error ({type(e).__name__}). Waiting {wait}s...")
             time.sleep(wait)
             continue
     raise RuntimeError(f"[{label}] Failed after {MAX_RETRIES} attempts")
@@ -172,6 +179,65 @@ def way_is_closed(coords: list) -> bool:
     return len(coords) >= 4 and coords[0] == coords[-1]
 
 
+def _assemble_outer_rings(
+    outer_way_node_ids: list[list[int]],
+    *,
+    rel_id: int | None = None,
+) -> list[list[int]]:
+    """
+    OSM multipolygon outer-ring assembly.
+
+    Input: list of node-id sequences, one per outer way (each may be open).
+    Output: list of closed rings (node-id sequences with first == last).
+
+    Greedy endpoint matching (OSM Wiki standard):
+    - Take any unvisited way as seed.
+    - Find the next unvisited way whose start or end matches the chain's tail;
+      if matched at end, reverse it before appending.
+    - Repeat until chain closes (returns to its start) or no continuation
+      exists (chain abandoned + warning).
+    """
+    pool = [list(w) for w in outer_way_node_ids if len(w) >= 2]
+    rings: list[list[int]] = []
+
+    while pool:
+        chain = pool.pop(0)
+        # Already-closed single way → emit immediately
+        if chain[0] == chain[-1] and len(chain) >= 4:
+            rings.append(chain)
+            continue
+
+        while True:
+            tail = chain[-1]
+            extended = False
+            for i, w in enumerate(pool):
+                if w[0] == tail:
+                    chain.extend(w[1:])
+                    pool.pop(i)
+                    extended = True
+                    break
+                if w[-1] == tail:
+                    chain.extend(reversed(w[:-1]))
+                    pool.pop(i)
+                    extended = True
+                    break
+            if not extended:
+                # No continuation found
+                if chain[0] == chain[-1] and len(chain) >= 4:
+                    rings.append(chain)
+                else:
+                    print(
+                        f"  [warning] unclosed multipolygon outer chain in "
+                        f"relation {rel_id} ({len(chain)} nodes); dropping"
+                    )
+                break
+            if chain[0] == chain[-1] and len(chain) >= 4:
+                rings.append(chain)
+                break
+
+    return rings
+
+
 def main():
     queries = build_queries()
     all_elements = []
@@ -259,23 +325,36 @@ def main():
         props["@category"] = category
 
         members = el.get("members", [])
-        outer_ways = [m for m in members if m.get("role") == "outer" and m.get("type") == "way"]
+        outer_members = [m for m in members
+                         if m.get("role") == "outer" and m.get("type") == "way"]
 
-        for ow in outer_ways:
-            way_id = ow["ref"]
-            way_el = way_index.get(way_id)
+        # Collect node-id sequences for each outer way; skip ways missing
+        # from index (Overpass `>;` recursion pulls all but be defensive).
+        outer_node_seqs: list[list[int]] = []
+        for ow in outer_members:
+            way_el = way_index.get(ow["ref"])
             if not way_el:
                 continue
-            nds = way_el.get("nodes", [])
-            coords = resolve_way_coords(nds, node_index)
+            nds = way_el.get("nodes") or []
+            if len(nds) >= 2:
+                outer_node_seqs.append(list(nds))
+
+        if not outer_node_seqs:
+            continue
+
+        # Assemble closed rings from open way segments (Lane Cove River etc.
+        # come as 70+ unclosed ways that need stitching).
+        rings = _assemble_outer_rings(outer_node_seqs, rel_id=el["id"])
+
+        for ring_nds in rings:
+            coords = resolve_way_coords(ring_nds, node_index)
             if len(coords) < 4:
                 continue
-            if not way_is_closed(coords):
-                continue
-
             geom = {"type": "Polygon", "coordinates": [coords]}
             feat_props = dict(props)
-            feat_props["@outer_way"] = f"way/{way_id}"
+            feat_props["@assembled_from"] = (
+                f"relation/{el['id']} ({len(outer_node_seqs)} outer ways)"
+            )
             features.append({
                 "type": "Feature",
                 "geometry": geom,

@@ -3,12 +3,16 @@
 from __future__ import annotations
 
 import json
+import logging
+import xml.etree.ElementTree as ET
 from datetime import datetime
 from typing import TYPE_CHECKING, Any, Literal, Protocol
 
 from pydantic import BaseModel, Field
 
 from .profile import AgentProfile
+
+logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from synthetic_socio_wind_tunnel.memory.carryover import CarryoverContext
@@ -100,16 +104,27 @@ _PLAN_PROMPT_TEMPLATE = """\
 请生成你今天的日程计划，从 {wake_time} 到 {sleep_time}。
 社区中可用的地点: {available_locations}
 
-输出一个 JSON 数组，每条包含:
-- time: 开始时间 (如 "7:00")
-- action: 必须为 "move" / "stay" / "interact" / "explore" 之一（拼写准确）
-- destination: 目标地点 ID (必须是上面列出的地点之一)
-- activity: 正在做什么
-- duration_minutes: 预计持续分钟数
-- reason: 为什么做这件事
-- social_intent: 必须为 "alone" / "open_to_chat" / "seeking_company" 之一
+请用 XML 格式输出今天的日程，结构如下：
 
-只输出 JSON 数组，不要其他内容。
+<plan>
+  <step>
+    <time>8:00</time>
+    <destination>cafe_main</destination>
+    <action>visit cafe to read</action>
+    <duration>30</duration>
+    <social>open_to_chat</social>
+  </step>
+  ...
+</plan>
+
+字段说明：
+- <time>：开始时刻（如 "8:00"），必填
+- <destination>：目标地点 ID（必须取自上面列出的可用地点）
+- <action>：自由描述你要做什么（如 "visit"/"work"/"go home"/"chat with neighbor"）
+- <duration>：分钟数（整数）
+- <social>：你的社交倾向（如 "alone"/"open"/"seeking_company"/"private"）
+
+只输出 <plan>...</plan>，不要其他内容。
 """
 
 
@@ -177,6 +192,169 @@ def _format_carryover_section(carryover) -> str:
     return "\n" + rendered + "\n"
 
 
+# ---------------------------------------------------------------------------
+# lightweight-llm-format: synonym map + XML parser
+# 把 LLM 自由 action / social_intent 措辞映射到 canonical PlanAction /
+# SocialIntent。dispatch 词表（4/3 类）保持不变；spec 不写死表内容。
+# ---------------------------------------------------------------------------
+
+_ACTION_SYNONYMS: dict[str, str] = {
+    # move
+    "move": "move", "go": "move", "go_home": "move", "gohome": "move",
+    "goto": "move", "go_to": "move",
+    "visit": "move", "travel": "move", "walk": "move", "drive": "move",
+    "commute": "move", "head": "move", "head_to": "move", "headto": "move",
+    "leave": "move", "depart": "move", "return": "move",
+    # stay
+    "stay": "stay", "wait": "stay", "rest": "stay", "sleep": "stay",
+    "work": "stay", "eat": "stay", "drink": "stay", "read": "stay",
+    "study": "stay", "watch": "stay", "cook": "stay", "relax": "stay",
+    "write": "stay",
+    # interact
+    "interact": "interact", "talk": "interact", "chat": "interact",
+    "meet": "interact", "greet": "interact", "converse": "interact",
+    "discuss": "interact", "socialize": "interact",
+    # explore
+    "explore": "explore", "wander": "explore", "search": "explore",
+    "investigate": "explore", "find": "explore", "look": "explore",
+    "discover": "explore", "browse": "explore",
+}
+
+_SOCIAL_SYNONYMS: dict[str, str] = {
+    "alone": "alone", "private": "alone", "solo": "alone", "by_myself": "alone",
+    "open_to_chat": "open_to_chat", "open": "open_to_chat",
+    "casual": "open_to_chat", "friendly": "open_to_chat", "open_chat": "open_to_chat",
+    "seeking_company": "seeking_company", "social": "seeking_company",
+    "looking_for_company": "seeking_company", "wants_company": "seeking_company",
+}
+
+
+def _normalize_action(raw: str) -> str:
+    """LLM 自由 action 词 → canonical PlanAction。未知 → 'stay' + log debug。"""
+    if not raw:
+        return "stay"
+    text = raw.strip().lower()
+    if text in _ACTION_SYNONYMS:
+        return _ACTION_SYNONYMS[text]
+    # 取首词试一次（"visit cafe to read note" → "visit"）
+    head = text.split()[0] if text.split() else ""
+    if head in _ACTION_SYNONYMS:
+        return _ACTION_SYNONYMS[head]
+    logger.debug("unknown action token: %r", raw)
+    return "stay"
+
+
+def _normalize_social_intent(raw: str) -> str:
+    """LLM 自由 social 词 → canonical SocialIntent。未知 → 'alone' + log debug。"""
+    if not raw:
+        return "alone"
+    text = raw.strip().lower()
+    if text in _SOCIAL_SYNONYMS:
+        return _SOCIAL_SYNONYMS[text]
+    head = text.split()[0] if text.split() else ""
+    if head in _SOCIAL_SYNONYMS:
+        return _SOCIAL_SYNONYMS[head]
+    logger.debug("unknown social_intent token: %r", raw)
+    return "alone"
+
+
+def _child_text(elem: ET.Element, tag: str) -> str | None:
+    """取首个匹配子元素的 text；缺失返 None。"""
+    child = elem.find(tag)
+    if child is None or child.text is None:
+        return None
+    return child.text.strip() or None
+
+
+def _parse_xml_plan(raw: str) -> list[PlanStep]:
+    """
+    从 LLM 原始输出（XML）解析 PlanStep 列表。容错：
+    - 找不到 <plan> 根 → wrap 后重试
+    - 解析失败 → 返 []
+    - 单 step 缺 <time> → 跳过
+    - 缺其它字段 → 用默认值
+    - action / social 通过同义词映射
+    - LLM 没显式 <activity> → 把 <action> 原文作 activity
+    """
+    text = (raw or "").strip()
+    if not text:
+        return []
+
+    # 处理 markdown code block
+    if text.startswith("```"):
+        lines = text.split("\n")
+        text = "\n".join(lines[1:])
+        if text.endswith("```"):
+            text = text[:-3].strip()
+
+    # 截取第一个 < 之后到最后一个 > 之前（去掉模型寒暄）
+    lt = text.find("<")
+    gt = text.rfind(">")
+    if lt > 0 or gt < len(text) - 1:
+        if lt != -1 and gt != -1 and gt > lt:
+            text = text[lt : gt + 1]
+
+    root: ET.Element | None = None
+    try:
+        root = ET.fromstring(text)
+    except ET.ParseError:
+        # 尝试 wrap 一层 <plan>
+        try:
+            root = ET.fromstring(f"<plan>{text}</plan>")
+        except ET.ParseError:
+            return []
+
+    if root is None:
+        return []
+
+    # root 可能本身是 <plan>，也可能是单个 <step>（被我们 wrap 过则 root=plan）
+    if root.tag.lower() == "step":
+        step_elements = [root]
+    else:
+        step_elements = root.findall(".//step")
+
+    steps: list[PlanStep] = []
+    for elem in step_elements:
+        time_text = _child_text(elem, "time")
+        if not time_text:
+            logger.debug("xml step missing <time>, skipping")
+            continue
+
+        action_raw = _child_text(elem, "action") or ""
+        social_raw = _child_text(elem, "social") or _child_text(elem, "social_intent") or ""
+        destination = _child_text(elem, "destination")
+        duration_text = _child_text(elem, "duration") or _child_text(elem, "duration_minutes")
+        activity_text = _child_text(elem, "activity")
+        reason_text = _child_text(elem, "reason") or ""
+
+        try:
+            duration = int(duration_text) if duration_text else 30
+        except (ValueError, TypeError):
+            duration = 30
+
+        canonical_action = _normalize_action(action_raw)
+        canonical_social = _normalize_social_intent(social_raw)
+
+        # LLM 原始措辞保留到 activity（D5）
+        activity_final = activity_text if activity_text else action_raw
+
+        try:
+            steps.append(PlanStep(
+                time=time_text,
+                action=canonical_action,
+                destination=destination,
+                activity=activity_final,
+                duration_minutes=duration,
+                reason=reason_text,
+                social_intent=canonical_social,
+            ))
+        except (ValueError, TypeError) as exc:
+            logger.debug("xml step build failed: %s", exc)
+            continue
+
+    return steps
+
+
 def _format_personality_block(profile: AgentProfile) -> str:
     """把 PersonalityTraits 8 个维度格式化为 prompt 里可读的数值列表。"""
     t = profile.personality
@@ -242,13 +420,19 @@ class Planner:
         )
 
         raw = await self._llm.generate(prompt, model=profile.base_model)
-        steps = self._parse_plan(raw)
+        steps = _parse_xml_plan(raw)
+        if not steps:
+            # fallback：LLM 偶尔吐 JSON，保留旧 parser
+            steps = self._parse_plan(raw)
 
         return DailyPlan(agent_id=profile.agent_id, date=date, steps=steps)
 
     @staticmethod
     def _parse_plan(raw: str) -> list[PlanStep]:
-        """从 LLM 原始输出解析 PlanStep 列表。容错处理。"""
+        """
+        Deprecated（lightweight-llm-format）：旧 JSON parser。仅作 fallback；
+        XML parser (`_parse_xml_plan`) 是主路径。
+        """
         # 尝试提取 JSON 数组
         text = raw.strip()
         # 处理 markdown code block
@@ -310,9 +494,6 @@ class Planner:
         - 1 次 LLM 调用。
         - LLM 失败 / 解析失败 → fallback 返回原 plan 副本，不抛。
         """
-        import logging
-        logger = logging.getLogger(__name__)
-
         if current_plan is None:
             # 没有当前 plan，replan 退化为 generate_daily_plan 场景——超出
             # 本 change 范围；返回空 plan 让上层处理
@@ -336,7 +517,10 @@ class Planner:
             logger.warning("replan_failed: LLM error: %s", exc)
             return current_plan.model_copy(deep=True)
 
-        new_future_steps = self._parse_plan(raw)
+        new_future_steps = _parse_xml_plan(raw)
+        if not new_future_steps:
+            # fallback：LLM 偶尔吐 JSON
+            new_future_steps = self._parse_plan(raw)
         if not new_future_steps:
             logger.warning(
                 "replan_failed: empty / invalid plan from LLM. raw=%r", raw[:500]
@@ -415,9 +599,13 @@ def _build_replan_prompt(
         memory_lines.append(f"- {content}")
 
     remaining = current_plan.steps[current_plan.current_step_index:]
-    remaining_json = json.dumps(
-        [s.model_dump() for s in remaining], ensure_ascii=False
-    )
+    remaining_lines: list[str] = []
+    for s in remaining:
+        remaining_lines.append(
+            f"- {s.time} → {s.destination or '-'} ({s.activity or s.action}) "
+            f"[{s.duration_minutes}min, {s.social_intent}]"
+        )
+    remaining_block = "\n".join(remaining_lines) if remaining_lines else "（无）"
 
     return f"""\
 你是 {profile.name}。
@@ -432,18 +620,29 @@ def _build_replan_prompt(
 {chr(10).join(memory_lines) if memory_lines else '（无）'}
 
 你当前计划里还剩下的步骤：
-{remaining_json}
+{remaining_block}
 
 请重新规划从现在起的步骤：基于这个新事件，你会改变行为吗？
 
-输出 JSON 数组（与 DailyPlan.steps 同格式），每条含：
-- time: 开始时间（如 "7:35"）；**必须 >= 当前时刻 {current_time}**
-- action: 必须为 "move" / "stay" / "interact" / "explore" 之一
-- destination: 目标 location（可选）
-- activity: 做什么
-- duration_minutes: 持续分钟
-- reason: 为什么
-- social_intent: "alone" / "open_to_chat" / "seeking_company"
+请用 XML 格式输出新计划：
 
-只输出 JSON 数组。
+<plan>
+  <step>
+    <time>7:35</time>
+    <destination>cafe_main</destination>
+    <action>visit cafe to chat</action>
+    <duration>30</duration>
+    <social>open_to_chat</social>
+  </step>
+  ...
+</plan>
+
+字段说明：
+- <time>：开始时刻，**必须 >= 当前时刻 {current_time}**
+- <destination>：目标 location（可选）
+- <action>：自由描述（如 "visit"/"work"/"go home"）
+- <duration>：持续分钟
+- <social>：社交倾向（如 "alone"/"open"/"seeking_company"）
+
+只输出 <plan>...</plan>，不要其他内容。
 """
