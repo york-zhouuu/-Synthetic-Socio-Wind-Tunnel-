@@ -141,7 +141,7 @@ TickMetricsRecorder.on_tick_end          AgentRuntime.step(tick_ctx)
 ✗ AttentionState 完整四元组（physical_world / phone_feed / task / conversation）
    仅有 phone_feed_proxy
 ✓ social-graph capability（弱关系 + tie strength = N/(N+K)，已 ship 2026-05-05）
-✗ conversation capability 未做（多方对话 / 信息跳数）
+✓ conversation capability（信息流动 / hops 追踪，已 ship 2026-05-05；LLM dialogue 留 V2）
 ✗ Real-LLM cost 控制 / model-budget capability 未做
 ✗ 14d × 100agent × 1seed perf 60s（spec 35s）— 性能优化未做
 ```
@@ -201,6 +201,7 @@ face-validity-protocol    → 解第 3 项 (face validity)
 | 2026-04-28 | agent-realistic-routine：F1+F2+F3 合一（rush hour + 8 维 conditioning + LifePattern 锚 + weekday/weekend）| 拟真度 stage1_passed ✓；rush hour 出现；个人 routine 锚定 |
 | 2026-04-29 | realism-attention-rebalance：should_replan 概率门 + 6 维 personality + context modifier；prompt 对称 context window；MemoryService 装配 5 字段 interrupt_ctx；inspector payload 加 replan_decision_log | push 不再被建模为"打断者"；触发率落入 [5%, 15%] goldilocks band；个体异质响应分布出现 ≥ 3 个聚类 |
 | 2026-05-05 | social-graph-capability：新建 social_graph 模块（Tie + SocialGraphService）；strength = N/(N+K)，K=10；MemoryService 在 process_tick 同步累积；nearby_agents.is_familiar 改用 graph 阈值；metrics 加 5 个 tie 指标 + RunMetrics.weak_tie_formation_count | thesis 中段断层补完——encounter 流转化为 pairwise tie；inspector payload 含 per-agent ties；e2e 50 agent × 3 day 跑出 ~100 weak ties |
+| 2026-05-05 | conversation-capability：新建 conversation 模块（Information + ConversationService）；strength × salience × recency 5-modifier 概率门；push delivery → Information origin（salience 由 hyperlocal_radius / category 推导）；metrics 加 4 个 daily counter + RunMetrics.info_propagation_hops 4-key dict；inspector payload 加 conversation 顶层 key | thesis 链条最后一环——信息能跨 hops 传播；hp/gd salience 对照（0.8 vs 0.3）使 mirror 在社会层"输"；V1 不做 LLM dialogue（V2） |
 
 ---
 

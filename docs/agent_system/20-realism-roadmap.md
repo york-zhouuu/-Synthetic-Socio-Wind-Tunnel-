@@ -44,7 +44,8 @@
 - **定义**：rush hour、weekend cluster、cafe overflow、word-of-mouth 等模式**不是直接编程的**，是从个体规则涌现的
 - **可测**：跑 100 agent × 14 day baseline，能在数据里看到 morning peak / 跨家庭联动 / POI 容量饱和效应
 - **现状**：⚠️ social-graph 累积层已 ship（2026-05-05；弱关系 / tie strength 现在被持续累积）；household coupling 与 POI capacity 仍未做
-- **要做**：household coupling（家人时间联动）→ POI capacity / heat → conversation capability（多方对话 / 信息跳数）
+- **要做**：household coupling（家人时间联动）→ POI capacity / heat
+  （**conversation capability 已 ship 2026-05-05**——信息能跨 hops 传播；LLM dialogue 留 V2）
 
 ---
 

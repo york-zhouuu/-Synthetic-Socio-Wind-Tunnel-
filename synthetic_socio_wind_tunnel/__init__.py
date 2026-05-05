@@ -96,6 +96,12 @@ from synthetic_socio_wind_tunnel.social_graph import (
     Tie,
     WEAK_TIE_THRESHOLD,
 )
+from synthetic_socio_wind_tunnel.conversation import (
+    ConversationService,
+    Information,
+    Propagation,
+    ShareEvent,
+)
 from synthetic_socio_wind_tunnel.fitness import (
     AuditResult,
     AuditStatus,
@@ -183,6 +189,11 @@ __all__ = [
     "Tie",
     "WEAK_TIE_THRESHOLD",
     "STRONG_TIE_THRESHOLD",
+    # Conversation (conversation-capability)
+    "ConversationService",
+    "Information",
+    "Propagation",
+    "ShareEvent",
     # Fitness Audit (realign-to-social-thesis)
     "run_audit",
     "FitnessReport",

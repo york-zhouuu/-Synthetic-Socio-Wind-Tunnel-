@@ -44,6 +44,11 @@ class DayMetricsSummary(BaseModel):
     tie_count_strong: int | None = None
     new_ties_today: int | None = None
     avg_ties_per_agent: float | None = None
+    # conversation snapshots at end-of-day (None when service not injected)
+    info_origins_today: int | None = None
+    info_shares_today: int | None = None
+    info_reaching_2plus_today: int | None = None
+    avg_hops_today: float | None = None
 
 
 class RunMetrics(BaseModel):

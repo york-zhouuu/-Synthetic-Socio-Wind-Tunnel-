@@ -31,7 +31,8 @@ if TYPE_CHECKING:
     from synthetic_socio_wind_tunnel.agent import AgentRuntime, Planner
     from synthetic_socio_wind_tunnel.agent.planner import LLMClient
     from synthetic_socio_wind_tunnel.atlas import Atlas
-    from synthetic_socio_wind_tunnel.attention import AttentionService
+    from synthetic_socio_wind_tunnel.attention import AttentionService, FeedItem
+    from synthetic_socio_wind_tunnel.conversation import ConversationService
     from synthetic_socio_wind_tunnel.orchestrator import Orchestrator, TickResult
     from synthetic_socio_wind_tunnel.social_graph import SocialGraphService
 
@@ -58,6 +59,7 @@ class MemoryService:
         "_attention_service",
         "_atlas",
         "_social_graph",
+        "_conversation",
         "_consumed_feed_item_ids",
         "_event_counter",
         "_replan_count_today",
@@ -73,8 +75,17 @@ class MemoryService:
         attention_service: "AttentionService | None" = None,
         atlas: "Atlas | None" = None,
         social_graph: "SocialGraphService | None" = None,
+        conversation: "ConversationService | None" = None,
         seed: int | None = None,
     ) -> None:
+        # conversation 必须与 social_graph 同时注入（design D3）；否则
+        # process_tick 调用 conversation.process_tick 时会缺 tie 信息
+        if conversation is not None and social_graph is None:
+            raise ValueError(
+                "conversation requires social_graph to be injected too "
+                "(conversation.process_tick uses tie strength); "
+                "construct SocialGraphService alongside ConversationService"
+            )
         self._stores: dict[str, MemoryStore] = {}
         self._embedding: EmbeddingProvider = embedding_provider or NullEmbedding()
         self._retriever = MemoryRetriever(weights=retriever_weights)
@@ -85,6 +96,9 @@ class MemoryService:
         # social-graph-capability：注入时把 encounter 同步累积成 pairwise tie，
         # 并让 nearby_agents.is_familiar 走 graph 的 strength 阈值（取代 memory 近似）
         self._social_graph = social_graph
+        # conversation-capability：注入时 push delivery 转 Information origin，
+        # encounter 触发概率门 propagation
+        self._conversation = conversation
         # D.1 修复：per-agent feed_item_id 去重集合。
         # 旧实现用 last_seen_timestamp 过滤；AttentionService.notifications_for
         # 的 `>=` 语义会让同 timestamp 的 notification 在下一次 tick 被
@@ -323,9 +337,34 @@ class MemoryService:
                 )
 
         # 3. 从 AttentionService 派生 notification / task_received events
+        #    + 若 conversation 注入：把每条新 ingested 的 push 转 Information
+        #      并 record_origin 进对话层
+        new_ingested_by_agent: dict[str, list[tuple[MemoryEvent, "FeedItem"]]] = {}
         if self._attention_service is not None:
             for agent_id in agents:
-                self._ingest_notifications(agent_id, tick, sim_time, day_index=day_index)
+                new_ingested_by_agent[agent_id] = self._ingest_notifications(
+                    agent_id, tick, sim_time, day_index=day_index,
+                )
+        if self._conversation is not None:
+            from synthetic_socio_wind_tunnel.conversation import Information
+            for agent_id, events in new_ingested_by_agent.items():
+                for memory_event, feed_item in events:
+                    info = Information(
+                        info_id=f"info_{feed_item.feed_item_id}",
+                        content=feed_item.content,
+                        category="push",
+                        salience=self._salience_from_feed(feed_item),
+                        origin_tick=tick,
+                        origin_agent_id=agent_id,
+                        origin_day_index=day_index,
+                        source_feed_item_id=feed_item.feed_item_id,
+                    )
+                    self._conversation.record_origin(info, agent_id, tick=tick)
+            # 让信息在本 tick 的 encounters 上按概率传播
+            self._conversation.process_tick(
+                tick_result, self._social_graph,
+                sim_day=day_index, agents=agents,
+            )
 
         # 4. Replan 检查 & 执行
         replans: list[tuple[str, MemoryEvent]] = []
@@ -478,15 +517,20 @@ class MemoryService:
 
     def _ingest_notifications(
         self, agent_id: str, tick: int, sim_time: datetime, *, day_index: int = 0,
-    ) -> None:
+    ) -> list[tuple[MemoryEvent, "FeedItem"]]:
         """
         Pull new-to-this-agent notifications and record them as MemoryEvents.
 
         D.1 修复：用 per-agent `set[feed_item_id]` 去重而非 timestamp since。
+
+        Returns list of (event, feed_item) for the events ingested in this
+        tick — caller (process_tick) uses this to feed conversation origins
+        without re-scanning the memory store.
         """
         assert self._attention_service is not None
         consumed = self._consumed_feed_item_ids.setdefault(agent_id, set())
         all_events = self._attention_service.notifications_for(agent_id)
+        new_ingested: list[tuple[MemoryEvent, "FeedItem"]] = []
         for ne in all_events:
             feed_item_id = ne.feed_item_id
             if feed_item_id in consumed:
@@ -512,6 +556,22 @@ class MemoryService:
             )
             self.record(agent_id, event)
             consumed.add(feed_item_id)
+            new_ingested.append((event, feed_item))
+        return new_ingested
+
+    @staticmethod
+    def _salience_from_feed(feed: "FeedItem") -> float:
+        """Map a FeedItem to conversation salience ∈ [0, 1] (design D4)."""
+        if feed.hyperlocal_radius is not None and feed.hyperlocal_radius < 1000:
+            return 0.8
+        cat = (feed.category or "").lower()
+        if cat in ("local_news", "task"):
+            return 0.6
+        if cat == "commercial_push":
+            return 0.5
+        if cat in ("global_news", "global_distraction"):
+            return 0.3
+        return 0.4
 
     # ---- Daily summary ----
 

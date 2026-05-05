@@ -96,9 +96,9 @@ class TestPhase2Gaps:
         cat = audit_phase2_gaps()
         by_id = {r.id.rsplit(".", 1)[-1]: r for r in cat.results}
         # social-graph implemented in social-graph-capability change → flipped to PASS
+        # conversation implemented in conversation-capability change → flipped to PASS
         still_unimplemented = {
             "model-budget",
-            "conversation",
         }
         for cap in still_unimplemented:
             result = by_id[cap]
@@ -156,10 +156,9 @@ class TestAnchorCoverage:
             if r.status == AuditStatus.FAIL and r.mitigation_change
         }
         # Capabilities still waiting for implementation (post-policy-hack archive)
-        # social-graph removed: implemented in social-graph-capability
+        # social-graph + conversation removed: implemented in respective changes
         unimplemented = {
             "model-budget",
-            "conversation",
         }
         missing = unimplemented - fail_mitigations
         assert not missing, f"no fail-anchor for unimplemented caps: {missing}"

@@ -341,6 +341,88 @@ def _profile_to_dict(profile) -> dict[str, Any]:
 # ---------------------------------------------------------------------------
 
 
+def _collect_conversation(orchestrator, inspect_ids: set) -> dict[str, Any]:
+    """Dump conversation state if any of the registered hooks attached one.
+
+    The orchestrator hook chain wires MemoryService.process_tick which holds
+    a reference to a ConversationService. We pull it via the memory service
+    if discoverable; otherwise we walk recorder hooks.
+    """
+    # The conversation service is held by MemoryService and TickMetricsRecorder;
+    # walk the orchestrator's hook callbacks to find an owner with `.conversation`.
+    conv = None
+    hooks_dict = getattr(orchestrator, "_hooks", {}) or {}
+    for cb in hooks_dict.get("on_tick_end", []) or []:
+        owner = getattr(cb, "__self__", None)
+        if owner is not None and hasattr(owner, "conversation"):
+            attr = owner.conversation
+            if attr is not None:
+                conv = attr
+                break
+        # MemoryService binds `process_tick` via a closure (not a method),
+        # so we also peek at closure cellvars for ConversationService instance
+        if conv is None:
+            cells = getattr(getattr(cb, "__closure__", None) or (), "__iter__", lambda: iter([]))
+            for cell in (cb.__closure__ or ()):
+                inner = cell.cell_contents
+                if hasattr(inner, "_conversation") and inner._conversation is not None:
+                    conv = inner._conversation
+                    break
+            if conv is not None:
+                break
+    if conv is None:
+        return {"available": False}
+
+    def _info_dict(info, my_id, hops, learned_at) -> dict[str, Any]:
+        return {
+            "info_id": info.info_id,
+            "content": info.content,
+            "category": info.category,
+            "salience": info.salience,
+            "origin_agent_id": info.origin_agent_id,
+            "origin_day_index": info.origin_day_index,
+            "hops_at_learn": hops,
+            "first_learned_tick": learned_at,
+        }
+
+    per_agent_known: dict[str, list[dict[str, Any]]] = {}
+    for aid in sorted(inspect_ids):
+        items: list[dict[str, Any]] = []
+        for info_id in conv.info_known_by(aid):
+            prop = conv.get_propagation(info_id)
+            if prop is None:
+                continue
+            info = conv._infos[info_id]  # internal lookup
+            items.append(_info_dict(
+                info, aid, prop.hops_at[aid], prop.known_at[aid],
+            ))
+        items.sort(key=lambda x: (x["origin_day_index"], x["info_id"]))
+        per_agent_known[aid] = items
+
+    top = conv.top_propagated(n=5)
+    top_dict = [
+        {
+            "info_id": p.info_id,
+            "reach": p.reach,
+            "max_hops": p.max_hops,
+            "mean_hops": round(p.mean_hops, 3),
+        }
+        for p in top
+    ]
+
+    return {
+        "available": True,
+        "totals": {
+            "info_count": conv.info_count(),
+            "max_hops": conv.max_hops(),
+            "info_reaching_2plus_hops": conv.count_reaching(min_hops=2),
+            "avg_reach_per_info": round(conv.avg_reach(), 3),
+        },
+        "top_propagated": top_dict,
+        "per_inspected_agent_known": per_agent_known,
+    }
+
+
 def _collect_social_graph(runtimes: list, inspect_ids: set) -> dict[str, Any]:
     """Dump per-inspected-agent ties + global counts.
 
@@ -553,6 +635,7 @@ def main() -> int:
         ),
         "replan_decision_log": _collect_replan_decision_log(inspected_runtimes),
         "social_graph": _collect_social_graph(inspected_runtimes, inspect_ids),
+        "conversation": _collect_conversation(orch, inspect_ids),
     }
 
     output_path.write_text(
@@ -567,7 +650,8 @@ def main() -> int:
         f"replan_traces={len(payload['replan_traces'])} "
         f"perception_dumps={len(payload['perception_dumps'])} "
         f"replan_decisions={len(payload['replan_decision_log'])} "
-        f"social_graph_ties={payload['social_graph'].get('totals', {}).get('ties', 0)}",
+        f"social_graph_ties={payload['social_graph'].get('totals', {}).get('ties', 0)} "
+        f"conversation_infos={payload['conversation'].get('totals', {}).get('info_count', 0)}",
         file=sys.stderr,
     )
     return 0

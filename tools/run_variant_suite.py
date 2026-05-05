@@ -210,11 +210,17 @@ def run_seed_with_metrics(
     for rt in runtimes:
         rt.social_graph = social_graph
 
+    # conversation-capability：信息流动层；同 seed 内的 service 实例由
+    # MemoryService + recorder 共享。seed 用于概率门 reproducibility lock。
+    from synthetic_socio_wind_tunnel.conversation import ConversationService
+    conversation = ConversationService(seed=seed)
+
     # 挂 metrics recorder
     recorder = TickMetricsRecorder(
         ledger=ledger,
         attention_service=attention_service,
         social_graph=social_graph,
+        conversation=conversation,
     )
     orchestrator.register_on_tick_end(recorder.on_tick_end)
 
@@ -237,6 +243,7 @@ def run_seed_with_metrics(
         atlas=atlas,
         seed=seed,
         social_graph=social_graph,
+        conversation=conversation,
     )
 
     agents_by_id = {r.profile.agent_id: r for r in runtimes}

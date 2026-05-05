@@ -20,6 +20,7 @@ from synthetic_socio_wind_tunnel.metrics.models import DayMetricsSummary
 
 if TYPE_CHECKING:
     from synthetic_socio_wind_tunnel.attention.service import AttentionService
+    from synthetic_socio_wind_tunnel.conversation import ConversationService
     from synthetic_socio_wind_tunnel.ledger import Ledger
     from synthetic_socio_wind_tunnel.orchestrator.models import TickResult
     from synthetic_socio_wind_tunnel.social_graph import SocialGraphService
@@ -62,7 +63,7 @@ class TickMetricsRecorder:
     """orchestrator.on_tick_end 订阅者，跨天累计指标。"""
 
     __slots__ = (
-        "_ledger", "_attention_service", "_social_graph",
+        "_ledger", "_attention_service", "_social_graph", "_conversation",
         "_buckets", "_current_day",
     )
 
@@ -72,10 +73,12 @@ class TickMetricsRecorder:
         ledger: "Ledger",
         attention_service: "AttentionService | None" = None,
         social_graph: "SocialGraphService | None" = None,
+        conversation: "ConversationService | None" = None,
     ) -> None:
         self._ledger = ledger
         self._attention_service = attention_service
         self._social_graph = social_graph
+        self._conversation = conversation
         self._buckets: dict[int, _DayBucket] = {}
         self._current_day: int = -1
 
@@ -86,6 +89,10 @@ class TickMetricsRecorder:
     @property
     def social_graph(self) -> "SocialGraphService | None":
         return self._social_graph
+
+    @property
+    def conversation(self) -> "ConversationService | None":
+        return self._conversation
 
     # ---- orchestrator hook ----
 
@@ -149,6 +156,14 @@ class TickMetricsRecorder:
                     "tie_count_strong": self._social_graph.strong_count(),
                     "new_ties_today": self._social_graph.new_ties_on_day(d),
                     "avg_ties_per_agent": ties_per_agent / num_agents,
+                })
+            if self._conversation is not None:
+                base = base.model_copy(update={
+                    "info_origins_today": self._conversation.origins_on_day(d),
+                    "info_shares_today": self._conversation.shares_on_day(d),
+                    "info_reaching_2plus_today":
+                        self._conversation.reaching_2plus_on_day(d),
+                    "avg_hops_today": self._conversation.avg_hops_on_day(d),
                 })
             out.append(base)
         return out

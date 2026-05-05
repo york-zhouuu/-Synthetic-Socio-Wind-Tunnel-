@@ -279,9 +279,11 @@ def setup_run(
         enable_thinking=enable_thinking,
     )
     planner = Planner(llm_client=llm_client)
-    # social-graph-capability: shared service across MemoryService + runtimes
+    # social-graph-capability + conversation-capability: shared services
     from synthetic_socio_wind_tunnel.social_graph import SocialGraphService
+    from synthetic_socio_wind_tunnel.conversation import ConversationService
     social_graph = SocialGraphService(K=10)
+    conversation = ConversationService(seed=seed)
     for rt in runtimes:
         rt.social_graph = social_graph
     memory = MemoryService(
@@ -289,6 +291,7 @@ def setup_run(
         atlas=atlas,
         seed=seed,
         social_graph=social_graph,
+        conversation=conversation,
     )
     agents_by_id = {r.profile.agent_id: r for r in runtimes}
 

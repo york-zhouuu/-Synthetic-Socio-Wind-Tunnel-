@@ -232,6 +232,17 @@ def build_run_metrics(
     if recorder.social_graph is not None:
         weak_tie_count = recorder.social_graph.weak_count()
 
+    # conversation-capability：注入 conversation 时填 info_propagation_hops dict
+    info_hops: dict[str, int] | None = None
+    if recorder.conversation is not None:
+        conv = recorder.conversation
+        info_hops = {
+            "info_count_total": conv.info_count(),
+            "max_hop_observed": conv.max_hops(),
+            "info_reaching_2plus_hops": conv.count_reaching(min_hops=2),
+            "avg_reach_per_info": int(round(conv.avg_reach())),
+        }
+
     return RunMetrics(
         seed=multi_day_result.seed,
         variant_name=variant_name,
@@ -243,6 +254,7 @@ def build_run_metrics(
         feed_stats=feed_stats,
         attention_allocation_ratio=attention_ratio,
         weak_tie_formation_count=weak_tie_count,
+        info_propagation_hops=info_hops,
     )
 
 
