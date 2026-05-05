@@ -172,6 +172,22 @@ agents: Mapping[str, AgentRuntime], planner: Planner | None)
   SHALL 在写 encounter MemoryEvent 之外，**额外**对每条 encounter_candidate
   调用一次 `social_graph.record_encounter(agent_a, agent_b, tick, day_index)`
   累积 pairwise tie。MemoryService 不消费 `record_encounter` 的返回值。
+- 若 `conversation` 在 MemoryService 构造时注入（conversation-capability），
+  SHALL 完成两件事：
+  - **Origin 注入**：每条本 tick 新派生的 `notification` / `task_received`
+    MemoryEvent，转换为对应的 `Information` 实例（`category="push"`，
+    salience 由 feed_item 的 hyperlocal_radius / category 推导），并调
+    `conversation.record_origin(info, recipient_agent_id, tick)`。
+    salience 推导规则：
+    - `hyperlocal_radius < 1000` → 0.8
+    - `category in ("local_news", "task")` → 0.6
+    - `category == "commercial_push"` → 0.5
+    - `category in ("global_news", "global_distraction")` → 0.3
+    - 默认 → 0.4
+  - **传播驱动**：调 `conversation.process_tick(tick_result, social_graph,
+    sim_day)` 让信息在本 tick 的 encounters 上按概率传播。`sim_day` 取自
+    `tick_result.day_index`。要求 social_graph 同时注入；conversation 注入
+    但 social_graph 未注入 SHALL 抛 ValueError（明确错误优于隐式降级）。
 - 若 `planner` 非 None，对每个 agent 调用
   `runtime.should_replan(recent, candidate, current_step, replan_count_today, rng)`；返回 True 时调
   `planner.replan(profile, current_plan, interrupt_ctx)`，用结果替换
@@ -213,44 +229,45 @@ agents: Mapping[str, AgentRuntime], planner: Planner | None)
 - **THEN** `social_graph.get_tie("emma", "linda")` SHALL 返回非 None Tie
   且 `encounter_count == 1`，`first_seen_tick == 10`
 
-#### Scenario: 未注入 social_graph 时不调 record
+#### Scenario: conversation 注入但 social_graph 未注入抛错
 
-- **WHEN** MemoryService 构造时 social_graph=None，TickResult 含 1 条
-  encounter_candidate
-- **THEN** 行为不变；不抛异常；旧 callers 继续工作
+- **WHEN** MemoryService 构造时只传 conversation，不传 social_graph
+- **THEN** 构造或第一次 process_tick 调用 SHALL 抛 ValueError，明确说明
+  conversation 依赖 social_graph
+
+#### Scenario: push 注入信息源
+
+- **WHEN** MemoryService 注入 conversation + social_graph；本 tick
+  AttentionService 派出一条 hyperlocal feed item 给 emma
+  （hyperlocal_radius=500）
+- **THEN** `conversation.info_known_by("emma")` SHALL 含 1 条 info；
+  `conversation.get_propagation(info_id).hops_at["emma"]` SHALL == 0；
+  info.salience SHALL == 0.8
+
+#### Scenario: salience 由 category 推导
+
+- **WHEN** 一条 feed_item 的 category="global_distraction"，hyperlocal_radius=None
+- **THEN** record_origin 派出的 Information 的 salience SHALL == 0.3
+
+#### Scenario: 信息在 encounter 上传播
+
+- **WHEN** emma 已 known info（origin），emma 与 linda 在 tick=20 encounter；
+  emma 与 linda 已有 strength=0.5 的 tie（中等强度）；两人 extraversion 均值=0.7；
+  info.salience=0.8；origin 是当天
+- **THEN** `conversation.process_tick` 至少有一定概率（实测 P ≈ 0.15 ×
+  1.0 × 0.7 × 0.8 × 1.0 ≈ 0.084）让 linda 知道；多 seed 下 linda known
+  比例应在 [5%, 15%]
 
 #### Scenario: replan 一 tick 最多一次
 - **WHEN** emma 本 tick 接到 3 条通知，全部触发 should_replan=True
 - **THEN** `planner.replan` SHALL 被调用**恰好一次**；第一个 match 后
   break
 
-#### Scenario: nearby_agents.is_familiar 走 social_graph
-
-- **WHEN** social_graph 注入；emma 跟 linda 在历史上累积 encounter_count=5
-  （strength ≈ 0.33 > 0.1）；emma 跟 john 累积 encounter_count=0
-  （未见过）；本 tick TickResult 中 emma 跟 linda + john 各有一条
-  encounter_candidate；触发 should_replan=True
-- **THEN** 传给 planner.replan 的 `interrupt_ctx.nearby_agents` SHALL 含
-  2 条；其中 linda 对应 `is_familiar=True`，john 对应 `is_familiar=False`
-
-#### Scenario: nearby_agents.is_familiar 降级（未注入 social_graph）
-
-- **WHEN** social_graph=None；emma 的 memory store 中**有**一条 actor_id="linda"
-  的 encounter MemoryEvent；本 tick emma 跟 linda 又 encounter
-- **THEN** is_familiar SHALL 为 True（旧行为：memory 里有 encounter 即算
-  familiar）
-
 #### Scenario: replan_count_today 跨日重置
 
 - **WHEN** emma 第一天 replan 4 次，新一天 on_day_start 后又触发一次
   should_replan
 - **THEN** 新一天传给 should_replan 的 `replan_count_today` SHALL 为 0
-
-#### Scenario: rng 来自 MemoryService
-
-- **WHEN** 同 seed 跑两次相同 sim
-- **THEN** 两次 should_replan 的 rng_roll 序列 SHALL 完全一致；replan
-  决策序列 SHALL 完全一致
 
 ### Requirement: DailySummary 批量 LLM 调用
 

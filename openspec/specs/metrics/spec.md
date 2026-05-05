@@ -51,6 +51,17 @@ rollup 为 `DayMetricsSummary`。
 
 若 `social_graph` 未注入，以上字段保持 None / 0；不影响 baseline 行为。
 
+若 `conversation` 在 recorder 构造时注入（conversation-capability），
+`TickMetricsRecorder` SHALL 在 day 结束时额外快照以下 conversation 指标：
+
+- `info_origins_today`（first_seen_day == 当前 day_index 的 info 数；
+  即当天新进入系统的 push origin 总数）
+- `info_shares_today`（当天发生过 share 的 info 数；每条 info 至多计 1）
+- `info_reaching_2plus_today`（当天首次跳到 hops≥2 的 info 数）
+- `avg_hops_today`（当天所有 known agent 的 hops 均值）
+
+若 `conversation` 未注入，以上字段保持 None；不影响 baseline 行为。
+
 #### Scenario: 每 tick 采样所有 agents
 - **WHEN** 100 agents × 288 tick 的一天跑完
 - **THEN** recorder 内部 SHALL 累计 28,800 个 per-agent-tick records
@@ -73,6 +84,19 @@ rollup 为 `DayMetricsSummary`。
   weak ties 和 2 strong ties
 - **THEN** 该 day 的 DayMetricsSummary 中 `tie_count_weak == 5`，
   `tie_count_strong == 2`，`tie_count_total == 7`
+
+#### Scenario: 无 conversation 时 info 字段保持默认
+
+- **WHEN** recorder 构造时 conversation=None
+- **THEN** day rollup 中 `info_origins_today` / `info_shares_today` /
+  `info_reaching_2plus_today` / `avg_hops_today` SHALL 全为 None
+
+#### Scenario: conversation 注入时 day rollup 含 info 指标
+
+- **WHEN** recorder 构造时注入 conversation；当天 record 了 3 条 origin，
+  其中 1 条传播到 hops=2
+- **THEN** 该 day 的 DayMetricsSummary 中 `info_origins_today == 3`，
+  `info_reaching_2plus_today == 1`
 
 #### Scenario: 采样不影响 tick 性能超过 10%
 - **WHEN** 100 agents × 288 tick × 14 day × 1 seed，与无 recorder baseline 比较
@@ -303,20 +327,26 @@ SHALL 把它注册为 orchestrator 的 `on_tick_end` 订阅者。
 ### Requirement: 未来 social-graph / conversation 挂载接口
 
 `RunMetrics` SHALL 通过 `weak_tie_formation_count` / `info_propagation_hops`
-/ `extensions` 三个字段为未来 social-graph / conversation change 提供
-挂载点。
+/ `extensions` 三个字段为 social-graph / conversation 提供挂载点。
 
 `weak_tie_formation_count` SHALL 由 `RunMetrics.from_recorder` 工厂在
 recorder 持有 social_graph 时填充：值 = run 末时刻 graph 中 strength ∈
-[0.1, 0.5] 的 tie 总数（即"已建立的弱关系"数量）。未注入 social_graph
-时保持 None。
+[0.1, 0.5] 的 tie 总数。未注入 social_graph 时保持 None。
 
-`info_propagation_hops` 仍为未来 conversation-capability 预留，本 change
-保持 None / 空 dict。
+`info_propagation_hops` SHALL 由 `RunMetrics.from_recorder` 工厂在
+recorder 持有 conversation 时填充为 dict：
+```
+{
+  "info_count_total": int,           # 一共多少条 info origin
+  "max_hop_observed": int,           # 任一 info 实际最长跳了几跳
+  "info_reaching_2plus_hops": int,   # 至少跳到 hops≥2 的 info 数
+  "avg_reach_per_info": float,       # 平均每条 info 到达多少 agent
+}
+```
+未注入 conversation 时 `info_propagation_hops` SHALL 保持 None。
 
 `RunMetrics.with_extensions(**kwargs) -> RunMetrics` SHALL 保留为
-`pydantic .model_copy(update=...)` 简化 wrapper，便于其它 capability
-追加自定义字段而不破坏 metrics spec。
+`pydantic .model_copy(update=...)` 简化 wrapper。
 
 #### Scenario: 扩展字段写入
 - **WHEN** 调用 `run_metrics.with_extensions(weak_tie_formation_count=12)`
@@ -330,10 +360,24 @@ recorder 持有 social_graph 时填充：值 = run 末时刻 graph 中 strength 
 - **THEN** `RunMetrics.from_recorder(recorder)` 返回的 metrics 中
   `weak_tie_formation_count == 8`（不含 strong ties）
 
-#### Scenario: 未注入时保持 None
+#### Scenario: 未注入 social_graph 时 weak_tie_formation_count 保持 None
 
 - **WHEN** recorder 构造时 social_graph=None
 - **THEN** `RunMetrics.from_recorder(recorder).weak_tie_formation_count`
+  SHALL 为 None
+
+#### Scenario: from_recorder 填充 info_propagation_hops
+
+- **WHEN** recorder 持有 conversation；跑完后 conversation 含 12 条 info，
+  其中 4 条 hops≥2，max_hop=3
+- **THEN** `RunMetrics.from_recorder(recorder).info_propagation_hops` SHALL
+  含 `info_count_total: 12`、`info_reaching_2plus_hops: 4`、
+  `max_hop_observed: 3`
+
+#### Scenario: 未注入 conversation 时 info_propagation_hops 保持 None
+
+- **WHEN** recorder 构造时 conversation=None
+- **THEN** `RunMetrics.from_recorder(recorder).info_propagation_hops`
   SHALL 为 None
 
 
