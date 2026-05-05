@@ -33,6 +33,13 @@ import json
 import random
 import sys
 import time
+from pathlib import Path
+
+# Auto-load <repo>/.env so --use-real-llm picks up GEMINI_API_KEY without
+# requiring shell export. Path-jiggling so the import works regardless of cwd.
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from _env import load_dotenv as _load_dotenv  # noqa: E402
+_load_dotenv()
 from datetime import date, datetime
 from pathlib import Path
 
@@ -211,7 +218,14 @@ def run_seed_with_metrics(
         shared_location=shared_loc,
     )
     planner = Planner(llm_client=llm_client)
-    memory = MemoryService(attention_service=attention_service)
+    # realism-attention-rebalance：seed + atlas 给 should_replan 的概率门 +
+    # location_kind 装配。seed=None 时 should_replan 走 module-level random，
+    # 行为不 reproducible — 本 suite 显式传 seed 保证 lock。
+    memory = MemoryService(
+        attention_service=attention_service,
+        atlas=atlas,
+        seed=seed,
+    )
 
     agents_by_id = {r.profile.agent_id: r for r in runtimes}
 

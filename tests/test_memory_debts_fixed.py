@@ -302,6 +302,8 @@ class TestCombinedIntegration:
             memory.process_tick(tr, agents_by_id, planner)
             ledger.current_time += timedelta(minutes=5)
 
-        # D.1 + D.2 一起生效后：只有 1 次 replan LLM 调用
-        assert stub_llm.calls == 1, \
-            f"expected 1 LLM call, got {stub_llm.calls} (D.1 dedup might be broken)"
+        # D.1 + D.2 一起生效后：上限是 1 次 replan LLM 调用
+        # （realism-attention-rebalance：should_replan 是概率门，下限不再恒为
+        # 1；但 dedup 保证上限永远 ≤ 1）
+        assert stub_llm.calls <= 1, \
+            f"expected ≤ 1 LLM call (dedup), got {stub_llm.calls}"

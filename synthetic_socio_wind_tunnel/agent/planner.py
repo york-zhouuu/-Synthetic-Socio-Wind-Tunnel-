@@ -499,16 +499,23 @@ class Planner:
             # 本 change 范围；返回空 plan 让上层处理
             return DailyPlan(agent_id=profile.agent_id, date="", steps=[])
 
-        # 构造 prompt
+        # 构造 prompt — 新 ctx 键 (current_step / current_location_kind /
+        # nearby_agents) 缺失时整块在 prompt 中省略，旧 caller 依然可以工作
         trigger_event = interrupt_ctx.get("trigger_event")
         recent_memories = interrupt_ctx.get("recent_memories", [])
         current_time = interrupt_ctx.get("current_time")
+        current_step = interrupt_ctx.get("current_step")
+        current_location_kind = interrupt_ctx.get("current_location_kind")
+        nearby_agents = interrupt_ctx.get("nearby_agents")
         prompt = _build_replan_prompt(
             profile=profile,
             current_plan=current_plan,
             trigger_event=trigger_event,
             recent_memories=recent_memories,
             current_time=current_time,
+            current_step=current_step,
+            current_location_kind=current_location_kind,
+            nearby_agents=nearby_agents,
         )
 
         try:
@@ -584,47 +591,89 @@ def _build_replan_prompt(
     trigger_event: Any,
     recent_memories: list,
     current_time: Any,
+    current_step: Any = None,
+    current_location_kind: str | None = None,
+    nearby_agents: list | None = None,
 ) -> str:
-    """Replan prompt：当前 plan + 触发事件 + 最近记忆 + 人格 → 新 future steps。"""
-    # trigger_event 是 MemoryEvent（runtime import），这里只读 content / kind
-    trigger_desc = ""
-    if trigger_event is not None:
-        kind = getattr(trigger_event, "kind", "unknown")
-        content = getattr(trigger_event, "content", "")
-        trigger_desc = f"[{kind}] {content}"
+    """Replan prompt：对称 context window 装配。
 
-    memory_lines = []
-    for m in recent_memories[-10:]:
+    realism-attention-rebalance：push 不再被语言学特殊化为"打断者"，与
+    physical / memory / nearby / 人格 / 计划并列为同级 context block。
+    空 block 整块省略。
+
+    Block 顺序：
+      【现在】 / 【正在做】 / 【周围】 / 【最近发生】 / 【手机】 / 【接下来计划】
+    """
+    blocks: list[str] = []
+
+    # 【现在】 — 时间 + 当前 location 类型（kind 缺省时省略 location 部分）
+    now_parts = [f"时间 {current_time}"]
+    if current_location_kind and current_location_kind != "other":
+        now_parts.append(f"地点类型 {current_location_kind}")
+    blocks.append("【现在】" + "；".join(now_parts))
+
+    # 【正在做】 — 当前 step 信息（无 step 时省略整块）
+    if current_step is not None:
+        activity = (
+            getattr(current_step, "activity", None)
+            or getattr(current_step, "action", "")
+        )
+        duration = getattr(current_step, "duration_minutes", 0)
+        social = getattr(current_step, "social_intent", "")
+        line = f"【正在做】{activity}（{duration} 分钟"
+        if social:
+            line += f"，{social}"
+        line += "）"
+        blocks.append(line)
+
+    # 【周围】 — nearby_agents 列表（空时整块省略）
+    if nearby_agents:
+        familiar = sum(1 for n in nearby_agents if getattr(n, "is_familiar", False))
+        stranger = len(nearby_agents) - familiar
+        parts = []
+        if familiar:
+            parts.append(f"{familiar} 个认识的人")
+        if stranger:
+            parts.append(f"{stranger} 个陌生人")
+        blocks.append("【周围】" + "、".join(parts))
+
+    # 【最近发生】 — recent memories（空时整块省略）
+    memory_lines: list[str] = []
+    for m in recent_memories[-10:] if recent_memories else []:
         content = getattr(m, "content", str(m))
         memory_lines.append(f"- {content}")
+    if memory_lines:
+        blocks.append("【最近发生】\n" + "\n".join(memory_lines))
 
+    # 【手机】 — 推送内容（空时整块省略）
+    if trigger_event is not None:
+        content = getattr(trigger_event, "content", "")
+        if content:
+            blocks.append(f"【手机】{content}")
+
+    # 【接下来计划】 — 剩余 steps（空时整块省略）
     remaining = current_plan.steps[current_plan.current_step_index:]
-    remaining_lines: list[str] = []
-    for s in remaining:
-        remaining_lines.append(
-            f"- {s.time} → {s.destination or '-'} ({s.activity or s.action}) "
-            f"[{s.duration_minutes}min, {s.social_intent}]"
-        )
-    remaining_block = "\n".join(remaining_lines) if remaining_lines else "（无）"
+    remaining_lines = [
+        f"- {s.time} → {s.destination or '-'} ({s.activity or s.action}) "
+        f"[{s.duration_minutes}min, {s.social_intent}]"
+        for s in remaining
+    ]
+    if remaining_lines:
+        blocks.append("【接下来计划】\n" + "\n".join(remaining_lines))
+
+    context_section = "\n\n".join(blocks)
 
     return f"""\
 你是 {profile.name}。
 
 {_format_personality_block(profile)}
 
-当前时刻：{current_time}
-发生了以下事件，打断了你的计划：
-{trigger_desc}
+{context_section}
 
-最近的记忆：
-{chr(10).join(memory_lines) if memory_lines else '（无）'}
+综合以上所有信息，你会调整接下来的计划吗？如果不调整，按原计划复述；
+如果调整，给出新的步骤。
 
-你当前计划里还剩下的步骤：
-{remaining_block}
-
-请重新规划从现在起的步骤：基于这个新事件，你会改变行为吗？
-
-请用 XML 格式输出新计划：
+请用 XML 格式输出：
 
 <plan>
   <step>
@@ -638,7 +687,7 @@ def _build_replan_prompt(
 </plan>
 
 字段说明：
-- <time>：开始时刻，**必须 >= 当前时刻 {current_time}**
+- <time>：开始时刻，必须 >= 当前时刻 {current_time}
 - <destination>：目标 location（可选）
 - <action>：自由描述（如 "visit"/"work"/"go home"）
 - <duration>：持续分钟

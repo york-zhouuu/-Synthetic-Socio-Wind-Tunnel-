@@ -159,6 +159,8 @@ class TestReplanFallback:
 class TestReplanPrompt:
 
     def test_prompt_contains_trigger_event(self):
+        # realism-attention-rebalance：push 进 【手机】 block。kind 标签
+        # 不再放入 prompt（避免暗示"事件类型 = 必须响应"）。
         mock = MockLLM(response=_EMPTY_PLAN_XML)
         planner = Planner(mock)
         trigger = _trigger()
@@ -170,7 +172,7 @@ class TestReplanPrompt:
         asyncio.run(planner.replan(_profile(), _plan(), ctx))
         prompt = mock.calls[0][0]
         assert trigger.content in prompt
-        assert "notification" in prompt
+        assert "【手机】" in prompt
 
     def test_prompt_contains_recent_memories(self):
         mock = MockLLM(response=_EMPTY_PLAN_XML)

@@ -33,7 +33,7 @@ from .population import (
     PopulationProfile,
     sample_population,
 )
-from .runtime import AgentRuntime
+from .runtime import AgentRuntime, NearbyAgent, ReplanDecisionRecord
 
 __all__ = [
     "AgentProfile",
@@ -52,6 +52,7 @@ __all__ = [
     "LLMClient",
     "LockIntent",
     "MoveIntent",
+    "NearbyAgent",
     "OpenDoorIntent",
     "PersonalityParams",
     "PersonalityTraits",
@@ -60,6 +61,7 @@ __all__ = [
     "PlanStep",
     "Planner",
     "PopulationProfile",
+    "ReplanDecisionRecord",
     "Skills",
     "SocialIntent",
     "UnlockIntent",

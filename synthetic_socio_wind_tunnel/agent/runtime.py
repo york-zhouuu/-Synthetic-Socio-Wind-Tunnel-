@@ -6,6 +6,7 @@ Orchestrator 通过 AgentRuntime 来驱动 agent 行为。
 
 from __future__ import annotations
 
+import random
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from typing import TYPE_CHECKING
@@ -21,6 +22,43 @@ if TYPE_CHECKING:
     from synthetic_socio_wind_tunnel.memory.models import MemoryEvent
     from synthetic_socio_wind_tunnel.orchestrator.models import TickContext
     from .profile import AgentProfile
+
+
+# ---------------------------------------------------------------------------
+# Replan 决策记录（realism-attention-rebalance）
+# ---------------------------------------------------------------------------
+
+
+@dataclass(frozen=True)
+class ReplanDecisionRecord:
+    """单次 should_replan 调用的可追溯快照（入参 + 阈值各项 + 决策结果）。
+
+    仅在 `AgentRuntime.enable_replan_log = True` 时累积。Inspector payload
+    导出时把它写入 JSON，便于解释每个 True / False 决策为什么这么走。
+    """
+
+    agent_id: str
+    tick: int
+    simulated_time: datetime
+    candidate_kind: str
+    candidate_urgency: float
+    threshold_computed: float
+    base_components: dict[str, float]
+    context_modifier: float
+    replan_count_today: int
+    rng_roll: float
+    decision: bool
+
+
+@dataclass(frozen=True)
+class NearbyAgent:
+    """Replan prompt 中"周围"信号的最小记录单元。
+
+    不暴露具体 agent_id（避免 prompt 反向影响 LLM 通过 id 串去推断身份）；
+    只承载 LLM 决策需要的 familiar / stranger 标签。
+    """
+
+    is_familiar: bool
 
 
 @dataclass
@@ -41,6 +79,12 @@ class AgentRuntime:
 
     # 当前正在执行的 plan step (可能因移动中而跨多个 tick)
     _moving: bool = False
+
+    # ---- realism-attention-rebalance ----
+    # 决策日志：默认关，dev/inspector 路径打开。
+    # publishable suite 30 seed × 14 day 跑动期间保持 False，避免内存膨胀。
+    enable_replan_log: bool = False
+    replan_decision_log: list[ReplanDecisionRecord] = field(default_factory=list)
 
     def __post_init__(self) -> None:
         if not self.current_location:
@@ -162,36 +206,108 @@ class AgentRuntime:
             return None
         return reference.replace(hour=hour, minute=minute, second=0, microsecond=0)
 
-    # --- Replan 决策 (memory change) ---
+    # --- 当前 step 计时 (realism-attention-rebalance) ---
+
+    def current_step_elapsed_min(self, simulated_time: datetime) -> float:
+        """当前 step 已执行多少分钟（基于 step.time + duration_minutes 的逻辑窗口）。
+
+        - 计算方式：simulated_time - parse_step_time(step.time, simulated_time)
+        - step 不可解析 / plan 为空 → 返回 0.0
+        - 负值（agent 还未到达 step 的逻辑开始时刻）截到 0.0
+        """
+        if self.plan is None:
+            return 0.0
+        step = self.plan.current()
+        if step is None or not step.time:
+            return 0.0
+        step_start = self._parse_step_time(step.time, simulated_time)
+        if step_start is None:
+            return 0.0
+        delta = (simulated_time - step_start).total_seconds() / 60.0
+        return max(0.0, delta)
+
+    # --- Replan 决策 (memory change + realism-attention-rebalance) ---
 
     def should_replan(
         self,
         memory_view: "Sequence[MemoryEvent]",
         candidate: "MemoryEvent",
+        *,
+        current_step: PlanStep | None = None,
+        current_step_elapsed_min: float = 0.0,
+        replan_count_today: int = 0,
+        rng: random.Random | None = None,
+        tick: int | None = None,
+        simulated_time: datetime | None = None,
     ) -> bool:
+        """决定是否对 `candidate` 事件触发 replan。
+
+        **纯代码规则**，MUST NOT 调 LLM。
+
+        realism-attention-rebalance 重写：
+        - 综合 6 维 personality（routine_adherence / curiosity / openness /
+          conscientiousness / risk_tolerance / extraversion）
+        - context modifier：当前 step 已投入超过 30% duration 时阈值升高
+        - 疲劳衰减：当日 replan 次数累加，阈值升高
+        - 概率门：rng.random() + (urgency - threshold) > 0，避免硬阈值导致
+          "全 0 / 全 1"
+        - 决策日志：enable_replan_log=True 时追加 ReplanDecisionRecord
+
+        规则适用 kind ∈ {"notification", "task_received"}；其它 kind 仍 False。
         """
-        决定是否对 `candidate` 事件触发 replan。
+        # 仅 notification 类事件参与 replan 判定
+        if candidate.kind not in ("notification", "task_received"):
+            return False
 
-        **纯代码规则**，MUST NOT 调 LLM。默认读 personality 的
-        routine_adherence / curiosity typed 字段（typed-personality 已
-        archive）。
+        p = self.profile.personality
+        # 6 维 personality 各项贡献。base + 系数由 design D2 拍定，并通过
+        # tests/test_agent_should_replan.py + e2e goldilocks band 校准：
+        # 中性 personality + urgency=0.6 → 触发率约 12%（落入 [5%, 15%]）。
+        components = {
+            "base": 1.55,
+            "routine_adherence": +0.30 * p.routine_adherence,
+            "curiosity": -0.30 * p.curiosity,
+            "openness": -0.15 * p.openness,
+            "conscientiousness": +0.15 * p.conscientiousness,
+            "risk_tolerance": -0.10 * p.risk_tolerance,
+            "extraversion": -0.05 * p.extraversion,
+        }
+        # context modifier：已投入活动者更难被拉走
+        context_modifier = 0.0
+        if current_step is not None and current_step.duration_minutes > 0:
+            elapsed_ratio = current_step_elapsed_min / max(
+                1.0, float(current_step.duration_minutes)
+            )
+            if elapsed_ratio > 0.3:
+                context_modifier = 0.15
 
-        规则：
-        - notification（含 task_received）：
-            threshold = 0.4 + 0.3*adherence - 0.3*curiosity
-            urgency > threshold → replan
-        - 其它 kind：默认 False（encounter/action 等由更复杂的 change 扩展）
+        # 疲劳衰减：今日累计 replan 次数
+        fatigue = 0.10 * replan_count_today
 
-        子类或策略对象可覆盖；基类是"合理默认"。
-        """
-        adherence = self.profile.personality.routine_adherence
-        curiosity = self.profile.personality.curiosity
+        threshold = sum(components.values()) + context_modifier + fatigue
+        # 阈值 clamp 到 [0, 3.0]
+        threshold = max(0.0, min(3.0, threshold))
 
-        if candidate.kind == "notification" or candidate.kind == "task_received":
-            threshold = 0.4 + 0.3 * adherence - 0.3 * curiosity
-            return candidate.urgency > threshold
+        rng_obj = rng if rng is not None else random
+        rng_roll = rng_obj.random()
+        decision = (rng_roll + (candidate.urgency - threshold)) > 0
 
-        return False
+        if self.enable_replan_log:
+            self.replan_decision_log.append(ReplanDecisionRecord(
+                agent_id=self.profile.agent_id,
+                tick=tick if tick is not None else -1,
+                simulated_time=simulated_time or datetime.min,
+                candidate_kind=candidate.kind,
+                candidate_urgency=candidate.urgency,
+                threshold_computed=threshold,
+                base_components=dict(components),
+                context_modifier=context_modifier + fatigue,
+                replan_count_today=replan_count_today,
+                rng_roll=rng_roll,
+                decision=decision,
+            ))
+
+        return decision
 
     # --- 感知上下文构建 ---
 

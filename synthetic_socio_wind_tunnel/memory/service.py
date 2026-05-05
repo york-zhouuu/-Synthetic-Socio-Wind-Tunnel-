@@ -13,6 +13,7 @@ MemoryService — memory 能力的主入口。
 from __future__ import annotations
 
 import asyncio
+import random
 from datetime import datetime
 from typing import TYPE_CHECKING, Mapping
 
@@ -29,8 +30,21 @@ from synthetic_socio_wind_tunnel.memory.store import MemoryStore
 if TYPE_CHECKING:
     from synthetic_socio_wind_tunnel.agent import AgentRuntime, Planner
     from synthetic_socio_wind_tunnel.agent.planner import LLMClient
+    from synthetic_socio_wind_tunnel.atlas import Atlas
     from synthetic_socio_wind_tunnel.attention import AttentionService
     from synthetic_socio_wind_tunnel.orchestrator import Orchestrator, TickResult
+
+
+# realism-attention-rebalance：把 atlas 的细分 area_type 归一化到 prompt
+# 用的 6 类标签。
+_LOCATION_KIND_MAP = {
+    "park": "park",
+    "garden": "park",
+    "playground": "park",
+    "plaza": "park",
+    "street": "street",
+    "parking": "street",
+}
 
 
 class MemoryService:
@@ -41,8 +55,12 @@ class MemoryService:
         "_embedding",
         "_retriever",
         "_attention_service",
+        "_atlas",
         "_consumed_feed_item_ids",
         "_event_counter",
+        "_replan_count_today",
+        "_last_day_index",
+        "_rng",
     )
 
     def __init__(
@@ -51,17 +69,27 @@ class MemoryService:
         embedding_provider: EmbeddingProvider | None = None,
         retriever_weights: dict[str, float] | None = None,
         attention_service: "AttentionService | None" = None,
+        atlas: "Atlas | None" = None,
+        seed: int | None = None,
     ) -> None:
         self._stores: dict[str, MemoryStore] = {}
         self._embedding: EmbeddingProvider = embedding_provider or NullEmbedding()
         self._retriever = MemoryRetriever(weights=retriever_weights)
         self._attention_service = attention_service
+        # 用于 process_tick 装配 interrupt_ctx 的 current_location_kind
+        # （atlas=None 时此字段降级为 "other"）。
+        self._atlas = atlas
         # D.1 修复：per-agent feed_item_id 去重集合。
         # 旧实现用 last_seen_timestamp 过滤；AttentionService.notifications_for
         # 的 `>=` 语义会让同 timestamp 的 notification 在下一次 tick 被
         # 重新 ingest。改为直接记住 "这个 agent 已经 ingest 过的 feed_item_id"。
         self._consumed_feed_item_ids: dict[str, set[str]] = {}
         self._event_counter = 0
+        # realism-attention-rebalance：per-agent 当日 replan 次数（疲劳衰减）
+        self._replan_count_today: dict[str, int] = {}
+        self._last_day_index: int = -1
+        # seeded rng for should_replan probabilistic gate
+        self._rng = random.Random(seed) if seed is not None else random.Random()
 
     def _store_for(self, agent_id: str) -> MemoryStore:
         if agent_id not in self._stores:
@@ -292,6 +320,11 @@ class MemoryService:
         if planner is None:
             return replans
 
+        # realism-attention-rebalance：跨日 boundary 时清零 replan 计数（疲劳衰减重置）
+        if self._last_day_index != -1 and day_index != self._last_day_index:
+            self._replan_count_today.clear()
+        self._last_day_index = day_index
+
         for agent_id, agent in agents.items():
             # 用 events_at_tick 而不是 recent(last_ticks=1)：
             # 后者基于 max_tick，在"没有其它事件写入"时会把旧 tick 的
@@ -299,12 +332,28 @@ class MemoryService:
             recent = self.events_at_tick(agent_id, tick_result.tick_index)
             if not recent:
                 continue
+            current_step = agent.plan.current() if agent.plan is not None else None
+            elapsed_min = agent.current_step_elapsed_min(sim_time)
+            replan_count = self._replan_count_today.get(agent_id, 0)
             for candidate in recent:
-                if agent.should_replan(recent, candidate):
+                if agent.should_replan(
+                    recent, candidate,
+                    current_step=current_step,
+                    current_step_elapsed_min=elapsed_min,
+                    replan_count_today=replan_count,
+                    rng=self._rng,
+                    tick=tick,
+                    simulated_time=sim_time,
+                ):
                     interrupt_ctx = {
                         "trigger_event": candidate,
                         "recent_memories": recent,
                         "current_time": sim_time,
+                        "current_step": current_step,
+                        "current_location_kind": self._location_kind_for(agent),
+                        "nearby_agents": self._nearby_agents_for(
+                            agent_id, tick_result, agent,
+                        ),
                     }
                     try:
                         new_plan = asyncio.run(planner.replan(
@@ -312,12 +361,80 @@ class MemoryService:
                         ))
                         agent.plan = new_plan
                         replans.append((agent_id, candidate))
+                        # 累加当日 replan 计数
+                        self._replan_count_today[agent_id] = replan_count + 1
                     except Exception:
                         # Planner.replan 内部已有 fallback；外层再兜一次保险
                         pass
                     break  # 一 tick 内至多一次 replan / agent
 
         return replans
+
+    # ---- realism-attention-rebalance helpers ----
+
+    def _location_kind_for(self, agent: "AgentRuntime") -> str:
+        """归一化 agent 当前 location 的 area_type 到 6 类 prompt 标签。
+
+        atlas=None 或 location 不可解析时返回 "other"。
+        """
+        if self._atlas is None:
+            return "other"
+        loc_id = agent.current_location
+        if not loc_id:
+            return "other"
+        # home_location 特判
+        if loc_id == agent.profile.home_location:
+            return "home"
+        # 走 atlas 查询；可能是 outdoor_area 或 building
+        outdoor = self._atlas._region.outdoor_areas.get(loc_id)
+        if outdoor is not None:
+            kind = _LOCATION_KIND_MAP.get(outdoor.area_type, "other")
+            return kind
+        # 检 buildings — building.building_type 用同一种归一化逻辑
+        building = self._atlas._region.buildings.get(loc_id)
+        if building is not None:
+            t = (building.building_type or "").lower()
+            if "cafe" in t or "restaurant" in t or "food" in t:
+                return "cafe"
+            if "office" in t or "commercial" in t:
+                return "office"
+            if "residential" in t or "house" in t or "apartment" in t:
+                return "home"
+            return "other"
+        return "other"
+
+    def _nearby_agents_for(
+        self,
+        agent_id: str,
+        tick_result: "TickResult",
+        agent: "AgentRuntime",
+    ) -> list:
+        """从本 tick 的 encounter_candidates 装配 NearbyAgent 列表。
+
+        is_familiar：other agent 在本 agent 的 memory 中是否有过任何 encounter
+        kind 的 MemoryEvent（actor_id 匹配）。
+        """
+        from synthetic_socio_wind_tunnel.agent import NearbyAgent
+
+        # 收集 historical encounter 中曾经见过的 agent_id（含本 tick 之前的所有）
+        familiar_ids: set[str] = set()
+        store = self._stores.get(agent_id)
+        if store is not None:
+            for ev in store.by_kind("encounter"):
+                if ev.actor_id:
+                    familiar_ids.add(ev.actor_id)
+
+        nearby: list = []
+        for enc in tick_result.encounter_candidates:
+            other: str | None = None
+            if enc.agent_a == agent_id:
+                other = enc.agent_b
+            elif enc.agent_b == agent_id:
+                other = enc.agent_a
+            if other is None:
+                continue
+            nearby.append(NearbyAgent(is_familiar=other in familiar_ids))
+        return nearby
 
     def _record_action(self, *, agent_id, commit, tick, sim_time, day_index: int = 0) -> None:
         """From a CommitRecord produce an action MemoryEvent."""

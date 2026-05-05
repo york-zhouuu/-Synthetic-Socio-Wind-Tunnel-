@@ -92,17 +92,29 @@
 - 案例页面能点 agent X 看 ta 当前 SubjectiveView（窗外 / 街角 / cafe 内）
 - LLM-generated narrative 引用具体场景元素（"过了图书馆门口"）
 
-### Stage 3 — `realism-attention-personalized`（~1 周）
-**目标**：F5 — 推送内容 + 反应都个体化
+### Stage 3 — `realism-attention-rebalance` ✅ ARCHIVED 2026-04-29
+**目标重构**：F5 第一阶段——把 push 从"打断式中心事件"改为"context 中可被权衡的一个信号"
 
+> **原 Stage 3 范围（"推送内容 + 反应都个体化"）已在 2026-04-29 重构**。
+> 在做"推送内容个体化"之前，先把 prompt 结构 + 决策门控调整到合理。
+> 否则即使 push 内容个体化，仍然是 100% 触发率 × 个体化内容 = 仍不真实。
+
+实际做了：
+
+- `_build_replan_prompt` 改为对称 context window（push 不被语言学特殊化为"打断者"）
+- `should_replan` 6 维 personality + context modifier + 疲劳衰减 + 概率门（取代单维硬阈值）
+- `MemoryService.process_tick` 装配 5 字段 interrupt_ctx（current_step / location_kind / nearby_agents 等）
+- `replan_decision_log` 可追溯每次决策的入参 + 阈值
+- 触发率落入 goldilocks band [5%, 15%]；100 agent 同 push 的响应分布出现 ≥ 3 个聚类
+
+**Stage 3.5（待办，原 Stage 3 内容）**：
 - variant 推送 FeedItem 携带 agent context（语言 / 偏好 / 历史）
-- `Planner.replan` prompt 读 8 维 personality（不只 routine_adherence）
 - AttentionService 里加 "感染力衰减"：同样推送给不同 agent 的 urgency 由 personality 调
 - 加"agent X 这周收到什么 push"的 inspector
 
 **视觉/产品验收**：
 - 案例页面 phone mock-up 显示 agent X 收到的真 push（不是泛化文案）
-- 同一 push 给 100 agent，反应分布按 personality 8 维聚类成多峰
+- 同一 push 给 100 agent，反应分布按 personality 8 维聚类成多峰（**已通过 attention-rebalance 实现**）
 
 ### Stage 4 — `realism-household-coupling`（~1-2 周）
 **目标**：F6 浅层 — 家庭内时间联动
