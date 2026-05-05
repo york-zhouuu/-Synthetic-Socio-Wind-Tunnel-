@@ -43,8 +43,8 @@
 ### F6 — 群体涌现（emergent collective）
 - **定义**：rush hour、weekend cluster、cafe overflow、word-of-mouth 等模式**不是直接编程的**，是从个体规则涌现的
 - **可测**：跑 100 agent × 14 day baseline，能在数据里看到 morning peak / 跨家庭联动 / POI 容量饱和效应
-- **现状**：❌ agent 之间零耦合；POI 无容量；无社交感染
-- **要做**：household coupling（家人时间联动）→ POI capacity / heat → social-graph capability（thesis-focus snapshot 里早就 placeholder）
+- **现状**：⚠️ social-graph 累积层已 ship（2026-05-05；弱关系 / tie strength 现在被持续累积）；household coupling 与 POI capacity 仍未做
+- **要做**：household coupling（家人时间联动）→ POI capacity / heat → conversation capability（多方对话 / 信息跳数）
 
 ---
 

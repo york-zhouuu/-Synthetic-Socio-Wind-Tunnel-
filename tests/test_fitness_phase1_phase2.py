@@ -95,9 +95,9 @@ class TestPhase2Gaps:
         """Capabilities still in roadmap (not yet implemented) must remain FAIL."""
         cat = audit_phase2_gaps()
         by_id = {r.id.rsplit(".", 1)[-1]: r for r in cat.results}
-        # As of memory change archive, memory is implemented → PASS
+        # social-graph implemented in social-graph-capability change → flipped to PASS
         still_unimplemented = {
-            "social-graph", "model-budget",
+            "model-budget",
             "conversation",
         }
         for cap in still_unimplemented:
@@ -156,8 +156,9 @@ class TestAnchorCoverage:
             if r.status == AuditStatus.FAIL and r.mitigation_change
         }
         # Capabilities still waiting for implementation (post-policy-hack archive)
+        # social-graph removed: implemented in social-graph-capability
         unimplemented = {
-            "social-graph", "model-budget",
+            "model-budget",
             "conversation",
         }
         missing = unimplemented - fail_mitigations

@@ -33,6 +33,7 @@ if TYPE_CHECKING:
     from synthetic_socio_wind_tunnel.atlas import Atlas
     from synthetic_socio_wind_tunnel.attention import AttentionService
     from synthetic_socio_wind_tunnel.orchestrator import Orchestrator, TickResult
+    from synthetic_socio_wind_tunnel.social_graph import SocialGraphService
 
 
 # realism-attention-rebalance：把 atlas 的细分 area_type 归一化到 prompt
@@ -56,6 +57,7 @@ class MemoryService:
         "_retriever",
         "_attention_service",
         "_atlas",
+        "_social_graph",
         "_consumed_feed_item_ids",
         "_event_counter",
         "_replan_count_today",
@@ -70,6 +72,7 @@ class MemoryService:
         retriever_weights: dict[str, float] | None = None,
         attention_service: "AttentionService | None" = None,
         atlas: "Atlas | None" = None,
+        social_graph: "SocialGraphService | None" = None,
         seed: int | None = None,
     ) -> None:
         self._stores: dict[str, MemoryStore] = {}
@@ -79,6 +82,9 @@ class MemoryService:
         # 用于 process_tick 装配 interrupt_ctx 的 current_location_kind
         # （atlas=None 时此字段降级为 "other"）。
         self._atlas = atlas
+        # social-graph-capability：注入时把 encounter 同步累积成 pairwise tie，
+        # 并让 nearby_agents.is_familiar 走 graph 的 strength 阈值（取代 memory 近似）
+        self._social_graph = social_graph
         # D.1 修复：per-agent feed_item_id 去重集合。
         # 旧实现用 last_seen_timestamp 过滤；AttentionService.notifications_for
         # 的 `>=` 语义会让同 timestamp 的 notification 在下一次 tick 被
@@ -291,6 +297,7 @@ class MemoryService:
             )
 
         # 2. 从 encounter_candidates 派生双向 encounter events
+        #    + 若 social_graph 注入，同步累积 pairwise tie
         for enc in tick_result.encounter_candidates:
             for me, other in ((enc.agent_a, enc.agent_b), (enc.agent_b, enc.agent_a)):
                 event = MemoryEvent(
@@ -309,6 +316,11 @@ class MemoryService:
                     day_index=day_index,
                 )
                 self.record(me, event)
+            # social-graph-capability: 累积 pairwise tie（同 tick 同 pair 幂等）
+            if self._social_graph is not None:
+                self._social_graph.record_encounter(
+                    enc.agent_a, enc.agent_b, tick=tick, day_index=day_index,
+                )
 
         # 3. 从 AttentionService 派生 notification / task_received events
         if self._attention_service is not None:
@@ -411,18 +423,23 @@ class MemoryService:
     ) -> list:
         """从本 tick 的 encounter_candidates 装配 NearbyAgent 列表。
 
-        is_familiar：other agent 在本 agent 的 memory 中是否有过任何 encounter
-        kind 的 MemoryEvent（actor_id 匹配）。
+        is_familiar 来源（social-graph-capability D5）：
+        - 注入了 social_graph：strength > WEAK_TIE_THRESHOLD 才算 familiar
+          （阈值化判断；过去 1 次 encounter 不足以构成"认识"）
+        - 未注入：降级到 memory 近似（actor_id 是否曾出现过）
         """
         from synthetic_socio_wind_tunnel.agent import NearbyAgent
 
-        # 收集 historical encounter 中曾经见过的 agent_id（含本 tick 之前的所有）
-        familiar_ids: set[str] = set()
-        store = self._stores.get(agent_id)
-        if store is not None:
-            for ev in store.by_kind("encounter"):
-                if ev.actor_id:
-                    familiar_ids.add(ev.actor_id)
+        if self._social_graph is not None:
+            familiar_ids: set[str] = self._social_graph.familiar_with(agent_id)
+        else:
+            # 降级路径：memory 里有 encounter actor_id 即算 familiar（旧行为）
+            familiar_ids = set()
+            store = self._stores.get(agent_id)
+            if store is not None:
+                for ev in store.by_kind("encounter"):
+                    if ev.actor_id:
+                        familiar_ids.add(ev.actor_id)
 
         nearby: list = []
         for enc in tick_result.encounter_candidates:

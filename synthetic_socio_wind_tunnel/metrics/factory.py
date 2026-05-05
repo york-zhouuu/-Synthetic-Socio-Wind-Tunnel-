@@ -227,6 +227,11 @@ def build_run_metrics(
         recorder.attention_service, num_agents, len(per_day),
     )
 
+    # social-graph-capability：注入 graph 时填 weak_tie_formation_count
+    weak_tie_count: int | None = None
+    if recorder.social_graph is not None:
+        weak_tie_count = recorder.social_graph.weak_count()
+
     return RunMetrics(
         seed=multi_day_result.seed,
         variant_name=variant_name,
@@ -237,6 +242,7 @@ def build_run_metrics(
         space_activation=space_activation,
         feed_stats=feed_stats,
         attention_allocation_ratio=attention_ratio,
+        weak_tie_formation_count=weak_tie_count,
     )
 
 

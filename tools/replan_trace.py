@@ -279,7 +279,17 @@ def setup_run(
         enable_thinking=enable_thinking,
     )
     planner = Planner(llm_client=llm_client)
-    memory = MemoryService(attention_service=attention_service)
+    # social-graph-capability: shared service across MemoryService + runtimes
+    from synthetic_socio_wind_tunnel.social_graph import SocialGraphService
+    social_graph = SocialGraphService(K=10)
+    for rt in runtimes:
+        rt.social_graph = social_graph
+    memory = MemoryService(
+        attention_service=attention_service,
+        atlas=atlas,
+        seed=seed,
+        social_graph=social_graph,
+    )
     agents_by_id = {r.profile.agent_id: r for r in runtimes}
 
     def _memory_hook(tr) -> None:

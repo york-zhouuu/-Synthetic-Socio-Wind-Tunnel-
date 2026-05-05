@@ -22,6 +22,7 @@ if TYPE_CHECKING:
     from synthetic_socio_wind_tunnel.attention.service import AttentionService
     from synthetic_socio_wind_tunnel.ledger import Ledger
     from synthetic_socio_wind_tunnel.orchestrator.models import TickResult
+    from synthetic_socio_wind_tunnel.social_graph import SocialGraphService
 
 
 class _DayBucket:
@@ -60,22 +61,31 @@ class _DayBucket:
 class TickMetricsRecorder:
     """orchestrator.on_tick_end 订阅者，跨天累计指标。"""
 
-    __slots__ = ("_ledger", "_attention_service", "_buckets", "_current_day")
+    __slots__ = (
+        "_ledger", "_attention_service", "_social_graph",
+        "_buckets", "_current_day",
+    )
 
     def __init__(
         self,
         *,
         ledger: "Ledger",
         attention_service: "AttentionService | None" = None,
+        social_graph: "SocialGraphService | None" = None,
     ) -> None:
         self._ledger = ledger
         self._attention_service = attention_service
+        self._social_graph = social_graph
         self._buckets: dict[int, _DayBucket] = {}
         self._current_day: int = -1
 
     @property
     def attention_service(self) -> "AttentionService | None":
         return self._attention_service
+
+    @property
+    def social_graph(self) -> "SocialGraphService | None":
+        return self._social_graph
 
     # ---- orchestrator hook ----
 
@@ -115,9 +125,33 @@ class TickMetricsRecorder:
     # ---- snapshot / aggregate ----
 
     def snapshot(self) -> list[DayMetricsSummary]:
-        """rollup 所有 bucket 为 DayMetricsSummary list（按 day_index 升序）。"""
+        """rollup 所有 bucket 为 DayMetricsSummary list（按 day_index 升序）。
+
+        若 social_graph 注入：每天的 summary 含累积 tie 指标（截至该 day 末
+        的整张图状态）。注：因 graph 是 in-memory 单实例，"day N 末"的快照
+        实际上等于 "现在"——日级 tie_count_* 严格意义上是"截至 N 末的累积"，
+        new_ties_today 是 first_seen_day == N 的 tie 数。
+        """
         days = sorted(self._buckets.keys())
-        return [self._buckets[d].finalize() for d in days]
+        out: list[DayMetricsSummary] = []
+        for d in days:
+            base = self._buckets[d].finalize()
+            if self._social_graph is not None:
+                end_of_day_locs = base.end_of_day_location_by_agent
+                num_agents = max(1, len(end_of_day_locs))
+                ties_per_agent = sum(
+                    len(self._social_graph.ties_for(aid))
+                    for aid in end_of_day_locs.keys()
+                )
+                base = base.model_copy(update={
+                    "tie_count_total": self._social_graph.total_count(),
+                    "tie_count_weak": self._social_graph.weak_count(),
+                    "tie_count_strong": self._social_graph.strong_count(),
+                    "new_ties_today": self._social_graph.new_ties_on_day(d),
+                    "avg_ties_per_agent": ties_per_agent / num_agents,
+                })
+            out.append(base)
+        return out
 
 
 __all__ = ["TickMetricsRecorder"]

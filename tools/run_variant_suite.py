@@ -203,8 +203,19 @@ def run_seed_with_metrics(
         tick_minutes=5, seed=seed,
     )
 
+    # social-graph-capability: 一个 service 实例服务整个 seed run；
+    # MemoryService + recorder + 每个 AgentRuntime 共享同一引用
+    from synthetic_socio_wind_tunnel.social_graph import SocialGraphService
+    social_graph = SocialGraphService(K=10)
+    for rt in runtimes:
+        rt.social_graph = social_graph
+
     # 挂 metrics recorder
-    recorder = TickMetricsRecorder(ledger=ledger, attention_service=attention_service)
+    recorder = TickMetricsRecorder(
+        ledger=ledger,
+        attention_service=attention_service,
+        social_graph=social_graph,
+    )
     orchestrator.register_on_tick_end(recorder.on_tick_end)
 
     # --- suite-wiring: Memory + Planner + StubReplanLLM ---
@@ -225,6 +236,7 @@ def run_seed_with_metrics(
         attention_service=attention_service,
         atlas=atlas,
         seed=seed,
+        social_graph=social_graph,
     )
 
     agents_by_id = {r.profile.agent_id: r for r in runtimes}

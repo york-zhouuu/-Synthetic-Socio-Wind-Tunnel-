@@ -90,6 +90,12 @@ from synthetic_socio_wind_tunnel.attention import (
     NotificationEvent,
     create_notification_event,
 )
+from synthetic_socio_wind_tunnel.social_graph import (
+    STRONG_TIE_THRESHOLD,
+    SocialGraphService,
+    Tie,
+    WEAK_TIE_THRESHOLD,
+)
 from synthetic_socio_wind_tunnel.fitness import (
     AuditResult,
     AuditStatus,
@@ -172,6 +178,11 @@ __all__ = [
     "FeedDeliveryRecord",
     "NotificationEvent",
     "create_notification_event",
+    # Social Graph (social-graph-capability)
+    "SocialGraphService",
+    "Tie",
+    "WEAK_TIE_THRESHOLD",
+    "STRONG_TIE_THRESHOLD",
     # Fitness Audit (realign-to-social-thesis)
     "run_audit",
     "FitnessReport",

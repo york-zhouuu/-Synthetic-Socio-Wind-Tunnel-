@@ -38,6 +38,12 @@ class DayMetricsSummary(BaseModel):
     location_dwell_ticks: dict[str, int] = Field(default_factory=dict)
     # per-agent 的当天末尾 location（供 trajectory_deviation 计算）
     end_of_day_location_by_agent: dict[str, str] = Field(default_factory=dict)
+    # social-graph snapshots at end-of-day (None when graph not injected)
+    tie_count_total: int | None = None
+    tie_count_weak: int | None = None
+    tie_count_strong: int | None = None
+    new_ties_today: int | None = None
+    avg_ties_per_agent: float | None = None
 
 
 class RunMetrics(BaseModel):

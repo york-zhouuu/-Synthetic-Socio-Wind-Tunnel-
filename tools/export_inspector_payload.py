@@ -341,6 +341,47 @@ def _profile_to_dict(profile) -> dict[str, Any]:
 # ---------------------------------------------------------------------------
 
 
+def _collect_social_graph(runtimes: list, inspect_ids: set) -> dict[str, Any]:
+    """Dump per-inspected-agent ties + global counts.
+
+    `runtimes` 中每个 rt 应该已挂 social_graph（由 setup_run 注入）。取一个
+    存在的 graph 引用即可（所有 rt 共享同一实例）。
+    """
+    graph = next((rt.social_graph for rt in runtimes if rt.social_graph is not None), None)
+    if graph is None:
+        return {"available": False}
+
+    def _tie_dict(t, my_id: str) -> dict[str, Any]:
+        other = t.agent_b if t.agent_a == my_id else t.agent_a
+        return {
+            "other_agent_id": other,
+            "encounter_count": t.encounter_count,
+            "strength": round(t.strength, 4),
+            "first_seen_tick": t.first_seen_tick,
+            "last_seen_tick": t.last_seen_tick,
+            "first_seen_day": t.first_seen_day,
+        }
+
+    per_agent_ties: dict[str, list[dict[str, Any]]] = {}
+    for aid in sorted(inspect_ids):
+        ties = graph.ties_for(aid)
+        ties.sort(key=lambda t: t.strength, reverse=True)
+        per_agent_ties[aid] = [_tie_dict(t, aid) for t in ties]
+
+    return {
+        "available": True,
+        "K": graph.K,
+        "weak_threshold": 0.1,
+        "strong_threshold": 0.5,
+        "totals": {
+            "ties": graph.total_count(),
+            "weak": graph.weak_count(),
+            "strong": graph.strong_count(),
+        },
+        "per_inspected_agent": per_agent_ties,
+    }
+
+
 def _collect_replan_decision_log(runtimes: list) -> list[dict[str, Any]]:
     """收集所有 inspected runtime 的 replan_decision_log 并扁平化。"""
     out: list[dict[str, Any]] = []
@@ -511,6 +552,7 @@ def main() -> int:
             key=lambda e: (e["agent_id"], e["tick"]),
         ),
         "replan_decision_log": _collect_replan_decision_log(inspected_runtimes),
+        "social_graph": _collect_social_graph(inspected_runtimes, inspect_ids),
     }
 
     output_path.write_text(
@@ -524,7 +566,8 @@ def main() -> int:
         f"push_history={len(payload['push_history'])} "
         f"replan_traces={len(payload['replan_traces'])} "
         f"perception_dumps={len(payload['perception_dumps'])} "
-        f"replan_decisions={len(payload['replan_decision_log'])}",
+        f"replan_decisions={len(payload['replan_decision_log'])} "
+        f"social_graph_ties={payload['social_graph'].get('totals', {}).get('ties', 0)}",
         file=sys.stderr,
     )
     return 0

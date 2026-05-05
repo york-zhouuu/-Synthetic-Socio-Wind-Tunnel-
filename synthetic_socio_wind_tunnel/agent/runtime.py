@@ -21,6 +21,7 @@ if TYPE_CHECKING:
     from synthetic_socio_wind_tunnel.engine.navigation import NavigationResult
     from synthetic_socio_wind_tunnel.memory.models import MemoryEvent
     from synthetic_socio_wind_tunnel.orchestrator.models import TickContext
+    from synthetic_socio_wind_tunnel.social_graph import SocialGraphService
     from .profile import AgentProfile
 
 
@@ -73,6 +74,12 @@ class AgentRuntime:
     # When set, build_observer_context() composes AttentionState into
     # ObserverContext.digital_state. When None, behavior matches Phase 1.
     attention_service: "AttentionService | None" = None
+
+    # social-graph-capability: optional reference to the shared graph; when
+    # set, `familiar_with()` returns a strength-thresholded answer. When None,
+    # `familiar_with()` returns False (no fallback to memory — that's
+    # MemoryService's responsibility).
+    social_graph: "SocialGraphService | None" = None
 
     # 逐步移动队列: agent 正在沿路径移动时，这里存放剩余的 location 序列
     _movement_queue: list[str] = field(default_factory=list)
@@ -205,6 +212,22 @@ class AgentRuntime:
         if not (0 <= hour < 24 and 0 <= minute < 60):
             return None
         return reference.replace(hour=hour, minute=minute, second=0, microsecond=0)
+
+    # --- 社交图查询 (social-graph-capability) ---
+
+    def familiar_with(
+        self, other_agent_id: str, threshold: float = 0.1,
+    ) -> bool:
+        """是否与 other_agent_id 有 strength > threshold 的 tie。
+
+        薄封装；O(1)；MUST NOT 调 LLM。social_graph=None 时返回 False。
+        """
+        if self.social_graph is None:
+            return False
+        tie = self.social_graph.get_tie(self.profile.agent_id, other_agent_id)
+        if tie is None:
+            return False
+        return tie.strength > threshold
 
     # --- 当前 step 计时 (realism-attention-rebalance) ---
 
