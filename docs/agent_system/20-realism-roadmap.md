@@ -108,10 +108,11 @@
 - `replan_decision_log` 可追溯每次决策的入参 + 阈值
 - 触发率落入 goldilocks band [5%, 15%]；100 agent 同 push 的响应分布出现 ≥ 3 个聚类
 
-**Stage 3.5（待办，原 Stage 3 内容）**：
-- variant 推送 FeedItem 携带 agent context（语言 / 偏好 / 历史）
-- AttentionService 里加 "感染力衰减"：同样推送给不同 agent 的 urgency 由 personality 调
-- 加"agent X 这周收到什么 push"的 inspector
+**Stage 3.5 ✅ ARCHIVED 2026-05-08（push-content-individualization）**：
+- ✅ variant 推送 FeedItem 携带 agent context（5 audience tags + audience-aware content variants）
+- ✅ "感染力衰减" via PushPersonalizer.relevance + urgency modulation
+- ✅ inspector payload 含 audience_tag_by_inspected_agent
+- 仍待 V2：LLM 生成内容 / 个体化 timing / 多语言 LLM 翻译
 
 **视觉/产品验收**：
 - 案例页面 phone mock-up 显示 agent X 收到的真 push（不是泛化文案）

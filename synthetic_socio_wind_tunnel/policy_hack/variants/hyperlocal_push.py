@@ -19,6 +19,11 @@ from pydantic import Field
 
 from synthetic_socio_wind_tunnel.attention.models import FeedItem
 from synthetic_socio_wind_tunnel.policy_hack.base import Variant, VariantContext
+from synthetic_socio_wind_tunnel.policy_hack.personalizer import (
+    PushPersonalizer,
+    PushTemplate,
+)
+from synthetic_socio_wind_tunnel.policy_hack.templates import PUSH_TEMPLATES
 
 if TYPE_CHECKING:
     from synthetic_socio_wind_tunnel.agent.runtime import AgentRuntime
@@ -66,6 +71,14 @@ class HyperlocalPushVariant(Variant):
     )
     hyperlocal_radius_m: float = Field(default=500.0, gt=0.0)
     daily_push_count: int = Field(default=1, ge=1)
+    # push-content-individualization：True 时走 PushPersonalizer 路径（每个
+    # target 收到 audience-aware 个体化 FeedItem）；False 时退回 legacy 路径
+    # （broadcast 一条 generic content 给所有 target）
+    use_personalizer: bool = Field(default=True)
+    push_template_pool: tuple[PushTemplate, ...] = Field(
+        default=PUSH_TEMPLATES,
+        description="个体化路径用的 PushTemplate 池；按 day rng 选 1 个/day。",
+    )
 
     def apply_day_start(self, ctx: VariantContext) -> None:
         if ctx.attention_service is None:
@@ -75,6 +88,54 @@ class HyperlocalPushVariant(Variant):
         if not target_ids:
             return
 
+        created_at = datetime.combine(
+            ctx.simulated_date, datetime.min.time(),
+        ).replace(hour=9)  # 上午 9 点发
+
+        if self.use_personalizer and self.push_template_pool:
+            self._apply_personalized(ctx, target_ids, created_at)
+        else:
+            self._apply_legacy(ctx, target_ids, created_at)
+
+    def _apply_personalized(
+        self,
+        ctx: VariantContext,
+        target_ids: tuple[str, ...],
+        created_at: datetime,
+    ) -> None:
+        """push-content-individualization 路径：每 target 一条 personalized FeedItem。"""
+        # build agent_id -> profile lookup once
+        profile_by_id = {r.profile.agent_id: r.profile for r in ctx.runtimes}
+        for push_idx in range(self.daily_push_count):
+            template = ctx.rng.choice(self.push_template_pool)
+            for agent_id in target_ids:
+                profile = profile_by_id.get(agent_id)
+                if profile is None:
+                    continue  # safety guard
+                feed_id = (
+                    f"hyperlocal_push_{ctx.seed}_{ctx.day_index}_"
+                    f"{push_idx}_{agent_id}"
+                )
+                item, _rel = PushPersonalizer.personalize(
+                    template, profile,
+                    location=self.target_location,
+                    feed_item_id=feed_id,
+                    created_at=created_at,
+                    source="local_news",
+                    base_urgency=0.6,
+                    hyperlocal_radius_m=self.hyperlocal_radius_m,
+                    origin_hack_id="hyperlocal_push",
+                )
+                # Single recipient — keeps personalization 1:1
+                ctx.attention_service.inject_feed_item(item, [agent_id])
+
+    def _apply_legacy(
+        self,
+        ctx: VariantContext,
+        target_ids: tuple[str, ...],
+        created_at: datetime,
+    ) -> None:
+        """Legacy broadcast path (kept for tests / rollback)."""
         for i in range(self.daily_push_count):
             template = ctx.rng.choice(self.content_templates)
             content = template.format(location=self.target_location)
@@ -87,9 +148,7 @@ class HyperlocalPushVariant(Variant):
                 hyperlocal_radius=self.hyperlocal_radius_m,
                 category="event",
                 urgency=0.6,
-                created_at=datetime.combine(
-                    ctx.simulated_date, datetime.min.time(),
-                ).replace(hour=9),  # 上午 9 点发
+                created_at=created_at,
                 origin_hack_id="hyperlocal_push",
             )
             ctx.attention_service.inject_feed_item(item, target_ids)

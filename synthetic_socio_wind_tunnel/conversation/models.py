@@ -27,6 +27,9 @@ class Information:
     origin_day_index: int
     source_feed_item_id: str | None = None
     source_location_id: str | None = None
+    # push-content-individualization：原 push 的目标受众类型（透传自
+    # FeedItem.target_audience_tags），metric 层用它计 target_precision
+    target_audience_tags: tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
         if self.category not in _VALID_CATEGORIES:

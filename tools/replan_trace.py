@@ -279,11 +279,36 @@ def setup_run(
         enable_thinking=enable_thinking,
     )
     planner = Planner(llm_client=llm_client)
-    # social-graph-capability + conversation-capability: shared services
+    # social-graph-capability + conversation-capability + push-content-individualization
     from synthetic_socio_wind_tunnel.social_graph import SocialGraphService
     from synthetic_socio_wind_tunnel.conversation import ConversationService
+    from synthetic_socio_wind_tunnel.policy_hack import (
+        PushPersonalizer, PUSH_TEMPLATES,
+    )
     social_graph = SocialGraphService(K=10)
-    conversation = ConversationService(seed=seed)
+    profile_by_id = {r.profile.agent_id: r.profile for r in runtimes}
+    _topic_to_template = {
+        f"info_{t.topic_id}": t.template_id for t in PUSH_TEMPLATES
+    }
+    _template_by_id = {t.template_id: t for t in PUSH_TEMPLATES}
+
+    def _relevance(info_id: str, agent_id: str) -> float:
+        tid = _topic_to_template.get(info_id)
+        if tid is None:
+            return 1.0
+        tmpl = _template_by_id.get(tid)
+        prof = profile_by_id.get(agent_id)
+        if tmpl is None or prof is None:
+            return 1.0
+        return PushPersonalizer.relevance(prof, tmpl)
+
+    def _audience(agent_id: str) -> str:
+        prof = profile_by_id.get(agent_id)
+        return PushPersonalizer.audience_tag_for(prof) if prof else "default"
+
+    conversation = ConversationService(
+        seed=seed, relevance_provider=_relevance, audience_tag_provider=_audience,
+    )
     for rt in runtimes:
         rt.social_graph = social_graph
     memory = MemoryService(

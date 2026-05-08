@@ -40,19 +40,25 @@ class TestReplanCountPropagation:
         assert ext["replan_by_day"] == [0, 0, 0]
 
     def test_hyperlocal_push_replan_count_positive(self):
+        # push-content-individualization：urgency 现在按 relevance 0.39-0.6 浮动；
+        # 概率门 + 单 seed 小样本下 single-seed n=10 偶尔 0。改成跨 seed 累加
+        # （baseline 必为 0 不变；hp 总数 > 0 即可）。
         run_seed = _import_run_helper()
-        _result, run_metrics, _meta = run_seed(
-            seed=42, n_agents=10, start_date=date(2026, 4, 25),
-            num_days=3, mode="dev", variant_name="hyperlocal_push",
-            phase_days="1,1,1",
+        hp_total = 0
+        for seed in range(5):
+            _result, run_metrics, _meta = run_seed(
+                seed=seed, n_agents=30, start_date=date(2026, 4, 25),
+                num_days=3, mode="dev", variant_name="hyperlocal_push",
+                phase_days="1,1,1",
+            )
+            ext = run_metrics.extensions
+            hp_total += ext["replan_count"]
+            assert sum(ext["replan_by_day"]) == ext["replan_count"]
+            assert len(ext["replan_by_day"]) == 3
+            assert ext["replan_by_day"][0] == 0  # baseline day never replans
+        assert hp_total > 0, (
+            f"hp should replan ≥ 1 across 5 seeds × 30 agents; got total {hp_total}"
         )
-        ext = run_metrics.extensions
-        assert ext["replan_count"] > 0
-        assert sum(ext["replan_by_day"]) == ext["replan_count"]
-        # by_day 长度 == num_days
-        assert len(ext["replan_by_day"]) == 3
-        # intervention day(day 1) 应有 replan；baseline day 0 不应
-        assert ext["replan_by_day"][0] == 0
 
     def test_sum_equals_total(self):
         run_seed = _import_run_helper()

@@ -341,6 +341,25 @@ def _profile_to_dict(profile) -> dict[str, Any]:
 # ---------------------------------------------------------------------------
 
 
+def _collect_personalization(runtimes: list, inspect_ids: set) -> dict[str, Any]:
+    """Per-inspected-agent audience tag (push-content-individualization).
+
+    Provides the inspector UI a quick "what audience cluster does this agent
+    belong to" answer.
+    """
+    from synthetic_socio_wind_tunnel.policy_hack import PushPersonalizer
+
+    by_agent: dict[str, str] = {}
+    for rt in runtimes:
+        if rt.profile.agent_id in inspect_ids:
+            by_agent[rt.profile.agent_id] = PushPersonalizer.audience_tag_for(
+                rt.profile,
+            )
+    return {
+        "audience_tag_by_inspected_agent": by_agent,
+    }
+
+
 def _collect_conversation(orchestrator, inspect_ids: set) -> dict[str, Any]:
     """Dump conversation state if any of the registered hooks attached one.
 
@@ -564,6 +583,10 @@ def main() -> int:
     for rt in runtimes:
         if rt.profile.agent_id in inspect_ids:
             rt.enable_replan_log = True
+
+    # 2d. push-content-individualization：让 inspector 用的 conversation
+    #     service 也接 relevance + audience providers（replan_trace.setup_run
+    #     已经在内部装配，无需重复挂；但导出端要查 audience_tag 用 personalizer）
     print(f"[setup] inspecting {len(inspect_ids)} agents: "
           f"{sorted(inspect_ids)}", file=sys.stderr)
 
@@ -636,6 +659,7 @@ def main() -> int:
         "replan_decision_log": _collect_replan_decision_log(inspected_runtimes),
         "social_graph": _collect_social_graph(inspected_runtimes, inspect_ids),
         "conversation": _collect_conversation(orch, inspect_ids),
+        "personalization": _collect_personalization(inspected_runtimes, inspect_ids),
     }
 
     output_path.write_text(

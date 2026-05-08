@@ -116,6 +116,9 @@ from synthetic_socio_wind_tunnel.map_service import (
     LocationDetail,
 )
 from synthetic_socio_wind_tunnel.policy_hack import (
+    PUSH_TEMPLATES,
+    PushPersonalizer,
+    PushTemplate,
     VARIANTS,
     CatalystSeedingVariant,
     GlobalDistractionVariant,
@@ -250,6 +253,9 @@ __all__ = [
     "SharedAnchorVariant",
     "CatalystSeedingVariant",
     "VARIANTS",
+    "PushPersonalizer",
+    "PushTemplate",
+    "PUSH_TEMPLATES",
     # Metrics (metrics)
     "TickMetricsRecorder",
     "DayMetricsSummary",

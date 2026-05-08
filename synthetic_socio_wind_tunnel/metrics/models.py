@@ -49,6 +49,8 @@ class DayMetricsSummary(BaseModel):
     info_shares_today: int | None = None
     info_reaching_2plus_today: int | None = None
     avg_hops_today: float | None = None
+    # push-content-individualization snapshot (None when audience_tag_provider absent)
+    info_target_reach_today: int | None = None
 
 
 class RunMetrics(BaseModel):
@@ -82,7 +84,7 @@ class RunMetrics(BaseModel):
 
     # 未来挂载点（social-graph / conversation）
     weak_tie_formation_count: int | None = None
-    info_propagation_hops: dict[str, int] | None = None
+    info_propagation_hops: dict[str, float] | None = None
 
     extensions: dict[str, Any] = Field(default_factory=dict)
 

@@ -51,6 +51,11 @@ class FeedItem(BaseModel):
     urgency: float = Field(default=0.5, ge=0.0, le=1.0)
     created_at: datetime
     origin_hack_id: str | None = None
+    # push-content-individualization：同一逻辑信息的多个 personalized 实例共享
+    # 此 ID。conversation 层用它聚合成同一 Information；None 时降级到 feed_item_id。
+    topic_id: str | None = None
+    # 这条 push 设计时声明的目标受众类型，metadata，metric 层用它计 target_precision。
+    target_audience_tags: tuple[str, ...] = ()
 
 
 class DigitalProfile(BaseModel):

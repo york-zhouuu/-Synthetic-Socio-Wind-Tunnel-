@@ -164,6 +164,8 @@ class TickMetricsRecorder:
                     "info_reaching_2plus_today":
                         self._conversation.reaching_2plus_on_day(d),
                     "avg_hops_today": self._conversation.avg_hops_on_day(d),
+                    "info_target_reach_today":
+                        self._conversation.info_target_reach_today(d),
                 })
             out.append(base)
         return out

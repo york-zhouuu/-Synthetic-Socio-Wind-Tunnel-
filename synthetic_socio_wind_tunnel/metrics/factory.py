@@ -233,14 +233,25 @@ def build_run_metrics(
         weak_tie_count = recorder.social_graph.weak_count()
 
     # conversation-capability：注入 conversation 时填 info_propagation_hops dict
+    # push-content-individualization：加 within/outside target reach + target_precision
     info_hops: dict[str, int] | None = None
     if recorder.conversation is not None:
         conv = recorder.conversation
+        within = conv.total_within_target()
+        outside = conv.total_outside_target()
+        total_target = within + outside
+        target_precision = (within / total_target) if total_target > 0 else 0.0
         info_hops = {
             "info_count_total": conv.info_count(),
             "max_hop_observed": conv.max_hops(),
             "info_reaching_2plus_hops": conv.count_reaching(min_hops=2),
             "avg_reach_per_info": int(round(conv.avg_reach())),
+            "info_within_target_reach": within,
+            "info_outside_target_reach": outside,
+            # target_precision is float; stored as float in dict (RunMetrics
+            # info_propagation_hops type is dict[str, int] originally, but
+            # we widen via int-cast where possible; keep float here)
+            "target_precision": target_precision,  # type: ignore[dict-item]
         }
 
     return RunMetrics(

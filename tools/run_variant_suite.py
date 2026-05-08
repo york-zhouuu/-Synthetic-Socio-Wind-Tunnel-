@@ -212,8 +212,43 @@ def run_seed_with_metrics(
 
     # conversation-capability：信息流动层；同 seed 内的 service 实例由
     # MemoryService + recorder 共享。seed 用于概率门 reproducibility lock。
+    # push-content-individualization：注入 relevance + audience providers，让
+    # share 概率公式 + target_precision metric 跟 push 内容个体化对齐
     from synthetic_socio_wind_tunnel.conversation import ConversationService
-    conversation = ConversationService(seed=seed)
+    from synthetic_socio_wind_tunnel.policy_hack import (
+        PushPersonalizer, PUSH_TEMPLATES,
+    )
+    profile_by_id = {r.profile.agent_id: r.profile for r in runtimes}
+    # info_id → template_id mapping built lazily as origins are recorded.
+    # Service-side providers look up profile/template each time.
+    _topic_to_template: dict[str, str] = {
+        f"info_{t.topic_id}": t.template_id for t in PUSH_TEMPLATES
+    }
+    _template_by_id: dict[str, "PushTemplate"] = {
+        t.template_id: t for t in PUSH_TEMPLATES
+    }
+
+    def _relevance_provider(info_id: str, agent_id: str) -> float:
+        template_id = _topic_to_template.get(info_id)
+        if template_id is None:
+            return 1.0  # non-personalized push falls through
+        template = _template_by_id.get(template_id)
+        profile = profile_by_id.get(agent_id)
+        if template is None or profile is None:
+            return 1.0
+        return PushPersonalizer.relevance(profile, template)
+
+    def _audience_tag_provider(agent_id: str) -> str:
+        profile = profile_by_id.get(agent_id)
+        if profile is None:
+            return "default"
+        return PushPersonalizer.audience_tag_for(profile)
+
+    conversation = ConversationService(
+        seed=seed,
+        relevance_provider=_relevance_provider,
+        audience_tag_provider=_audience_tag_provider,
+    )
 
     # 挂 metrics recorder
     recorder = TickMetricsRecorder(

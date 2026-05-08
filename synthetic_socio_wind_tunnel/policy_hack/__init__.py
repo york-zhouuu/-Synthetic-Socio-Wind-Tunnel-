@@ -23,6 +23,13 @@ from synthetic_socio_wind_tunnel.policy_hack.base import (
     VariantContext,
     VariantRunnerAdapter,
 )
+from synthetic_socio_wind_tunnel.policy_hack.personalizer import (
+    ALL_AUDIENCE_TAGS,
+    AudienceTag,
+    PushPersonalizer,
+    PushTemplate,
+)
+from synthetic_socio_wind_tunnel.policy_hack.templates import PUSH_TEMPLATES
 from synthetic_socio_wind_tunnel.policy_hack.variants import (
     CatalystSeedingVariant,
     GlobalDistractionVariant,
@@ -57,6 +64,12 @@ __all__ = [
     "HyperlocalPushVariant",
     "PhoneFrictionVariant",
     "SharedAnchorVariant",
+    # Push personalization (push-content-individualization)
+    "ALL_AUDIENCE_TAGS",
+    "AudienceTag",
+    "PUSH_TEMPLATES",
+    "PushPersonalizer",
+    "PushTemplate",
     # Registry
     "VARIANTS",
 ]

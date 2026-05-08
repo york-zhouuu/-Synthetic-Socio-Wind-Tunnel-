@@ -349,8 +349,11 @@ class MemoryService:
             from synthetic_socio_wind_tunnel.conversation import Information
             for agent_id, events in new_ingested_by_agent.items():
                 for memory_event, feed_item in events:
+                    # push-content-individualization：用 topic_id 作为 info_id key
+                    # 让 N 个 personalized FeedItems 聚合成同一 Information
+                    info_key = feed_item.topic_id or feed_item.feed_item_id
                     info = Information(
-                        info_id=f"info_{feed_item.feed_item_id}",
+                        info_id=f"info_{info_key}",
                         content=feed_item.content,
                         category="push",
                         salience=self._salience_from_feed(feed_item),
@@ -358,6 +361,7 @@ class MemoryService:
                         origin_agent_id=agent_id,
                         origin_day_index=day_index,
                         source_feed_item_id=feed_item.feed_item_id,
+                        target_audience_tags=feed_item.target_audience_tags,
                     )
                     self._conversation.record_origin(info, agent_id, tick=tick)
             # 让信息在本 tick 的 encounters 上按概率传播

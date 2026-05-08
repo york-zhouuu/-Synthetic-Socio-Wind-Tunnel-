@@ -5,7 +5,7 @@ from __future__ import annotations
 import math
 import random
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Mapping
+from typing import TYPE_CHECKING, Callable, Mapping
 
 from synthetic_socio_wind_tunnel.conversation.models import (
     Information,
@@ -48,18 +48,29 @@ class ConversationService:
 
     __slots__ = (
         "_rng",
-        "_infos",         # info_id -> Information
-        "_known",         # agent_id -> dict[info_id, _Knowledge]
-        "_known_by_info", # info_id -> set[agent_id]
-        "_share_count",   # info_id -> int (number of share events)
+        "_infos",
+        "_known",
+        "_known_by_info",
+        "_share_count",
+        "_relevance_provider",
+        "_audience_tag_provider",
     )
 
-    def __init__(self, *, seed: int | None = None) -> None:
+    def __init__(
+        self,
+        *,
+        seed: int | None = None,
+        relevance_provider: Callable[[str, str], float] | None = None,
+        audience_tag_provider: Callable[[str], str] | None = None,
+    ) -> None:
         self._rng = random.Random(seed) if seed is not None else random.Random()
         self._infos: dict[str, Information] = {}
         self._known: dict[str, dict[str, _Knowledge]] = {}
         self._known_by_info: dict[str, set[str]] = {}
         self._share_count: dict[str, int] = {}
+        # push-content-individualization
+        self._relevance_provider = relevance_provider
+        self._audience_tag_provider = audience_tag_provider
 
     # ------------------------------------------------------------ writes
 
@@ -139,12 +150,21 @@ class ConversationService:
                         continue
                     days_since = max(0, sim_day - info.origin_day_index)
                     recency_decay = math.exp(-days_since / _RECENCY_HALFLIFE_DAYS)
+                    # push-content-individualization: per-(info, agent) relevance
+                    if self._relevance_provider is not None:
+                        s_rel = self._clamp01(self._relevance_provider(info_id, sender))
+                        r_rel = self._clamp01(self._relevance_provider(info_id, receiver))
+                    else:
+                        s_rel = 1.0
+                        r_rel = 1.0
                     p = (
                         _BASE_SHARE_PROB
                         * tie_mod
                         * pers_mod
                         * info.salience
                         * recency_decay
+                        * s_rel
+                        * r_rel
                     )
                     if self._rng.random() < p:
                         new_hops = knowledge.hops_at_learn + 1
@@ -266,6 +286,104 @@ class ConversationService:
                 if k.hops_at_learn >= _MIN_2PLUS_HOPS and lo <= k.first_learned_tick < hi:
                     out.add(info_id)
         return len(out)
+
+    @staticmethod
+    def _clamp01(x: float) -> float:
+        if x < 0.0:
+            return 0.0
+        if x > 1.0:
+            return 1.0
+        return x
+
+    # ---------- target audience metrics (push-content-individualization) ----------
+
+    def within_target_count(self, info_id: str) -> int:
+        """触达 agents 中 audience_tag ∈ info.target_audience_tags 的数量。
+
+        若 audience_tag_provider 未注入或 info.target_audience_tags 为空则返回 0。
+        """
+        if self._audience_tag_provider is None:
+            return 0
+        info = self._infos.get(info_id)
+        if info is None or not info.target_audience_tags:
+            return 0
+        targets = set(info.target_audience_tags)
+        agents = self._known_by_info.get(info_id, set())
+        n = 0
+        for aid in agents:
+            try:
+                tag = self._audience_tag_provider(aid)
+            except Exception:
+                continue
+            if tag in targets:
+                n += 1
+        return n
+
+    def outside_target_count(self, info_id: str) -> int:
+        if self._audience_tag_provider is None:
+            return 0
+        info = self._infos.get(info_id)
+        if info is None or not info.target_audience_tags:
+            return 0
+        targets = set(info.target_audience_tags)
+        agents = self._known_by_info.get(info_id, set())
+        n = 0
+        for aid in agents:
+            try:
+                tag = self._audience_tag_provider(aid)
+            except Exception:
+                continue
+            if tag not in targets:
+                n += 1
+        return n
+
+    def target_precision_for(self, info_id: str) -> float:
+        """within / total reach；audience_tag_provider 缺失返回 0."""
+        within = self.within_target_count(info_id)
+        outside = self.outside_target_count(info_id)
+        total = within + outside
+        if total == 0:
+            return 0.0
+        return within / total
+
+    def mean_target_precision(self) -> float:
+        """跨所有 info 的均值；无 info / 无 provider 时返回 0."""
+        if self._audience_tag_provider is None or not self._infos:
+            return 0.0
+        ratios = [self.target_precision_for(info_id) for info_id in self._infos]
+        ratios = [r for r in ratios if r > 0.0 or self.outside_target_count]  # include 0s
+        if not ratios:
+            return 0.0
+        return sum(ratios) / len(ratios)
+
+    def total_within_target(self) -> int:
+        """全部 info 累加的 within_target reach（个数）。"""
+        return sum(self.within_target_count(info_id) for info_id in self._infos)
+
+    def total_outside_target(self) -> int:
+        return sum(self.outside_target_count(info_id) for info_id in self._infos)
+
+    def info_target_reach_today(self, day_index: int, ticks_per_day: int = 288) -> int:
+        """当天 first-learned 事件中，learner 是 within-target 的数量。"""
+        if self._audience_tag_provider is None:
+            return 0
+        lo = day_index * ticks_per_day
+        hi = (day_index + 1) * ticks_per_day
+        n = 0
+        for aid, per_agent in self._known.items():
+            for info_id, k in per_agent.items():
+                if not (lo <= k.first_learned_tick < hi):
+                    continue
+                info = self._infos.get(info_id)
+                if info is None or not info.target_audience_tags:
+                    continue
+                try:
+                    tag = self._audience_tag_provider(aid)
+                except Exception:
+                    continue
+                if tag in info.target_audience_tags:
+                    n += 1
+        return n
 
     def avg_hops_on_day(self, day_index: int, ticks_per_day: int = 288) -> float:
         lo = day_index * ticks_per_day

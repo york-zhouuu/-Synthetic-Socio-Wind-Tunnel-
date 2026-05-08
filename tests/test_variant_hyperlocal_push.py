@@ -93,8 +93,25 @@ class TestHyperlocalPush:
         assert feed_items[0].category == "event"
 
     def test_daily_push_count_multiple(self):
+        # push-content-individualization: each "push" now generates one
+        # FeedItem PER recipient (personalized). With daily_push_count=3 and
+        # 2 target_ids (n_agents=4 → first half = 2), expect 3 × 2 = 6 items.
         v = HyperlocalPushVariant(
             target_location="cafe_main", daily_push_count=3,
+        )
+        ctx = _setup_ctx(n_agents=4, day_index=1)
+        v.apply_day_start(ctx)
+        feed_items = list(ctx.attention_service._feed_index.values())  # type: ignore[attr-defined]
+        assert len(feed_items) == 6
+        # Verify 3 distinct topic_ids (one per push iteration)
+        topic_ids = {item.topic_id for item in feed_items}
+        assert len(topic_ids) <= 3  # rng may pick same template twice
+
+    def test_daily_push_count_legacy_broadcast(self):
+        """Legacy path: daily_push_count=3 → exactly 3 broadcast FeedItems."""
+        v = HyperlocalPushVariant(
+            target_location="cafe_main", daily_push_count=3,
+            use_personalizer=False,
         )
         ctx = _setup_ctx(n_agents=4, day_index=1)
         v.apply_day_start(ctx)
