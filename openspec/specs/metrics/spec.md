@@ -41,7 +41,8 @@ social-downstream）；`weak_tie_formation_count` / `info_propagation_hops` /
 rollup 为 `DayMetricsSummary`。
 
 若 `social_graph` 在 recorder 构造时注入（social-graph-capability），
-`TickMetricsRecorder` SHALL 在 day 结束时额外快照以下 social-graph 指标：
+`TickMetricsRecorder` SHALL 在 day 结束时额外快照 5 个 social-graph 指标
+（详见 social-graph spec）：
 
 - `tie_count_total`（service 中 ties 总数）
 - `tie_count_weak`（strength ∈ [0.1, 0.5] 的 tie 数）
@@ -59,6 +60,9 @@ rollup 为 `DayMetricsSummary`。
 - `info_shares_today`（当天发生过 share 的 info 数；每条 info 至多计 1）
 - `info_reaching_2plus_today`（当天首次跳到 hops≥2 的 info 数）
 - `avg_hops_today`（当天所有 known agent 的 hops 均值）
+- `info_target_reach_today`（**新增**，push-content-individualization）：
+  当天 first-learned 事件中，learner 的 audience_tag ∈ info.target_audience_tags
+  的数量。conversation 注入时填；audience_tag_provider 未注入时为 0。
 
 若 `conversation` 未注入，以上字段保持 None；不影响 baseline 行为。
 
@@ -89,14 +93,16 @@ rollup 为 `DayMetricsSummary`。
 
 - **WHEN** recorder 构造时 conversation=None
 - **THEN** day rollup 中 `info_origins_today` / `info_shares_today` /
-  `info_reaching_2plus_today` / `avg_hops_today` SHALL 全为 None
+  `info_reaching_2plus_today` / `avg_hops_today` /
+  `info_target_reach_today` SHALL 全为 None
 
 #### Scenario: conversation 注入时 day rollup 含 info 指标
 
 - **WHEN** recorder 构造时注入 conversation；当天 record 了 3 条 origin，
-  其中 1 条传播到 hops=2
+  其中 1 条传播到 hops=2，且其中 2 个 learner 是 target audience
 - **THEN** 该 day 的 DayMetricsSummary 中 `info_origins_today == 3`，
-  `info_reaching_2plus_today == 1`
+  `info_reaching_2plus_today == 1`，`info_target_reach_today == 2`（视
+  audience_tag_provider 是否注入；未注入时为 0）
 
 #### Scenario: 采样不影响 tick 性能超过 10%
 - **WHEN** 100 agents × 288 tick × 14 day × 1 seed，与无 recorder baseline 比较
@@ -337,13 +343,18 @@ recorder 持有 social_graph 时填充：值 = run 末时刻 graph 中 strength 
 recorder 持有 conversation 时填充为 dict：
 ```
 {
-  "info_count_total": int,           # 一共多少条 info origin
-  "max_hop_observed": int,           # 任一 info 实际最长跳了几跳
-  "info_reaching_2plus_hops": int,   # 至少跳到 hops≥2 的 info 数
-  "avg_reach_per_info": float,       # 平均每条 info 到达多少 agent
+  "info_count_total": int,                      # 一共多少条 info origin
+  "max_hop_observed": int,                      # 任一 info 实际最长跳了几跳
+  "info_reaching_2plus_hops": int,              # 至少跳到 hops≥2 的 info 数
+  "avg_reach_per_info": int,                    # 平均每条 info 到达多少 agent
+  "info_within_target_reach": int,              # 新增：触达目标受众内 agents 总数
+  "info_outside_target_reach": int,             # 新增：触达目标受众外 agents 总数
+  "target_precision": float,                    # 新增：within / (within + outside)
 }
 ```
 未注入 conversation 时 `info_propagation_hops` SHALL 保持 None。
+
+新增字段在 `audience_tag_provider` 未注入时取 0 / 0.0；不抛异常。
 
 `RunMetrics.with_extensions(**kwargs) -> RunMetrics` SHALL 保留为
 `pydantic .model_copy(update=...)` 简化 wrapper。
@@ -373,6 +384,24 @@ recorder 持有 conversation 时填充为 dict：
 - **THEN** `RunMetrics.from_recorder(recorder).info_propagation_hops` SHALL
   含 `info_count_total: 12`、`info_reaching_2plus_hops: 4`、
   `max_hop_observed: 3`
+
+#### Scenario: from_recorder 填充 info_propagation_hops 含 target_precision
+
+- **WHEN** recorder 持有 conversation + audience_tag_provider；跑完后
+  conversation 含 10 条 info，其中 7 条触达内含 30 个 within-target agents
+  和 10 个 outside-target agents
+- **THEN** `RunMetrics.from_recorder(recorder).info_propagation_hops` SHALL
+  含：
+  - `info_within_target_reach == 30`
+  - `info_outside_target_reach == 10`
+  - `target_precision == 0.75`（30/40）
+
+#### Scenario: 未注入 audience_tag_provider 时 target 字段为 0
+
+- **WHEN** conversation 注入但 audience_tag_provider=None
+- **THEN** `info_propagation_hops["target_precision"] == 0.0`，
+  `info_within_target_reach == 0`，`info_outside_target_reach == 0`；
+  其它 4 keys 正常填充
 
 #### Scenario: 未注入 conversation 时 info_propagation_hops 保持 None
 
