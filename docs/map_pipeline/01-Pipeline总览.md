@@ -1,5 +1,16 @@
 # 地图构建 Pipeline 总览
 
+> **⚠️ STALE — 2026-03-17 写**。两阶段管线（OSM 几何 + LLM 富化）的总体
+> 思路仍准确。具体细节已被以下文档替代：
+>
+> - [`03-实操指南.md`](03-实操指南.md) — 当前操作步骤
+> - [`04-reading-the-atlas.md`](04-reading-the-atlas.md) — 跑出来的 atlas
+>   怎么读
+>
+> 本管线后续的硬化包括：Overture 多源 conflation、building dedup（IoU 判重）、
+> water multipolygon ring assembly、residential 语义提取——见
+> `openspec/changes/archive/2026-04-*-cartography-*` 一系列 change。
+
 ## 目标
 
 将真实城市地理数据转换为 synthetic_socio_wind_tunnel 可运行的 Atlas 地图。

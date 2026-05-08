@@ -1,5 +1,22 @@
 # Synthetic Socio Wind Tunnel：超在地性边界渗透推演系统
 
+> **写于 2026-04-22**。本 brief 描述项目的**背景层**（动机、理论框架、
+> 三大实验设计 Digital Lure / Spatial Unlock / Shared Perception、成本与
+> 模型预算）——这些**仍准确**。
+>
+> 之后陆续 ship 的能力（attention-rebalance / social-graph / conversation /
+> push-content-individualization 等）见
+> [`agent_system/19-system-snapshot.md`](agent_system/19-system-snapshot.md)
+> 的"历史决策点"表（截至 2026-05-08 共 24 个 change archive）。
+>
+> 当前 thesis 主论证以 [`agent_system/00-thesis.md`](agent_system/00-thesis.md)
+> 为权威——本 brief 的实验框架（三 E1/E2/E3 实验）已被
+> [`agent_system/13-research-design.md`](agent_system/13-research-design.md)
+> 的 4+1 rival hypothesis 框架在 spec 层取代；E1/E2/E3 的科学动机仍是 brief
+> 中描述的内容。
+
+---
+
 ## 项目完整Brief
 
 ---

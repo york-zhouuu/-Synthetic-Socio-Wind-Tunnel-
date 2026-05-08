@@ -1,5 +1,14 @@
 # WIP：Hyperlocal Border Simulator
 
+> **⚠️ 此文件是 2026-04-21 时点快照**，作为某次 framing 演讲的视觉素材组织。
+> 当前进度以 [`agent_system/19-system-snapshot.md`](agent_system/19-system-snapshot.md)
+> 为准——彼时尚未完成的内容（attention-rebalance / social-graph /
+> conversation / push-content-individualization）都在 May 陆续 ship。
+>
+> 本文件保留作为"演讲叙事结构"的历史参考。
+
+---
+
 ## 项目进展汇报结构
 
 ---

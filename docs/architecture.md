@@ -1,5 +1,15 @@
 # Synthetic Socio Wind Tunnel — System Architecture
 
+> **⚠️ STALE — 2026-03 写**。CQRS 架构骨架（Atlas read-only / Ledger
+> read-write / Engine write services / Perception read services）仍准确。
+> 但具体的 capability 列表（attention-channel / memory / orchestrator /
+> multi-day-run / policy-hack / metrics / suite-wiring / social-graph /
+> conversation / push-personalizer 等）随后才陆续 ship——当前能力图谱看
+> [`agent_system/19-system-snapshot.md`](agent_system/19-system-snapshot.md)
+> 的 11+ capability 矩阵。
+
+---
+
 ```mermaid
 graph TB
     subgraph INPUT["🌆 Input Layer"]
