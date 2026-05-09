@@ -13,9 +13,11 @@ tick 内顺序（见 design D4）：
 
 from __future__ import annotations
 
+import asyncio
+import logging
 from collections import defaultdict
 from datetime import date, datetime, timedelta
-from typing import TYPE_CHECKING, Callable
+from typing import TYPE_CHECKING, Awaitable, Callable
 
 from synthetic_socio_wind_tunnel.agent.intent import (
     ExamineIntent,
@@ -83,6 +85,7 @@ class Orchestrator:
         "_num_days",
         "_resolver",
         "_hooks",
+        "_async_tick_end_hooks",
     )
 
     def __init__(
@@ -135,6 +138,12 @@ class Orchestrator:
         self._pipeline = pipeline or self._default_pipeline()
         self._resolver = IntentResolver(seed=seed)
         self._hooks: dict[HookName, list[Callable]] = {name: [] for name in _HOOK_NAMES}
+        # ai-town port (Phase E task 20): async on_tick_end hooks for
+        # OperationPool.process_pending. Run AFTER sync on_tick_end hooks
+        # so synchronous metrics / replan see the same TickResult first.
+        self._async_tick_end_hooks: list[
+            Callable[[TickResult], Awaitable[None]]
+        ] = []
 
     def _default_pipeline(self) -> PerceptionPipeline:
         return PerceptionPipeline(
@@ -155,12 +164,53 @@ class Orchestrator:
     def register_on_tick_end(self, cb: Callable[[TickResult], None]) -> None:
         self._hooks["on_tick_end"].append(cb)
 
+    def register_on_tick_end_async(
+        self, cb: Callable[[TickResult], Awaitable[None]],
+    ) -> None:
+        """Register an async coroutine factory to run AFTER sync on_tick_end hooks.
+
+        Use this for the OperationPool.process_pending sweep: it returns a
+        coroutine that completes any in-flight LLM ops and routes results
+        back to per-agent tick_inputs queues. Multiple async hooks fire
+        sequentially within `asyncio.run`; failure in one does not abort
+        the others.
+        """
+        self._async_tick_end_hooks.append(cb)
+
     def register_on_simulation_end(self, cb: Callable[[SimulationSummary], None]) -> None:
         self._hooks["on_simulation_end"].append(cb)
 
     def _fire(self, name: HookName, payload) -> None:
         for cb in self._hooks[name]:
             cb(payload)
+
+    def _fire_async_tick_end(self, tick_result: TickResult) -> None:
+        """Run all registered async on_tick_end hooks. Failures logged."""
+        if not self._async_tick_end_hooks:
+            return
+        async def runner() -> None:
+            for hook in self._async_tick_end_hooks:
+                try:
+                    await hook(tick_result)
+                except Exception as exc:
+                    logging.getLogger(__name__).warning(
+                        "async on_tick_end hook %r raised: %r",
+                        hook, exc,
+                    )
+        try:
+            # No outer event loop expected (orchestrator.run is sync);
+            # asyncio.run starts and tears down a fresh loop per tick.
+            # Cheap relative to LLM work but not free — only invoked when
+            # there ARE async hooks registered.
+            asyncio.run(runner())
+        except RuntimeError as exc:
+            # If we're nested inside an existing loop (rare; e.g. tests),
+            # fall back to creating a task on the running loop.
+            logging.getLogger(__name__).debug(
+                "asyncio.run failed (%r); falling back to existing loop", exc,
+            )
+            loop = asyncio.get_event_loop()
+            loop.run_until_complete(runner())
 
     # ---- Main entry ----
 
@@ -216,6 +266,9 @@ class Orchestrator:
                     total_commits_failed += 1
             total_encounters += len(tick_result.encounter_candidates)
             self._fire("on_tick_end", tick_result)
+            # ai-town port: async hooks (OperationPool.process_pending)
+            # fire AFTER sync hooks so process_tick / metrics see results first.
+            self._fire_async_tick_end(tick_result)
 
         ended_at = datetime.now()
         summary = SimulationSummary(

@@ -94,6 +94,47 @@ class SocialGraphService:
         """Asymptotic strength formula: N / (N + K)."""
         return encounter_count / (encounter_count + self._K)
 
+    def preload_ties(self, prior_records, *, day_index: int = -1) -> int:
+        """Bulk-create Tie records from PriorTieRecord items (lane cove
+        data_loader). Multiple records for the same pair sum their
+        encounter_count contributions.
+
+        Used at sim-start to give the graph a non-empty day-0 state
+        (without this, every agent pair = stranger). Idempotent across
+        repeated calls — second call no-ops because seen_in_tick logic.
+
+        Args:
+            prior_records: iterable of PriorTieRecord
+            day_index: stamped on Tie.first_seen_day (default -1 = pre-sim)
+
+        Returns:
+            number of ties created (not the number of input records)
+        """
+        # Aggregate encounter_count per canonical pair
+        agg: dict[tuple[str, str], int] = {}
+        for rec in prior_records:
+            key = canonical_pair(rec.agent_a, rec.agent_b)
+            agg[key] = agg.get(key, 0) + int(rec.encounter_count)
+
+        created = 0
+        for key, count in agg.items():
+            if key in self._ties:
+                # already preloaded; skip
+                continue
+            tie = Tie(
+                agent_a=key[0], agent_b=key[1],
+                encounter_count=count,
+                strength=self._strength(count),
+                first_seen_tick=-1,
+                last_seen_tick=-1,
+                first_seen_day=day_index,
+            )
+            self._ties[key] = tie
+            self._agent_to_pairs.setdefault(key[0], set()).add(key)
+            self._agent_to_pairs.setdefault(key[1], set()).add(key)
+            created += 1
+        return created
+
     # ---- 查询 ----
 
     def get_tie(self, agent_a: str, agent_b: str) -> Tie | None:

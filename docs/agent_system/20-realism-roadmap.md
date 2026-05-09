@@ -142,6 +142,37 @@
 - 案例页面 POI 显示"实时占用 / 容量"bar
 - 高峰时段邻近 cafe 之间发生"agent overflow"现象
 
+### Stage 6 — `agent-stack-aitown-port` ✅ APPLIED 2026-05-09（Phase F 部分 deferred）
+**目标**：1:1 复刻 ai-town agent 内涵层 — 反思记忆 + 双向 LLM dialogue + 决策树
+
+注意：**此 stage 不属于上文 5 stage 拟真路线图**（路线图聚焦 routine /
+注意力 / POI capacity 等"行为像真人"的拟真维度）；本 stage 解决的是
+agent **内涵深度**——只对 10/1000 protagonist 启用，scripted agent 路径
+完全不变。两条路径正交：拟真 stage 改的是 990 个 scripted plan 的真实感；
+本 stage 改的是 10 个主角的"心智结构"。
+
+落地范围：
+- `agent-operations` (新 capability)：PendingOp / OperationPool / handlers
+  (do_something / generate_message / remember_conversation)
+- `memory` (MODIFIED)：reflection events + ImportanceScorer +
+  EmbeddingsCache + retrieval_mode="aitown" (normalize-then-sum,
+  0.99^hour recency)
+- `conversation` (MODIFIED)：Dialogue 4-state machine + DialogueService +
+  bridge_to_memory_and_propagation 三层 fan-out
+- `agent` (MODIFIED)：identity_text/plan_text + ai-town 状态字段 + 6-step
+  决策树 step()，使用 `use_aitown_decision_tree` flag 隔离
+- orchestrator：`register_on_tick_end_async` 让 OperationPool.process_pending
+  挂到 tick 末尾
+- metrics：`reflection_count` / `dialogue_count` / `dialogue_avg_length` /
+  `op_timeout_count` / `cost_breakdown`
+- inspector：`reflection_log` / `dialogue_log` / `op_log` / `cost_summary`
+- `tools/tier_llm_factory.py`：sonnet/haiku/nano 路由
+
+**Phase F 残留**（在 archive 前补完）：
+- 24.x benchmark 对照（aitown ON vs OFF），需要真 LLM 跑 publishable suite
+- 22.2 inspector smoke 跑 6 protag × 3 day，需要真 LLM
+- 19.2 把 tier_llm_factory 接入 run_variant_suite/replan_trace/inspector
+
 ---
 
 ## 4. 第一阶段（Stage 1）展开

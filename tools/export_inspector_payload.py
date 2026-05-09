@@ -442,6 +442,182 @@ def _collect_conversation(orchestrator, inspect_ids: set) -> dict[str, Any]:
     }
 
 
+def _collect_reflection_log(
+    runtimes: list, inspect_ids: set,
+) -> dict[str, Any]:
+    """Per-inspected-agent reflection MemoryEvents (ai-town port)."""
+    # Discover MemoryService via runtime injection.
+    msvc = next(
+        (rt.memory_service for rt in runtimes
+         if rt.memory_service is not None),
+        None,
+    )
+    if msvc is None:
+        return {"available": False}
+    per_agent: dict[str, list[dict[str, Any]]] = {}
+    total = 0
+    for aid in sorted(inspect_ids):
+        events = [
+            ev for ev in msvc.all_for(aid) if ev.kind == "reflection"
+        ]
+        per_agent[aid] = [
+            {
+                "event_id": ev.event_id,
+                "tick": ev.tick,
+                "simulated_time": ev.simulated_time.isoformat(),
+                "day_index": ev.day_index,
+                "content": ev.content,
+                "importance": ev.importance,
+                "related_memory_ids": list(ev.related_memory_ids),
+            }
+            for ev in events
+        ]
+        total += len(events)
+    return {
+        "available": True,
+        "totals": {"reflection_count": total},
+        "per_inspected_agent": per_agent,
+    }
+
+
+def _collect_dialogue_log(
+    runtimes: list, inspect_ids: set,
+) -> dict[str, Any]:
+    """Per-inspected-agent dialogues + global stats (ai-town port)."""
+    dsvc = next(
+        (rt.dialogue_service for rt in runtimes
+         if rt.dialogue_service is not None),
+        None,
+    )
+    if dsvc is None:
+        return {"available": False}
+
+    def _msg_dict(m) -> dict[str, Any]:
+        return {
+            "message_id": m.message_id,
+            "speaker_id": m.speaker_id,
+            "content": m.content,
+            "tick": m.tick,
+        }
+
+    def _dlg_dict(d) -> dict[str, Any]:
+        return {
+            "dialogue_id": d.dialogue_id,
+            "initiator_id": d.initiator_id,
+            "invitee_id": d.invitee_id,
+            "target_location_id": d.target_location_id,
+            "started_tick": d.started_tick,
+            "ended_tick": d.ended_tick,
+            "end_reason": d.end_reason,
+            "status": d.status,
+            "message_count": len(d.messages),
+            "messages": [_msg_dict(m) for m in d.messages],
+        }
+
+    per_agent: dict[str, list[dict[str, Any]]] = {}
+    for aid in sorted(inspect_ids):
+        agent_dlgs = [
+            d for d in dsvc.all_dialogues() if d.has_participant(aid)
+        ]
+        per_agent[aid] = [_dlg_dict(d) for d in agent_dlgs]
+
+    return {
+        "available": True,
+        "totals": {
+            "total_count": dsvc.total_count(),
+            "active_count": dsvc.active_count(),
+            "ended_count": dsvc.ended_count(),
+            "avg_message_count": round(dsvc.avg_message_count(), 3),
+            "counts_by_end_reason": dsvc.counts_by_end_reason(),
+        },
+        "per_inspected_agent": per_agent,
+    }
+
+
+def _collect_op_log(
+    runtimes: list, inspect_ids: set,
+) -> dict[str, Any]:
+    """OperationPool timeline + cost summary (ai-town port)."""
+    pool = next(
+        (rt.operation_pool for rt in runtimes
+         if rt.operation_pool is not None),
+        None,
+    )
+    if pool is None:
+        return {"available": False}
+
+    completed = list(getattr(pool, "_completed_log", []))
+    timed_out = list(getattr(pool, "_timeout_log", []))
+    errors = list(getattr(pool, "_error_log", []))
+
+    def _result_dict(r) -> dict[str, Any]:
+        return {
+            "op_id": r.op_id,
+            "agent_id": r.agent_id,
+            "kind": r.kind,
+            "success": r.success,
+            "error_msg": r.error_msg,
+            "prompt_tokens": r.prompt_tokens,
+            "completion_tokens": r.completion_tokens,
+            "model": r.model,
+        }
+
+    def _pending_dict(p) -> dict[str, Any]:
+        return {
+            "op_id": p.op_id,
+            "agent_id": p.agent_id,
+            "kind": p.kind,
+            "created_tick": p.created_tick,
+            "timeout_tick": p.timeout_tick,
+        }
+
+    per_agent: dict[str, list[dict[str, Any]]] = {}
+    for aid in sorted(inspect_ids):
+        per_agent[aid] = [
+            _result_dict(r) for r in completed if r.agent_id == aid
+        ]
+
+    return {
+        "available": True,
+        "totals": {
+            "completed_count": len(completed),
+            "timeout_count": len(timed_out),
+            "error_count": len(errors),
+        },
+        "per_inspected_agent_completed": per_agent,
+        "all_timeouts": [_pending_dict(p) for p in timed_out],
+        "all_errors": [_result_dict(r) for r in errors],
+    }
+
+
+def _collect_cost_summary(runtimes: list) -> dict[str, Any]:
+    """Aggregate cost across tiers from OperationPool's completed log."""
+    pool = next(
+        (rt.operation_pool for rt in runtimes
+         if rt.operation_pool is not None),
+        None,
+    )
+    if pool is None:
+        return {"available": False}
+    completed = list(getattr(pool, "_completed_log", []))
+    tier_for_kind = getattr(pool, "_tier_for_kind", {})
+    rates = {"sonnet": 6.0, "haiku": 0.8, "nano": 0.4}
+    breakdown: dict[str, float] = {"sonnet": 0.0, "haiku": 0.0, "nano": 0.0}
+    token_breakdown: dict[str, int] = {"sonnet": 0, "haiku": 0, "nano": 0}
+    for r in completed:
+        tier = tier_for_kind.get(r.kind, "sonnet")
+        tokens = (r.prompt_tokens or 0) + (r.completion_tokens or 0)
+        rate = rates.get(tier, 1.0)
+        breakdown[tier] = breakdown.get(tier, 0.0) + (tokens / 1_000_000.0) * rate
+        token_breakdown[tier] = token_breakdown.get(tier, 0) + tokens
+    breakdown["total"] = sum(breakdown.values())
+    return {
+        "available": True,
+        "cost_usd": breakdown,
+        "tokens": token_breakdown,
+    }
+
+
 def _collect_social_graph(runtimes: list, inspect_ids: set) -> dict[str, Any]:
     """Dump per-inspected-agent ties + global counts.
 
@@ -660,6 +836,13 @@ def main() -> int:
         "social_graph": _collect_social_graph(inspected_runtimes, inspect_ids),
         "conversation": _collect_conversation(orch, inspect_ids),
         "personalization": _collect_personalization(inspected_runtimes, inspect_ids),
+        # ai-town port (agent-stack-aitown-port Phase E task 22)
+        "reflection_log": _collect_reflection_log(
+            inspected_runtimes, inspect_ids,
+        ),
+        "dialogue_log": _collect_dialogue_log(inspected_runtimes, inspect_ids),
+        "op_log": _collect_op_log(inspected_runtimes, inspect_ids),
+        "cost_summary": _collect_cost_summary(inspected_runtimes),
     }
 
     output_path.write_text(

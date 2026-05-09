@@ -6,7 +6,7 @@ from dataclasses import dataclass, field
 from typing import Literal
 
 
-_VALID_CATEGORIES = ("push", "observation", "rumor")
+_VALID_CATEGORIES = ("push", "observation", "rumor", "dialogue")
 
 
 @dataclass(frozen=True)
@@ -16,11 +16,15 @@ class Information:
     `salience` ∈ [0, 1] is the "worth-mentioning" coefficient — hyperlocal
     news ≈ 0.8, commercial push ≈ 0.5, global news ≈ 0.3. Higher salience
     yields a higher per-encounter share probability.
+
+    "dialogue" category (ai-town port): a summary produced by the
+    remember_conversation op when a Dialogue ends — propagates from the
+    initiator outward like a rumor.
     """
 
     info_id: str
     content: str
-    category: Literal["push", "observation", "rumor"]
+    category: Literal["push", "observation", "rumor", "dialogue"]
     salience: float
     origin_tick: int
     origin_agent_id: str

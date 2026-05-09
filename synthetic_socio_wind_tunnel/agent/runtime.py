@@ -17,9 +17,18 @@ from .planner import DailyPlan, PlanStep
 if TYPE_CHECKING:
     from typing import Sequence
 
+    from synthetic_socio_wind_tunnel.agent.operations.models import (
+        OperationResult,
+        PendingOp,
+    )
+    from synthetic_socio_wind_tunnel.agent.operations.pool import OperationPool
     from synthetic_socio_wind_tunnel.attention import AttentionService
+    from synthetic_socio_wind_tunnel.conversation.dialogue_service import (
+        DialogueService,
+    )
     from synthetic_socio_wind_tunnel.engine.navigation import NavigationResult
     from synthetic_socio_wind_tunnel.memory.models import MemoryEvent
+    from synthetic_socio_wind_tunnel.memory.service import MemoryService
     from synthetic_socio_wind_tunnel.orchestrator.models import TickContext
     from synthetic_socio_wind_tunnel.social_graph import SocialGraphService
     from .profile import AgentProfile
@@ -93,9 +102,73 @@ class AgentRuntime:
     enable_replan_log: bool = False
     replan_decision_log: list[ReplanDecisionRecord] = field(default_factory=list)
 
+    # ---- ai-town port (agent-stack-aitown-port) ----
+    # Mirror ai-town's Agent state (convex/aiTown/agent.ts).
+    #   inProgressOperation → pending_operation     (in-flight LLM op)
+    #   inConversation       → current_dialogue_id  (active dialogue)
+    #   toRemember           → to_remember          (dialogue_id awaiting summary)
+    #   lastConversation     → last_dialogue_ended_tick (tick the last dialogue ended,
+    #                                                    used by decision tree cooldown)
+    # last_op_kind is a bookkeeping field used by metrics / inspector to attribute
+    # the most-recent op cost to its kind without re-walking the OperationPool.
+    # All mutations go through the dedicated set_/clear_ methods below — never via
+    # `agent.pending_operation = ...` — so debug tooling can hook a single point.
+    pending_operation: "PendingOp | None" = None
+    current_dialogue_id: str | None = None
+    to_remember: str | None = None
+    last_dialogue_ended_tick: int | None = None
+    last_op_kind: str | None = None
+
+    # Feature flag: when True (typically only for protagonist agents),
+    # AgentRuntime.step uses the ai-town decision tree (after task 18).
+    # Default False so existing test fixtures and scripted agents stay
+    # on the legacy plan-driven path. Population.sample_population sets
+    # True for protagonists when use_aitown=True at sample time.
+    use_aitown_decision_tree: bool = False
+
+    # ai-town decision-tree injectables. None when not running the aitown
+    # path; populated by orchestrator wiring for protagonists.
+    dialogue_service: "DialogueService | None" = None
+    operation_pool: "OperationPool | None" = None
+    memory_service: "MemoryService | None" = None
+
+    # ai-town port: per-agent RNG for invite accept/reject decisions
+    # (1:1 with `Math.random() < INVITE_ACCEPT_PROBABILITY`). Seeded
+    # deterministically from agent_id via __post_init__ so the same
+    # agent in the same dialogue makes the same choice across replays.
+    _invite_rng: random.Random | None = None
+
+    # ai-town port: INVITE_ACCEPT_PROBABILITY constant (1:1 from constants.ts)
+    invite_accept_probability: float = 0.8
+
+    # OperationResults waiting to be drained at the next step(). The
+    # orchestrator's on_tick_end_async hook (Phase E) calls
+    # `consume_op_result(result)` once per agent per result. Drained at
+    # the top of `_aitown_step`.
+    _tick_inputs: list["OperationResult"] = field(default_factory=list)
+
+    # Counter for stable per-agent op_id generation.
+    _op_id_counter: int = 0
+
+    # Hint feed that orchestrator may set between ticks; used when
+    # building op args for `do_something`. Kept simple (mutable lists).
+    nearby_hint: list[dict] = field(default_factory=list)
+    candidate_destinations_hint: list[str] = field(default_factory=list)
+    recent_memory_hint: list[str] = field(default_factory=list)
+
+    # Buffer holding the most-recent do_something action that step()
+    # decided to execute this tick. step() returns the corresponding
+    # Intent and clears it.
+    _pending_action: dict | None = None
+
     def __post_init__(self) -> None:
         if not self.current_location:
             self.current_location = self.profile.home_location
+        # ai-town port: deterministic per-agent RNG for invite gates
+        if self._invite_rng is None:
+            self._invite_rng = random.Random(
+                hash(("invite", self.profile.agent_id)) & 0xFFFFFFFF
+            )
 
     # --- 移动 ---
 
@@ -159,7 +232,20 @@ class AgentRuntime:
         - 不写 Ledger、不调 LLM、不 mutate observer_context
 
         见 openspec/specs/agent/spec.md "AgentRuntime.step 产出本 tick 的 Intent"
+
+        ai-town port (agent-stack-aitown-port Phase D task 18):
+        if `use_aitown_decision_tree=True` and the agent is a protagonist,
+        routes through `_aitown_step` (consumes tick_inputs, manages
+        dialogue lifecycle + LLM op scheduling). Otherwise the legacy
+        plan-driven step.
         """
+        if self.use_aitown_decision_tree and self.profile.is_protagonist:
+            return self._aitown_step(tick_ctx)
+        return self._legacy_step(tick_ctx)
+
+    def _legacy_step(self, tick_ctx: "TickContext") -> Intent:
+        """Plan-driven step (pre-aitown behavior). All scripted agents
+        and protagonists with `use_aitown_decision_tree=False` use this."""
         if self.plan is None:
             return WaitIntent(reason="no_plan")
 
@@ -184,6 +270,463 @@ class AgentRuntime:
 
         # 3. 其它 action → WaitIntent（本 change 不产 Examine/Pickup/...）
         return WaitIntent(reason=current.activity or current.action or "unspecified")
+
+    # --- ai-town decision tree (Phase D task 18) -----------------------
+
+    def consume_op_result(self, result: "OperationResult") -> None:
+        """Push an OperationResult into this agent's tick_inputs queue.
+
+        The orchestrator's `on_tick_end_async` hook (Phase E) drains
+        OperationPool.process_pending and calls this for every result that
+        belongs to a given agent. The result is applied at the top of the
+        next `_aitown_step` invocation.
+        """
+        self._tick_inputs.append(result)
+
+    def _drain_tick_inputs(self) -> None:
+        """Apply effects from any OperationResults received since last step.
+
+        - generate_message → append message to current dialogue
+        - remember_conversation → bridge_to_memory_and_propagation, clear to_remember
+        - do_something → store action in `_pending_action` for this tick to translate
+        - reflect → no-op here (MemoryService.maybe_reflect already wrote events)
+        - score_importance → no-op here (importance written into memory event)
+
+        After applying any result, clears `pending_operation` if the
+        result matches the in-flight op id — agent is then free to
+        schedule the next op next tick. Without this clear, agent waits
+        for op `timeout_tick` (~24 ticks) before progressing → makes
+        dialogue messaging painfully slow.
+        """
+        if not self._tick_inputs:
+            return
+        for result in self._tick_inputs:
+            if not result.success:
+                # Even failed ops should release the pending slot
+                if (self.pending_operation is not None
+                        and self.pending_operation.op_id == result.op_id):
+                    self.clear_pending_op()
+                continue
+            if result.kind == "generate_message":
+                self._apply_generate_message_result(result)
+            elif result.kind == "remember_conversation":
+                self._apply_remember_conversation_result(result)
+            elif result.kind == "do_something":
+                # Store the action; the decision tree will translate it
+                # into an Intent this same tick.
+                self._pending_action = dict(result.payload)
+            # reflect / score_importance: no-op (handled inside MemoryService)
+
+            # Release the pending slot now that the result is consumed.
+            if (self.pending_operation is not None
+                    and self.pending_operation.op_id == result.op_id):
+                self.clear_pending_op()
+        self._tick_inputs.clear()
+
+    def _apply_generate_message_result(self, result: "OperationResult") -> None:
+        """Append generated message into the agent's current dialogue.
+
+        ai-town port: when `phase == "leave"`, also `dialogue_service.end()`
+        the conversation (matches `agentSendMessage(leaveConversation: true)`
+        in agent.ts:307-334) and stamp `to_remember` so the next tick
+        triggers a remember_conversation op.
+        """
+        if self.dialogue_service is None:
+            return
+        d_id = result.payload.get("dialogue_id")
+        speaker_id = result.payload.get("speaker_id", self.profile.agent_id)
+        content = result.payload.get("content", "")
+        phase = result.payload.get("phase", "continue")
+        if not d_id or not content:
+            import logging as _l
+            _l.getLogger(__name__).warning(
+                "[apply_msg] %s skipped (d_id=%r, content_len=%d)",
+                speaker_id, d_id, len(content),
+            )
+            return
+        d = self.dialogue_service.get(d_id)
+        if d is None or d.ended_tick is not None:
+            return
+        if d.status != "participating":
+            import logging as _l
+            _l.getLogger(__name__).warning(
+                "[apply_msg] %s skipped d=%s status=%s",
+                speaker_id, d_id, d.status,
+            )
+            return
+        # Append the message — this might auto-end the dialogue if
+        # message_count crosses _max_messages, which is OK as a last-resort
+        # fallback (ai-town has no such fallback; we keep it for safety).
+        next_tick = d.last_message_tick + 1
+        sim_time = d.started_at or datetime.min
+        try:
+            self.dialogue_service.append_message(
+                d_id, speaker_id, content,
+                tick=next_tick,
+                simulated_time=sim_time,
+            )
+        except Exception:
+            # If append fails (e.g. dialogue ended between scheduling and
+            # arrival), drop the message silently — it's a stale result.
+            return
+
+        if phase == "leave":
+            # ai-town leave path: explicitly end + queue remember.
+            d_after = self.dialogue_service.get(d_id)
+            if d_after is not None and d_after.ended_tick is None:
+                try:
+                    self.dialogue_service.end(
+                        d_id, "leave",
+                        tick=next_tick, simulated_time=sim_time,
+                    )
+                except Exception:
+                    pass
+            # Stamp to_remember so next step's branch 3 schedules it.
+            if self.to_remember is None:
+                self.mark_to_remember(d_id)
+            # Clear current_dialogue_id so we don't re-enter dialogue branch.
+            self.clear_dialogue_id(ended_tick=next_tick)
+
+    def _apply_remember_conversation_result(self, result: "OperationResult") -> None:
+        """Run bridge_to_memory_and_propagation now that summary is ready."""
+        d_id = result.payload.get("dialogue_id")
+        summary = result.payload.get("summary", "")
+        if not d_id:
+            return
+        if self.dialogue_service is None or self.memory_service is None:
+            return
+        try:
+            self.dialogue_service.bridge_to_memory_and_propagation(
+                d_id,
+                memory_service=self.memory_service,
+                conversation_service=getattr(
+                    self.memory_service, "_conversation", None,
+                ),
+                social_graph=getattr(
+                    self.memory_service, "_social_graph", None,
+                ),
+                simulated_time=datetime.min,  # caller can override
+                summary=summary,
+            )
+        except Exception:
+            pass
+        # Clear the to_remember marker — handled.
+        if self.to_remember == d_id:
+            self.clear_to_remember()
+
+    def _aitown_step(self, tick_ctx: "TickContext") -> Intent:
+        """ai-town's Agent.tick decision tree, ported.
+
+        The 6 numbered branches mirror the spec (specs/agent/spec.md
+        Requirement 'AgentRuntime.step 决策树'):
+            1. consume tick_inputs
+            2. pending op gate
+            3. to_remember gate
+            4. dialogue lifecycle
+            5. plan-driven path (legacy)
+            6. else schedule do_something
+        """
+        # 1. Consume any op results delivered between ticks.
+        self._drain_tick_inputs()
+
+        # If do_something result is pending, translate it to an Intent
+        # and consume it in this tick.
+        if self._pending_action is not None:
+            action = self._pending_action
+            self._pending_action = None
+            intent = self._translate_action_to_intent(action, tick_ctx)
+            if intent is not None:
+                return intent
+            # Falls through to other branches if translation didn't yield.
+
+        tick = tick_ctx.tick_index
+
+        # 2. Pending op gate — wait while LLM op is in flight (and not
+        # timed out). When timed out, clear silently and continue.
+        if self.pending_operation is not None:
+            if tick < self.pending_operation.timeout_tick:
+                return WaitIntent(reason="awaiting_op")
+            # timed out; drop it
+            self.clear_pending_op()
+
+        # 3. to_remember — schedule remember_conversation op.
+        if self.to_remember is not None:
+            if self._schedule_remember_op(tick_ctx):
+                return WaitIntent(reason="will_remember")
+            # If we couldn't schedule (no pool / no dialogue), clear and continue.
+            self.clear_to_remember()
+
+        # 4. Dialogue lifecycle (1:1 ai-town Agent.tick conversation branch).
+        if self.current_dialogue_id is not None and self.dialogue_service is not None:
+            d = self.dialogue_service.get(self.current_dialogue_id)
+            if d is not None:
+                # Per-AGENT status (not derived dialogue status) — matches
+                # ai-town's `member.status.kind` semantics where each
+                # participant has independent state.
+                my_status = d.member_status.get(self.profile.agent_id, "ended")
+
+                # 4a. invited → ai-town: Math.random() < INVITE_ACCEPT_PROBABILITY
+                #     auto-decide accept or reject (1:1 port of agent.ts:111-126).
+                if my_status == "invited":
+                    if self._invite_rng.random() < self.invite_accept_probability:
+                        try:
+                            self.dialogue_service.accept_invite(
+                                self.current_dialogue_id,
+                                self.profile.agent_id,
+                            )
+                        except Exception:
+                            pass
+                        return WaitIntent(reason="invite_accepted")
+                    # Reject path
+                    try:
+                        self.dialogue_service.reject_invite(
+                            self.current_dialogue_id,
+                            self.profile.agent_id,
+                            reason="random_decline",
+                            tick=tick,
+                            simulated_time=tick_ctx.simulated_time,
+                        )
+                    except Exception:
+                        pass
+                    self.clear_dialogue_id(ended_tick=tick)
+                    return WaitIntent(reason="invite_rejected")
+
+                # 4b. walking_over → MoveIntent toward partner location.
+                if my_status == "walking_over":
+                    if d.target_location_id:
+                        return MoveIntent(to_location=d.target_location_id)
+                    return WaitIntent(reason="walking_over")
+
+                # 4c. participating → either compose / leave / listen.
+                if my_status == "participating":
+                    last_speaker = (
+                        d.messages[-1].speaker_id if d.messages else None
+                    )
+                    is_my_turn = (
+                        last_speaker != self.profile.agent_id
+                        and not (
+                            last_speaker is None
+                            and self.profile.agent_id != d.initiator_id
+                        )
+                    )
+
+                    # 4c-i. ai-town: too long / too many messages → schedule
+                    # generate_message phase="leave" (1:1 agent.ts:191-207).
+                    # We trigger one message EARLIER than the absolute cap so
+                    # the leave message itself fits inside the cap.
+                    msg_max = getattr(
+                        self.dialogue_service, "_max_messages", 8,
+                    )
+                    dur_max = getattr(
+                        self.dialogue_service, "_max_duration_minutes", 30,
+                    )
+                    over_msg = d.message_count() >= msg_max - 1
+                    over_dur = (
+                        d.started_at is not None
+                        and (
+                            tick_ctx.simulated_time - d.started_at
+                        ).total_seconds() / 60.0 > dur_max - 5
+                    )
+                    if (over_msg or over_dur) and is_my_turn:
+                        if self._schedule_generate_message_op(
+                            d, tick_ctx, phase="leave",
+                        ):
+                            return WaitIntent(reason="composing_leave")
+                        return WaitIntent(reason="composing_no_pool")
+
+                    # 4c-ii. Normal turn dispatch.
+                    if is_my_turn:
+                        if self._schedule_generate_message_op(d, tick_ctx):
+                            return WaitIntent(reason="composing")
+                        return WaitIntent(reason="composing_no_pool")
+                    return WaitIntent(reason="listening")
+
+                # 4d. ended → mark to_remember, clear dialogue, fall through.
+                if my_status == "ended" and d.ended_tick is not None:
+                    if self.to_remember is None:
+                        self.mark_to_remember(self.current_dialogue_id)
+                    self.clear_dialogue_id(ended_tick=d.ended_tick or tick)
+
+        # 5. Plan-driven step.
+        intent = self._legacy_step(tick_ctx)
+
+        # 6. If plan has no useful action and we have an op pool, ask LLM
+        # to decide via do_something (avoid scheduling if a real plan step
+        # is being executed).
+        if (
+            isinstance(intent, WaitIntent)
+            and intent.reason in (
+                "no_plan", "plan_exhausted", "move_no_destination",
+            )
+            and self.operation_pool is not None
+        ):
+            if self._schedule_do_something_op(tick_ctx):
+                return WaitIntent(reason="reconsidering")
+        return intent
+
+    # --- Op scheduling helpers ----------------------------------------
+
+    def _next_op_id(self, kind: str, tick: int) -> str:
+        self._op_id_counter += 1
+        return f"op_{self.profile.agent_id}_{kind}_{tick}_{self._op_id_counter}"
+
+    def _schedule_op_safe(
+        self, op: "PendingOp", *, handler_kwargs: dict | None = None,
+    ) -> bool:
+        """Schedule via OperationPool + mark pending. False if pool is busy."""
+        if self.operation_pool is None:
+            return False
+        if self.pending_operation is not None:
+            return False
+        try:
+            self.operation_pool.schedule(op, handler_kwargs=handler_kwargs)
+        except Exception:
+            return False
+        self.set_pending_op(op)
+        return True
+
+    def _schedule_do_something_op(self, tick_ctx: "TickContext") -> bool:
+        """Build args for do_something and schedule via OperationPool."""
+        from synthetic_socio_wind_tunnel.agent.operations.models import PendingOp
+
+        tick = tick_ctx.tick_index
+        op = PendingOp(
+            op_id=self._next_op_id("do_something", tick),
+            agent_id=self.profile.agent_id,
+            kind="do_something",
+            created_tick=tick,
+            timeout_tick=tick + 24,
+            args={
+                "agent_id": self.profile.agent_id,
+                "agent_name": self.profile.name,
+                "agent_identity": self.profile.identity_text,
+                "agent_plan": self.profile.plan_text,
+                "current_location_id": self.current_location,
+                "current_time": tick_ctx.simulated_time.strftime("%H:%M"),
+                "recent_memories": list(self.recent_memory_hint),
+                "nearby_agents": list(self.nearby_hint),
+                "candidate_destinations": list(self.candidate_destinations_hint),
+                "model": self.profile.base_model,
+            },
+        )
+        return self._schedule_op_safe(op)
+
+    def _schedule_generate_message_op(
+        self,
+        dialogue,
+        tick_ctx: "TickContext",
+        *,
+        phase: str | None = None,
+    ) -> bool:
+        """Build args for generate_message and schedule.
+
+        Phase resolution (1:1 ai-town):
+        - explicit `phase` arg wins (e.g. "leave" forced by tooLong gate)
+        - else: "start" if dialogue has no messages else "continue"
+        """
+        from synthetic_socio_wind_tunnel.agent.operations.models import PendingOp
+
+        speaker_id = self.profile.agent_id
+        other_id = dialogue.other_participant(speaker_id)
+        if phase is None:
+            phase = "start" if not dialogue.messages else "continue"
+
+        recent_msgs = [
+            (msg.speaker_id, msg.content) for msg in dialogue.messages[-6:]
+        ]
+        tick = tick_ctx.tick_index
+        op = PendingOp(
+            op_id=self._next_op_id("generate_message", tick),
+            agent_id=speaker_id,
+            kind="generate_message",
+            created_tick=tick,
+            timeout_tick=tick + 24,
+            args={
+                "dialogue_id": dialogue.dialogue_id,
+                "speaker_id": speaker_id,
+                "other_agent_id": other_id,
+                "speaker_name": self.profile.name,
+                "other_name": other_id,  # caller may patch with real name
+                "speaker_identity": self.profile.identity_text or "",
+                "speaker_plan": self.profile.plan_text or "",
+                "other_identity": None,
+                "recent_messages": recent_msgs,
+                "relevant_memories": list(self.recent_memory_hint),
+                "phase": phase,
+                "model": self.profile.base_model,
+            },
+        )
+        return self._schedule_op_safe(op)
+
+    def _schedule_remember_op(self, tick_ctx: "TickContext") -> bool:
+        """Build args for remember_conversation and schedule."""
+        from synthetic_socio_wind_tunnel.agent.operations.models import PendingOp
+
+        d_id = self.to_remember
+        if d_id is None or self.dialogue_service is None:
+            return False
+        d = self.dialogue_service.get(d_id)
+        if d is None:
+            return False
+        speaker_id = self.profile.agent_id
+        other_id = d.other_participant(speaker_id)
+        messages = [(m.speaker_id, m.content) for m in d.messages]
+        tick = tick_ctx.tick_index
+        op = PendingOp(
+            op_id=self._next_op_id("remember_conversation", tick),
+            agent_id=speaker_id,
+            kind="remember_conversation",
+            created_tick=tick,
+            timeout_tick=tick + 24,
+            args={
+                "dialogue_id": d_id,
+                "speaker_id": speaker_id,
+                "speaker_name": self.profile.name,
+                "other_name": other_id,
+                "messages": messages,
+                "model": self.profile.base_model,
+            },
+        )
+        return self._schedule_op_safe(op)
+
+    def _translate_action_to_intent(
+        self, action: dict, tick_ctx: "TickContext",
+    ) -> Intent | None:
+        """Convert a do_something result payload into a concrete Intent.
+
+        Returns None if the action implies no immediate Intent change
+        (e.g. invite_dialogue actually schedules a dialogue invite + waits).
+        """
+        kind = action.get("action")
+        if kind == "go_to":
+            dest = action.get("destination_id")
+            if dest:
+                return MoveIntent(to_location=dest)
+        elif kind == "invite_dialogue":
+            target = action.get("target_agent_id")
+            if (
+                target
+                and self.dialogue_service is not None
+                and self.current_dialogue_id is None
+            ):
+                try:
+                    d = self.dialogue_service.schedule_invite(
+                        self.profile.agent_id, target,
+                        self.current_location,
+                        tick=tick_ctx.tick_index,
+                        simulated_time=tick_ctx.simulated_time,
+                    )
+                    self.set_dialogue_id(d.dialogue_id)
+                except Exception:
+                    pass
+            return WaitIntent(reason="invited_dialogue")
+        elif kind == "activity":
+            return WaitIntent(
+                reason=str(action.get("activity") or "activity"),
+            )
+        elif kind == "wait":
+            return WaitIntent(reason="aitown_wait")
+        return None
 
     def _current_step_expired(self, simulated_time: datetime) -> bool:
         """检查 plan.current() 的时间窗是否已过。plan 耗尽时返回 False。"""
@@ -212,6 +755,70 @@ class AgentRuntime:
         if not (0 <= hour < 24 and 0 <= minute < 60):
             return None
         return reference.replace(hour=hour, minute=minute, second=0, microsecond=0)
+
+    # --- ai-town state mutators (agent-stack-aitown-port) ---
+    #
+    # Always mutate via these methods; never `agent.pending_operation = x`.
+    # Single-point invariant enforcement (e.g. set_pending_op refuses to
+    # overwrite an in-flight op without explicit force; debug log hookable).
+
+    def set_pending_op(self, op: "PendingOp", *, force: bool = False) -> None:
+        """Mark `op` as the agent's in-flight LLM operation.
+
+        ai-town parallel: Agent.startOperation. Per-agent there is at most
+        ONE pending op at a time — running another while one is in-flight
+        is a logic error caught here.
+
+        Raises RuntimeError if a pending op already exists and `force=False`.
+        """
+        if self.pending_operation is not None and not force:
+            raise RuntimeError(
+                f"agent {self.profile.agent_id!r} already has pending op "
+                f"{self.pending_operation.op_id!r} (kind={self.pending_operation.kind!r}); "
+                f"clear it before scheduling another, or pass force=True"
+            )
+        self.pending_operation = op
+        self.last_op_kind = op.kind
+
+    def clear_pending_op(self) -> "PendingOp | None":
+        """Clear the in-flight op (after handler returns). Returns the
+        cleared op (for caller introspection) or None if there was none."""
+        op = self.pending_operation
+        self.pending_operation = None
+        return op
+
+    def set_dialogue_id(self, dialogue_id: str) -> None:
+        """Mark agent as in this active dialogue (after invite accepted)."""
+        if self.current_dialogue_id is not None and self.current_dialogue_id != dialogue_id:
+            raise RuntimeError(
+                f"agent {self.profile.agent_id!r} already in dialogue "
+                f"{self.current_dialogue_id!r}; cannot enter {dialogue_id!r}"
+            )
+        self.current_dialogue_id = dialogue_id
+
+    def clear_dialogue_id(self, *, ended_tick: int | None = None) -> str | None:
+        """Clear current dialogue. If `ended_tick` provided, also stamps
+        last_dialogue_ended_tick (used by decision-tree cooldown gating).
+        Returns the cleared id."""
+        d_id = self.current_dialogue_id
+        self.current_dialogue_id = None
+        if ended_tick is not None:
+            self.last_dialogue_ended_tick = ended_tick
+        return d_id
+
+    def mark_to_remember(self, dialogue_id: str) -> None:
+        """Queue a dialogue_id for next-tick remember_conversation op.
+
+        ai-town: Agent.toRemember is set when leave/end fires, then the next
+        tick reads it and runs rememberConversation. Same shape here.
+        """
+        self.to_remember = dialogue_id
+
+    def clear_to_remember(self) -> str | None:
+        """Pop the queued remember dialogue_id (consumed by handler)."""
+        d_id = self.to_remember
+        self.to_remember = None
+        return d_id
 
     # --- 社交图查询 (social-graph-capability) ---
 

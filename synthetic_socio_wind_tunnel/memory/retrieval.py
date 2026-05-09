@@ -1,25 +1,31 @@
 """
-MemoryRetriever — 4-way 打分检索。
+MemoryRetriever — 检索打分。
 
-子分：
-- structural: query 结构化字段命中的比例
-- keyword: substring 匹配（case-insensitive）
-- recency: exp(-Δt / half_life)
-- embedding: cosine similarity（若两侧都有 embedding）
+支持两种模式：
+1. **legacy** (默认): 加权和——struct 0.40 / keyword 0.15 / recency 0.35 / embed 0.10
+   全 SSWT 现有 caller 走这个；行为不变。
+2. **aitown** (mode="aitown"): 1:1 port of ai-town's `rankAndTouchMemories`
+   (memory.ts:187-228)——normalize-then-sum，3 维度 (relevance/embedding +
+   importance + recency)，每维 batch 内 min-max 归一化到 [0,1] 再相加。
+   recency 用 `0.99 ^ floor(hours)`（ai-town verbatim），不是 exp。
 
-默认权重：struct=0.4, keyword=0.15, recency=0.35, embed=0.10
+ai-town 模式下 keyword 维度被禁用（embedding 路径覆盖）；importance 维度
+真正参与（不再像 legacy 模式可能 default 0.5 而无效）。
 """
 
 from __future__ import annotations
 
 import math
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal
 
 from synthetic_socio_wind_tunnel.memory.embedding import cosine_similarity
 
 if TYPE_CHECKING:
     from synthetic_socio_wind_tunnel.memory.models import MemoryEvent, MemoryQuery
     from synthetic_socio_wind_tunnel.memory.store import MemoryStore
+
+
+RetrievalMode = Literal["legacy", "aitown"]
 
 
 _DEFAULT_WEIGHTS = {
@@ -32,15 +38,21 @@ _FALLBACK_POOL_SIZE = 200
 
 
 class MemoryRetriever:
-    """无状态打分器（权重配置注入）。"""
+    """检索打分器（legacy weighted-sum 或 aitown normalize-then-sum）。"""
 
-    __slots__ = ("_weights",)
+    __slots__ = ("_weights", "_mode")
 
-    def __init__(self, weights: dict[str, float] | None = None) -> None:
+    def __init__(
+        self,
+        weights: dict[str, float] | None = None,
+        *,
+        mode: RetrievalMode = "legacy",
+    ) -> None:
         w = dict(_DEFAULT_WEIGHTS)
         if weights:
             w.update(weights)
         self._weights = w
+        self._mode = mode
 
     def retrieve(
         self,
@@ -72,11 +84,22 @@ class MemoryRetriever:
         if ref_time is None and candidates:
             ref_time = max(e.simulated_time for e in candidates)
 
-        # 4. 打分
+        if self._mode == "aitown":
+            return self._rank_aitown(candidates, query, ref_time, top_k)
+        return self._rank_legacy(candidates, query, ref_time, top_k)
+
+    # -- legacy weighted-sum (existing SSWT behavior) ---------------------
+
+    def _rank_legacy(
+        self,
+        candidates: list["MemoryEvent"],
+        query: "MemoryQuery",
+        ref_time,
+        top_k: int,
+    ) -> list["MemoryEvent"]:
         query_fields_present = _count_query_structural_fields(query)
 
         scored: list[tuple[float, int, "MemoryEvent"]] = []
-        # 第二项 tick（降序）作 tie-break
         for event in candidates:
             struct_score = _structural_score(event, query, query_fields_present)
             kw_score = _keyword_score(event, query)
@@ -90,8 +113,47 @@ class MemoryRetriever:
                 + self._weights["embed"] * emb_score
             )
             scored.append((total, event.tick, event))
+        scored.sort(key=lambda t: (-t[0], -t[1]))
+        return [event for _score, _tick, event in scored[:top_k]]
 
-        # 5. 排序：score 降序，tick 降序（tie-break：新事件优先）
+    # -- aitown normalize-then-sum (1:1 port of memory.ts:187-228) ---------
+
+    def _rank_aitown(
+        self,
+        candidates: list["MemoryEvent"],
+        query: "MemoryQuery",
+        ref_time,
+        top_k: int,
+    ) -> list["MemoryEvent"]:
+        """Port of ai-town `rankAndTouchMemories`: normalize each component
+        across the candidate batch (min-max), then sum. Recency uses
+        0.99^floor(hours) per ai-town verbatim."""
+        if not candidates:
+            return []
+        # raw component scores
+        rel_scores: list[float] = []   # relevance (cosine similarity if embed available; else structural)
+        imp_scores: list[float] = []
+        rec_scores: list[float] = []
+        for event in candidates:
+            # relevance: prefer embedding if present, fallback to structural
+            if query.embedding_query is not None and event.embedding is not None:
+                rel_scores.append(_embedding_score(event, query))
+            else:
+                rel_scores.append(_structural_score(
+                    event, query, _count_query_structural_fields(query),
+                ))
+            imp_scores.append(event.importance)
+            rec_scores.append(_recency_aitown(event, ref_time))
+
+        # min-max normalize each component independently across the batch
+        rel_n = _normalize_minmax(rel_scores)
+        imp_n = _normalize_minmax(imp_scores)
+        rec_n = _normalize_minmax(rec_scores)
+
+        scored: list[tuple[float, int, "MemoryEvent"]] = []
+        for i, event in enumerate(candidates):
+            total = rel_n[i] + imp_n[i] + rec_n[i]
+            scored.append((total, event.tick, event))
         scored.sort(key=lambda t: (-t[0], -t[1]))
         return [event for _score, _tick, event in scored[:top_k]]
 
@@ -157,3 +219,35 @@ def _embedding_score(event: "MemoryEvent", query: "MemoryQuery") -> float:
     if query.embedding_query is None or event.embedding is None:
         return 0.0
     return cosine_similarity(event.embedding, query.embedding_query)
+
+
+def _recency_aitown(event: "MemoryEvent", ref_time) -> float:
+    """1:1 port of ai-town's recency formula (memory.ts:206):
+        recencyScore = 0.99 ^ floor(hoursSinceAccess)
+
+    Uses event.last_access if set (touched on retrieval), else simulated_time
+    as fallback. ai-town stores lastAccess as wallclock ts; we use simulated_time.
+    """
+    if ref_time is None:
+        return 1.0  # if no reference, treat as fully recent
+    anchor = event.last_access or event.simulated_time
+    delta_seconds = (ref_time - anchor).total_seconds()
+    if delta_seconds < 0:
+        delta_seconds = 0.0
+    hours = int(delta_seconds // 3600)
+    return 0.99 ** hours
+
+
+def _normalize_minmax(values: list[float]) -> list[float]:
+    """Min-max normalize a list to [0, 1]. If all values equal → all 1.0
+    (ai-town's normalize() returns NaN for that case but we treat as "all
+    equally relevant" since their `(x - min) / (max - min)` is undefined).
+    """
+    if not values:
+        return []
+    lo = min(values)
+    hi = max(values)
+    if hi == lo:
+        return [1.0] * len(values)
+    span = hi - lo
+    return [(v - lo) / span for v in values]

@@ -14,7 +14,7 @@ Attention metrics 通过 `AttentionService.export_feed_log()` 在 run 结束后
 from __future__ import annotations
 
 from collections import defaultdict
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from synthetic_socio_wind_tunnel.metrics.models import DayMetricsSummary
 
@@ -65,6 +65,8 @@ class TickMetricsRecorder:
     __slots__ = (
         "_ledger", "_attention_service", "_social_graph", "_conversation",
         "_buckets", "_current_day",
+        # ai-town port (Phase E task 21)
+        "_dialogue_service", "_memory_service", "_operation_pool",
     )
 
     def __init__(
@@ -74,6 +76,10 @@ class TickMetricsRecorder:
         attention_service: "AttentionService | None" = None,
         social_graph: "SocialGraphService | None" = None,
         conversation: "ConversationService | None" = None,
+        # ai-town port additions — all optional; None when capability not wired.
+        dialogue_service: "Any | None" = None,
+        memory_service: "Any | None" = None,
+        operation_pool: "Any | None" = None,
     ) -> None:
         self._ledger = ledger
         self._attention_service = attention_service
@@ -81,6 +87,9 @@ class TickMetricsRecorder:
         self._conversation = conversation
         self._buckets: dict[int, _DayBucket] = {}
         self._current_day: int = -1
+        self._dialogue_service = dialogue_service
+        self._memory_service = memory_service
+        self._operation_pool = operation_pool
 
     @property
     def attention_service(self) -> "AttentionService | None":
@@ -93,6 +102,36 @@ class TickMetricsRecorder:
     @property
     def conversation(self) -> "ConversationService | None":
         return self._conversation
+
+    @property
+    def dialogue_service(self):
+        return self._dialogue_service
+
+    @property
+    def memory_service(self):
+        return self._memory_service
+
+    @property
+    def operation_pool(self):
+        return self._operation_pool
+
+    def attach_aitown_services(
+        self,
+        *,
+        dialogue_service=None,
+        memory_service=None,
+        operation_pool=None,
+    ) -> None:
+        """Set ai-town service refs after construction (allows wiring
+        order: build_recorder → register_on_tick_end → setup_aitown_stack
+        → recorder.attach_aitown_services). build_run_metrics will pick
+        up these refs to fill reflection_count / dialogue_count etc."""
+        if dialogue_service is not None:
+            self._dialogue_service = dialogue_service
+        if memory_service is not None:
+            self._memory_service = memory_service
+        if operation_pool is not None:
+            self._operation_pool = operation_pool
 
     # ---- orchestrator hook ----
 

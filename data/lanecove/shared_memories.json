@@ -1,0 +1,199 @@
+{
+  "_meta": {
+    "schema_version": 1,
+    "description": "Lane Cove (Sydney NSW 2066) shared community memories for protagonist agent injection. Each record represents a real, publicly verifiable local event/landmark/civic moment from 2020-2026 that a typical Lane Cove resident would recognize as background knowledge. Used by data_loader.lanecove.inject_shared_memories_for_protagonists at run-start to seed protagonists' MemoryStore with kind=\"shared_memory\" events, so dialogue / do_something prompts have realistic local context to draw from.",
+    "compiled_at": "2026-05-09",
+    "compiled_by": "general-purpose agent web search; sources cited per record",
+    "source_strength_legend": {
+      "council": "Lane Cove Council official (lanecove.nsw.gov.au)",
+      "state": "NSW state-level government source (transport.nsw.gov.au, planning.nsw.gov.au, fire.nsw.gov.au)",
+      "local_news": "In the Cove (inthecove.com.au), local hyperlocal news",
+      "national_media": "Yahoo News, SMH, Time Out, Guardian etc.",
+      "industry": "Trade-specific source (golfindustrycentral, Sydney Metro)",
+      "wikipedia": "Wikipedia article (use as cross-reference)"
+    },
+    "license_note": "All sources are public web pages; this file contains only short factual summaries (≤3 sentences each) with attribution links. Not user-generated content; no PII."
+  },
+  "memories": [
+    {
+      "id": "lc_mem_001",
+      "title": "Galuwa Recreation Centre 开放",
+      "content": "经过 15 年规划与超过 8000 万澳元投资，Galuwa Recreation Centre 于 2026 年 1 月 1 日开放，包含 4 个室内多功能球场、4 个室外球场、餐厅与高尔夫 pro shop。Council 在 2026 年 2 月 8 日举办了社区开放日。'Galuwa' 在悉尼原住民语中意为'攀登'。",
+      "year": 2026,
+      "category": "infrastructure",
+      "salience": 0.85,
+      "source_urls": [
+        "https://www.lanecove.nsw.gov.au/Council-News/Galuwa-Recreation-Centre-to-Open-1-January-2026",
+        "https://www.adcoconstruct.com.au/news/practical-completion-achieved-for-galuwa-recreation-centre-a-landmark-sport-and-community-facility-for-lane-cove/",
+        "https://www.golfindustrycentral.com.au/golf-industry-news/lane-coves-81-million-transformation-signals-new-era-for-golf-and-community/"
+      ],
+      "tags": ["recreation", "sport", "construction", "community-hub"],
+      "uncertain": false
+    },
+    {
+      "id": "lc_mem_002",
+      "title": "Lane Cove Tunnel 起重机起火",
+      "content": "2024 年 4 月 19 日清晨约 6 点半，一辆移动式起重机在 Lane Cove Tunnel 内起火，隧道双向关闭。喷淋系统先控制火势，Fire and Rescue NSW 接手扑灭并清理油污泄漏。当天高峰时段交通改道至 Epping Road，整个北岸通勤陷入混乱。",
+      "year": 2024,
+      "category": "infrastructure",
+      "salience": 0.8,
+      "source_urls": [
+        "https://au.news.yahoo.com/chaos-fire-closes-major-sydney-213100352.html",
+        "https://www.fire.nsw.gov.au/incident.php?record=recwoGf05YPkdQPlM",
+        "https://inthecove.com.au/2024/05/01/lane-cove-news-week-in-review-24th-april-to-1st-may-2024/"
+      ],
+      "tags": ["tunnel", "fire", "traffic", "commute"],
+      "uncertain": false
+    },
+    {
+      "id": "lc_mem_003",
+      "title": "Longueville 大规模毒树事件",
+      "content": "2023 年 11 月，Woodford Bay 沿岸 council 公地上近 300 棵树和数百株植物被钻孔注入除草剂，疑为附近豪宅打开海港视野。Council 于 2024 年立起 7 米宽 2 米高的横幅，上书 'trees shouldn't die for a view'，刚好挡住嫌疑住户的海景。该案在 The Guardian、Nine News、Seven News 上成为全国新闻。",
+      "year": 2023,
+      "category": "civic",
+      "salience": 0.85,
+      "source_urls": [
+        "https://inthecove.com.au/2024/09/24/the-lane-cove-tree-vandalism-sign-making-national-news/",
+        "https://www.lanecove.nsw.gov.au/Council-News/Tree-Vandalism-in-Longueville",
+        "https://au.news.yahoo.com/council-blasts-shock-act-as-trees-vanish-on-one-of-australias-most-expensive-streets-030856914.html"
+      ],
+      "tags": ["trees", "vandalism", "longueville", "harbour-view", "scandal"],
+      "uncertain": false
+    },
+    {
+      "id": "lc_mem_004",
+      "title": "Crows Nest Metro 开通",
+      "content": "2024 年 8 月 19 日，Sydney Metro City & Southwest 线 Crows Nest 站正式开通，地下 25 米。从 Crows Nest 到 Barangaroo 仅 5 分钟，到 Martin Place 7 分钟。预计早高峰 1 万人次，对 Lane Cove 通勤者意味着可步行或短乘到达全新地铁，St Leonards 一带房产话题随之升温。",
+      "year": 2024,
+      "category": "infrastructure",
+      "salience": 0.9,
+      "source_urls": [
+        "https://en.wikipedia.org/wiki/Crows_Nest_metro_station",
+        "https://www.sydneymetro.info/article/first-look-crows-nest-metro-station",
+        "https://inthecove.com.au/2024/05/17/tickets-to-crows-nest-metro-open-day-going-quickly/"
+      ],
+      "tags": ["metro", "transport", "crows-nest", "commute"],
+      "uncertain": false
+    },
+    {
+      "id": "lc_mem_005",
+      "title": "St Leonards South 高密度重新规划",
+      "content": "2024 年 11 月 27 日，NSW 政府的 Crows Nest TOD 重新规划生效，Lane Cove LEP 同步修改：St Leonards South 部分区域从 R2 低密度改为 R4 高密度，最高建筑限高从 9.5 米跃升至 65 米（约 19 层），新增约 2000 套住宅与 11300 平米开放空间。本地居民关于'谁还认得这一带'的讨论从此持续。",
+      "year": 2024,
+      "category": "policy",
+      "salience": 0.75,
+      "source_urls": [
+        "https://www.lanecove.nsw.gov.au/Home/Tabs/Hot-Topics-and-Major-Projects/St-Leonards-South",
+        "https://www.planning.nsw.gov.au/plans-for-your-area/priority-growth-areas-and-precincts/st-leonards-and-crows-nest/st-leonards-south-planning-proposal",
+        "https://inthecove.com.au/2024/02/18/nsw-govt-planning-proposals-which-properties-are-impacted/"
+      ],
+      "tags": ["rezoning", "planning", "density", "housing"],
+      "uncertain": false
+    },
+    {
+      "id": "lc_mem_006",
+      "title": "Lane Cove 获评全澳最宜居社区",
+      "content": "2025 年 10 月 9 日，Place Score 发布的澳大利亚 Liveability Census 把 Lane Cove 评为全国最宜居社区，得分 80/100（全国均值 66）。当地 585 名居民给出 1500+ 条反馈，自然环境 8.8/10、人身安全 8.7/10。Council 与 In the Cove 都把这事拿出来讲了好几个月。",
+      "year": 2025,
+      "category": "civic",
+      "salience": 0.7,
+      "source_urls": [
+        "https://inthecove.com.au/2025/10/09/lane-cove-named-australias-most-liveable-community-in-place-scores-2025-australian-liveability-census/",
+        "https://www.lanecove.nsw.gov.au/Council-News/Lane-Cove-Named-Australia%E2%80%99s-Most-Liveable-Community",
+        "https://www.timeout.com/australia/news/australias-most-liveable-neighbourhood-has-been-crowned-heres-what-living-there-is-like-102025"
+      ],
+      "tags": ["liveability", "ranking", "pride", "community"],
+      "uncertain": false
+    },
+    {
+      "id": "lc_mem_007",
+      "title": "Food and Wine by the River 年度旗舰",
+      "content": "每年 11 月初在 Burns Bay Reserve 举办的 Food and Wine by the River 是 Lane Cove 最受欢迎的常规节庆。2024 年 11 月 3 日那届与 Mudgee 葡萄酒产区合作，约 20 家酒庄到场，搭配本地食物摊与现场音乐，门票常常提前售罄。",
+      "year": 2024,
+      "category": "event",
+      "salience": 0.7,
+      "source_urls": [
+        "https://inthecove.com.au/2024/09/22/lane-coves-food-and-wine-by-the-river-sunday-3-november-2024/",
+        "https://www.lanecove.nsw.gov.au/Events-directory/Food-Wine-by-the-River",
+        "https://www.visitmudgeeregion.com.au/things-to-do/lane-cove-food-wine-by-the-river"
+      ],
+      "tags": ["festival", "food", "wine", "burns-bay-reserve", "annual"],
+      "uncertain": false
+    },
+    {
+      "id": "lc_mem_008",
+      "title": "Rotary Fair + Sustainability Lane",
+      "content": "Rotary Club of Lane Cove 自 1993 年起每年 10 月在 Plaza 一带举办 Rotary Fair，近年加入 Sustainability Lane 主题。2023 年 10 月 8 日、2025 年 10 月 12 日的活动都包含市集摊位、儿童宠物动物园、游乐设施、本地社团展示，是 Lane Cove 居民'秋天必去'的固定节奏。",
+      "year": 2023,
+      "category": "event",
+      "salience": 0.6,
+      "source_urls": [
+        "https://www.lanecoverotaryfair.org/overview",
+        "https://inthecove.com.au/2023/09/19/the-lane-cove-rotary-fair-and-sustainability-lane-8-october-2023/",
+        "https://willoughbyliving.com.au/event/lane-cove-rotary-fair-and-sustainability-lane/"
+      ],
+      "tags": ["rotary", "fair", "market", "sustainability", "annual"],
+      "uncertain": false
+    },
+    {
+      "id": "lc_mem_009",
+      "title": "St Leonards Library 新开",
+      "content": "2023 年 5 月 25 日，Lane Cove Council 在 LG/88 Christie Street 开设 St Leonards Library，提供藏书、技术资源与可预订会议室。同期 Lane Cove 主馆人均借阅量已是全 NSW 第一（2024-25 年度 635195 册）。",
+      "year": 2023,
+      "category": "civic",
+      "salience": 0.55,
+      "source_urls": [
+        "https://www.lanecove.nsw.gov.au/Services/Facilities-for-Hire/St-Leonards-Library",
+        "https://www.facebook.com/lanecovecouncil/posts/were-excited-to-announce-st-leonards-library-will-open-on-thursday-25-may-locate/625643219600881/",
+        "https://inthecove.com.au/2025/04/11/lane-cove-loves-to-read-lane-cove-library-tops-nsw-circulation-list/"
+      ],
+      "tags": ["library", "st-leonards", "civic-amenity"],
+      "uncertain": false
+    },
+    {
+      "id": "lc_mem_010",
+      "title": "Greenwich Point Wharf 重建重开",
+      "content": "Transport for NSW 的 Greenwich Point Wharf 升级 2024 年 4 月动工，新增无障碍引桥、连通 Lower Serpentine Rd 的电梯与楼梯。施工期间 F8 渡轮停靠点改至 Greenwich Wharf，2024 年 12 月 13 日复航 Greenwich Point。对沿江通勤者是几个月的小阵痛。",
+      "year": 2024,
+      "category": "infrastructure",
+      "salience": 0.55,
+      "source_urls": [
+        "https://www.transport.nsw.gov.au/system/files/media/documents/2024/Greenwich-Point-Wharf-Upgrade-Ferry-services-to-resume-December-2024.pdf",
+        "https://www.lanecove.nsw.gov.au/Council-News/Greenwich-Point-Wharf-Update",
+        "https://transportnsw.info/news/2024/greenwich-point-wharf-upgrade"
+      ],
+      "tags": ["wharf", "ferry", "f8", "greenwich", "transport"],
+      "uncertain": false
+    },
+    {
+      "id": "lc_mem_011",
+      "title": "Pottery Lane Performance Space 开门",
+      "content": "Council 投入约 100 万澳元把 1 Pottery Lane 的 Terrace Function Room 改造为可容纳 135 人的剧场，含高清屏幕、影院级投影、可编程灯光与阶梯式座椅，2024 年底开放、2025 年 2 月正式启用。Lane Cove Theatre Company 等本地团体把这里当主场。",
+      "year": 2024,
+      "category": "place",
+      "salience": 0.55,
+      "source_urls": [
+        "https://www.lanecove.nsw.gov.au/Council-News/Pottery-Lane-Performance-Space",
+        "https://inthecove.com.au/2024/12/06/lane-coves-new-performance-space-comes-alive/",
+        "https://www.lanecove.nsw.gov.au/Services/Facilities-for-Hire/Indoor-Venue-Hire/Lane-Cove-Community-Hub-Pottery-Lane-Performance-Space"
+      ],
+      "tags": ["theatre", "performance", "pottery-lane", "arts"],
+      "uncertain": false
+    },
+    {
+      "id": "lc_mem_012",
+      "title": "2021 大悉尼 Delta 封城",
+      "content": "2021 年 6 月 26 日 NSW 宣布大悉尼进入居家令，Lane Cove 在内的整个北岸停摆，最初 2 周延至 14 周以上。Council 办公区关闭至 9 月 30 日，所有 council 活动取消，Burns Bay Road Ampol 加油站等本地店铺都进入接触点公告名单。这是大多数居民对'附近'概念被强行重置的共同记忆。",
+      "year": 2021,
+      "category": "natural",
+      "salience": 0.9,
+      "source_urls": [
+        "https://inthecove.com.au/2021/06/27/greater-sydney-two-week-lockdown-answering-lane-coves-questions/",
+        "https://en.wikipedia.org/wiki/COVID-19_pandemic_in_New_South_Wales",
+        "https://lanecovew-p.schools.nsw.gov.au/news/2021/7/covid-19-updates-for-schools-in-greater-sydney.html"
+      ],
+      "tags": ["covid", "lockdown", "pandemic", "shared-trauma"],
+      "uncertain": false
+    }
+  ]
+}

@@ -20,11 +20,20 @@ LLM（Planner）负责基于这些字段的主观解读。
 
 from __future__ import annotations
 
+import asyncio
+import json
+import logging
 import random
 from dataclasses import dataclass, field
-from typing import Mapping
+from typing import TYPE_CHECKING, Mapping
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
+
+if TYPE_CHECKING:
+    from synthetic_socio_wind_tunnel.agent.planner import LLMClient
+
+
+logger = logging.getLogger(__name__)
 
 from synthetic_socio_wind_tunnel.agent.personality import PersonalityTraits
 from synthetic_socio_wind_tunnel.agent.profile import (
@@ -336,6 +345,9 @@ def sample_population(
     seed: int,
     num_protagonists: int = 0,
     home_locations: tuple[str, ...] | None = None,
+    generate_identity: bool = False,
+    llm_client: "LLMClient | None" = None,
+    identity_model: str = "",
 ) -> list[AgentProfile]:
     """
     按画像采样出一个 AgentProfile 列表。
@@ -346,6 +358,13 @@ def sample_population(
         num_protagonists: 标记为 is_protagonist=True 的数量，SHALL 使用 Sonnet 档
         home_locations: 家位置 id 的可选池；若为空，每个 agent 的 home_location
             用占位字符串 "home_{index}"，由上层 orchestrator 分配
+        generate_identity: ai-town port — when True, calls `llm_client` for each
+            protagonist to fill `identity_text` (~3-sentence persona) and
+            `plan_text` (~1-sentence today's goal). Failures fall back to
+            deterministic stubs; never raises. Sync wrapper around an async
+            asyncio.gather batch.
+        llm_client: required when `generate_identity=True`.
+        identity_model: optional model override passed to llm_client.generate.
 
     Returns:
         长度为 profile.size 的 AgentProfile 列表
@@ -456,9 +475,17 @@ def sample_population(
             life_pattern=life_pattern,
         ))
 
-    # Assign protagonists: pick deterministically from rng
+    # Assign protagonists: pick deterministically from rng. Only adult
+    # agents (age >= 18) are eligible — kids running LLM stack is both
+    # nonsensical and unsafe (could fabricate child personas).
     if num_protagonists > 0:
-        protagonist_indices = set(rng.sample(range(profile.size), num_protagonists))
+        adult_indices = [i for i, p in enumerate(profiles) if p.age >= 18]
+        if len(adult_indices) < num_protagonists:
+            raise ValueError(
+                f"need {num_protagonists} adult protagonists but only "
+                f"{len(adult_indices)} adults in population (size={profile.size})"
+            )
+        protagonist_indices = set(rng.sample(adult_indices, num_protagonists))
         for i in protagonist_indices:
             existing = profiles[i]
             profiles[i] = existing.model_copy(update={
@@ -466,7 +493,367 @@ def sample_population(
                 "base_model": profile.sonnet_model,
             })
 
+    # ai-town port + lane cove archetypes: fill identity_text + plan_text
+    # for ALL agents (deterministic template fill for scripted; LLM
+    # variation on top for protagonists).
+    if generate_identity:
+        # Stage 1 + 2: archetype-grounded identity for everyone
+        from synthetic_socio_wind_tunnel.data_loader import (
+            load_archetypes,
+            match_archetype,
+        )
+        try:
+            archetypes = load_archetypes()
+        except FileNotFoundError as exc:
+            logger.warning(
+                "archetypes.json missing (%r); falling back to free-form LLM identity",
+                exc,
+            )
+            archetypes = []
+
+        if archetypes:
+            # All agents get an archetype-derived identity_text via
+            # template fill (no LLM needed, deterministic).
+            profiles = _fill_archetype_identities(profiles, archetypes, rng)
+
+        # Protagonists additionally get LLM variation on their archetype.
+        if llm_client is None:
+            raise ValueError(
+                "sample_population: generate_identity=True requires llm_client"
+            )
+        profiles = asyncio.run(
+            generate_identities_for_protagonists(
+                profiles, llm_client=llm_client, model=identity_model,
+                archetypes=archetypes,
+            )
+        )
+
     return profiles
+
+
+def _fill_archetype_identities(
+    profiles: list[AgentProfile],
+    archetypes: list,
+    rng: random.Random,
+) -> list[AgentProfile]:
+    """Match each profile to an archetype + render template with profile values.
+
+    Deterministic — no LLM. Used for scripted (and as protagonist
+    fallback). The LLM-variation step (`generate_identities_for_protagonists`)
+    runs AFTER this and replaces protagonist identity_text with a
+    creatively-varied version using the archetype as seed.
+    """
+    from synthetic_socio_wind_tunnel.data_loader import match_archetype
+
+    out = list(profiles)
+    for i, p in enumerate(out):
+        archetype = match_archetype(p, archetypes)
+        if archetype is None:
+            # No good archetype fit — leave identity_text as None,
+            # generate_identities_for_protagonists may still fill it via LLM
+            # for protag without a template seed.
+            continue
+
+        # Deterministic template fill — handles {name}, {age}, {occupation},
+        # and a few computed fields used by the lane cove archetypes.
+        identity = _render_template(p, archetype)
+        plan_idx = rng.randrange(len(archetype.plan_text_template_examples)) \
+            if archetype.plan_text_template_examples else 0
+        plan = (
+            archetype.plan_text_template_examples[plan_idx]
+            if archetype.plan_text_template_examples else ""
+        )
+        out[i] = p.model_copy(update={
+            "identity_text": identity,
+            "plan_text": plan,
+        })
+    return out
+
+
+def _render_template(p: AgentProfile, archetype) -> str:
+    """Render an archetype's identity_text_template with profile values.
+
+    Handles all known placeholders. Missing placeholders fall back to a
+    sensible value rather than crash. ⚠️ Templates are CHINESE prose
+    (matching the LLM target language).
+    """
+    template = archetype.identity_text_template
+    # Estimated tenure_years if community_tenure_5yr is set
+    tenure_map = {
+        "new_<1yr": "不到 1",
+        "recent_1_5yr": "3",
+        "established_5plus": "10",
+    }
+    tenure_years = tenure_map.get(p.community_tenure_5yr or "", "几")
+
+    migration_years = "?"
+    if p.migration_tenure_years is not None:
+        migration_years = str(int(p.migration_tenure_years))
+
+    origin_country = p.ethnicity_group or "海外"
+    origin_state = "interstate"
+
+    kid_count = "1-2"  # rough default
+    if p.family_composition == "couple_kids_under_15":
+        kid_count = "2"
+    elif p.family_composition == "one_parent_family":
+        kid_count = "1"
+
+    years_in_business = tenure_years
+
+    # personality_descriptor — short Chinese prose from personality bias
+    p_t = p.personality
+    descriptor_bits = []
+    if p_t.extraversion > 0.65:
+        descriptor_bits.append("外向健谈")
+    elif p_t.extraversion < 0.4:
+        descriptor_bits.append("内敛少言")
+    if p_t.routine_adherence > 0.65:
+        descriptor_bits.append("作息规律")
+    elif p_t.routine_adherence < 0.4:
+        descriptor_bits.append("不太按计划过日子")
+    if p_t.openness > 0.65:
+        descriptor_bits.append("好奇新事物")
+    if not descriptor_bits:
+        descriptor_bits.append("性格中等温和")
+    personality_descriptor = "、".join(descriptor_bits)
+
+    interests_list = "、".join(p.interests[:3]) if p.interests else (
+        "、".join(archetype.interests_pool[:3]) if archetype.interests_pool
+        else "本地的事"
+    )
+
+    placeholders = {
+        "name": p.name,
+        "age": str(p.age),
+        "occupation": p.occupation,
+        "tenure_years": tenure_years,
+        "migration_years": migration_years,
+        "origin_country": origin_country,
+        "origin_state": origin_state,
+        "kid_count": kid_count,
+        "years_in_business": years_in_business,
+        "personality_descriptor": personality_descriptor,
+        "interests_list": interests_list,
+    }
+    try:
+        return template.format(**placeholders)
+    except KeyError as exc:
+        logger.warning(
+            "template missing placeholder %r for archetype %s; using raw template",
+            exc, archetype.archetype_id,
+        )
+        return template
+
+
+# ---------------------------------------------------------------------------
+# ai-town port: identity / plan generation (Phase D task 16)
+# ---------------------------------------------------------------------------
+
+
+def _build_identity_prompt(
+    p: AgentProfile,
+    archetype=None,
+    pre_filled_identity: str | None = None,
+    pre_filled_plan: str | None = None,
+) -> str:
+    """Build identity-generation prompt for the LLM.
+
+    When `archetype` is provided, asks the LLM to **vary on the archetype
+    template** (preserving Lane Cove specificity) rather than write from
+    scratch — anchors output to real local persona patterns. When
+    `pre_filled_identity` / `pre_filled_plan` come in (from the
+    deterministic template-fill pass), those are passed as the seed.
+    """
+    p_t = p.personality
+    interests_str = ", ".join(p.interests) if p.interests else "everyday things"
+
+    if archetype is not None:
+        # Archetype-grounded path — ask LLM to embellish, not invent.
+        seed_identity = pre_filled_identity or archetype.identity_text_template
+        seed_plan = pre_filled_plan or (
+            archetype.plan_text_template_examples[0]
+            if archetype.plan_text_template_examples else ""
+        )
+        return (
+            f"你是一位 Lane Cove (Sydney NSW 2066) 城市模拟里的人物创作者。"
+            f"我已经把这个 agent 匹配到了 archetype 模板 "
+            f"'{archetype.label}' ({archetype.archetype_id})；你的任务是**在模板上做"
+            f"自然变奏**——保留 Lane Cove 本地化特征，但加入这个 agent 的"
+            f"独特细节。**不要从零写**。\n\n"
+            f"=== Agent 结构化事实 ===\n"
+            f"- 姓名：{p.name}\n"
+            f"- 年龄：{p.age}\n"
+            f"- 职业：{p.occupation}\n"
+            f"- 家庭：{p.household}\n"
+            f"- Personality（0-1）：openness={p_t.openness:.2f}, "
+            f"extraversion={p_t.extraversion:.2f}, "
+            f"conscientiousness={p_t.conscientiousness:.2f}, "
+            f"agreeableness={p_t.agreeableness:.2f}, "
+            f"neuroticism={p_t.neuroticism:.2f}, "
+            f"curiosity={p_t.curiosity:.2f}, "
+            f"routine_adherence={p_t.routine_adherence:.2f}\n"
+            f"- 兴趣：{interests_str}\n\n"
+            f"=== Archetype 模板（已预填了 placeholder）===\n"
+            f"identity 草稿：{seed_identity}\n"
+            f"plan 草稿：{seed_plan}\n"
+            f"archetype 兴趣池（参考）：{', '.join(archetype.interests_pool[:5])}\n\n"
+            f"=== 输出格式 ===\n"
+            f"只输出 JSON，无 prose，无 markdown fence：\n"
+            f'{{"identity": "...", "plan": "..."}}\n\n'
+            f"=== 任务要求 ===\n"
+            f"- identity (2-3 句中文)：保留模板里的 Lane Cove 地名 / 习惯，"
+            f"加入呼应 personality 数值的细节（高 extraversion = 健谈活跃；"
+            f"低 openness = 偏好熟悉路径），让人物更立体。**不要复述 personality "
+            f"数值本身**。\n"
+            f"- plan (1 句中文)：在草稿基础上做小变奏（可换地点 / 时间 / 同伴），"
+            f"保持 archetype 的活动模式。\n"
+            f"- 全部用第三人称，现在时。"
+        )
+
+    # Fallback (no archetype) — original free-form path
+    return (
+        f"You are a creative writer crafting a persona for an AI character "
+        f"in a city-life simulation set in Lane Cove, Sydney.\n\n"
+        f"Profile facts (use these but don't repeat them verbatim):\n"
+        f"- Name: {p.name}\n"
+        f"- Age: {p.age}\n"
+        f"- Occupation: {p.occupation}\n"
+        f"- Household: {p.household}\n"
+        f"- Lives at: {p.home_location}\n"
+        f"- Personality traits (0-1 scale): "
+        f"openness={p_t.openness:.2f}, "
+        f"extraversion={p_t.extraversion:.2f}, "
+        f"conscientiousness={p_t.conscientiousness:.2f}, "
+        f"agreeableness={p_t.agreeableness:.2f}, "
+        f"neuroticism={p_t.neuroticism:.2f}, "
+        f"curiosity={p_t.curiosity:.2f}\n"
+        f"- Interests: {interests_str}\n\n"
+        f"Output JSON ONLY, no prose, no markdown fence, exactly this shape:\n"
+        f'{{"identity": "...", "plan": "..."}}\n\n'
+        f"Where:\n"
+        f"- identity: a 2-3 sentence first-impression description of who "
+        f"{p.name} is, what they care about, how they move through the day. "
+        f"Reflect the personality numbers above (high extraversion → "
+        f"chatty / outgoing; low openness → routine-loving; etc.). "
+        f"Use third person, present tense.\n"
+        f'- plan: ONE sentence describing what {p.name} wants out of today. '
+        f"Vague is fine ('catch up with neighbours', 'find a quiet cafe'). "
+        f"Should feel plausible given the occupation and personality."
+    )
+
+
+def _identity_fallback(p: AgentProfile) -> str:
+    """Deterministic identity stub when LLM fails or is unavailable."""
+    home = p.home_location or "the area"
+    return (
+        f"{p.name} is a {p.age}-year-old {p.occupation} living in {home}. "
+        f"Comfortable with everyday routines."
+    )
+
+
+def _plan_fallback(p: AgentProfile) -> str:
+    """Deterministic plan stub when LLM fails or is unavailable."""
+    return f"Spend the day on {p.occupation}-related routines."
+
+
+def _parse_identity_response(raw: str, p: AgentProfile) -> tuple[str, str]:
+    """Parse LLM JSON response → (identity, plan). Falls back on parse error."""
+    text = (raw or "").strip()
+    # Strip optional ```json fences
+    if text.startswith("```"):
+        text = text.strip("`")
+        # Remove leading "json\n" if present
+        if text.lower().startswith("json"):
+            text = text.split("\n", 1)[1] if "\n" in text else ""
+    try:
+        obj = json.loads(text)
+        identity = str(obj.get("identity", "")).strip()
+        plan = str(obj.get("plan", "")).strip()
+        if identity and plan:
+            return identity, plan
+    except (json.JSONDecodeError, ValueError, AttributeError):
+        pass
+    logger.warning(
+        "identity LLM parse failed for agent %s; using fallback",
+        p.agent_id,
+    )
+    return _identity_fallback(p), _plan_fallback(p)
+
+
+async def _fill_one_identity(
+    p: AgentProfile,
+    llm_client: "LLMClient",
+    *,
+    model: str = "",
+    archetype=None,
+) -> tuple[str, str]:
+    try:
+        prompt = _build_identity_prompt(
+            p,
+            archetype=archetype,
+            pre_filled_identity=p.identity_text,  # may be from template fill
+            pre_filled_plan=p.plan_text,
+        )
+        raw = await llm_client.generate(prompt, model=model)
+        return _parse_identity_response(raw, p)
+    except Exception as exc:
+        logger.warning(
+            "identity LLM call failed for agent %s: %r; using fallback",
+            p.agent_id, exc,
+        )
+        # If we already filled from template earlier, keep that.
+        if p.identity_text and p.plan_text:
+            return p.identity_text, p.plan_text
+        return _identity_fallback(p), _plan_fallback(p)
+
+
+async def generate_identities_for_protagonists(
+    profiles: list[AgentProfile],
+    *,
+    llm_client: "LLMClient",
+    model: str = "",
+    batch_size: int = 5,
+    archetypes: list | None = None,
+) -> list[AgentProfile]:
+    """Concurrently fill identity_text + plan_text for every protagonist.
+
+    Non-protagonists are returned unchanged. Failures fall back to
+    deterministic stubs / pre-filled template values (no exceptions
+    surface to caller). Batching limits concurrent LLM calls to
+    `batch_size` at a time so we don't burst quota.
+
+    When `archetypes` is provided, each protag's matched archetype is
+    used as a seed so the LLM does archetype-grounded variation rather
+    than free-form invention.
+    """
+    from synthetic_socio_wind_tunnel.data_loader import match_archetype
+
+    out = list(profiles)
+    indices = [i for i, p in enumerate(out) if p.is_protagonist]
+    if not indices:
+        return out
+
+    for batch_start in range(0, len(indices), batch_size):
+        batch = indices[batch_start:batch_start + batch_size]
+        # Per-agent archetype lookup
+        per_agent_archetype = []
+        for i in batch:
+            arch = (
+                match_archetype(out[i], archetypes)
+                if archetypes else None
+            )
+            per_agent_archetype.append(arch)
+        results = await asyncio.gather(*[
+            _fill_one_identity(out[i], llm_client, model=model, archetype=arch)
+            for i, arch in zip(batch, per_agent_archetype)
+        ])
+        for i, (identity, plan) in zip(batch, results):
+            out[i] = out[i].model_copy(update={
+                "identity_text": identity,
+                "plan_text": plan,
+            })
+    return out
 
 
 def _occupation_for(work_mode: WorkMode, rng: random.Random) -> str:

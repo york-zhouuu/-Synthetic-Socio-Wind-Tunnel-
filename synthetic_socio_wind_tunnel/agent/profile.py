@@ -96,6 +96,16 @@ class AgentProfile(BaseModel):
     is_protagonist: bool = False
     base_model: str = "claude-haiku-4-5-20251001"
 
+    # === ai-town port (agent-stack-aitown-port): identity / plan free-text ===
+    # ai-town's `agent.identity` (~3-sentence persona prose) and `agent.plan`
+    # (~1-sentence current goal) — fed verbatim into conversation prompts via
+    # _agent_lines() in handle_generate_message. Frozen at population sampling.
+    # Default None for scripted agents and backwards compat with existing
+    # protagonists; population.sample_population fills them via LLM batch when
+    # generate_identity=True.
+    identity_text: str | None = None
+    plan_text: str | None = None
+
     # === 结构性身份维度（realign-to-social-thesis）===
     ethnicity_group: str | None = None
     migration_tenure_years: float | None = Field(default=None, ge=0.0)

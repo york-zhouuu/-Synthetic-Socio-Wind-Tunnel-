@@ -102,6 +102,12 @@ from synthetic_socio_wind_tunnel.conversation import (
     Propagation,
     ShareEvent,
 )
+from synthetic_socio_wind_tunnel.agent.operations import (
+    ConcurrentOperationError,
+    OperationPool,
+    OperationResult,
+    PendingOp,
+)
 from synthetic_socio_wind_tunnel.fitness import (
     AuditResult,
     AuditStatus,
@@ -256,6 +262,11 @@ __all__ = [
     "PushPersonalizer",
     "PushTemplate",
     "PUSH_TEMPLATES",
+    # Agent operations (agent-stack-aitown-port)
+    "ConcurrentOperationError",
+    "OperationPool",
+    "OperationResult",
+    "PendingOp",
     # Metrics (metrics)
     "TickMetricsRecorder",
     "DayMetricsSummary",

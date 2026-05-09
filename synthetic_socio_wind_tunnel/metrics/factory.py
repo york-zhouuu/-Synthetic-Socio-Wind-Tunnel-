@@ -254,6 +254,13 @@ def build_run_metrics(
             "target_precision": target_precision,  # type: ignore[dict-item]
         }
 
+    # ai-town port (Phase E task 21): pull metrics from injected services
+    # via TickMetricsRecorder accessors. All None when those services
+    # weren't wired into the recorder — backwards compat.
+    reflection_count = _aitown_reflection_count(recorder)
+    dialogue_count, dialogue_avg_length = _aitown_dialogue_stats(recorder)
+    op_timeout_count, cost_breakdown = _aitown_op_pool_stats(recorder)
+
     return RunMetrics(
         seed=multi_day_result.seed,
         variant_name=variant_name,
@@ -266,7 +273,82 @@ def build_run_metrics(
         attention_allocation_ratio=attention_ratio,
         weak_tie_formation_count=weak_tie_count,
         info_propagation_hops=info_hops,
+        reflection_count=reflection_count,
+        dialogue_count=dialogue_count,
+        dialogue_avg_length=dialogue_avg_length,
+        op_timeout_count=op_timeout_count,
+        cost_breakdown=cost_breakdown,
     )
+
+
+# ---------------------------------------------------------------------------
+# ai-town port helpers
+# ---------------------------------------------------------------------------
+
+
+def _aitown_reflection_count(recorder: "TickMetricsRecorder") -> int | None:
+    """Sum reflection MemoryEvents across all protagonist memory stores.
+
+    Returns None if memory_service wasn't injected (backwards compat).
+    """
+    msvc = recorder.memory_service
+    if msvc is None:
+        return None
+    total = 0
+    for agent_id in getattr(msvc, "_protagonist_ids", set()):
+        events = msvc.all_for(agent_id)
+        total += sum(1 for ev in events if ev.kind == "reflection")
+    return total
+
+
+def _aitown_dialogue_stats(
+    recorder: "TickMetricsRecorder",
+) -> tuple[int | None, float | None]:
+    """Return (dialogue_count, avg_message_count) from DialogueService.
+
+    Returns (None, None) if dialogue_service wasn't injected.
+    """
+    dsvc = recorder.dialogue_service
+    if dsvc is None:
+        return None, None
+    return dsvc.ended_count(), dsvc.avg_message_count()
+
+
+def _aitown_op_pool_stats(
+    recorder: "TickMetricsRecorder",
+) -> tuple[int | None, dict[str, float] | None]:
+    """Return (timeout_count, cost_breakdown) from OperationPool.
+
+    cost_breakdown structure: {"sonnet": $X, "haiku": $Y, "nano": $Z, "total": $S}
+    Token counts are summed from completed_log; per-tier cost computed
+    via simple per-MTok rates (best-effort; can be tuned later).
+    """
+    pool = recorder.operation_pool
+    if pool is None:
+        return None, None
+    timeout_count = len(getattr(pool, "_timeout_log", []))
+    completed = getattr(pool, "_completed_log", [])
+
+    # Per-tier $/Mtok rates (input/output averaged for simplicity).
+    # Numbers here are illustrative defaults; production should plumb a
+    # rate-card from cost-budget service.
+    rates_per_mtok: dict[str, float] = {
+        "sonnet": 6.0,
+        "haiku": 0.8,
+        "nano": 0.4,
+    }
+    tier_for_kind = getattr(
+        pool, "_tier_for_kind", {},
+    )
+    breakdown: dict[str, float] = {"sonnet": 0.0, "haiku": 0.0, "nano": 0.0}
+    for result in completed:
+        tier = tier_for_kind.get(result.kind, "sonnet")
+        tokens = (result.prompt_tokens or 0) + (result.completion_tokens or 0)
+        rate = rates_per_mtok.get(tier, 1.0)
+        cost = (tokens / 1_000_000.0) * rate
+        breakdown[tier] = breakdown.get(tier, 0.0) + cost
+    breakdown["total"] = sum(breakdown.values())
+    return timeout_count, breakdown
 
 
 __all__ = ["build_run_metrics"]

@@ -86,6 +86,20 @@ class RunMetrics(BaseModel):
     weak_tie_formation_count: int | None = None
     info_propagation_hops: dict[str, float] | None = None
 
+    # ai-town port (agent-stack-aitown-port Phase E task 21)
+    # All Optional; None when agent-operations capability not wired.
+    reflection_count: int | None = None
+    """Total reflection MemoryEvents created during this run (across all
+    protagonists)."""
+    dialogue_count: int | None = None
+    """Total dialogues that ENDED during this run (started + ended)."""
+    dialogue_avg_length: float | None = None
+    """Average dialogue length in messages (excludes pure-reject zero-msg)."""
+    op_timeout_count: int | None = None
+    """OperationPool ops that timed out before handler returned."""
+    cost_breakdown: dict[str, float] | None = None
+    """Per-tier cost telemetry: {"sonnet": $X, "haiku": $Y, "nano": $Z, "total": $S}."""
+
     extensions: dict[str, Any] = Field(default_factory=dict)
 
     def with_extensions(self, **kwargs: Any) -> "RunMetrics":

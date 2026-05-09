@@ -33,6 +33,9 @@ if TYPE_CHECKING:
     from synthetic_socio_wind_tunnel.atlas import Atlas
     from synthetic_socio_wind_tunnel.attention import AttentionService, FeedItem
     from synthetic_socio_wind_tunnel.conversation import ConversationService
+    from synthetic_socio_wind_tunnel.memory.embeddings_cache import EmbeddingsCache
+    from synthetic_socio_wind_tunnel.memory.importance import ImportanceScorer
+    from synthetic_socio_wind_tunnel.memory.reflection import ReflectionService
     from synthetic_socio_wind_tunnel.orchestrator import Orchestrator, TickResult
     from synthetic_socio_wind_tunnel.social_graph import SocialGraphService
 
@@ -65,6 +68,12 @@ class MemoryService:
         "_replan_count_today",
         "_last_day_index",
         "_rng",
+        # ai-town port (Phase B)
+        "_importance_scorer",
+        "_reflection_service",
+        "_embeddings_cache",
+        "_last_reflection_time",
+        "_protagonist_ids",
     )
 
     def __init__(
@@ -77,6 +86,11 @@ class MemoryService:
         social_graph: "SocialGraphService | None" = None,
         conversation: "ConversationService | None" = None,
         seed: int | None = None,
+        importance_scorer: "ImportanceScorer | None" = None,
+        reflection_service: "ReflectionService | None" = None,
+        embeddings_cache: "EmbeddingsCache | None" = None,
+        protagonist_ids: tuple[str, ...] = (),
+        retrieval_mode: str = "legacy",
     ) -> None:
         # conversation 必须与 social_graph 同时注入（design D3）；否则
         # process_tick 调用 conversation.process_tick 时会缺 tie 信息
@@ -88,7 +102,9 @@ class MemoryService:
             )
         self._stores: dict[str, MemoryStore] = {}
         self._embedding: EmbeddingProvider = embedding_provider or NullEmbedding()
-        self._retriever = MemoryRetriever(weights=retriever_weights)
+        self._retriever = MemoryRetriever(
+            weights=retriever_weights, mode=retrieval_mode,  # type: ignore[arg-type]
+        )
         self._attention_service = attention_service
         # 用于 process_tick 装配 interrupt_ctx 的 current_location_kind
         # （atlas=None 时此字段降级为 "other"）。
@@ -110,6 +126,12 @@ class MemoryService:
         self._last_day_index: int = -1
         # seeded rng for should_replan probabilistic gate
         self._rng = random.Random(seed) if seed is not None else random.Random()
+        # ai-town port (Phase B): protagonist set + reflection bookkeeping
+        self._importance_scorer = importance_scorer
+        self._reflection_service = reflection_service
+        self._embeddings_cache = embeddings_cache
+        self._protagonist_ids: set[str] = set(protagonist_ids)
+        self._last_reflection_time: dict[str, datetime] = {}
 
     def _store_for(self, agent_id: str) -> MemoryStore:
         if agent_id not in self._stores:
@@ -562,6 +584,59 @@ class MemoryService:
             consumed.add(feed_item_id)
             new_ingested.append((event, feed_item))
         return new_ingested
+
+    # ---- ai-town port (Phase B): reflection driver ----
+
+    async def maybe_reflect(
+        self,
+        agent_id: str,
+        agent_name: str,
+        *,
+        current_tick: int,
+        simulated_time: datetime,
+        day_index: int,
+        force_for_day_end: bool = False,
+    ) -> list[MemoryEvent]:
+        """Run reflection if (a) ai-town threshold passed, or (b) force=True.
+
+        Only protagonist agents (in self._protagonist_ids) actually reflect;
+        scripted agents return empty list immediately. Reflection events are
+        recorded into the agent's memory store; returns the new events for
+        introspection (inspector / metrics).
+
+        Idempotent within a tick: if `_last_reflection_time[agent_id]` is the
+        same as `simulated_time`, reflection is skipped.
+        """
+        if self._reflection_service is None:
+            return []
+        if agent_id not in self._protagonist_ids:
+            return []
+        last_ref = self._last_reflection_time.get(agent_id)
+        if last_ref == simulated_time:
+            return []  # already reflected this tick
+        recent = self.recent(agent_id, last_ticks=288)
+        # Filter out reflection events from the input window — we don't want
+        # reflections-of-reflections (matches ai-town behavior implicitly:
+        # their getReflectionMemories doesn't filter, but excluding helps
+        # avoid feedback loops in our higher-frequency tick).
+        recent = [e for e in recent if e.kind != "reflection"]
+        if not self._reflection_service.should_reflect(
+            recent,
+            last_reflection_time=last_ref,
+            force_for_day_end=force_for_day_end,
+        ):
+            return []
+        new_events = await self._reflection_service.reflect(
+            agent_id, agent_name, recent,
+            current_tick=current_tick,
+            simulated_time=simulated_time,
+            day_index=day_index,
+            event_id_factory=self._next_event_id,
+        )
+        for ev in new_events:
+            self.record(agent_id, ev)
+        self._last_reflection_time[agent_id] = simulated_time
+        return new_events
 
     @staticmethod
     def _salience_from_feed(feed: "FeedItem") -> float:

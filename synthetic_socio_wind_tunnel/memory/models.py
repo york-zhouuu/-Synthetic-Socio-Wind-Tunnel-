@@ -20,6 +20,10 @@ MemoryKind = Literal[
     "speech",           # 对话事件（conversation change 派生）
     "daily_summary",    # 每日概要（MemoryService.run_daily_summary 产）
     "task_received",    # 任务接收（category=task 的 FeedItem 派生）
+    "reflection",       # 反思 insight（agent-stack-aitown-port；高 importance 簇 → LLM 抽象）
+    "conversation",     # 完整对话总结（agent-stack-aitown-port；rememberConversation 产物）
+    "shared_memory",    # 社区共享背景知识（data_loader.lanecove；run-start 注入）
+    "life_history",     # 个体生命史 backstory（data_loader.lanecove；sample 时 LLM 一次性生成；第一人称）
 ]
 
 
@@ -51,6 +55,15 @@ class MemoryEvent:
 
     # 可选的 embedding（NullEmbedding 下为 None）
     embedding: tuple[float, ...] | None = None
+
+    # ai-town port 字段：reflection memory 用 related_memory_ids 引用源 memories；
+    # conversation memory 可选用 related_memory_ids 引用对话内的所有消息事件
+    related_memory_ids: tuple[str, ...] = ()
+
+    # ai-town's `lastAccess` field — touched on retrieval. Recency formula uses
+    # this (not creation tick), letting frequently-accessed memories stay "fresh".
+    # Defaults to None → recency falls back to simulated_time.
+    last_access: datetime | None = None
 
 
 @dataclass(frozen=True)

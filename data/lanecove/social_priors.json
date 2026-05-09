@@ -1,0 +1,97 @@
+{
+  "_meta": {
+    "schema_version": 1,
+    "description": "Lane Cove social-graph priors — declarative rules that turn a sampled population into a partial 'who-knew-whom-on-day-0' graph. Without these the SocialGraphService starts empty (every pair = stranger). With these, agents have realistic pre-existing ties: same-household roommates / family, same-ethnic-enclave acquaintances, same-commute-pattern peers, same-archetype-similar-age weak ties.\n\nEach rule produces a target encounter_count for matched pairs; the SocialGraphService.preload_ties() converts these into Tie records with strength = N/(N+K) using the standard formula.",
+    "compiled_at": "2026-05-09",
+    "calibration_notes": [
+      "Rules are calibrated to give average ~5-8 ties per agent at day 0",
+      "encounter_count_seed values are 'as if N encounters had already happened' — they map to strength via N/(N+10)",
+      "pair_cap_per_agent prevents one agent from getting 100+ priors when the rule matches widely",
+      "ethnicity_enclave is intentionally limited to non-Australia ethnicities to model migrant network effects"
+    ]
+  },
+  "rules": [
+    {
+      "rule_id": "household_kin",
+      "basis_label": "同住家人 / 室友",
+      "match": {
+        "type": "same_home_location",
+        "exclude_self": true
+      },
+      "encounter_count_seed": 60,
+      "pair_cap_per_agent": 4,
+      "comment": "Same home_location → roommate / family. Strong tie (strength ≈ 0.86)."
+    },
+    {
+      "rule_id": "ethnicity_enclave",
+      "basis_label": "同语种邻里",
+      "match": {
+        "type": "same_field_with_constraint",
+        "field": "ethnicity_group",
+        "exclude_values": ["Australia", "England", "New_Zealand", "other"],
+        "additional_constraint": {
+          "field": "year_of_arrival_bucket",
+          "any_of": ["2016_2021", "2011_2015", "2000_2010"]
+        }
+      },
+      "encounter_count_seed": 4,
+      "pair_cap_per_agent": 3,
+      "comment": "Same non-anglo country-of-birth + recent arrival → migrant enclave acquaintance. Weak tie (~0.29)."
+    },
+    {
+      "rule_id": "archetype_peer",
+      "basis_label": "同 archetype 同龄段",
+      "match": {
+        "type": "same_archetype_with_age_window",
+        "age_window": 8
+      },
+      "encounter_count_seed": 3,
+      "pair_cap_per_agent": 4,
+      "comment": "Same archetype + age within 8 years → 'people like me'. Weak tie (~0.23)."
+    },
+    {
+      "rule_id": "commute_buddy",
+      "basis_label": "同通勤方式",
+      "match": {
+        "type": "same_field",
+        "field": "work_mode",
+        "include_values": ["commute"],
+        "additional_constraint": {
+          "field": "income_tier",
+          "any_of": ["high", "mid"]
+        }
+      },
+      "encounter_count_seed": 2,
+      "pair_cap_per_agent": 3,
+      "comment": "Same daily commute pattern → bus / tunnel familiar face. Very weak tie (~0.17)."
+    },
+    {
+      "rule_id": "volunteer_circle",
+      "basis_label": "本地志愿者圈",
+      "match": {
+        "type": "same_field",
+        "field": "volunteer_status",
+        "include_values": ["volunteer"]
+      },
+      "encounter_count_seed": 5,
+      "pair_cap_per_agent": 3,
+      "comment": "Volunteer status → bushcare / theatre / library volunteer overlap. Weak tie (~0.33)."
+    },
+    {
+      "rule_id": "school_parent_peer",
+      "basis_label": "同孩子家长",
+      "match": {
+        "type": "same_field",
+        "field": "family_composition",
+        "include_values": ["couple_kids_under_15", "one_parent_family"],
+        "additional_constraint": {
+          "field": "unpaid_child_care_hours",
+          "any_of": ["15_29", "30plus"]
+        }
+      },
+      "encounter_count_seed": 3,
+      "pair_cap_per_agent": 4,
+      "comment": "Both have school-age kids + heavy childcare → school gate / mothers group peer. Weak tie (~0.23)."
+    }
+  ]
+}

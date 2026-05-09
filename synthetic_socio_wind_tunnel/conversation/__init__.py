@@ -12,12 +12,30 @@ is opaque (no Chinese-whispers mutation). LLM dialogue + multi-party speech +
 information mutation are V2 territory.
 """
 
+from synthetic_socio_wind_tunnel.conversation.dialogue import (
+    Dialogue,
+    DialogueMessage,
+    DialogueStatus,
+)
+from synthetic_socio_wind_tunnel.conversation.dialogue_service import (
+    DialogueAlreadyExistsError,
+    DialogueCooldownError,
+    DialogueService,
+    InvalidDialogueStateError,
+)
 from synthetic_socio_wind_tunnel.conversation.models import Information, Propagation, ShareEvent
 from synthetic_socio_wind_tunnel.conversation.service import ConversationService
 
 __all__ = [
     "ConversationService",
+    "Dialogue",
+    "DialogueAlreadyExistsError",
+    "DialogueCooldownError",
+    "DialogueMessage",
+    "DialogueService",
+    "DialogueStatus",
     "Information",
+    "InvalidDialogueStateError",
     "Propagation",
     "ShareEvent",
 ]

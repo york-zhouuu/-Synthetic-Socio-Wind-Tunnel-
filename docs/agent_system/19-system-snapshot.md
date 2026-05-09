@@ -203,6 +203,14 @@ face-validity-protocol    → 解第 3 项 (face validity)
 | 2026-05-05 | social-graph-capability：新建 social_graph 模块（Tie + SocialGraphService）；strength = N/(N+K)，K=10；MemoryService 在 process_tick 同步累积；nearby_agents.is_familiar 改用 graph 阈值；metrics 加 5 个 tie 指标 + RunMetrics.weak_tie_formation_count | thesis 中段断层补完——encounter 流转化为 pairwise tie；inspector payload 含 per-agent ties；e2e 50 agent × 3 day 跑出 ~100 weak ties |
 | 2026-05-05 | conversation-capability：新建 conversation 模块（Information + ConversationService）；strength × salience × recency 5-modifier 概率门；push delivery → Information origin（salience 由 hyperlocal_radius / category 推导）；metrics 加 4 个 daily counter + RunMetrics.info_propagation_hops 4-key dict；inspector payload 加 conversation 顶层 key | thesis 链条最后一环——信息能跨 hops 传播；hp/gd salience 对照（0.8 vs 0.3）使 mirror 在社会层"输"；V1 不做 LLM dialogue（V2） |
 | 2026-05-08 | push-content-individualization：新建 PushTemplate / PushPersonalizer + 5 预设 templates；FeedItem 加 topic_id + target_audience_tags；HyperlocalPushVariant 用 personalizer 生成 per-agent 个体化 FeedItem；conversation 加 relevance + audience providers，share 公式扩展 7-modifier；metrics 加 within/outside target reach + target_precision | hp 真"hyperlocal"——内容按 5 类 audience tag（parents/young_adult/elderly/newcomer/default）渲染；gd 故意不个体化（mirror）；target_precision 让 hp 在内容个体化层"赢"过 mirror |
+| 2026-05-09 | agent-stack-aitown-port：新建 `agent-operations` capability（PendingOp / OperationPool + handlers: do_something / generate_message / remember_conversation）；memory 加 reflection（normalize-then-sum ranking + 0.99^hour recency）+ ImportanceScorer + EmbeddingsCache；conversation 加 Dialogue 4-state machine（invited→walking_over→participating→ended）+ DialogueService + bridge_to_memory_and_propagation 三层 fan-out；agent 加 identity_text/plan_text + AgentRuntime ai-town 状态字段（pending_operation / current_dialogue_id / to_remember / last_dialogue_ended_tick）+ 6-step 决策树 step()；orchestrator 加 register_on_tick_end_async；metrics 加 reflection/dialogue/op_timeout/cost_breakdown；inspector 加 reflection_log/dialogue_log/op_log/cost_summary；tools/tier_llm_factory 路由 sonnet/haiku/nano | 1:1 复刻 ai-town 内涵层（reflection memory / 双向 LLM dialogue / async op pool / decision tree），用 feature flag `use_aitown_decision_tree` 隔离 protagonist 路径，scripted agent 完全不变；只对 10/1000 protag 启用，避免 1000-agent 成本爆炸；e2e smoke + 决策树 5-branch + 各模块单测共 ~80+ 新测试 0 regression |
+
+> Capability 列表更新（2026-05-09）：现共 10 个 capability —
+> `atlas` / `ledger` / `engine` / `perception` / `cartography` /
+> `agent` / `attention-channel` / `social-graph` / `conversation` /
+> `agent-operations`(NEW)；其中 `agent` / `memory` / `conversation`
+> 三个旧 capability 由 `agent-stack-aitown-port` MODIFIED（向后兼容，
+> 通过 feature flag 默认走老路径）。
 
 ---
 

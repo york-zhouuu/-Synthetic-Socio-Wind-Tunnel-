@@ -108,6 +108,16 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--use-real-llm", action="store_true",
                    help="Use anthropic Haiku for planner.replan "
                         "(default: zero-cost StubReplanLLM)")
+    p.add_argument("--use-aitown", action="store_true",
+                   help="Wire ai-town port: protag get full LLM dialogue + "
+                        "do_something + reflection; lane cove data injected "
+                        "(archetypes/shared_memories/life_history/social_priors). "
+                        "Implies generate_identity=True at sample time.")
+    p.add_argument("--aitown-provider", choices=["gemini", "anthropic", "stub"],
+                   default="gemini",
+                   help="LLM provider for ai-town ops. gemini=GEMINI_API_KEY env "
+                        "(default), anthropic=ANTHROPIC_API_KEY env, stub=zero-cost "
+                        "deterministic test client.")
     return p.parse_args()
 
 
@@ -136,6 +146,298 @@ def _build_variant(
     return variant, controller
 
 
+def _setup_aitown_stack(
+    *,
+    orchestrator,
+    runtimes,
+    memory_service,
+    social_graph,
+    tier_clients: dict,
+    seed: int,
+    sim_start_time,
+) -> dict:
+    """Stage 4 — wire ai-town port to multi-day runner.
+
+    Steps:
+    1. Build OperationPool with 3 ai-town handlers + tier-routed LLM clients.
+    2. Build DialogueService for protag-protag conversations.
+    3. Inject services into every AgentRuntime; flip
+       use_aitown_decision_tree=True for protagonists.
+    4. Inject lane cove data: shared_memories (protag), life_history
+       (protag, LLM batch), social_priors (everyone, via SocialGraphService).
+    5. Register on_tick_end_async hook → OperationPool.process_pending →
+       route OperationResults back to per-agent tick_inputs.
+
+    Returns {dialogue_service, operation_pool, life_history_count, ...}
+    for downstream metrics injection.
+    """
+    import asyncio as _aio
+    from synthetic_socio_wind_tunnel.agent.operations.handlers import (
+        handle_do_something,
+        handle_generate_message,
+        handle_remember_conversation,
+    )
+    from synthetic_socio_wind_tunnel.agent.operations.pool import OperationPool
+    from synthetic_socio_wind_tunnel.conversation.dialogue_service import (
+        DialogueService,
+    )
+    from synthetic_socio_wind_tunnel.data_loader import (
+        compute_social_priors_for_population,
+        generate_life_history_for_protagonists,
+        inject_life_history,
+        inject_shared_memories_for_protagonists,
+        load_archetypes,
+        load_shared_memories,
+        load_social_prior_rules,
+    )
+
+    print("[aitown] wiring stack...", file=sys.stderr)
+
+    # 0. Augment the existing MemoryService with ai-town aux services so
+    # reflection / importance / aitown retrieval mode actually fire.
+    from synthetic_socio_wind_tunnel.memory.embedding import NullEmbedding
+    from synthetic_socio_wind_tunnel.memory.embeddings_cache import EmbeddingsCache
+    from synthetic_socio_wind_tunnel.memory.importance import ImportanceScorer
+    from synthetic_socio_wind_tunnel.memory.reflection import ReflectionService
+    from synthetic_socio_wind_tunnel.memory.retrieval import MemoryRetriever
+
+    importance_llm = tier_clients.get("nano") or next(iter(tier_clients.values()))
+    reflection_llm = tier_clients.get("haiku") or next(iter(tier_clients.values()))
+    importance_scorer = ImportanceScorer(llm_client=importance_llm)
+    embeddings_cache = EmbeddingsCache(NullEmbedding())
+    reflection_service = ReflectionService(
+        llm_client=reflection_llm,
+        importance_scorer=importance_scorer,
+        embeddings_cache=embeddings_cache,
+    )
+    # Set the private attrs directly — slots prevent dynamic attrs but
+    # these particular slots exist on MemoryService already.
+    memory_service._importance_scorer = importance_scorer
+    memory_service._reflection_service = reflection_service
+    memory_service._embeddings_cache = embeddings_cache
+    # protag set
+    protag_ids = {
+        rt.profile.agent_id for rt in runtimes if rt.profile.is_protagonist
+    }
+    memory_service._protagonist_ids = protag_ids
+    # Switch retriever to aitown mode (1:1 normalize-then-sum)
+    memory_service._retriever = MemoryRetriever(mode="aitown")
+
+    # 1. OperationPool
+    pool = OperationPool(
+        handlers={
+            "do_something": handle_do_something,
+            "generate_message": handle_generate_message,
+            "remember_conversation": handle_remember_conversation,
+        },
+        llm_clients=tier_clients,
+    )
+
+    # 2. DialogueService — single instance per seed run
+    dialogue_service = DialogueService(seed=seed)
+
+    # 3. Inject services into runtimes; flip flag for protag.
+    profiles = [rt.profile for rt in runtimes]
+    for rt in runtimes:
+        rt.dialogue_service = dialogue_service
+        rt.operation_pool = pool
+        rt.memory_service = memory_service
+        if rt.profile.is_protagonist:
+            rt.use_aitown_decision_tree = True
+
+    # 4a. shared_memories — protag only
+    archs = load_archetypes()
+    try:
+        shared_recs = load_shared_memories()
+        injected_shared = inject_shared_memories_for_protagonists(
+            profiles, shared_recs, memory_service=memory_service,
+        )
+        shared_total = sum(injected_shared.values())
+        print(
+            f"[aitown] shared_memories: {shared_total} events across "
+            f"{len(injected_shared)} protag",
+            file=sys.stderr,
+        )
+    except Exception as exc:
+        print(f"[aitown] shared_memories injection failed: {exc!r}", file=sys.stderr)
+        shared_total = 0
+
+    # 4b. life_history — LLM batch for protag (uses haiku tier)
+    history_total = 0
+    try:
+        life_llm = tier_clients.get("haiku") or next(iter(tier_clients.values()))
+        history_records = _aio.run(
+            generate_life_history_for_protagonists(
+                profiles, llm_client=life_llm, archetypes=archs,
+                n_records_per_protag=10, batch_size=5,
+            )
+        )
+        for agent_id, recs in history_records.items():
+            history_total += inject_life_history(
+                agent_id, recs,
+                memory_service=memory_service,
+                sim_start_time=sim_start_time,
+            )
+        print(
+            f"[aitown] life_history: {history_total} events across "
+            f"{len(history_records)} protag",
+            file=sys.stderr,
+        )
+    except Exception as exc:
+        print(f"[aitown] life_history injection failed: {exc!r}", file=sys.stderr)
+
+    # 4c. social_priors — everyone
+    priors_total = 0
+    try:
+        rules = load_social_prior_rules()
+        priors = compute_social_priors_for_population(
+            profiles, rules=rules, archetypes=archs, seed=seed,
+        )
+        priors_total = social_graph.preload_ties(priors)
+        print(
+            f"[aitown] social_priors: {priors_total} unique ties preloaded "
+            f"(from {len(priors)} prior records)",
+            file=sys.stderr,
+        )
+    except Exception as exc:
+        print(f"[aitown] social_priors injection failed: {exc!r}", file=sys.stderr)
+
+    # 5. Register sync on_tick_end hook for auto-inviting protag-protag
+    #    dialogues. Without this, protag never enter dialogue branch
+    #    because scripted_plan keeps branch 6 from firing → do_something
+    #    never runs → no LLM dialogue.
+    #
+    #    Rule: when 2 protag encounter physically AND neither in active
+    #    dialogue AND each has 6+ sim-hour cooldown since last dialogue
+    #    ended → schedule_invite directly (skip do_something LLM).
+    agents_by_id = {rt.profile.agent_id: rt for rt in runtimes}
+    protag_ids = {rt.profile.agent_id for rt in runtimes if rt.profile.is_protagonist}
+    AUTO_INVITE_COOLDOWN_TICKS = 12 * 6  # 6 sim-hours @ 5min/tick = 72 ticks
+    AUTO_INVITE_MAX_PER_AGENT_PER_DAY = 3  # cap to keep cost bounded
+
+    # Per-agent counter: agent_id → {day_index: count}
+    auto_invite_counts: dict[str, dict[int, int]] = {}
+
+    auto_invite_attempts = {"scheduled": 0, "skipped_active": 0,
+                            "skipped_cooldown": 0, "skipped_cap": 0}
+
+    def _auto_invite_hook(tick_result):
+        """Trigger dialogues on protag-protag encounters."""
+        day_idx = tick_result.day_index
+        for enc in tick_result.encounter_candidates:
+            a, b = enc.agent_a, enc.agent_b
+            if a not in protag_ids or b not in protag_ids:
+                continue
+            rt_a = agents_by_id[a]
+            rt_b = agents_by_id[b]
+            # Either side in active dialogue?
+            if rt_a.current_dialogue_id or rt_b.current_dialogue_id:
+                auto_invite_attempts["skipped_active"] += 1
+                continue
+            # Cooldown check (per agent) — `continue` not `return` so other
+            # eligible pairs in the same tick still get a chance.
+            cooldown_ok = True
+            for rt in (rt_a, rt_b):
+                if rt.last_dialogue_ended_tick is not None:
+                    if (tick_result.tick_index - rt.last_dialogue_ended_tick
+                            < AUTO_INVITE_COOLDOWN_TICKS):
+                        cooldown_ok = False
+                        break
+            if not cooldown_ok:
+                auto_invite_attempts["skipped_cooldown"] += 1
+                continue
+            # Per-day cap (also `continue` not `return`)
+            cap_ok = True
+            for aid in (a, b):
+                day_counts = auto_invite_counts.setdefault(aid, {})
+                if day_counts.get(day_idx, 0) >= AUTO_INVITE_MAX_PER_AGENT_PER_DAY:
+                    cap_ok = False
+                    break
+            if not cap_ok:
+                auto_invite_attempts["skipped_cap"] += 1
+                continue
+            # Pick a target location — first shared location or fallback
+            target_loc = (
+                enc.shared_locations[0] if enc.shared_locations
+                else rt_a.current_location or "shared"
+            )
+            try:
+                d = dialogue_service.schedule_invite(
+                    a, b, target_loc,
+                    tick=tick_result.tick_index,
+                    simulated_time=tick_result.simulated_time,
+                )
+                # Both agents already at the same location (encounter
+                # implies physical co-location); shortcut walking_over.
+                dialogue_service.accept_invite(d.dialogue_id, b)
+                dialogue_service.advance_to_participating(
+                    d.dialogue_id, tick=tick_result.tick_index,
+                )
+                rt_a.set_dialogue_id(d.dialogue_id)
+                rt_b.set_dialogue_id(d.dialogue_id)
+                # Bump counters
+                auto_invite_counts.setdefault(a, {})[day_idx] = (
+                    auto_invite_counts.setdefault(a, {}).get(day_idx, 0) + 1
+                )
+                auto_invite_counts.setdefault(b, {})[day_idx] = (
+                    auto_invite_counts.setdefault(b, {}).get(day_idx, 0) + 1
+                )
+                auto_invite_attempts["scheduled"] += 1
+            except Exception:
+                pass
+
+    orchestrator.register_on_tick_end(_auto_invite_hook)
+    # Stash for visibility in stats output
+    aitown_attempts_ref = auto_invite_attempts
+
+    # 6. Register on_tick_end_async hook for OperationPool.process_pending
+    #    + daily-end reflection trigger for protagonists.
+    ticks_per_day = orchestrator._ticks_per_day  # type: ignore[attr-defined]
+    last_tick_of_day = ticks_per_day - 1  # tick 287 for 5-min ticks
+
+    async def _process_ops_hook(tick_result):
+        try:
+            results = await pool.process_pending(tick_result.tick_index)
+            for result in results:
+                rt = agents_by_id.get(result.agent_id)
+                if rt is not None:
+                    rt.consume_op_result(result)
+        except Exception:
+            # Logged inside OperationPool; don't abort the sim
+            pass
+
+        # Fire daily reflection for every protag on the last tick of each day.
+        within_day_tick = tick_result.tick_index % ticks_per_day
+        if within_day_tick == last_tick_of_day:
+            for rt in runtimes:
+                if not rt.profile.is_protagonist:
+                    continue
+                try:
+                    await memory_service.maybe_reflect(
+                        rt.profile.agent_id,
+                        rt.profile.name,
+                        current_tick=tick_result.tick_index,
+                        simulated_time=tick_result.simulated_time,
+                        day_index=tick_result.day_index,
+                        force_for_day_end=True,
+                    )
+                except Exception:
+                    pass
+
+    orchestrator.register_on_tick_end_async(_process_ops_hook)
+
+    print("[aitown] wired", file=sys.stderr)
+
+    return {
+        "dialogue_service": dialogue_service,
+        "operation_pool": pool,
+        "shared_memories_injected": shared_total,
+        "life_history_injected": history_total,
+        "social_priors_injected": priors_total,
+        "auto_invite_attempts": aitown_attempts_ref,
+    }
+
+
 def run_seed_with_metrics(
     *,
     seed: int,
@@ -146,6 +448,9 @@ def run_seed_with_metrics(
     variant_name: str,
     phase_days: str,
     use_real_llm: bool = False,
+    use_aitown: bool = False,
+    aitown_provider: str = "gemini",
+    num_protagonists: int = 10,
 ) -> tuple[MultiDayResult, RunMetrics, dict]:
     """单个 seed 的 metrics-enabled run；返回 (result, run_metrics, variant_metadata).
 
@@ -165,16 +470,32 @@ def run_seed_with_metrics(
         variant_name, phase_days, target_location=target_location,
     )
 
-    # 人群采样
+    # 人群采样 — 当 use_aitown 时一并跑 generate_identity=True 让 protag 拿到
+    # archetype-grounded identity_text/plan_text。
     profile_template = LANE_COVE_PROFILE.model_copy(update={
         "name": "variant_suite",
         "size": n_agents,
     })
-    profiles = sample_population(
-        profile_template,
-        seed=seed,
-        home_locations=tuple(destinations),
-    )
+    if use_aitown:
+        # Build a shared LLM client for identity generation (and later ai-town ops)
+        from tools.tier_llm_factory import build_tier_clients
+        tier_clients = build_tier_clients(provider=aitown_provider)
+        identity_llm = tier_clients.get("haiku") or next(iter(tier_clients.values()))
+        profiles = sample_population(
+            profile_template,
+            seed=seed,
+            home_locations=tuple(destinations),
+            num_protagonists=num_protagonists,
+            generate_identity=True,
+            llm_client=identity_llm,
+        )
+    else:
+        tier_clients = None
+        profiles = sample_population(
+            profile_template,
+            seed=seed,
+            home_locations=tuple(destinations),
+        )
 
     adapter: VariantRunnerAdapter | None = None
     if variant is not None:
@@ -250,7 +571,8 @@ def run_seed_with_metrics(
         audience_tag_provider=_audience_tag_provider,
     )
 
-    # 挂 metrics recorder
+    # 挂 metrics recorder — ai-town refs (dialogue_service, memory_service,
+    # operation_pool) are set later after _setup_aitown_stack runs.
     recorder = TickMetricsRecorder(
         ledger=ledger,
         attention_service=attention_service,
@@ -298,6 +620,40 @@ def run_seed_with_metrics(
 
     orchestrator.register_on_tick_end(_memory_hook)
 
+    # ai-town port wiring (Stage 4) — after memory + social_graph + conversation
+    # are built, so we can attach DialogueService + OperationPool + lane cove
+    # data to the runtimes and orchestrator.
+    aitown_stats: dict = {}
+    if use_aitown:
+        aitown_stats = _setup_aitown_stack(
+            orchestrator=orchestrator,
+            runtimes=runtimes,
+            memory_service=memory,
+            social_graph=social_graph,
+            tier_clients=tier_clients,
+            seed=seed,
+            sim_start_time=ledger.current_time,
+        )
+        # Wire ai-town service refs into recorder so build_run_metrics
+        # picks up reflection_count / dialogue_count / op stats.
+        recorder.attach_aitown_services(
+            dialogue_service=aitown_stats["dialogue_service"],
+            memory_service=memory,
+            operation_pool=aitown_stats["operation_pool"],
+        )
+
+        # Print auto-invite stats AFTER run finishes (post-hoc)
+        def _print_invite_stats(_summary) -> None:
+            attempts = aitown_stats["auto_invite_attempts"]
+            print(
+                f"[aitown] auto_invite: scheduled={attempts['scheduled']}, "
+                f"skipped_active={attempts['skipped_active']}, "
+                f"skipped_cooldown={attempts['skipped_cooldown']}, "
+                f"skipped_cap={attempts['skipped_cap']}",
+                file=sys.stderr,
+            )
+        orchestrator.register_on_simulation_end(_print_invite_stats)
+
     runner = MultiDayRunner(
         orchestrator=orchestrator,
         seed=seed,
@@ -333,6 +689,49 @@ def run_seed_with_metrics(
 
     if adapter is not None:
         adapter.augment_result_metadata(result)
+
+    # ai-town: inspect final dialogue state for debugging
+    if use_aitown and aitown_stats:
+        dsvc = aitown_stats["dialogue_service"]
+        pool_ref = aitown_stats["operation_pool"]
+        all_d = dsvc.all_dialogues()
+        active = [d for d in all_d if d.ended_tick is None]
+        ended = [d for d in all_d if d.ended_tick is not None]
+        msg_counts_active = [d.message_count() for d in active]
+        msg_counts_ended = [d.message_count() for d in ended]
+        print(
+            f"[aitown] dialogue stats — total={len(all_d)} "
+            f"active={len(active)} ended={len(ended)}",
+            file=sys.stderr,
+        )
+        if msg_counts_active:
+            print(
+                f"[aitown]   active msg counts: {msg_counts_active}",
+                file=sys.stderr,
+            )
+        if msg_counts_ended:
+            print(
+                f"[aitown]   ended msg counts: {msg_counts_ended} "
+                f"reasons: {dsvc.counts_by_end_reason()}",
+                file=sys.stderr,
+            )
+        # Op pool stats
+        completed = pool_ref._completed_log
+        errors = pool_ref._error_log
+        kinds = {}
+        for r in completed:
+            kinds[r.kind] = kinds.get(r.kind, 0) + 1
+        print(
+            f"[aitown] op stats — completed={len(completed)} "
+            f"errors={len(errors)} by_kind={kinds}",
+            file=sys.stderr,
+        )
+        if errors:
+            for r in errors[:3]:
+                print(
+                    f"[aitown]   error sample: {r.kind} {r.error_msg}",
+                    file=sys.stderr,
+                )
 
     # 组装 RunMetrics
     variant_metadata = variant.metadata_dict() if variant else {"name": "baseline"}
@@ -413,6 +812,8 @@ def main() -> int:
                 num_days=args.num_days, mode=args.mode,
                 variant_name=variant_name, phase_days=args.phase_days,
                 use_real_llm=args.use_real_llm,
+                use_aitown=args.use_aitown,
+                aitown_provider=args.aitown_provider,
             )
             t_e = time.perf_counter()
 

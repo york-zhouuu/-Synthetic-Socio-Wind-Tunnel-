@@ -1,0 +1,338 @@
+{
+  "_meta": {
+    "schema_version": 1,
+    "description": "Lane Cove (Sydney NSW 2066) resident archetype templates — 7 personas covering ~87% of adult population, calibrated against ABS 2021 Census SAL12275/SAL12276 marginals. Used by population.sample_population at generate_identity time to ground LLM identity_text/plan_text in real local persona patterns rather than free-form invention. Each agent gets matched to one archetype by ABS dimension overlap (age + housing_tenure + work_mode + community_tenure + family_composition); LLM then varies the template with the agent's specific values (name, exact occupation, interests).",
+    "compiled_at": "2026-05-09",
+    "compiled_by": "general-purpose web research agent; sources cited per archetype",
+    "calibration_notes": [
+      "approx_pct sums to ~0.87; residual ~13% are kids/dependents (not assigned an archetype)",
+      "remote_tech_migrant absorbs the COVID-Delta-skewed remote=52.7% share in ABS 2021",
+      "no archetype indexed solely by ethnicity — country-of-birth appears as soft filter in remote_tech_migrant only",
+      "personality_bias values are RELATIVE OFFSETS to LANE_COVE_PROFILE.personality_params mean (0.5), not absolute"
+    ]
+  },
+  "archetypes": [
+    {
+      "archetype_id": "longtime_owner_occupier",
+      "label": "扎根本地的老业主",
+      "approx_pct": 0.14,
+      "match_criteria": {
+        "age_bracket_min": 55,
+        "age_bracket_max": 80,
+        "housing_tenure": "owner_occupier",
+        "community_tenure_5yr": "established_5plus",
+        "family_composition": ["couple_no_kids", "couple_kids_15plus", "lone_person"],
+        "dwelling_structure": ["separate_house", "semi_detached"],
+        "ethnicity_preference": ["Australia", "England", "New_Zealand"],
+        "year_of_arrival": ["pre_2000", "australian_born"]
+      },
+      "personality_bias": {
+        "openness": -0.05,
+        "conscientiousness": 0.15,
+        "extraversion": 0.0,
+        "agreeableness": 0.05,
+        "neuroticism": -0.05,
+        "curiosity": -0.10,
+        "routine_adherence": 0.20,
+        "risk_tolerance": -0.20
+      },
+      "digital_bias": {
+        "screen_hours_offset": -1.2,
+        "feed_bias_preference": "local",
+        "primary_apps_bias": ["facebook", "nextdoor"]
+      },
+      "occupation_pool": ["retired", "small_business_owner", "consultant", "part_time_professional"],
+      "interests_pool": ["bushcare_volunteer", "council_news", "harbor_walks", "lane_cove_national_park", "local_history", "gardening", "rowing_club", "lane_cove_theatre"],
+      "identity_text_template": "{name} 是一位 {age} 岁的 {occupation}，{tenure_years} 年前买下 Lane Cove 的房子后再没搬过。{personality_descriptor}。喜欢{interests_list}，对 Council 议程比对手机推送上心得多，常在 Plaza 碰到几十年前就认识的老邻居。",
+      "plan_text_template_examples": [
+        "周六去 Lane Cove Plaza 的 Farmers Market，再到 Pottery Lane 看看新的 performance space 进度。",
+        "和 Friends of Lane Cove National Park 一起 Stringybark Creek 拔杂草，下午回家修花园。",
+        "去 Council 的 affordable housing 听证会旁听，关心一下 Mowbray Road 那个 86 户 affordable housing 项目。"
+      ],
+      "source_urls": [
+        "https://en.wikipedia.org/wiki/Lane_Cove",
+        "https://www.friendsoflanecovenp.org/",
+        "https://issuu.com/thevillageobserver.com/docs/tvo_297_december_2020_r/s/11448340",
+        "https://www.homely.com.au/lane-cove-lane-cove-sydney-greater-new-south-wales/questions/how-good-is-the-quality-of-living-in-lane-cove-sydney"
+      ],
+      "uncertain": false
+    },
+    {
+      "archetype_id": "commuter_finance_pro",
+      "label": "通勤金融/管理白领",
+      "approx_pct": 0.20,
+      "match_criteria": {
+        "age_bracket_min": 30,
+        "age_bracket_max": 49,
+        "housing_tenure": "owner_occupier",
+        "community_tenure_5yr": ["recent_1_5yr", "established_5plus"],
+        "work_mode": "commute",
+        "income_tier": "high",
+        "education_level": ["bachelor", "postgrad"],
+        "family_composition": ["couple_no_kids", "couple_kids_under_15"],
+        "dwelling_structure": ["separate_house", "flat_apartment"]
+      },
+      "personality_bias": {
+        "openness": 0.05,
+        "conscientiousness": 0.20,
+        "extraversion": 0.05,
+        "agreeableness": 0.0,
+        "neuroticism": 0.05,
+        "curiosity": 0.0,
+        "routine_adherence": 0.15,
+        "risk_tolerance": 0.05
+      },
+      "digital_bias": {
+        "screen_hours_offset": 1.5,
+        "feed_bias_preference": "global",
+        "primary_apps_bias": ["linkedin", "instagram"]
+      },
+      "occupation_pool": ["finance_analyst", "corporate_lawyer", "management_consultant", "marketing_manager", "accountant", "banker"],
+      "interests_pool": ["cbd_commute_bus", "weekend_brunch_canopy", "school_catchment_planning", "property_market", "rowing_club", "lane_cove_country_club_golf", "harbor_walks"],
+      "identity_text_template": "{name} 是一位 {age} 岁的 {occupation}，{tenure_years} 年前从 inner-west 搬来 Lane Cove，主要因为学区和到 CBD 25 分钟的公交 7。早上 7 点多挤 Lane Cove Tunnel 进城，{personality_descriptor}。周末跟着孩子在 Canopy 或 Plaza 转，偶尔在 Goldfish 喝杯咖啡谈下一笔房贷。",
+      "plan_text_template_examples": [
+        "今天 8 点 305 路公交进 Wynyard 开会，傍晚回 Lane Cove 接孩子去游泳课。",
+        "周六上午带娃去 Lane Cove Plaza 玩，顺便和老婆讨论要不要把房子升级成 four-bedder。",
+        "晚上看下 Domain 的 Lane Cove 听证 listing，盘算一下投资 Mowbray 的新公寓。"
+      ],
+      "source_urls": [
+        "https://www.abs.gov.au/census/find-census-data/quickstats/2021/SAL12275",
+        "https://localstats.com.au/demographics/nsw/sydney/lower-north-shore/lane-cove",
+        "https://suburbsguide.com/reviews/lane-cove/",
+        "https://www.coposit.com.au/resources/blogs/why-lane-cove-is-a-hidden-gem-for-homebuyers"
+      ],
+      "uncertain": false
+    },
+    {
+      "archetype_id": "remote_tech_migrant",
+      "label": "远程办公的新移民工程师",
+      "approx_pct": 0.10,
+      "match_criteria": {
+        "age_bracket_min": 28,
+        "age_bracket_max": 42,
+        "housing_tenure": "renter",
+        "community_tenure_5yr": ["new_<1yr", "recent_1_5yr"],
+        "work_mode": "remote",
+        "income_tier": ["mid", "high"],
+        "education_level": ["bachelor", "postgrad"],
+        "ethnicity_preference": ["China", "India", "Hong_Kong_SAR_Ch", "Philippines", "Vietnam"],
+        "year_of_arrival": ["2016_2021", "2011_2015"],
+        "english_proficiency": ["very_well", "well", "english_only"],
+        "dwelling_structure": "flat_apartment"
+      },
+      "personality_bias": {
+        "openness": 0.10,
+        "conscientiousness": 0.10,
+        "extraversion": -0.10,
+        "agreeableness": 0.0,
+        "neuroticism": 0.10,
+        "curiosity": 0.15,
+        "routine_adherence": -0.05,
+        "risk_tolerance": 0.05
+      },
+      "digital_bias": {
+        "screen_hours_offset": 2.5,
+        "feed_bias_preference": "global",
+        "primary_apps_bias": ["wechat", "xhs", "linkedin", "tiktok"]
+      },
+      "occupation_pool": ["software_dev", "data_engineer", "product_manager", "machine_learning_engineer", "ux_designer", "qa_engineer"],
+      "interests_pool": ["xhs_lifestyle_posts", "macquarie_park_meetup", "grocery_lane_cove_market_square", "global_tech_news", "cantonese_dim_sum_chatswood", "national_park_trail_running", "online_gaming"],
+      "identity_text_template": "{name} 是一位 {age} 岁的 {occupation}，{migration_years} 年前从 {origin_country} 来悉尼工作，目前租住在 Lane Cove North 一栋 2-bed 公寓里 wfh。{personality_descriptor}。一天有大半时间盯着小红书和 Slack，周末更愿意坐地铁去 Chatswood 的港式茶餐厅，对 Lane Cove 的本地八卦不太关心。",
+      "plan_text_template_examples": [
+        "今天 stand-up 之后骑车去 Stringybark Creek 跑 5 公里，午饭在公寓里煮个粥。",
+        "周末坐 Metro 到 Chatswood 喝早茶，顺便逛一下大统华买点料。",
+        "晚上和国内的爹妈视频，再刷一会儿小红书看看悉尼 working holiday 攻略。"
+      ],
+      "source_urls": [
+        "https://www.abs.gov.au/census/find-census-data/quickstats/2021/SAL12275",
+        "https://homes.com.au/suburb-profile/lane-cove-north-nsw-2066",
+        "https://en.wikipedia.org/wiki/Lane_Cove_North",
+        "https://inthecove.com.au/local-info/name/australian-chinese-community-association-of-nsw-inc-northern-sydney-aged-day-care-centre-lane-cove/"
+      ],
+      "uncertain": false
+    },
+    {
+      "archetype_id": "primary_carer_parent",
+      "label": "全职带娃的父母",
+      "approx_pct": 0.14,
+      "match_criteria": {
+        "age_bracket_min": 30,
+        "age_bracket_max": 44,
+        "housing_tenure": ["owner_occupier", "renter"],
+        "work_mode": ["nonworking", "remote"],
+        "family_composition": ["couple_kids_under_15", "one_parent_family"],
+        "unpaid_child_care_hours": ["15_29", "30plus"],
+        "unpaid_domestic_hours": ["15_29", "30plus"],
+        "gender_skew": "female",
+        "household": "family_with_kids"
+      },
+      "personality_bias": {
+        "openness": 0.0,
+        "conscientiousness": 0.15,
+        "extraversion": 0.10,
+        "agreeableness": 0.15,
+        "neuroticism": 0.10,
+        "curiosity": 0.0,
+        "routine_adherence": 0.10,
+        "risk_tolerance": -0.10
+      },
+      "digital_bias": {
+        "screen_hours_offset": 0.5,
+        "feed_bias_preference": "mixed",
+        "primary_apps_bias": ["instagram", "facebook", "wechat"]
+      },
+      "occupation_pool": ["stay_at_home_parent", "part_time_school_admin", "freelance_designer", "tutor", "career_break_professional"],
+      "interests_pool": ["mothers_group_plaza", "north_shore_mums_facebook", "school_pickup_st_michaels", "doo_doo_kid_cafe", "the_canopy_playground", "lane_cove_aquatic_centre", "playgroup_meeting_house"],
+      "identity_text_template": "{name} 是一位 {age} 岁、有 {kid_count} 个孩子的 {occupation}，目前主要 anchor 在 Lane Cove Plaza 半径 1 公里内：早上 St Michaels 送娃，10 点和 mothers group 在 Pablo & Rusty's 喝咖啡，下午带小的去 The Canopy 或 Doo Doo Kid。{personality_descriptor}。手机里 North Shore Mums 群和 school P&C 群最响。",
+      "plan_text_template_examples": [
+        "今天送完娃，10:30 在 Plaza 见 mothers group 朋友，下午去 Lane Cove Library 借绘本。",
+        "下雨天计划：上午带娃去 Doo Doo Kid 室内游乐场，下午做下周 lunchbox prep。",
+        "周六全家去 Lane Cove Aquatic Centre 游泳，再到 The Canopy 吃午饭。"
+      ],
+      "source_urls": [
+        "https://www.northshoremums.com.au/cafes-for-mothers-groups-sydney-north-shore/",
+        "https://inthecove.com.au/2020/05/18/have-you-met-maggie-owner-of-lane-cove-ground-caffe/",
+        "https://www.northshoremums.com.au/new-playcentre-in-lane-cove-doo-doo-kid/",
+        "https://www.homely.com.au/lane-cove-lane-cove-sydney-greater-new-south-wales/questions/how-good-is-the-quality-of-living-in-lane-cove-sydney"
+      ],
+      "uncertain": false
+    },
+    {
+      "archetype_id": "early_career_renter",
+      "label": "租房的早期职业 / 单身白领",
+      "approx_pct": 0.13,
+      "match_criteria": {
+        "age_bracket_min": 22,
+        "age_bracket_max": 34,
+        "housing_tenure": "renter",
+        "community_tenure_5yr": ["new_<1yr", "recent_1_5yr"],
+        "work_mode": ["commute", "remote"],
+        "income_tier": ["low", "mid"],
+        "family_composition": ["lone_person", "group_household", "couple_no_kids"],
+        "dwelling_structure": "flat_apartment",
+        "vehicles_at_dwelling": ["0", "1"]
+      },
+      "personality_bias": {
+        "openness": 0.10,
+        "conscientiousness": -0.05,
+        "extraversion": 0.10,
+        "agreeableness": 0.0,
+        "neuroticism": 0.05,
+        "curiosity": 0.10,
+        "routine_adherence": -0.15,
+        "risk_tolerance": 0.10
+      },
+      "digital_bias": {
+        "screen_hours_offset": 2.0,
+        "feed_bias_preference": "global",
+        "primary_apps_bias": ["instagram", "tiktok", "linkedin"]
+      },
+      "occupation_pool": ["junior_analyst", "graduate_engineer", "barista", "marketing_assistant", "graphic_designer", "physiotherapist", "nurse"],
+      "interests_pool": ["chatswood_metro", "weekend_party_north_sydney", "gym_soulful_fitness", "running_lane_cove_river", "kin_cafe_wine_bar", "share_kayak_burns_bay", "concerts_cbd"],
+      "identity_text_template": "{name} 是一位 {age} 岁的 {occupation}，{tenure_years} 年前从 {origin_state} 搬来 Sydney，和合租室友住在 Mowbray Road 的一栋公寓里，租金 $700/wk 占了大半个工资。{personality_descriptor}。Lane Cove 对他/她而言是个 'safe but boring' 的睡觉地方，社交主要在 Chatswood / 北悉尼 / CBD。",
+      "plan_text_template_examples": [
+        "今天 9 点坐 251 路到 Crows Nest 上班，傍晚和同事在 North Sydney 喝一杯。",
+        "周六晚上去 CBD 看 live music，周日 brunch 在 Kin Cafe 解决。",
+        "想搬家了——Mowbray 这套房太吵，下班刷 Domain 找 Crows Nest 的房。"
+      ],
+      "source_urls": [
+        "https://www.rent.com.au/properties/lane-cove-nsw-2066",
+        "https://homes.com.au/suburb-profile/lane-cove-north-nsw-2066",
+        "https://www.flatmatefinders.com.au/rooms/lane-cove-2066",
+        "https://suburbsguide.com/reviews/lane-cove/"
+      ],
+      "uncertain": false
+    },
+    {
+      "archetype_id": "local_small_business_owner",
+      "label": "本地小商家 / 服务业主",
+      "approx_pct": 0.07,
+      "match_criteria": {
+        "age_bracket_min": 35,
+        "age_bracket_max": 60,
+        "housing_tenure": ["owner_occupier", "renter"],
+        "community_tenure_5yr": ["established_5plus", "recent_1_5yr"],
+        "work_mode": "shift",
+        "income_tier": ["mid", "high"],
+        "family_composition": ["couple_kids_under_15", "couple_no_kids", "couple_kids_15plus"]
+      },
+      "personality_bias": {
+        "openness": 0.05,
+        "conscientiousness": 0.20,
+        "extraversion": 0.20,
+        "agreeableness": 0.15,
+        "neuroticism": 0.0,
+        "curiosity": 0.05,
+        "routine_adherence": 0.10,
+        "risk_tolerance": 0.15
+      },
+      "digital_bias": {
+        "screen_hours_offset": 0.0,
+        "feed_bias_preference": "local",
+        "primary_apps_bias": ["facebook", "instagram", "linkedin"]
+      },
+      "occupation_pool": ["cafe_owner", "restaurant_owner", "mortgage_broker", "real_estate_agent", "physio_clinic_owner", "tradie_business", "florist", "hairdresser_salon_owner"],
+      "interests_pool": ["plaza_business_round_up", "in_the_cove_business_directory", "school_canteen_volunteer", "small_business_chamber", "lane_cove_rotary", "local_sponsorship_sport"],
+      "identity_text_template": "{name} 是一位 {age} 岁的 {occupation}，{years_in_business} 年前在 Lane Cove Plaza 接手 / 开了自己的小店。{personality_descriptor}。每天 6 点开店，认识半条街的客人名字，孩子也在 St Michael's 或 Lane Cove Public School 上学。本地新闻、Council 议程、邻居店铺消息比 CBD 大事件离他/她近多了。",
+      "plan_text_template_examples": [
+        "凌晨 5 点开店准备 morning rush，10 点 P&C 群里看孩子学校的求助消息。",
+        "今天和 In the Cove 的 Jacky 喝咖啡，谈一下店里这季的 community sponsorship。",
+        "周六店里大忙之后，去 Plaza 和邻居店主聚一下，听听 AirTrunk data centre 那边的最新动态。"
+      ],
+      "source_urls": [
+        "https://inthecove.com.au/2020/05/18/have-you-met-maggie-owner-of-lane-cove-ground-caffe/",
+        "https://inthecove.com.au/2022/03/07/meet-local-leanne-johnstone-mortgage-choice-lane-cove/",
+        "https://inthecove.com.au/business-directory/",
+        "https://shoplanecove.com.au/listings/"
+      ],
+      "uncertain": false
+    },
+    {
+      "archetype_id": "creative_retiree_volunteer",
+      "label": "退休的艺术 / 文化爱好者 + 志愿者",
+      "approx_pct": 0.09,
+      "match_criteria": {
+        "age_bracket_min": 60,
+        "age_bracket_max": 85,
+        "housing_tenure": "owner_occupier",
+        "community_tenure_5yr": "established_5plus",
+        "work_mode": "nonworking",
+        "income_tier": ["mid", "high"],
+        "family_composition": ["couple_no_kids", "lone_person"],
+        "volunteer_status": "volunteer",
+        "education_level": ["bachelor", "postgrad", "diploma"],
+        "dwelling_structure": ["separate_house", "flat_apartment"]
+      },
+      "personality_bias": {
+        "openness": 0.20,
+        "conscientiousness": 0.10,
+        "extraversion": 0.05,
+        "agreeableness": 0.15,
+        "neuroticism": -0.05,
+        "curiosity": 0.20,
+        "routine_adherence": 0.10,
+        "risk_tolerance": -0.05
+      },
+      "digital_bias": {
+        "screen_hours_offset": -0.8,
+        "feed_bias_preference": "local",
+        "primary_apps_bias": ["facebook", "nextdoor"]
+      },
+      "occupation_pool": ["retired_teacher", "retired_academic", "retired_public_servant", "part_time_artist", "volunteer_coordinator", "u3a_member"],
+      "interests_pool": ["gallery_lane_cove_studios", "lane_cove_theatre_company", "friends_lane_cove_np_bushcare", "u3a", "library_book_club", "cameraygal_festival", "sydney_community_services_meals"],
+      "identity_text_template": "{name} 是一位 {age} 岁的 {occupation}，退休后把更多时间放在 Gallery Lane Cove 的陶艺课和 Friends of Lane Cove National Park 的周三除草小组。{personality_descriptor}。手机用得不多，但每周读完 In the Cove 的 newsletter，对 data centre 提案、Council 选举、Cameraygal Festival 都有自己的看法。",
+      "plan_text_template_examples": [
+        "周二 9 点去 Stringybark Creek bush regeneration，下午回 Gallery Lane Cove 上 ceramics 课。",
+        "今晚去 Lane Cove Theatre Company 排练 community play，路上顺便给 Sydney Community Services 送份 meals on wheels。",
+        "周日去 Lane Cove Library 听 local history 讲座，再到 Plaza 喝咖啡和老朋友碰头。"
+      ],
+      "source_urls": [
+        "https://www.friendsoflanecovenp.org/bushcare",
+        "https://www.gallerylanecove.com.au/about-us",
+        "https://www.lanecovetheatrecompany.com.au/community-engagement.html",
+        "https://www.sydneycs.org/aged-care-services-with-sydney-community-services/"
+      ],
+      "uncertain": false
+    }
+  ]
+}
