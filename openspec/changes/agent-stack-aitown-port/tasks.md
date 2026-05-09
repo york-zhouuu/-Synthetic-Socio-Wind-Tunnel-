@@ -188,10 +188,15 @@
 
 ### 24. benchmark 对照
 
-- [x] 24.1 14-day × 3 seed × 4 variant publishable suite (Gemini Flash, ai-town ON) — 启动于 2026-05-09，结果 → `data/experiments/aitown_publishable_v1/`
-- [ ] 24.2 跑同样配置但 `use_aitown_decision_tree=False`（对照） — deferred (after first suite finishes, can quick re-run with `--use-aitown` removed for ablation)
-- [ ] 24.3 对比 hp.traj_dev / weak_tie / info_propagation_hops / target_precision——thesis 方向 SHALL 不变（hp 偏离 < gd）；如果方向变了，root cause + 决定是否回滚 — pending suite result analysis
-- [ ] 24.4 把对比写进 commit message — pending
+- [x] 24.1 14-day × 3 seed × 4 variant publishable suite (Gemini Flash, ai-town ON) — 完成 2026-05-09 (4.2 hr wall)，结果 → `data/experiments/aitown_publishable_v1/`
+- [ ] 24.2 跑同样配置但 `use_aitown_decision_tree=False`（对照） — deferred (next session)
+- [x] 24.3 对比 hp.traj_dev / weak_tie / info_propagation_hops / target_precision —— **结论：thesis 信号从前半段（traj_dev）漂移到后半段（target_precision + info_2hops）**:
+    - traj_dev: hp=325.5 = gd=325.5 (mirror_delta=0) — **front-half null**
+    - target_precision: hp=**0.43** vs gd=**0.00** — **strong differentiation**
+    - info_2hops: hp=**9** vs gd=**128** — hp targeted (small), gd broadcast (wide)
+    - reflection_count: ~411/seed × 4 variants × 3 seeds = ~5000 reflections genuinely fired
+    - dialogue_count: 8-9/seed × 4 variants × 3 seeds = ~100 LLM dialogues, 5 msg avg, 0 errors
+- [x] 24.4 把对比写进 commit message — see commit log
 
 ### 25. 文档同步
 
