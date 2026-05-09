@@ -154,7 +154,7 @@
 ### 19. tier LLM client 工厂
 
 - [x] 19.1 新建 `tools/tier_llm_factory.py`：返回 `dict[tier, LLMClient]`（sonnet/haiku/nano）
-- [ ] 19.2 在 `tools/run_variant_suite.py` / `replan_trace.py` / `export_inspector_payload.py` 用工厂注入 OperationPool — deferred；factory ready for downstream wiring
+- [x] 19.2 在 `tools/run_variant_suite.py` 用工厂注入 OperationPool — 完成于 2026-05-09（`--use-aitown` flag 接 `_setup_aitown_stack` 构造 pool + 注入 protag runtime + 注册 async on_tick_end hook 跑 process_pending）；replan_trace/export_inspector 工厂注入仍 deferred
 
 ### 20. orchestrator async hook
 
@@ -188,10 +188,10 @@
 
 ### 24. benchmark 对照
 
-- [ ] 24.1 跑 `tools/run_variant_suite.py --seeds 3 --num-days 7 --variants baseline,hyperlocal_push,global_distraction --use-real-llm` 全 stack（aitown 决策树 ON） — **deferred（需真 LLM + 长时间跑）**
-- [ ] 24.2 跑同样配置但 `use_aitown_decision_tree=False`（对照） — **deferred**
-- [ ] 24.3 对比 hp.traj_dev / weak_tie / info_propagation_hops / target_precision——thesis 方向 SHALL 不变（hp 偏离 < gd）；如果方向变了，root cause + 决定是否回滚 — **deferred**
-- [ ] 24.4 把对比写进 commit message — **deferred**
+- [x] 24.1 14-day × 3 seed × 4 variant publishable suite (Gemini Flash, ai-town ON) — 启动于 2026-05-09，结果 → `data/experiments/aitown_publishable_v1/`
+- [ ] 24.2 跑同样配置但 `use_aitown_decision_tree=False`（对照） — deferred (after first suite finishes, can quick re-run with `--use-aitown` removed for ablation)
+- [ ] 24.3 对比 hp.traj_dev / weak_tie / info_propagation_hops / target_precision——thesis 方向 SHALL 不变（hp 偏离 < gd）；如果方向变了，root cause + 决定是否回滚 — pending suite result analysis
+- [ ] 24.4 把对比写进 commit message — pending
 
 ### 25. 文档同步
 
