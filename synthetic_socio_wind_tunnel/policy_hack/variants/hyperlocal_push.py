@@ -13,9 +13,9 @@ from __future__ import annotations
 
 from datetime import datetime
 from random import Random
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
-from pydantic import Field
+from pydantic import Field, PrivateAttr
 
 from synthetic_socio_wind_tunnel.attention.models import FeedItem
 from synthetic_socio_wind_tunnel.policy_hack.base import Variant, VariantContext
@@ -69,8 +69,10 @@ class HyperlocalPushVariant(Variant):
         default=_DEFAULT_TEMPLATES,
         description="模板池；每日从中 seed-bound 选 1 条。",
     )
-    hyperlocal_radius_m: float = Field(default=500.0, gt=0.0)
-    daily_push_count: int = Field(default=1, ge=1)
+    hyperlocal_radius_m: float = Field(default=1000.0, gt=0.0)  # CLAUDE.md 1km
+    # B4 fix: equalize hp / gd push count to isolate "direction" effect.
+    # Both variants now push 5/day per target recipient.
+    daily_push_count: int = Field(default=5, ge=1)
     # push-content-individualization：True 时走 PushPersonalizer 路径（每个
     # target 收到 audience-aware 个体化 FeedItem）；False 时退回 legacy 路径
     # （broadcast 一条 generic content 给所有 target）
@@ -79,6 +81,11 @@ class HyperlocalPushVariant(Variant):
         default=PUSH_TEMPLATES,
         description="个体化路径用的 PushTemplate 池；按 day rng 选 1 个/day。",
     )
+
+    # Cache of resolved target_agent_ids — populated on first apply_day_start.
+    # Exposed via metadata_dict so metric factory can compute protag-only
+    # trajectory_deviation_m without dragging in 90 scripted agents (B1 fix).
+    _resolved_target_ids: tuple[str, ...] | None = PrivateAttr(default=None)
 
     def apply_day_start(self, ctx: VariantContext) -> None:
         if ctx.attention_service is None:
@@ -157,10 +164,21 @@ class HyperlocalPushVariant(Variant):
         self, runtimes: tuple["AgentRuntime", ...],
     ) -> tuple[str, ...]:
         if self.target_agent_ids is not None:
-            return self.target_agent_ids
-        sorted_ids = sorted(r.profile.agent_id for r in runtimes)
-        half = len(sorted_ids) // 2
-        return tuple(sorted_ids[:half])
+            resolved = self.target_agent_ids
+        else:
+            sorted_ids = sorted(r.profile.agent_id for r in runtimes)
+            half = len(sorted_ids) // 2
+            resolved = tuple(sorted_ids[:half])
+        # Cache so metadata_dict can expose for downstream metric factory.
+        self._resolved_target_ids = resolved
+        return resolved
+
+    def metadata_dict(self) -> dict[str, Any]:
+        meta = super().metadata_dict()
+        meta["target_location"] = self.target_location
+        if self._resolved_target_ids is not None:
+            meta["target_agent_ids"] = self._resolved_target_ids
+        return meta
 
 
 __all__ = ["HyperlocalPushVariant"]

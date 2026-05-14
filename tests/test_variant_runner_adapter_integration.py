@@ -101,17 +101,18 @@ class TestHyperlocalPushE2E:
         )
 
         # push-content-individualization: per-recipient personalization →
-        # 1 intervention day × len(target_ids) FeedItems (4 agents → first
-        # half = 2 target_ids → 2 personalized items)
+        # 1 intervention day × len(target_ids) × daily_push_count FeedItems.
+        # 4 agents → first half = 2 target_ids; fix-bc-mechanics B4 set
+        # daily_push_count=5 → 2 × 5 = 10 personalized items.
         feed_items = list(attention._feed_index.values())  # type: ignore[attr-defined]
         hyperlocal_items = [
             it for it in feed_items if it.origin_hack_id == "hyperlocal_push"
         ]
-        assert len(hyperlocal_items) == 2
-        # All items in same intervention day share the same topic_id
+        assert len(hyperlocal_items) == 10
+        # Each push has a topic_id; topic catalogue may produce duplicates
+        # across daily slots so only assert non-None.
         topic_ids = {it.topic_id for it in hyperlocal_items}
-        assert len(topic_ids) == 1
-        assert next(iter(topic_ids)) is not None
+        assert all(t is not None for t in topic_ids)
 
 
 class TestPhoneFrictionE2E:

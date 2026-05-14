@@ -486,18 +486,25 @@ class Planner:
         profile: AgentProfile,
         current_plan: DailyPlan | None,
         interrupt_ctx: dict[str, Any],
-    ) -> DailyPlan:
+        *,
+        perceptual_context: Any = None,
+    ) -> tuple[DailyPlan, bool]:
         """
         基于 interrupt_ctx 触发事件 + recent memories，替换当前 plan 的
         未来 steps（保留已走过的）。
 
         - 1 次 LLM 调用。
-        - LLM 失败 / 解析失败 → fallback 返回原 plan 副本，不抛。
+        - LLM 失败 / 解析失败 → fallback 返回 `(原 plan 副本, changed=False)`，不抛。
+        - 成功改 plan → `(new_plan, changed=True)`。
+
+        返回值变更（B7 修复）：tuple[DailyPlan, bool]，第二个元素表示
+        plan 是否真的被改了。下游 metric counter 据此分流计入
+        `replan_count` (changed=True) / `replan_no_op_count` (changed=False)。
         """
         if current_plan is None:
             # 没有当前 plan，replan 退化为 generate_daily_plan 场景——超出
             # 本 change 范围；返回空 plan 让上层处理
-            return DailyPlan(agent_id=profile.agent_id, date="", steps=[])
+            return DailyPlan(agent_id=profile.agent_id, date="", steps=[]), False
 
         # 构造 prompt — 新 ctx 键 (current_step / current_location_kind /
         # nearby_agents) 缺失时整块在 prompt 中省略，旧 caller 依然可以工作
@@ -516,13 +523,14 @@ class Planner:
             current_step=current_step,
             current_location_kind=current_location_kind,
             nearby_agents=nearby_agents,
+            perceptual_view=perceptual_context,
         )
 
         try:
             raw = await self._llm.generate(prompt, model=profile.base_model)
         except Exception as exc:
             logger.warning("replan_failed: LLM error: %s", exc)
-            return current_plan.model_copy(deep=True)
+            return current_plan.model_copy(deep=True), False
 
         new_future_steps = _parse_xml_plan(raw)
         if not new_future_steps:
@@ -532,7 +540,7 @@ class Planner:
             logger.warning(
                 "replan_failed: empty / invalid plan from LLM. raw=%r", raw[:500]
             )
-            return current_plan.model_copy(deep=True)
+            return current_plan.model_copy(deep=True), False
 
         # D.2 修复：LLM 可能吐出早于 current_time 的 step.time，
         # AgentRuntime._current_step_expired 会自动 advance 跳过 → agent 静默忽略。
@@ -546,12 +554,16 @@ class Planner:
         # 保留已走过的 steps，替换未来部分
         kept = current_plan.steps[: current_plan.current_step_index]
         merged = kept + new_future_steps
-        return DailyPlan(
+        new_plan = DailyPlan(
             agent_id=profile.agent_id,
             date=current_plan.date,
             steps=merged,
             current_step_index=current_plan.current_step_index,
         )
+        # changed=True only if the merged plan differs from current.
+        # current_plan.steps is a list of PlanStep; equality compared element-wise.
+        changed = list(merged) != list(current_plan.steps)
+        return new_plan, changed
 
 
 def _ensure_future_step_time(step: "PlanStep", current_time) -> "PlanStep":
@@ -594,6 +606,7 @@ def _build_replan_prompt(
     current_step: Any = None,
     current_location_kind: str | None = None,
     nearby_agents: list | None = None,
+    perceptual_view: Any = None,
 ) -> str:
     """Replan prompt：对称 context window 装配。
 
@@ -602,7 +615,11 @@ def _build_replan_prompt(
     空 block 整块省略。
 
     Block 顺序：
-      【现在】 / 【正在做】 / 【周围】 / 【最近发生】 / 【手机】 / 【接下来计划】
+      【现在】 / 【正在做】 / 【周围】 / 【最近发生】 / 【手机】 / 【环境】 / 【接下来计划】
+
+    realism-perception-loop（A1）：当 perceptual_view (SubjectiveView) 非
+    空时，在【手机】之后插入【环境】block 描述 agent 看见 / 听见 / 闻到的
+    具体场景。空时整块省略，保持现有 prompt structure 测试不破。
     """
     blocks: list[str] = []
 
@@ -650,6 +667,15 @@ def _build_replan_prompt(
         content = getattr(trigger_event, "content", "")
         if content:
             blocks.append(f"【手机】{content}")
+
+    # 【环境】 — agent 看见/听见/闻到的场景（A1 / realism-perception-loop）
+    if perceptual_view is not None:
+        from synthetic_socio_wind_tunnel.perception.prose import (
+            render_subjective_view_prose,
+        )
+        prose = render_subjective_view_prose(perceptual_view)
+        if prose:
+            blocks.append(f"【环境】{prose}")
 
     # 【接下来计划】 — 剩余 steps（空时整块省略）
     remaining = current_plan.steps[current_plan.current_step_index:]

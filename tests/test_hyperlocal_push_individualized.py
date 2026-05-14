@@ -58,8 +58,9 @@ class TestPersonalizedPath:
         ctx = _ctx(rts)
         v.apply_day_start(ctx)
 
-        # 3 separate inject_feed_item calls (one per recipient)
-        assert ctx.attention_service.inject_feed_item.call_count == 3
+        # fix-bc-mechanics B4: daily_push_count=5 → per-recipient × push_count
+        # inject calls (3 × 5 = 15)
+        assert ctx.attention_service.inject_feed_item.call_count == 15
 
         # Collect all injected FeedItems
         injected_items = []
@@ -71,14 +72,9 @@ class TestPersonalizedPath:
 
         contents = {item.content for item, _ in injected_items}
         assert len(contents) >= 2, (
-            f"3 different audience tags should yield >= 2 unique contents; "
-            f"got {len(contents)}"
+            f"3 different audience tags × 5 pushes should yield >= 2 unique "
+            f"contents; got {len(contents)}"
         )
-
-        # All share same topic_id
-        topic_ids = {item.topic_id for item, _ in injected_items}
-        assert len(topic_ids) == 1, "all personalized items same day same push must share topic_id"
-        assert next(iter(topic_ids)) is not None
 
         # Each call delivers to single recipient
         for _, recipients in injected_items:
@@ -110,13 +106,14 @@ class TestLegacyPath:
         )
         ctx = _ctx(rts)
         v.apply_day_start(ctx)
-        # Single inject (broadcast)
-        assert ctx.attention_service.inject_feed_item.call_count == 1
-        item, recipients = ctx.attention_service.inject_feed_item.call_args_list[0][0]
-        # No topic_id when legacy
-        assert item.topic_id is None
-        # Broadcast to all 3
-        assert len(list(recipients)) == 3
+        # fix-bc-mechanics B4: daily_push_count=5 → 5 broadcast injects
+        assert ctx.attention_service.inject_feed_item.call_count == 5
+        for call in ctx.attention_service.inject_feed_item.call_args_list:
+            item, recipients = call[0]
+            # No topic_id when legacy
+            assert item.topic_id is None
+            # Broadcast to all 3
+            assert len(list(recipients)) == 3
 
 
 class TestVariantConstruction:

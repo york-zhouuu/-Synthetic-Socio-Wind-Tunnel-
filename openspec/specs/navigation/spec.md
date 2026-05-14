@@ -4,12 +4,9 @@
 `engine.navigation.NavigationService` 在 Atlas 静态连接图与 Ledger 动态门锁状态
 之上，为 agent 提供门感知、策略可选的路径规划，输出逐步的 NavigationStep，
 使 simulation / agent 能按步推进移动。
-
 ## Requirements
-
 ### Requirement: 路径规划主入口
-`find_route(from_id, to_id, strategy=PathStrategy.SHORTEST) → NavigationResult`
-SHALL 返回：
+NavigationService SHALL 提供 `find_route(from_id, to_id, strategy=PathStrategy.SHORTEST) → NavigationResult` 主入口；返回结构包含：
 - `success: bool`
 - `from_location`、`to_location`
 - `steps: list[NavigationStep]`
@@ -71,10 +68,51 @@ Navigation SHALL 每次调用时读取 Ledger 的最新门锁/容器状态，
 - **THEN** 第二次 `find_route(..., SHORTEST)` SHALL 能把该门作为普通 `open_door` step
 
 ### Requirement: Atlas 的静态 find_path 与 navigation 的区分
-`atlas.service.Atlas.find_path` 存在并返回纯静态拓扑路径（不考虑门锁 / 动态阻塞）。
+`atlas.service.Atlas.find_path` SHALL 存在并返回纯静态拓扑路径（不考虑门锁 / 动态阻塞）。
 agent 决策 SHOULD 使用 `navigation.find_route`；`Atlas.find_path` 仅供低层工具 / 诊断使用。
 
 #### Scenario: 两个 find_* 同名不冲突
 - **WHEN** 同一代码同时持有 Atlas 和 NavigationService
 - **THEN** `atlas.find_path(a, b)` 给纯拓扑结果；
   `navigation_service.find_route(a, b)` 给带门锁的可执行步骤
+
+### Requirement: find_route SHALL accept a mode parameter for edge filtering
+
+The `find_route` method SHALL accept a new keyword argument `mode`. The
+signature `NavigationService.find_route(from_location, to_location, ...,
+mode="any")` MUST accept a string `mode` argument with possible values
+`{"walking", "driving", "any"}`. The filtering semantics are:
+
+- `mode="walking"`: SHALL skip neighbour edges whose neighbour OutdoorArea
+  has `access_mode == "motor"` — car-less agents will not be routed onto
+  motorways.
+- `mode="driving"`: SHALL NOT filter — drivers are allowed to use any edge
+  including pedestrian-only segments (interpreted as "park + walk last leg").
+- `mode="any"`: SHALL NOT filter — backward-compatible default; previously
+  the only behaviour.
+
+The mode SHALL only affect edge filtering inside the A* loop. Heuristic
+function and other A* internals SHALL be unchanged.
+
+#### Scenario: walker route avoids motorway
+- **WHEN** `find_route(home, work, mode="walking")` is called and a
+  motorway shortcut would otherwise be selected
+- **THEN** the returned route SHALL contain no NavigationStep whose
+  `to_location` is an OutdoorArea with `access_mode == "motor"`
+
+#### Scenario: driver route unrestricted
+- **WHEN** `find_route(home, work, mode="driving")` is called
+- **THEN** the result SHALL match `find_route(home, work, mode="any")`
+  (no edge filtering)
+
+#### Scenario: mode defaults to any (backward compat)
+- **WHEN** `find_route(home, work)` is called without specifying mode
+- **THEN** behaviour SHALL be identical to the previous implementation
+  (no filtering, no exceptions raised)
+
+#### Scenario: walker fallback when route impossible
+- **WHEN** the only path from A to B requires traversing a motor-only edge
+  AND `mode="walking"` was requested
+- **THEN** `find_route` SHALL return `success=False`. The orchestrator
+  caller MAY retry with `mode="any"` to obtain a fallback path
+

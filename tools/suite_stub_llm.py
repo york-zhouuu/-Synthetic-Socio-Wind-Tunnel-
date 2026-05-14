@@ -49,11 +49,40 @@ _EMPTY_PLAN_XML = "<plan></plan>"
 
 def _pick_community_location(
     atlas, destinations: tuple[str, ...],
+    poi_pool: tuple[str, ...] = (),
 ) -> str | None:
     """
-    shared_anchor variant 的 target heuristic：
-    优先 park / plaza；无则 destinations[0]；都没有返 None
+    shared_anchor / phone_friction variant 的 target heuristic：
+    poi_pool 中 community/worship/park/garden 优先 → poi_pool[0] → destinations[0]
+
+    fix-population-uses-typed-locations: 加入 poi_pool 路径。优先从 poi_pool
+    选 community / worship building 或 park / playground / garden outdoor，
+    避免回退到 outdoor street。
     """
+    if atlas is not None and poi_pool:
+        community_candidates: list[str] = []
+        for loc_id in poi_pool:
+            try:
+                building = atlas.get_building(loc_id)
+            except Exception:
+                building = None
+            if building is not None and building.building_type in (
+                "community", "worship",
+            ):
+                community_candidates.append(loc_id)
+                continue
+            try:
+                outdoor = atlas.get_outdoor_area(loc_id)
+            except Exception:
+                outdoor = None
+            if outdoor is not None and outdoor.area_type in (
+                "park", "playground", "garden",
+            ):
+                community_candidates.append(loc_id)
+        if community_candidates:
+            return sorted(community_candidates)[0]
+        return poi_pool[0]
+
     if atlas is None:
         return destinations[0] if destinations else None
     try:
@@ -70,6 +99,106 @@ def _pick_community_location(
         if area.area_type in ("park", "plaza", "square"):
             return area.id
     return destinations[0] if destinations else None
+
+
+def _pick_distraction_location(
+    atlas, target_location: str | None, destinations: tuple[str, ...],
+    poi_pool: tuple[str, ...] = (),
+) -> str | None:
+    """
+    global_distraction variant 的 stub heuristic：选距离 target_location 最远
+    的 POI 或 outdoor area，模拟"global news 把注意力扯到无关方向"的可观测效应。
+
+    fix-population-uses-typed-locations: 加入 poi_pool 路径。从 poi_pool 中
+    选距 target_location 最远的 POI，避免回退到 outdoor street。
+
+    fallback 链：poi_pool → atlas-outdoor → destinations[-1]
+    """
+    if atlas is not None and poi_pool and target_location is not None:
+        target_center = None
+        try:
+            building = atlas.get_building(target_location)
+            if building is not None:
+                target_center = building.center
+        except Exception:
+            building = None
+        if target_center is None:
+            try:
+                outdoor = atlas.get_outdoor_area(target_location)
+                if outdoor is not None:
+                    target_center = outdoor.center
+            except Exception:
+                pass
+
+        if target_center is not None:
+            best_id: str | None = None
+            best_dist = -1.0
+            for loc_id in poi_pool:
+                if loc_id == target_location:
+                    continue
+                center = None
+                try:
+                    b = atlas.get_building(loc_id)
+                    if b is not None:
+                        center = b.center
+                except Exception:
+                    b = None
+                if center is None:
+                    try:
+                        o = atlas.get_outdoor_area(loc_id)
+                        if o is not None:
+                            center = o.center
+                    except Exception:
+                        center = None
+                if center is None:
+                    continue
+                dx = center.x - target_center.x
+                dy = center.y - target_center.y
+                d = (dx * dx + dy * dy) ** 0.5
+                if d > best_dist:
+                    best_dist = d
+                    best_id = loc_id
+            if best_id is not None:
+                return best_id
+        return poi_pool[-1] if poi_pool else None
+
+    if destinations and not target_location:
+        return destinations[-1]
+    if atlas is None or target_location is None:
+        return destinations[-1] if destinations else None
+    try:
+        target_area = atlas.get_outdoor_area(target_location)
+    except Exception:
+        target_area = None
+    if target_area is None:
+        return destinations[-1] if destinations else None
+
+    target_center = target_area.center
+    try:
+        area_ids = atlas.list_outdoor_areas()
+    except Exception:
+        return destinations[-1] if destinations else None
+
+    best_id_legacy: str | None = None
+    best_dist_legacy = -1.0
+    for aid in area_ids:
+        if aid == target_location:
+            continue
+        try:
+            area = atlas.get_outdoor_area(aid)
+        except Exception:
+            continue
+        if area is None:
+            continue
+        dx = area.center.x - target_center.x
+        dy = area.center.y - target_center.y
+        d = (dx * dx + dy * dy) ** 0.5
+        if d > best_dist_legacy:
+            best_dist_legacy = d
+            best_id_legacy = aid
+    return best_id_legacy if best_id_legacy is not None else (
+        destinations[-1] if destinations else None
+    )
 
 
 # -----------------------------------------------------------------------------
@@ -119,7 +248,8 @@ class StubReplanLLM:
     """
 
     __slots__ = ("_seed", "_variant_name", "_target_location", "_shared_location",
-                 "_call_counter")
+                 "_atlas", "_destinations", "_poi_pool", "_distraction_location",
+                 "_community_location", "_call_counter")
 
     def __init__(
         self,
@@ -128,11 +258,30 @@ class StubReplanLLM:
         variant_name: str,
         target_location: str | None = None,
         shared_location: str | None = None,
+        atlas: Any = None,
+        destinations: tuple[str, ...] = (),
+        pools: Any = None,
     ) -> None:
         self._seed = seed
         self._variant_name = variant_name
         self._target_location = target_location
         self._shared_location = shared_location or target_location
+        self._atlas = atlas
+        self._destinations = destinations
+        # fix-population-uses-typed-locations: poi_pool drives stub heuristics
+        # to building-class targets instead of street outdoor_areas.
+        self._poi_pool: tuple[str, ...] = (
+            tuple(pools.poi_pool) if pools is not None else ()
+        )
+        # Resolve & cache once; deterministic given (atlas, target_location, pools).
+        self._distraction_location = _pick_distraction_location(
+            atlas, target_location, destinations,
+            poi_pool=self._poi_pool,
+        )
+        self._community_location = _pick_community_location(
+            atlas, destinations,
+            poi_pool=self._poi_pool,
+        )
         self._call_counter = 0
 
     async def generate(
@@ -148,11 +297,19 @@ class StubReplanLLM:
             if self._target_location:
                 return _plan_toward(self._target_location, rng=rng)
         elif name == "global_distraction":
-            return _EMPTY_PLAN_XML
+            # B2 fix: gd 不再返回空 plan。返回走向 distraction_location
+            # （atlas 中距 target_location 最远的 outdoor area）
+            if self._distraction_location:
+                return _plan_toward(self._distraction_location, rng=rng)
+        elif name == "phone_friction":
+            # B3 fix: pf 不再返回空 plan。返回走向 community_location
+            # （park / plaza / square 优先），代表"放下手机回附近"
+            if self._community_location:
+                return _plan_toward(self._community_location, rng=rng)
         elif name == "shared_anchor":
             if self._shared_location:
                 return _plan_toward(self._shared_location, rng=rng)
-        # phone_friction / catalyst_seeding / baseline / unknown
+        # catalyst_seeding / baseline / unknown：保持空 plan
         return _EMPTY_PLAN_XML
 
 
@@ -259,6 +416,9 @@ def make_llm_client(
     seed: int,
     target_location: str | None = None,
     shared_location: str | None = None,
+    atlas: Any = None,
+    destinations: tuple[str, ...] = (),
+    pools: Any = None,
     provider: str = "auto",
     gemini_model: str = "gemini-3-flash-preview",
     anthropic_model: str = "claude-haiku-4-5-20251001",
@@ -279,6 +439,9 @@ def make_llm_client(
             variant_name=variant_name,
             target_location=target_location,
             shared_location=shared_location,
+            atlas=atlas,
+            destinations=destinations,
+            pools=pools,
         )
 
     # auto-detect

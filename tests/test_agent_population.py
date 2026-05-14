@@ -107,16 +107,22 @@ class TestPresets:
 
 class TestHomeLocationsPool:
 
-    def test_uses_provided_pool(self):
+    def test_uses_provided_pool_emits_deprecation(self):
+        import warnings
+
         small = PopulationProfile(
             **{**LANE_COVE_PROFILE.model_dump(), "size": 10, "name": "small"}
         )
-        sample = sample_population(
-            small,
-            seed=1,
-            home_locations=("apt_a", "apt_b", "apt_c"),
-        )
+        with warnings.catch_warnings(record=True) as warned:
+            warnings.simplefilter("always")
+            sample = sample_population(
+                small,
+                seed=1,
+                home_locations=("apt_a", "apt_b", "apt_c"),
+            )
         assert all(p.home_location in {"apt_a", "apt_b", "apt_c"} for p in sample)
+        deprecation = [w for w in warned if issubclass(w.category, DeprecationWarning)]
+        assert deprecation, "home_locations path must emit DeprecationWarning"
 
     def test_defaults_to_generated_home_ids(self):
         small = PopulationProfile(
@@ -124,3 +130,92 @@ class TestHomeLocationsPool:
         )
         sample = sample_population(small, seed=1)
         assert sample[0].home_location == "home_0000"
+
+
+class TestPoolsPath:
+
+    def _get_atlas(self):
+        import os
+        from synthetic_socio_wind_tunnel import Atlas
+        path = "data/lanecove_atlas.json"
+        if not os.path.exists(path):
+            import pytest
+            pytest.skip("Lane Cove atlas fixture not available")
+        return Atlas.from_json(path)
+
+    def _get_pools(self, atlas, seed: int = 42):
+        import random
+        from synthetic_socio_wind_tunnel import build_location_pools
+        return build_location_pools(
+            atlas, home_count=40, work_count=20, poi_count=30,
+            rng=random.Random(seed),
+        )
+
+    def test_pools_homes_all_residential(self):
+        atlas = self._get_atlas()
+        pools = self._get_pools(atlas)
+        small = PopulationProfile(
+            **{**LANE_COVE_PROFILE.model_dump(), "size": 30, "name": "small"}
+        )
+        sample = sample_population(small, seed=1, pools=pools)
+        for p in sample:
+            b = atlas.get_building(p.home_location)
+            assert b is not None, f"home {p.home_location} not a building"
+            assert b.building_type == "residential", (
+                f"home {p.home_location} is {b.building_type}, expected residential"
+            )
+
+    def test_pools_workplace_matches_work_mode(self):
+        atlas = self._get_atlas()
+        pools = self._get_pools(atlas)
+        small = PopulationProfile(
+            **{**LANE_COVE_PROFILE.model_dump(), "size": 50, "name": "small"}
+        )
+        sample = sample_population(small, seed=1, pools=pools)
+        for p in sample:
+            if p.work_mode in ("commute", "remote", "shift"):
+                assert p.workplace is not None, (
+                    f"working agent {p.agent_id} ({p.work_mode}) has no workplace"
+                )
+                assert p.workplace in pools.work_pool
+            else:
+                assert p.workplace is None, (
+                    f"non-working agent {p.agent_id} ({p.work_mode}) "
+                    f"unexpectedly has workplace={p.workplace}"
+                )
+
+    def test_pools_path_deterministic(self):
+        atlas = self._get_atlas()
+        pools = self._get_pools(atlas)
+        small = PopulationProfile(
+            **{**LANE_COVE_PROFILE.model_dump(), "size": 20, "name": "small"}
+        )
+        a = sample_population(small, seed=99, pools=pools)
+        b = sample_population(small, seed=99, pools=pools)
+        assert [p.home_location for p in a] == [p.home_location for p in b]
+        assert [p.workplace for p in a] == [p.workplace for p in b]
+
+    def test_validate_against_atlas_accepts_residential(self):
+        from synthetic_socio_wind_tunnel.agent.profile import validate_against_atlas
+        atlas = self._get_atlas()
+        pools = self._get_pools(atlas)
+        small = PopulationProfile(
+            **{**LANE_COVE_PROFILE.model_dump(), "size": 20, "name": "small"}
+        )
+        sample = sample_population(small, seed=1, pools=pools)
+        for p in sample:
+            validate_against_atlas(p, atlas)
+
+    def test_validate_against_atlas_rejects_street_home(self):
+        import pytest
+        from synthetic_socio_wind_tunnel.agent.profile import (
+            AgentProfile, validate_against_atlas,
+        )
+        atlas = self._get_atlas()
+        bad = AgentProfile(
+            agent_id="x", name="x", age=30, occupation="x",
+            household="single",
+            home_location="kenneth_street_seg_1",
+        )
+        with pytest.raises(ValueError, match="home_location"):
+            validate_against_atlas(bad, atlas)

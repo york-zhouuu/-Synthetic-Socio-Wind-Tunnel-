@@ -140,9 +140,20 @@ class OperationPool:
             handler = self._handlers[op.kind]
             llm_client = self._select_llm(op.kind)
             base_kwargs = self._handler_kwargs.get(agent_id, {})
+            # Wall-clock safety net: handler may chain multiple LLM calls, and
+            # one hung connection in 500 concurrent tasks blocks the entire
+            # asyncio.gather call. Cap each handler at 120s — covers a
+            # 2-3 LLM-call workflow at 45s × 1 retry = ~95s per call worst
+            # case (matches tier_llm_factory tuning). Tasks exceeding this
+            # raise asyncio.TimeoutError → routed to fallback via the
+            # exception branch below. Tuned for the 2026-05-13 D1' incident:
+            # deepseek hung 26 min per call before this guard.
             running.append(
                 (agent_id, asyncio.create_task(
-                    handler(op, llm_client=llm_client, **base_kwargs),
+                    asyncio.wait_for(
+                        handler(op, llm_client=llm_client, **base_kwargs),
+                        timeout=120.0,
+                    ),
                 ))
             )
 
@@ -176,15 +187,43 @@ class OperationPool:
                     "op handler raised for %s: %s", agent_id, out,
                 )
             else:
-                self._completed_log.append(out)
-                if not out.success:
-                    self._error_log.append(out)
-                results.append(out)
+                # B6 fix: stamp token usage from client._last_usage if the
+                # handler didn't set them. Gemini client populates _last_usage
+                # after each generate(); other clients may not.
+                stamped = self._stamp_tokens(out)
+                self._completed_log.append(stamped)
+                if not stamped.success:
+                    self._error_log.append(stamped)
+                results.append(stamped)
             # Clear pending entry
             self._in_flight.pop(agent_id, None)
             self._handler_kwargs.pop(agent_id, None)
 
         return results
+
+    def _stamp_tokens(self, result: OperationResult) -> OperationResult:
+        """Stamp token usage from the dispatched llm_client onto the result.
+
+        B6 fix: handlers don't currently populate prompt_tokens / completion_tokens
+        on OperationResult. The Gemini tier client caches `_last_usage` after
+        each generate(); read it here and merge into the (frozen) result.
+        Stub / Anthropic clients without `_last_usage` → result unchanged.
+        """
+        if result.prompt_tokens or result.completion_tokens:
+            return result  # handler already filled — respect it
+        try:
+            client = self._select_llm(result.kind)
+        except Exception:
+            return result
+        usage = getattr(client, "_last_usage", None)
+        if not usage:
+            return result
+        from dataclasses import replace
+        return replace(
+            result,
+            prompt_tokens=int(usage.get("prompt_tokens", 0)),
+            completion_tokens=int(usage.get("completion_tokens", 0)),
+        )
 
     def _select_llm(self, kind: OpKind) -> "LLMClient":
         tier = self._tier_for_kind.get(kind, self._default_tier)

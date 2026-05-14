@@ -236,7 +236,7 @@ class TestPlannerReplanCompat:
             simulated_time=datetime(2026, 4, 29, 7, 50),
             kind="action", content="walked past library",
         )]
-        new_plan = asyncio.run(planner.replan(
+        new_plan, _changed = asyncio.run(planner.replan(
             _profile(), _plan(),
             interrupt_ctx={
                 "trigger_event": _push(),
@@ -254,7 +254,7 @@ class TestPlannerReplanCompat:
     def test_old_schema_no_new_keys(self):
         client = _CapturePlanner()
         planner = Planner(client)
-        new_plan = asyncio.run(planner.replan(
+        new_plan, _changed = asyncio.run(planner.replan(
             _profile(), _plan(),
             interrupt_ctx={
                 "trigger_event": _push(),

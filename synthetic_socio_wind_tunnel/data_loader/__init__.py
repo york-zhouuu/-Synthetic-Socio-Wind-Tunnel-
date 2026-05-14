@@ -13,6 +13,7 @@ from in their first dialogues / do_something prompts.
 
 from synthetic_socio_wind_tunnel.data_loader.lanecove import (
     ArchetypeRecord,
+    ConversationTopicRecord,
     LifeHistoryRecord,
     PriorTieRecord,
     SharedMemoryRecord,
@@ -23,6 +24,7 @@ from synthetic_socio_wind_tunnel.data_loader.lanecove import (
     inject_shared_memories_for_protagonists,
     inject_shared_memories_into_agent,
     load_archetypes,
+    load_conversation_topics,
     load_shared_memories,
     load_social_prior_rules,
     match_archetype,
@@ -31,11 +33,13 @@ from synthetic_socio_wind_tunnel.data_loader.lanecove import (
 __all__ = [
     "SharedMemoryRecord",
     "ArchetypeRecord",
+    "ConversationTopicRecord",
     "LifeHistoryRecord",
     "SocialPriorRule",
     "PriorTieRecord",
     "load_shared_memories",
     "load_archetypes",
+    "load_conversation_topics",
     "load_social_prior_rules",
     "match_archetype",
     "compute_social_priors_for_population",

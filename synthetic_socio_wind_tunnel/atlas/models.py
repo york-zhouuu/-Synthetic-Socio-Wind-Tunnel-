@@ -222,6 +222,9 @@ class Building(BaseModel):
     # What is observable from outside before entering
     entry_signals: EntrySignals = Field(default_factory=EntrySignals)
 
+    # A3 / realism-poi-capacity: occupancy upper bound. None = unbounded.
+    capacity: int | None = None
+
     model_config = {"frozen": True}
 
     @property
@@ -252,6 +255,13 @@ class OutdoorArea(BaseModel):
     # Street-specific fields (only relevant when area_type == "street")
     road_name: str | None = None  # e.g. "Main Street"
     segment_index: int | None = None  # position in the road's segment sequence
+    # add-walking-speed-budget: who may travel this segment.
+    #   "pedestrian"  — foot/cycle/path/steps; cars forbidden
+    #   "motor"       — motorway/trunk; pedestrians forbidden
+    #   "mixed"       — residential / primary / secondary / service: both allowed
+    # NavigationService route filtering uses this to keep car-less agents off
+    # highways and to keep driving agents out of pedestrian lanes.
+    access_mode: str = "mixed"
 
     # Ambient properties for perception
     typical_sounds: tuple[str, ...] = ()
@@ -262,6 +272,10 @@ class OutdoorArea(BaseModel):
 
     # What is observable from outside / passing by
     entry_signals: EntrySignals = Field(default_factory=EntrySignals)
+
+    # A3 / realism-poi-capacity: occupancy upper bound. None = unbounded.
+    # Default by area_type at atlas-load time (cafe ~ 15, shop ~ 10, park / street None).
+    capacity: int | None = None
 
     model_config = {"frozen": True}
 

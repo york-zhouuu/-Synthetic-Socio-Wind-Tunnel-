@@ -1,0 +1,1085 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>看不见的邻居 — 长版海报 · 2.5D + 插图</title>
+<style>
+  @page { size: 594mm 1300mm portrait; margin: 0; }
+  :root {
+    --pink: #FF4D8F; --pink-soft: #FFD5E3; --pink-deep: #C8266B;
+    --yellow: #FFD23F; --yellow-soft: #FFF2B8;
+    --ink: #1B1F2A; --ink-soft: #4A4F5A; --bg: #FCFAF6;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    background: #888;
+    font-family: "Helvetica Neue", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    color: var(--ink); -webkit-font-smoothing: antialiased;
+  }
+  .poster {
+    width: 594mm; height: 1300mm; background: var(--bg);
+    margin: 20px auto; padding: 14mm;
+    box-shadow: 0 4mm 20mm rgba(0,0,0,0.3);
+    position: relative; overflow: hidden;
+    display: flex; flex-direction: column; gap: 8mm;
+  }
+  .poster::before {
+    content: ""; position: absolute;
+    top: -80mm; right: -60mm; width: 220mm; height: 220mm;
+    background: var(--yellow); border-radius: 50%; opacity: 0.22; z-index: 0;
+  }
+  .poster::after {
+    content: ""; position: absolute;
+    bottom: -50mm; left: -50mm; width: 180mm; height: 180mm;
+    background: var(--pink-soft); border-radius: 50%; opacity: 0.35; z-index: 0;
+  }
+  .poster > * { position: relative; z-index: 1; }
+
+  h1 { font-size: 64pt; line-height: 0.94; font-weight: 900; letter-spacing: -1.5pt; color: var(--ink); }
+  .chapter-num { font-size: 11pt; font-weight: 900; letter-spacing: 2pt; color: var(--pink); text-transform: uppercase; }
+  .chapter-h { font-size: 30pt; font-weight: 900; line-height: 1.05; color: var(--ink); letter-spacing: -0.5pt; margin: 1mm 0 4mm 0; }
+  .lead { font-size: 18pt; line-height: 1.4; font-weight: 500; color: var(--ink); }
+  p { font-size: 13pt; line-height: 1.45; margin-bottom: 2.5mm; color: var(--ink); }
+  .small { font-size: 11pt; line-height: 1.35; color: var(--ink-soft); }
+  .tiny { font-size: 9.5pt; line-height: 1.3; color: var(--ink-soft); }
+  strong { font-weight: 800; }
+  em { font-style: italic; color: var(--pink-deep); }
+  u { text-decoration-color: var(--yellow); text-decoration-thickness: 0.6mm; text-underline-offset: 1mm; }
+
+  /* Header */
+  .header { display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 1mm solid var(--ink); padding-bottom: 4mm; }
+  .header .kicker-row { font-size: 11pt; letter-spacing: 1.5pt; text-transform: uppercase; font-weight: 700; color: var(--pink-deep); }
+  .header .right { text-align: right; font-size: 11pt; color: var(--ink-soft); line-height: 1.4; }
+  .header h1 { margin-top: 3mm; }
+  .header .subt { font-size: 14pt; color: var(--ink-soft); margin-top: 2mm; font-weight: 500; }
+
+  .chap { padding-bottom: 1mm; }
+
+  /* Clickable map wrappers */
+  .zoomable {
+    cursor: zoom-in; position: relative;
+  }
+  .zoomable::after {
+    content: "🔍 click to enlarge";
+    position: absolute; top: 2mm; right: 2mm;
+    background: rgba(27, 31, 42, 0.85); color: var(--yellow);
+    font-size: 8pt; letter-spacing: 0.8pt; font-weight: 700;
+    padding: 0.8mm 2mm; border-radius: 1mm;
+    pointer-events: none; z-index: 10;
+  }
+  .zoomable object { pointer-events: none; }
+
+  /* Lightbox modal */
+  .lightbox {
+    display: none; position: fixed; inset: 0; z-index: 9999;
+    background: rgba(0,0,0,0.92); justify-content: center; align-items: center;
+    padding: 30px;
+  }
+  .lightbox.open { display: flex; }
+  .lightbox object {
+    max-width: 95vw; max-height: 95vh; background: var(--bg);
+  }
+  .lightbox .close {
+    position: absolute; top: 20px; right: 30px;
+    color: white; font-size: 32px; cursor: pointer;
+    background: none; border: none;
+  }
+
+  /* CH1 — scientific intro */
+  .ch1 { background: var(--ink); color: white; padding: 10mm 12mm; }
+  .ch1 .chapter-num { color: var(--yellow); }
+  .ch1 .chapter-h { color: white; font-size: 30pt; margin-bottom: 5mm; }
+  .ch1-grid { display: grid; grid-template-columns: 7fr 5fr; gap: 8mm; }
+  .ch1 .citations { font-size: 12pt; line-height: 1.55; color: rgba(255,255,255,0.92); margin-bottom: 4mm; }
+  .ch1 .citations strong { color: var(--yellow); }
+  .ch1 .gap { border-left: 3mm solid var(--pink); padding: 1mm 0 1mm 5mm; margin: 4mm 0; }
+  .ch1 .gap strong { font-size: 15pt; color: var(--pink); font-weight: 900; text-transform: uppercase; letter-spacing: 1.5pt; }
+  .ch1 .gap p { color: white; font-size: 14pt; margin: 1mm 0 0; }
+  .ch1 .define { background: rgba(255, 210, 63, 0.16); border: 0.6mm solid var(--yellow); padding: 5mm; }
+  .ch1 .define .term { color: var(--yellow); font-size: 13pt; font-weight: 900; letter-spacing: 1pt; }
+  .ch1 .define .def { color: white; font-size: 13pt; line-height: 1.4; margin-top: 2mm; }
+  .ch1 .question { font-size: 18pt; font-weight: 800; color: white; line-height: 1.3; margin-top: 5mm; }
+  .ch1 .question .q-l { color: var(--pink); }
+
+  /* CH2 — method + smaller map */
+  .ch2-grid { display: grid; grid-template-columns: 5fr 7fr; gap: 6mm; align-items: stretch; }
+  .ch2-left p { font-size: 13pt; line-height: 1.5; }
+  .ch2-lab { background: var(--yellow-soft); border: 0.6mm solid var(--ink); padding: 4mm; margin-top: 3mm; }
+  .ch2-lab .row { display: flex; gap: 2mm; align-items: center; font-size: 11pt; margin-bottom: 1.5mm; }
+  .ch2-lab .row .num { background: var(--pink); color: white; font-weight: 800; width: 6mm; height: 6mm; display: inline-flex; align-items: center; justify-content: center; font-size: 11pt; flex-shrink: 0; }
+  .ch2-map { background: white; border: 0.7mm solid var(--ink); overflow: hidden; height: 145mm; display: flex; flex-direction: column; }
+  .ch2-map > .m { flex: 1; min-height: 0; overflow: hidden; }
+  .ch2-map object { width: 100%; height: 100%; display: block; }
+  .ch2-mapcap { background: var(--ink); color: white; padding: 3mm 5mm; font-size: 10.5pt; line-height: 1.35; }
+
+  /* CH3 — TOOL DEEP DIVE with illustrations */
+  .ch3-tool { display: flex; flex-direction: column; gap: 5mm; }
+  .ch3-row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 5mm; }
+  .tool-panel { background: white; border: 0.6mm solid var(--ink); padding: 5mm; }
+  .tool-panel h3 { font-size: 16pt; line-height: 1.1; font-weight: 900; color: var(--ink); margin-bottom: 3mm; }
+  .tool-panel h3 .ttag { font-size: 10pt; font-weight: 900; letter-spacing: 1.5pt; color: var(--pink); text-transform: uppercase; display: block; margin-bottom: 1mm; }
+  .illus { background: var(--bg); border: 0.4mm dashed var(--ink-soft); padding: 3mm; margin: 2mm 0; }
+  .illus svg { display: block; width: 100%; height: auto; }
+
+  /* 3.1 Theater illustration */
+  .theater-cells { display: grid; grid-template-columns: repeat(4, 1fr); gap: 2mm; margin-top: 2mm; }
+  .theater-cell { background: white; border: 0.5mm solid var(--ink); padding: 3mm; text-align: center; }
+  .theater-cell .icon-wrap { height: 22mm; display: flex; align-items: center; justify-content: center; margin-bottom: 1.5mm; }
+  .theater-cell .role { font-size: 9pt; color: var(--pink-deep); font-weight: 800; letter-spacing: 1pt; text-transform: uppercase; }
+  .theater-cell .name { font-size: 13pt; font-weight: 900; color: var(--ink); margin: 1mm 0; }
+  .theater-cell .desc { font-size: 9.5pt; color: var(--ink); line-height: 1.3; text-align: left; }
+
+  /* 3.2 People synthesis */
+  .ppl-pipeline { display: flex; flex-direction: column; gap: 2mm; align-items: center; }
+  .ppl-pipeline .stage-card { width: 100%; border: 0.4mm solid var(--ink); padding: 3mm; background: white; display: flex; gap: 3mm; align-items: center; }
+  .ppl-pipeline .stage-card .vsvg { width: 28mm; height: 18mm; flex-shrink: 0; }
+  .ppl-pipeline .stage-card .vsvg svg { width: 100%; height: 100%; }
+  .ppl-pipeline .stage-card .vbody { flex: 1; }
+  .ppl-pipeline .stage-card .vbody .stt { font-size: 11.5pt; font-weight: 800; color: var(--ink); }
+  .ppl-pipeline .stage-card .vbody .stp { font-size: 9.5pt; color: var(--ink-soft); line-height: 1.35; margin-top: 0.5mm; }
+  .ppl-pipeline .arrow-down { color: var(--pink); font-size: 16pt; font-weight: 900; line-height: 0.4; }
+
+  /* 3.3 Attention meter */
+  .att-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 3mm; margin-top: 2mm; }
+  .att-scene { background: white; border: 0.4mm solid var(--ink); padding: 3mm; }
+  .att-scene .label { font-size: 10pt; font-weight: 800; color: var(--ink); margin-bottom: 1.5mm; text-align: center; }
+  .att-scene .scene-svg { width: 100%; height: 36mm; }
+  .att-scene .outcome { font-size: 10pt; text-align: center; margin-top: 1.5mm; padding: 1.5mm; }
+  .att-scene .outcome.good { background: var(--yellow-soft); }
+  .att-scene .outcome.bad { background: var(--pink-soft); }
+
+  /* 3.4 Outputs icon grid */
+  .out-icon-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 3mm; }
+  .out-icon { background: white; border: 0.4mm solid var(--ink); padding: 3mm; }
+  .out-icon .iwrap { height: 18mm; display: flex; align-items: center; justify-content: center; }
+  .out-icon .iwrap svg { width: 100%; height: 100%; }
+  .out-icon .iname { font-size: 11pt; font-weight: 800; color: var(--ink); margin-top: 1.5mm; }
+  .out-icon .idesc { font-size: 9pt; color: var(--ink-soft); line-height: 1.3; margin-top: 0.5mm; }
+  .out-icon .iaud { font-size: 8.5pt; color: var(--pink-deep); margin-top: 1.5mm; font-weight: 700; }
+
+  /* 3.5 Extensibility */
+  .ext-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 3mm; margin-top: 2mm; }
+  .ext-card { background: white; border: 0.4mm solid var(--ink); padding: 3mm; text-align: center; }
+  .ext-card .esvg { height: 20mm; display: flex; align-items: center; justify-content: center; }
+  .ext-card .esvg svg { width: 100%; height: 100%; }
+  .ext-card .ename { font-size: 11pt; font-weight: 800; color: var(--ink); margin: 1.5mm 0 1mm; }
+  .ext-card .edesc { font-size: 9pt; color: var(--ink-soft); line-height: 1.3; text-align: left; }
+
+  /* CH4 — insights */
+  .ch4-row { display: grid; grid-template-columns: 1fr 1fr; gap: 6mm; }
+  .insight { background: white; border: 0.7mm solid var(--ink); padding: 5mm; display: flex; flex-direction: column; }
+  .insight .ins-tag { font-size: 10pt; font-weight: 900; letter-spacing: 2pt; color: var(--pink-deep); text-transform: uppercase; }
+  .insight .ins-h { font-size: 22pt; line-height: 1.1; font-weight: 900; color: var(--ink); margin: 1.5mm 0 3mm; }
+  .insight .ins-viz { flex: 0 0 auto; margin-bottom: 3mm; }
+  .insight .ins-body { font-size: 12pt; line-height: 1.45; }
+  .twin { display: grid; grid-template-columns: 1fr 1fr; gap: 2mm; background: var(--bg); padding: 2mm; border: 0.4mm solid var(--ink); }
+  .twin .t { height: 56mm; background: white; border: 0.3mm solid var(--ink-soft); overflow: hidden; position: relative; }
+  .twin .t object { width: 100%; height: 100%; display: block; }
+  .twin .t .lbl { position: absolute; bottom: 0; left: 0; right: 0; background: var(--ink); color: white; padding: 1.5mm 2mm; font-size: 10pt; font-weight: 800; display: flex; justify-content: space-between; }
+  .twin .t .lbl .delta { color: var(--yellow); font-weight: 900; }
+  .twin .t .lbl .delta.bad { color: #FF9090; }
+  .fatigue { padding: 1mm 0; }
+  .fatigue .row { display: flex; align-items: center; gap: 2mm; margin-bottom: 1.5mm; font-size: 10pt; }
+  .fatigue .row .n { width: 5mm; font-weight: 800; color: var(--ink); text-align: right; }
+  .fatigue .row .bar { height: 4mm; background: var(--pink); }
+  .fatigue .row .lab { font-size: 9pt; color: var(--ink-soft); }
+
+  /* CH5 4 recipes */
+  .ch5-recipes { display: grid; grid-template-columns: repeat(4, 1fr); gap: 3mm; margin-top: 2mm; }
+  .recipe { background: white; border: 0.5mm solid var(--ink); display: flex; flex-direction: column; overflow: hidden; }
+  .recipe .rmap { height: 45mm; }
+  .recipe .rmap object { width: 100%; height: 100%; display: block; }
+  .recipe .rbody { padding: 2.5mm 3mm; }
+  .recipe .rbody h4 { font-size: 11pt; color: var(--ink); margin-bottom: 1.5mm; font-weight: 800; }
+  .recipe .rbody p { font-size: 10pt; line-height: 1.3; margin: 0; color: var(--ink-soft); }
+  .recipe.core { border: 1mm solid var(--pink); }
+  .recipe.core .rbody { background: var(--pink-soft); }
+  .recipe.core .rbody h4 { color: var(--pink-deep); }
+
+  /* CH6 pivots */
+  .ch6-row { display: grid; grid-template-columns: 1fr 1fr; gap: 5mm; }
+  .pivot { background: white; border: 0.5mm solid var(--ink); padding: 4mm; display: flex; gap: 4mm; align-items: flex-start; }
+  .pivot .pn { background: var(--ink); color: var(--yellow); font-size: 28pt; font-weight: 900; line-height: 1; padding: 2mm 3mm; flex-shrink: 0; }
+  .pivot .pb h4 { font-size: 12pt; font-weight: 800; color: var(--pink-deep); text-transform: uppercase; letter-spacing: 1pt; margin-bottom: 1.5mm; }
+  .pivot .pb .frame { font-size: 10.5pt; color: var(--ink); margin-bottom: 1mm; line-height: 1.35; }
+  .pivot .pb .arrow { color: var(--pink); font-weight: 900; font-size: 11pt; margin: 0.5mm 0; }
+
+  /* CH7 takeaways */
+  .takeaways { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4mm; }
+  .ta { background: var(--pink); color: white; padding: 5mm; display: flex; flex-direction: column; }
+  .ta .n { font-size: 38pt; font-weight: 900; line-height: 0.9; color: var(--yellow); margin-bottom: 2mm; }
+  .ta .h { font-size: 17pt; font-weight: 900; line-height: 1.1; color: white; margin-bottom: 2mm; }
+  .ta .b { font-size: 11pt; line-height: 1.4; color: rgba(255,255,255,0.92); }
+
+  /* Footer */
+  .footer-grid { display: grid; grid-template-columns: 5fr 4fr 4fr; gap: 5mm; border-top: 0.6mm solid var(--ink); padding-top: 4mm; margin-top: 1mm; }
+  .ft-card h4 { font-size: 10pt; letter-spacing: 1.5pt; text-transform: uppercase; font-weight: 800; color: var(--pink-deep); margin-bottom: 2mm; }
+  .ft-card p, .ft-card .tiny { font-size: 9.5pt; }
+
+  @media print {
+    html, body { background: white; }
+    .poster { margin: 0; box-shadow: none; }
+    .zoomable::after { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="poster">
+
+  <!-- ============ HEADER ============ -->
+  <div class="header">
+    <div>
+      <div class="kicker-row">Synthetic Socio Wind Tunnel · A2a Final Poster · Tutorial [#] · Team [Name]</div>
+      <h1>看不见的邻居</h1>
+      <div class="subt">一个跑在电脑里的虚拟城市,帮你在花钱建广场之前先回答"如果……会怎样"</div>
+    </div>
+    <div class="right">
+      <strong>For:</strong> 社区研究者 / Policymaker / Social Designer<br>
+      <strong>What:</strong> Open-source 虚拟城市仿真套件<br>
+      <strong>Where:</strong> 校准至 Lane Cove · 1000m 半径<br>
+      <strong>When:</strong> 14 天虚拟实验 / 一晚可重跑
+    </div>
+  </div>
+
+  <!-- ============ CH 1 — SCIENTIFIC INTRO ============ -->
+  <section class="chap ch1">
+    <div class="chapter-num">Chapter 1 · Research framing</div>
+    <div class="chapter-h">城市规划赖以为生的等式,被智能手机打破了。</div>
+    <div class="ch1-grid">
+      <div>
+        <p class="citations">
+          <strong>Jacobs (1961)</strong>:街角接触产生社区信任。
+          <strong>Granovetter (1973)</strong>:弱关系网络驱动社会流动。
+          <strong>Putnam (2000)</strong>:"独自打保龄"折射公民参与瓦解。
+          这些经典都隐含一个等式 —— <u>物理接触 ≈ 社会接触</u>。
+        </p>
+        <p class="citations">
+          智能手机让等式断了。Hampton &amp; Wellman (2017) 记录公共空间中使用手机的人占比从 2008 年 8% 升到 2017 年 24%;
+          Misra et al. (2016) 发现手机在场显著降低面对面对话的同理心评分。<strong>身体走到了,注意力没跟上。</strong>
+        </p>
+        <div class="gap">
+          <strong>Research gap</strong>
+          <p>"哪种干预真的能把注意力拉回来?"这种问题,无法在真居民身上做对照实验——
+          没法把 1000 个居民分成 4 组,每组分配一种手机推送策略,跟踪 14 天。隐私、伦理、操作三重不可能。</p>
+        </div>
+      </div>
+      <div>
+        <div class="define">
+          <div class="term">Definition · attention-induced nearby blindness</div>
+          <div class="def">
+            <strong>物理共在但社会未注册</strong>的现象:两人处于同一物理空间,但因至少一方注意力被数字设备占据,
+            "看见"对方的概率 → 0,弱关系形成路径被切断。
+            <span style="opacity: 0.7; font-size: 11pt;">本研究的核心建模变量。</span>
+          </div>
+        </div>
+        <div class="question">
+          <span class="q-l">RQ:</span> 在不打破伦理边界的前提下,能否以可证伪、可复现的方式,
+          测试"反向超在地推送"作为干预手段,把注意力从手机拉回到附近?
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ CH 2 — METHOD + SMALLER MAP ============ -->
+  <section class="chap">
+    <span class="chapter-num">Chapter 2 · 方法学回应</span>
+    <h2 class="chapter-h">既然真人实验跑不了,那就在电脑里造一座 Lane Cove。</h2>
+    <div class="ch2-grid">
+      <div class="ch2-left">
+        <p class="lead" style="font-size: 14pt;">
+          把<strong>真实街道地图</strong> + <strong>真实人口分布</strong>合成进一个虚拟实验装置。
+          1000 个虚拟居民住进去 14 天——上班、买菜、刷手机、偶遇邻居。
+          然后对完全相同的 1000 人施加四种不同推送策略,看行为差异。
+        </p>
+        <div class="ch2-lab">
+          <div class="row"><span class="num">1</span><span><strong>地图</strong>:OSM Lane Cove 1000m,2070 真建筑</span></div>
+          <div class="row"><span class="num">2</span><span><strong>居民</strong>:1000 个合成虚拟人,ABS Census 分布</span></div>
+          <div class="row"><span class="num">3</span><span><strong>干预</strong>:四组不同推送(下面 CH 5)</span></div>
+          <div class="row"><span class="num">4</span><span><strong>测量</strong>:每 5 分钟一帧,位置 / 偶遇 / 注意力</span></div>
+          <div class="row"><span class="num">5</span><span><strong>对照</strong>:14 天 = 4 baseline + 6 干预 + 4 恢复</span></div>
+        </div>
+      </div>
+      <div class="ch2-map zoomable" data-zoom="poster_map_big.svg">
+        <div class="m"><object type="image/svg+xml" data="poster_map_big.svg"></object></div>
+        <div class="ch2-mapcap">
+          <strong style="color: var(--yellow);">通行热度地图 · Lane Cove 真实街区 (2.5D)</strong>
+          · 2,070 buildings · 1.46M agent-location events
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ CH 3 — TOOL DEEP DIVE (illustrated) ============ -->
+  <section class="chap">
+    <span class="chapter-num">Chapter 3 · 工具本身</span>
+    <h2 class="chapter-h">这个虚拟城市,内部长什么样?</h2>
+    <p class="lead" style="max-width: 85%; margin-bottom: 5mm;">
+      工具的可信度决定整个研究的可信度。这一章把"我们造了什么、怎么造的、怎么验"用图说清楚。
+    </p>
+
+    <div class="ch3-tool">
+
+      <!-- 3.1 Architecture: theater metaphor -->
+      <div class="tool-panel">
+        <h3>
+          <span class="ttag">3.1 · 整体设计</span>
+          像剧组一样,把"舞台"和"演员"严格分开
+        </h3>
+        <p class="small" style="margin-bottom: 3mm;">
+          虚拟城市内部分成 4 个角色,各司其职。这种<strong>结构上的分离</strong>是为什么任何研究者都能在不动城市的前提下
+          换实验、换居民、换测量,得到可比结果。
+        </p>
+        <div class="theater-cells">
+
+          <div class="theater-cell" style="background: var(--yellow-soft);">
+            <div class="icon-wrap">
+              <svg viewBox="0 0 60 40" width="58mm" height="22mm">
+                <!-- Backdrop (Lane Cove sketch) -->
+                <rect x="5" y="5" width="50" height="22" fill="white" stroke="#1B1F2A" stroke-width="0.4"/>
+                <line x1="10" y1="13" x2="50" y2="13" stroke="#9E988C" stroke-width="0.5"/>
+                <line x1="30" y1="6" x2="30" y2="26" stroke="#9E988C" stroke-width="0.5"/>
+                <rect x="27" y="13" width="6" height="4" fill="#FFD23F" stroke="#1B1F2A" stroke-width="0.3"/>
+                <rect x="14" y="17" width="3" height="3" fill="#F5C7D6" stroke="#1B1F2A" stroke-width="0.2"/>
+                <rect x="20" y="19" width="3" height="3" fill="#F5C7D6" stroke="#1B1F2A" stroke-width="0.2"/>
+                <rect x="40" y="17" width="3" height="3" fill="#FFE08C" stroke="#1B1F2A" stroke-width="0.2"/>
+                <rect x="44" y="20" width="3" height="3" fill="#A8D5BA" stroke="#1B1F2A" stroke-width="0.2"/>
+                <!-- Stage floor -->
+                <polygon points="2,29 58,29 56,34 4,34" fill="#8B6F4A" stroke="#1B1F2A" stroke-width="0.3"/>
+                <!-- Curtains -->
+                <path d="M 0 0 L 5 0 L 4 28 L 0 28 Z" fill="#C8266B"/>
+                <path d="M 55 0 L 60 0 L 60 28 L 56 28 Z" fill="#C8266B"/>
+              </svg>
+            </div>
+            <div class="role">布景</div>
+            <div class="name">Atlas</div>
+            <div class="desc">Lane Cove 的真实街道、建筑、门、户外区。一次性导入,跑模拟时不变。</div>
+          </div>
+
+          <div class="theater-cell" style="background: var(--pink-soft);">
+            <div class="icon-wrap">
+              <svg viewBox="0 0 60 40" width="58mm" height="22mm">
+                <!-- Background -->
+                <rect x="0" y="0" width="60" height="40" fill="none"/>
+                <!-- Props on a shelf -->
+                <line x1="3" y1="28" x2="57" y2="28" stroke="#1B1F2A" stroke-width="0.6"/>
+                <!-- Phone -->
+                <rect x="8" y="18" width="6" height="10" fill="#1B1F2A" stroke="#1B1F2A" stroke-width="0.3" rx="0.5"/>
+                <rect x="9" y="19" width="4" height="6" fill="#FF4D8F"/>
+                <!-- Briefcase -->
+                <rect x="20" y="20" width="12" height="8" fill="#8B6F4A" stroke="#1B1F2A" stroke-width="0.4" rx="0.5"/>
+                <rect x="24" y="18" width="4" height="2" fill="none" stroke="#1B1F2A" stroke-width="0.4"/>
+                <!-- Coffee cup -->
+                <path d="M 38 20 L 38 26 Q 38 28 40 28 L 44 28 Q 46 28 46 26 L 46 20 Z" fill="#FFD23F" stroke="#1B1F2A" stroke-width="0.4"/>
+                <path d="M 46 22 Q 49 22 49 25" fill="none" stroke="#1B1F2A" stroke-width="0.4"/>
+                <!-- Map pin -->
+                <path d="M 52 17 C 50 17 48 19 48 21 C 48 23 52 27 52 27 C 52 27 56 23 56 21 C 56 19 54 17 52 17 Z" fill="#FF4D8F" stroke="#1B1F2A" stroke-width="0.3"/>
+                <circle cx="52" cy="21" r="1.5" fill="white"/>
+              </svg>
+            </div>
+            <div class="role">道具</div>
+            <div class="name">Ledger</div>
+            <div class="desc">每个虚拟居民"此刻"的位置、物品、心情、记忆。每 5 分钟更新一次。</div>
+          </div>
+
+          <div class="theater-cell">
+            <div class="icon-wrap">
+              <svg viewBox="0 0 60 40" width="58mm" height="22mm">
+                <!-- Director chair (silhouette) -->
+                <rect x="22" y="14" width="16" height="12" fill="white" stroke="#1B1F2A" stroke-width="0.6"/>
+                <text x="30" y="22" font-size="7" font-family="Helvetica" font-weight="700" fill="#1B1F2A" text-anchor="middle">DIR</text>
+                <!-- Chair legs -->
+                <line x1="22" y1="26" x2="18" y2="35" stroke="#1B1F2A" stroke-width="0.8"/>
+                <line x1="38" y1="26" x2="42" y2="35" stroke="#1B1F2A" stroke-width="0.8"/>
+                <line x1="24" y1="26" x2="22" y2="35" stroke="#1B1F2A" stroke-width="0.6"/>
+                <line x1="36" y1="26" x2="38" y2="35" stroke="#1B1F2A" stroke-width="0.6"/>
+                <!-- Clapperboard above -->
+                <rect x="20" y="3" width="20" height="9" fill="#1B1F2A"/>
+                <path d="M 20 3 L 24 3 L 26 6 L 22 6 Z" fill="white"/>
+                <path d="M 26 3 L 30 3 L 32 6 L 28 6 Z" fill="white"/>
+                <path d="M 32 3 L 36 3 L 38 6 L 34 6 Z" fill="white"/>
+                <text x="30" y="11" font-size="3" fill="white" font-weight="700" text-anchor="middle">Tick #45</text>
+              </svg>
+            </div>
+            <div class="role">导演</div>
+            <div class="name">Engine</div>
+            <div class="desc">每 5 分钟决定谁该走去哪。把"道具"按规则推一步,变成下一帧。</div>
+          </div>
+
+          <div class="theater-cell">
+            <div class="icon-wrap">
+              <svg viewBox="0 0 60 40" width="58mm" height="22mm">
+                <!-- Camera body -->
+                <rect x="14" y="12" width="32" height="18" fill="#1B1F2A" stroke="#1B1F2A" stroke-width="0.5" rx="1"/>
+                <!-- Lens -->
+                <circle cx="38" cy="21" r="6" fill="#4A4F5A" stroke="#FFD23F" stroke-width="0.6"/>
+                <circle cx="38" cy="21" r="3" fill="#FFD23F"/>
+                <circle cx="38" cy="21" r="1.2" fill="#FF4D8F"/>
+                <!-- Reel on top -->
+                <circle cx="22" cy="9" r="4" fill="white" stroke="#1B1F2A" stroke-width="0.5"/>
+                <circle cx="22" cy="9" r="1" fill="#1B1F2A"/>
+                <!-- Tripod legs -->
+                <line x1="22" y1="30" x2="14" y2="38" stroke="#1B1F2A" stroke-width="0.8"/>
+                <line x1="30" y1="30" x2="30" y2="38" stroke="#1B1F2A" stroke-width="0.8"/>
+                <line x1="38" y1="30" x2="46" y2="38" stroke="#1B1F2A" stroke-width="0.8"/>
+                <!-- Label -->
+                <text x="30" y="20" font-size="4" font-family="Helvetica" font-weight="700" fill="white" text-anchor="middle">REC</text>
+              </svg>
+            </div>
+            <div class="role">摄影机</div>
+            <div class="name">Perception</div>
+            <div class="desc">站在每个虚拟居民的眼睛后面,记录他这一刻"看见 / 听见"了什么。</div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- 3.2 + 3.3 — side by side -->
+      <div class="ch3-row-2">
+
+        <!-- 3.2 Agent synthesis with portraits -->
+        <div class="tool-panel">
+          <h3>
+            <span class="ttag">3.2 · 1000 个虚拟居民</span>
+            从人口统计 → 19 个原型 → 1000 个独特人物
+          </h3>
+          <p class="small">三层公开数据合成,每位虚拟居民都不重样。<strong>没有任何真居民数据被使用</strong>。</p>
+          <div class="ppl-pipeline" style="margin-top: 2mm;">
+
+            <div class="stage-card">
+              <div class="vsvg">
+                <svg viewBox="0 0 50 30">
+                  <!-- Census pie + bars -->
+                  <circle cx="9" cy="15" r="7" fill="#FFD5E3" stroke="#1B1F2A" stroke-width="0.4"/>
+                  <path d="M 9 8 L 9 15 L 14 18 Z" fill="#FF4D8F" stroke="#1B1F2A" stroke-width="0.4"/>
+                  <path d="M 9 15 L 14 18 L 12 22 L 5 19 Z" fill="#FFD23F" stroke="#1B1F2A" stroke-width="0.4"/>
+                  <rect x="22" y="20" width="3" height="5" fill="#FFD5E3" stroke="#1B1F2A" stroke-width="0.4"/>
+                  <rect x="27" y="15" width="3" height="10" fill="#FF4D8F" stroke="#1B1F2A" stroke-width="0.4"/>
+                  <rect x="32" y="12" width="3" height="13" fill="#FFD23F" stroke="#1B1F2A" stroke-width="0.4"/>
+                  <rect x="37" y="18" width="3" height="7" fill="#1B1F2A"/>
+                  <rect x="42" y="22" width="3" height="3" fill="#4A4F5A"/>
+                </svg>
+              </div>
+              <div class="vbody">
+                <div class="stt">从 ABS 2021 Census 取 19 个分布</div>
+                <div class="stp">Lane Cove SAL12275: 年龄 / 职业 / 家庭结构 / 出身国家 / 工作模式 / 通勤方式 ……</div>
+              </div>
+            </div>
+            <div class="arrow-down">↓</div>
+
+            <div class="stage-card">
+              <div class="vsvg">
+                <svg viewBox="0 0 50 30">
+                  <!-- 3 archetype cards -->
+                  <g transform="translate(2, 4)">
+                    <rect width="13" height="22" fill="white" stroke="#1B1F2A" stroke-width="0.5"/>
+                    <circle cx="6.5" cy="8" r="3" fill="#FFD5E3" stroke="#1B1F2A" stroke-width="0.3"/>
+                    <line x1="2" y1="14" x2="11" y2="14" stroke="#4A4F5A" stroke-width="0.3"/>
+                    <line x1="2" y1="16" x2="11" y2="16" stroke="#4A4F5A" stroke-width="0.3"/>
+                    <line x1="2" y1="18" x2="9" y2="18" stroke="#4A4F5A" stroke-width="0.3"/>
+                  </g>
+                  <g transform="translate(18, 4)">
+                    <rect width="13" height="22" fill="white" stroke="#1B1F2A" stroke-width="0.5"/>
+                    <circle cx="6.5" cy="8" r="3" fill="#FFE08C" stroke="#1B1F2A" stroke-width="0.3"/>
+                    <line x1="2" y1="14" x2="11" y2="14" stroke="#4A4F5A" stroke-width="0.3"/>
+                    <line x1="2" y1="16" x2="11" y2="16" stroke="#4A4F5A" stroke-width="0.3"/>
+                    <line x1="2" y1="18" x2="9" y2="18" stroke="#4A4F5A" stroke-width="0.3"/>
+                  </g>
+                  <g transform="translate(34, 4)">
+                    <rect width="13" height="22" fill="white" stroke="#1B1F2A" stroke-width="0.5"/>
+                    <circle cx="6.5" cy="8" r="3" fill="#A8D5BA" stroke="#1B1F2A" stroke-width="0.3"/>
+                    <line x1="2" y1="14" x2="11" y2="14" stroke="#4A4F5A" stroke-width="0.3"/>
+                    <line x1="2" y1="16" x2="11" y2="16" stroke="#4A4F5A" stroke-width="0.3"/>
+                    <line x1="2" y1="18" x2="9" y2="18" stroke="#4A4F5A" stroke-width="0.3"/>
+                  </g>
+                </svg>
+              </div>
+              <div class="vbody">
+                <div class="stt">19 个 Lane Cove 原型模板</div>
+                <div class="stp">"老白人退休 + Bushcare 志愿者"、"亚裔通勤白领"、"年轻租客"…… 人工编写,基于本地常见人群类型。</div>
+              </div>
+            </div>
+            <div class="arrow-down">↓</div>
+
+            <div class="stage-card">
+              <div class="vsvg">
+                <svg viewBox="0 0 50 30">
+                  <!-- AI brain icon + speech bubble -->
+                  <g transform="translate(2, 2)">
+                    <rect x="0" y="0" width="14" height="14" rx="2" fill="#1B1F2A"/>
+                    <text x="7" y="9" font-size="5" fill="#FFD23F" font-weight="800" font-family="Helvetica" text-anchor="middle">AI</text>
+                  </g>
+                  <path d="M 20 4 L 48 4 L 48 22 L 28 22 L 24 26 L 24 22 L 20 22 Z"
+                        fill="white" stroke="#1B1F2A" stroke-width="0.5"/>
+                  <text x="22" y="9" font-size="2.6" fill="#1B1F2A" font-family="Helvetica">"我是 67 岁的 Pam,</text>
+                  <text x="22" y="12.5" font-size="2.6" fill="#1B1F2A" font-family="Helvetica">在 Lane Cove 住了</text>
+                  <text x="22" y="16" font-size="2.6" fill="#1B1F2A" font-family="Helvetica">30 年,周日去图书馆</text>
+                  <text x="22" y="19.5" font-size="2.6" fill="#1B1F2A" font-family="Helvetica">参加 Bushcare……"</text>
+                </svg>
+              </div>
+              <div class="vbody">
+                <div class="stt">AI 在原型上变奏,生成 1000 个独特人物</div>
+                <div class="stp">Gemini 3.1 Flash Lite 给每个虚拟居民写一段背景故事 + 生活习惯。再生成的人物互不相同,但都属于本地常见的类型分布。</div>
+              </div>
+            </div>
+            <div class="arrow-down">↓</div>
+
+            <div class="stage-card" style="background: var(--pink-soft);">
+              <div class="vsvg">
+                <svg viewBox="0 0 50 30">
+                  <!-- many tiny dots -->
+                  <g fill="#FF4D8F">
+                    <circle cx="3" cy="3" r="0.8"/><circle cx="7" cy="5" r="0.8"/><circle cx="11" cy="3" r="0.8"/><circle cx="15" cy="6" r="0.8"/><circle cx="19" cy="4" r="0.8"/><circle cx="23" cy="6" r="0.8"/><circle cx="27" cy="3" r="0.8"/><circle cx="31" cy="5" r="0.8"/><circle cx="35" cy="3" r="0.8"/><circle cx="39" cy="5" r="0.8"/><circle cx="43" cy="4" r="0.8"/><circle cx="47" cy="6" r="0.8"/>
+                    <circle cx="5" cy="9" r="0.8"/><circle cx="9" cy="11" r="0.8"/><circle cx="13" cy="9" r="0.8"/><circle cx="17" cy="11" r="0.8"/><circle cx="21" cy="9" r="0.8"/><circle cx="25" cy="12" r="0.8"/><circle cx="29" cy="10" r="0.8"/><circle cx="33" cy="12" r="0.8"/><circle cx="37" cy="9" r="0.8"/><circle cx="41" cy="11" r="0.8"/><circle cx="45" cy="10" r="0.8"/>
+                    <circle cx="3" cy="15" r="0.8"/><circle cx="7" cy="17" r="0.8"/><circle cx="11" cy="15" r="0.8"/><circle cx="15" cy="18" r="0.8"/><circle cx="19" cy="16" r="0.8"/><circle cx="23" cy="18" r="0.8"/><circle cx="27" cy="15" r="0.8"/><circle cx="31" cy="17" r="0.8"/><circle cx="35" cy="15" r="0.8"/><circle cx="39" cy="17" r="0.8"/><circle cx="43" cy="16" r="0.8"/><circle cx="47" cy="18" r="0.8"/>
+                    <circle cx="5" cy="22" r="0.8"/><circle cx="9" cy="24" r="0.8"/><circle cx="13" cy="22" r="0.8"/><circle cx="17" cy="24" r="0.8"/><circle cx="21" cy="23" r="0.8"/><circle cx="25" cy="25" r="0.8"/><circle cx="29" cy="22" r="0.8"/><circle cx="33" cy="24" r="0.8"/><circle cx="37" cy="22" r="0.8"/><circle cx="41" cy="24" r="0.8"/><circle cx="45" cy="23" r="0.8"/>
+                  </g>
+                </svg>
+              </div>
+              <div class="vbody">
+                <div class="stt">1000 个独一无二的虚拟居民</div>
+                <div class="stp">每个有自己的家 / 工作地 / 移动模式 / 社交偏好。可序列化存档、可重跑、可外部审计。</div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- 3.3 Attention model: meter + scenes -->
+        <div class="tool-panel">
+          <h3>
+            <span class="ttag">3.3 · 注意力模型</span>
+            "看见附近"靠什么决定?
+          </h3>
+          <p class="small">
+            这是研究的<strong>因果机制</strong>。模型只有两条规则——讲得明白,所以可被外部审稿。
+          </p>
+
+          <div class="illus" style="background: white;">
+            <svg viewBox="0 0 100 30" style="width: 100%; height: 32mm;">
+              <!-- Rule 1: phone attention -->
+              <text x="2" y="6" font-size="3" font-weight="700" fill="#C8266B">规则一 · 注意力随推送上升,随时间衰减</text>
+              <!-- Battery-like meter -->
+              <rect x="2" y="9" width="40" height="6" fill="none" stroke="#1B1F2A" stroke-width="0.4" rx="0.5"/>
+              <rect x="42" y="11" width="1.5" height="2" fill="#1B1F2A"/>
+              <rect x="3" y="10" width="14" height="4" fill="#FF4D8F"/>
+              <text x="44" y="13.5" font-size="2.8" fill="#1B1F2A">没推送时, 5 分钟掉 15%</text>
+              <!-- Push event -->
+              <text x="2" y="22" font-size="2.8" fill="#1B1F2A">→ 来一条推送, 注意力 +Δ</text>
+              <text x="2" y="26" font-size="2.8" fill="#1B1F2A">→ 接连多条, 满格(疲劳启动, 见 Ch 4 Insight 2)</text>
+            </svg>
+          </div>
+
+          <div class="att-grid">
+            <div class="att-scene">
+              <div class="label">场景 A · 两人注意力都在手机上</div>
+              <svg viewBox="0 0 60 40" class="scene-svg">
+                <!-- Ground line -->
+                <line x1="0" y1="35" x2="60" y2="35" stroke="#9E988C" stroke-width="0.4"/>
+                <!-- Person 1 (heads down with phone) -->
+                <g transform="translate(15, 10)">
+                  <circle cx="0" cy="0" r="3" fill="#FFD5E3" stroke="#1B1F2A" stroke-width="0.4"/>
+                  <line x1="0" y1="3" x2="0" y2="22" stroke="#1B1F2A" stroke-width="1.2"/>
+                  <line x1="0" y1="10" x2="-4" y2="14" stroke="#1B1F2A" stroke-width="1"/>
+                  <line x1="0" y1="10" x2="4" y2="14" stroke="#1B1F2A" stroke-width="1"/>
+                  <line x1="0" y1="22" x2="-3" y2="25" stroke="#1B1F2A" stroke-width="1"/>
+                  <line x1="0" y1="22" x2="3" y2="25" stroke="#1B1F2A" stroke-width="1"/>
+                  <!-- phone in front -->
+                  <rect x="-2" y="13" width="4" height="3" fill="#FF4D8F" stroke="#1B1F2A" stroke-width="0.3"/>
+                  <!-- head tilted down -->
+                  <line x1="-1.5" y1="-1.5" x2="1.5" y2="-1" stroke="#FFD5E3" stroke-width="0.5"/>
+                </g>
+                <!-- Person 2 (mirrored) -->
+                <g transform="translate(45, 10)">
+                  <circle cx="0" cy="0" r="3" fill="#FFE08C" stroke="#1B1F2A" stroke-width="0.4"/>
+                  <line x1="0" y1="3" x2="0" y2="22" stroke="#1B1F2A" stroke-width="1.2"/>
+                  <line x1="0" y1="10" x2="-4" y2="14" stroke="#1B1F2A" stroke-width="1"/>
+                  <line x1="0" y1="10" x2="4" y2="14" stroke="#1B1F2A" stroke-width="1"/>
+                  <line x1="0" y1="22" x2="-3" y2="25" stroke="#1B1F2A" stroke-width="1"/>
+                  <line x1="0" y1="22" x2="3" y2="25" stroke="#1B1F2A" stroke-width="1"/>
+                  <rect x="-2" y="13" width="4" height="3" fill="#FF4D8F" stroke="#1B1F2A" stroke-width="0.3"/>
+                </g>
+                <!-- High attention meter above each -->
+                <rect x="11" y="3" width="8" height="2" fill="none" stroke="#1B1F2A" stroke-width="0.3"/>
+                <rect x="11" y="3" width="7.5" height="2" fill="#FF4D8F"/>
+                <rect x="41" y="3" width="8" height="2" fill="none" stroke="#1B1F2A" stroke-width="0.3"/>
+                <rect x="41" y="3" width="7" height="2" fill="#FF4D8F"/>
+                <!-- X between (no eye contact) -->
+                <text x="30" y="20" font-size="6" fill="#C8266B" font-weight="900" text-anchor="middle">×</text>
+              </svg>
+              <div class="outcome bad">→ 看见对方概率 ≈ 0,弱关系无法形成</div>
+            </div>
+
+            <div class="att-scene">
+              <div class="label">场景 B · 两人都从手机上抬头</div>
+              <svg viewBox="0 0 60 40" class="scene-svg">
+                <line x1="0" y1="35" x2="60" y2="35" stroke="#9E988C" stroke-width="0.4"/>
+                <!-- Person 1 (head up, looking at other) -->
+                <g transform="translate(15, 10)">
+                  <circle cx="0" cy="0" r="3" fill="#FFD5E3" stroke="#1B1F2A" stroke-width="0.4"/>
+                  <!-- eyes -->
+                  <circle cx="0.8" cy="-0.3" r="0.3" fill="#1B1F2A"/>
+                  <circle cx="-0.8" cy="-0.3" r="0.3" fill="#1B1F2A"/>
+                  <!-- smile -->
+                  <path d="M -1 1 Q 0 1.8 1 1" fill="none" stroke="#1B1F2A" stroke-width="0.3"/>
+                  <line x1="0" y1="3" x2="0" y2="22" stroke="#1B1F2A" stroke-width="1.2"/>
+                  <line x1="0" y1="10" x2="-4" y2="8" stroke="#1B1F2A" stroke-width="1"/>
+                  <line x1="0" y1="10" x2="4" y2="8" stroke="#1B1F2A" stroke-width="1"/>
+                  <line x1="0" y1="22" x2="-3" y2="25" stroke="#1B1F2A" stroke-width="1"/>
+                  <line x1="0" y1="22" x2="3" y2="25" stroke="#1B1F2A" stroke-width="1"/>
+                </g>
+                <!-- Person 2 -->
+                <g transform="translate(45, 10)">
+                  <circle cx="0" cy="0" r="3" fill="#FFE08C" stroke="#1B1F2A" stroke-width="0.4"/>
+                  <circle cx="0.8" cy="-0.3" r="0.3" fill="#1B1F2A"/>
+                  <circle cx="-0.8" cy="-0.3" r="0.3" fill="#1B1F2A"/>
+                  <path d="M -1 1 Q 0 1.8 1 1" fill="none" stroke="#1B1F2A" stroke-width="0.3"/>
+                  <line x1="0" y1="3" x2="0" y2="22" stroke="#1B1F2A" stroke-width="1.2"/>
+                  <line x1="0" y1="10" x2="-4" y2="8" stroke="#1B1F2A" stroke-width="1"/>
+                  <line x1="0" y1="10" x2="4" y2="8" stroke="#1B1F2A" stroke-width="1"/>
+                  <line x1="0" y1="22" x2="-3" y2="25" stroke="#1B1F2A" stroke-width="1"/>
+                  <line x1="0" y1="22" x2="3" y2="25" stroke="#1B1F2A" stroke-width="1"/>
+                </g>
+                <!-- Low attention meter above each -->
+                <rect x="11" y="3" width="8" height="2" fill="none" stroke="#1B1F2A" stroke-width="0.3"/>
+                <rect x="11" y="3" width="1.5" height="2" fill="#FF4D8F"/>
+                <rect x="41" y="3" width="8" height="2" fill="none" stroke="#1B1F2A" stroke-width="0.3"/>
+                <rect x="41" y="3" width="1.5" height="2" fill="#FF4D8F"/>
+                <!-- Eye-contact arrow -->
+                <line x1="20" y1="13" x2="40" y2="13" stroke="#FFD23F" stroke-width="0.8" stroke-dasharray="1 0.5"/>
+                <text x="30" y="11" font-size="3" fill="#1B1F2A" font-weight="700" text-anchor="middle">👁 注册</text>
+              </svg>
+              <div class="outcome good">→ "看见"成功,可能产生弱关系</div>
+            </div>
+          </div>
+
+          <p class="small" style="margin-top: 3mm;">
+            <strong>规则二</strong>:两人偶遇,"看见"概率 = (1 − 两人手机注意力的较高值) × 基础概率。
+            敏感度扫描确认:基础概率从 0.2 调到 0.4(±0.1 噪声),thesis 方向不变(<u>+76 / +103 / +74</u> 弱关系增量)。
+          </p>
+        </div>
+
+      </div>
+
+      <!-- 3.4 Outputs icon grid -->
+      <div class="tool-panel">
+        <h3>
+          <span class="ttag">3.4 · 模拟器能跑出什么</span>
+          模拟跑完, 6 件交付物
+        </h3>
+        <p class="small" style="margin-bottom: 3mm;">不同读者(决策方 / 媒体 / 研究方 / 复现方)各有自己的入口。</p>
+
+        <div class="out-icon-grid">
+
+          <div class="out-icon">
+            <div class="iwrap">
+              <svg viewBox="0 0 30 22">
+                <rect x="3" y="3" width="24" height="16" fill="white" stroke="#1B1F2A" stroke-width="0.5"/>
+                <line x1="3" y1="8" x2="27" y2="8" stroke="#1B1F2A" stroke-width="0.4"/>
+                <line x1="11" y1="3" x2="11" y2="19" stroke="#1B1F2A" stroke-width="0.4"/>
+                <rect x="12" y="10" width="4" height="2" fill="#FF4D8F"/>
+                <rect x="17" y="12" width="3" height="2" fill="#FFD23F"/>
+                <rect x="21" y="11" width="2" height="2" fill="#9E988C"/>
+                <rect x="12" y="15" width="3" height="2" fill="#FF4D8F" opacity="0.5"/>
+              </svg>
+            </div>
+            <div class="iname">①  答案对照表</div>
+            <div class="idesc">四组干预的关键指标 + 95% 置信区间,措辞强制"证据一致 / 不一致"。</div>
+            <div class="iaud">→ 给决策方</div>
+          </div>
+
+          <div class="out-icon">
+            <div class="iwrap">
+              <svg viewBox="0 0 30 22">
+                <rect x="2" y="3" width="26" height="14" fill="white" stroke="#1B1F2A" stroke-width="0.5"/>
+                <rect x="5" y="6" width="20" height="8" fill="#FFD5E3"/>
+                <line x1="2" y1="19" x2="28" y2="19" stroke="#1B1F2A" stroke-width="0.4"/>
+                <circle cx="6" cy="19" r="1" fill="#FF4D8F" stroke="#1B1F2A" stroke-width="0.3"/>
+                <line x1="2" y1="19" x2="28" y2="19" stroke="#1B1F2A" stroke-width="0.4"/>
+                <text x="6" y="21.5" font-size="2.5" text-anchor="middle">Day 7</text>
+              </svg>
+            </div>
+            <div class="iname">②  时间机器地图</div>
+            <div class="idesc">浏览器里可滑 14 天每 5 分钟一帧 replay,看 Plaza 街口的偶遇密度变化。</div>
+            <div class="iaud">→ 媒体 / 一般读者</div>
+          </div>
+
+          <div class="out-icon">
+            <div class="iwrap">
+              <svg viewBox="0 0 30 22">
+                <rect x="6" y="2" width="18" height="18" fill="white" stroke="#1B1F2A" stroke-width="0.5"/>
+                <line x1="9" y1="6" x2="21" y2="6" stroke="#1B1F2A" stroke-width="0.4"/>
+                <line x1="9" y1="9" x2="21" y2="9" stroke="#1B1F2A" stroke-width="0.4"/>
+                <line x1="9" y1="12" x2="21" y2="12" stroke="#1B1F2A" stroke-width="0.4"/>
+                <line x1="9" y1="15" x2="18" y2="15" stroke="#1B1F2A" stroke-width="0.4"/>
+                <rect x="6" y="2" width="3" height="18" fill="#FF4D8F"/>
+                <text x="15" y="22" font-size="2.5" font-weight="700" text-anchor="middle">5 ACTS</text>
+              </svg>
+            </div>
+            <div class="iname">③ 五幕故事报告</div>
+            <div class="idesc">基线 → 四位医生 → 对照 → 机制 → 局限,叙事化讲完整 14 天。</div>
+            <div class="iaud">→ 论文 / Coach</div>
+          </div>
+
+          <div class="out-icon">
+            <div class="iwrap">
+              <svg viewBox="0 0 30 22">
+                <rect x="4" y="6" width="22" height="13" fill="#FFD23F" stroke="#1B1F2A" stroke-width="0.5"/>
+                <path d="M 4 6 L 15 1 L 26 6 Z" fill="#1B1F2A"/>
+                <rect x="9" y="11" width="3" height="6" fill="#1B1F2A"/>
+                <rect x="18" y="11" width="3" height="6" fill="#1B1F2A"/>
+                <circle cx="15" cy="14" r="0.8" fill="#FFD23F"/>
+              </svg>
+            </div>
+            <div class="iname">④ 原始数据存档</div>
+            <div class="idesc">每个 seed 一份完整 JSON,所有指标 / 时间序列 / 元数据。其他研究者可二次分析。</div>
+            <div class="iaud">→ 复现 / 二次分析</div>
+          </div>
+
+          <div class="out-icon">
+            <div class="iwrap">
+              <svg viewBox="0 0 30 22">
+                <rect x="9" y="9" width="12" height="11" fill="#FFD23F" stroke="#1B1F2A" stroke-width="0.5"/>
+                <path d="M 11 9 L 11 6 Q 11 2 15 2 Q 19 2 19 6 L 19 9"
+                      fill="none" stroke="#1B1F2A" stroke-width="1.2"/>
+                <circle cx="15" cy="14" r="1.5" fill="#1B1F2A"/>
+                <rect x="14.5" y="15" width="1" height="3" fill="#1B1F2A"/>
+              </svg>
+            </div>
+            <div class="iname">⑤ 可复现凭据</div>
+            <div class="idesc">"这个数字是谁、用什么模型、什么数据、什么代码版本算出来的"——全自动留痕。</div>
+            <div class="iaud">→ 审稿 / 三年后复现</div>
+          </div>
+
+          <div class="out-icon">
+            <div class="iwrap">
+              <svg viewBox="0 0 30 22">
+                <path d="M 3 7 L 12 7 L 14 5 L 27 5 L 27 19 L 3 19 Z"
+                      fill="#FFE08C" stroke="#1B1F2A" stroke-width="0.5"/>
+                <line x1="7" y1="11" x2="23" y2="11" stroke="#1B1F2A" stroke-width="0.3"/>
+                <line x1="7" y1="14" x2="23" y2="14" stroke="#1B1F2A" stroke-width="0.3"/>
+                <line x1="7" y1="17" x2="20" y2="17" stroke="#1B1F2A" stroke-width="0.3"/>
+              </svg>
+            </div>
+            <div class="iname">⑥ 决策留痕知识库</div>
+            <div class="idesc">"为什么这样改不那样改"——所有设计决策的归档,后人不用问"当时怎么想的"。</div>
+            <div class="iaud">→ 项目继承者</div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- 3.5 Extensibility -->
+      <div class="tool-panel">
+        <h3>
+          <span class="ttag">3.5 · 能搬到 Lane Cove 之外吗?</span>
+          四个可换的模块
+        </h3>
+        <p class="small">工具的<u>方法学价值</u>就在于:换城市、换实验、换 AI、换参数,都不用动核心引擎。</p>
+        <div class="ext-grid">
+
+          <div class="ext-card">
+            <div class="esvg">
+              <svg viewBox="0 0 60 32">
+                <!-- city A -->
+                <g transform="translate(2, 5)">
+                  <rect x="0" y="14" width="20" height="10" fill="#FFD5E3" stroke="#1B1F2A" stroke-width="0.4"/>
+                  <rect x="3" y="8" width="4" height="6" fill="#1B1F2A"/>
+                  <rect x="10" y="5" width="4" height="9" fill="#1B1F2A"/>
+                  <rect x="15" y="10" width="4" height="4" fill="#1B1F2A"/>
+                  <text x="10" y="30" font-size="3" text-anchor="middle" font-weight="700">Lane Cove</text>
+                </g>
+                <!-- arrow -->
+                <text x="30" y="20" font-size="6" fill="#FF4D8F" font-weight="900" text-anchor="middle">→</text>
+                <!-- city B -->
+                <g transform="translate(38, 5)">
+                  <rect x="0" y="11" width="20" height="13" fill="#FFE08C" stroke="#1B1F2A" stroke-width="0.4"/>
+                  <rect x="2" y="3" width="3" height="8" fill="#1B1F2A"/>
+                  <rect x="6" y="6" width="4" height="5" fill="#1B1F2A"/>
+                  <rect x="11" y="1" width="3" height="10" fill="#1B1F2A"/>
+                  <rect x="15" y="5" width="3" height="6" fill="#1B1F2A"/>
+                  <text x="10" y="30" font-size="3" text-anchor="middle" font-weight="700">任何城市</text>
+                </g>
+              </svg>
+            </div>
+            <div class="ename">换城市</div>
+            <div class="edesc">任何 OpenStreetMap 覆盖的地方,都可以重新生成一个虚拟版。引擎不变。</div>
+          </div>
+
+          <div class="ext-card">
+            <div class="esvg">
+              <svg viewBox="0 0 60 32">
+                <!-- 4 recipes -->
+                <g>
+                  <circle cx="10" cy="12" r="3" fill="#9E988C"/>
+                  <circle cx="20" cy="12" r="3" fill="#FF4D8F"/>
+                  <circle cx="30" cy="12" r="3" fill="#FFD23F"/>
+                  <circle cx="40" cy="12" r="3" fill="#A8D5BA"/>
+                </g>
+                <text x="48" y="14" font-size="5" font-weight="900" fill="#FF4D8F">+</text>
+                <circle cx="55" cy="12" r="3" fill="white" stroke="#1B1F2A" stroke-width="0.5"
+                        stroke-dasharray="0.6 0.4"/>
+                <text x="30" y="26" font-size="3" text-anchor="middle" font-weight="700">添加任意第 N 组对照</text>
+              </svg>
+            </div>
+            <div class="ename">换实验配方</div>
+            <div class="edesc">想测一种新的干预策略?加一个组继承现有框架,套餐式部署。</div>
+          </div>
+
+          <div class="ext-card">
+            <div class="esvg">
+              <svg viewBox="0 0 60 32">
+                <g>
+                  <rect x="3" y="9" width="11" height="11" fill="#FFD5E3" stroke="#1B1F2A" stroke-width="0.4"/>
+                  <text x="8.5" y="16" font-size="4" font-weight="800" text-anchor="middle" fill="#1B1F2A">G</text>
+                  <rect x="17" y="9" width="11" height="11" fill="#FFE08C" stroke="#1B1F2A" stroke-width="0.4"/>
+                  <text x="22.5" y="16" font-size="4" font-weight="800" text-anchor="middle" fill="#1B1F2A">D</text>
+                  <rect x="31" y="9" width="11" height="11" fill="#A8D5BA" stroke="#1B1F2A" stroke-width="0.4"/>
+                  <text x="36.5" y="16" font-size="4" font-weight="800" text-anchor="middle" fill="#1B1F2A">A</text>
+                  <rect x="45" y="9" width="11" height="11" fill="#C9D6FF" stroke="#1B1F2A" stroke-width="0.4"/>
+                  <text x="50.5" y="16" font-size="4" font-weight="800" text-anchor="middle" fill="#1B1F2A">…</text>
+                </g>
+                <text x="30" y="28" font-size="3" text-anchor="middle" font-weight="700">Gemini / DeepSeek / 任意 LLM</text>
+              </svg>
+            </div>
+            <div class="ename">换 AI 大脑</div>
+            <div class="edesc">虚拟居民的"大脑"可以接不同的 AI 模型,一行配置切换。</div>
+          </div>
+
+          <div class="ext-card">
+            <div class="esvg">
+              <svg viewBox="0 0 60 32">
+                <g>
+                  <circle cx="15" cy="16" r="9" fill="#FFD23F" stroke="#1B1F2A" stroke-width="0.6"/>
+                  <path d="M 11 16 L 14 19 L 19 13" stroke="#1B1F2A" stroke-width="1.5" fill="none"/>
+                  <text x="15" y="30" font-size="3" text-anchor="middle" font-weight="700">同一 seed</text>
+                </g>
+                <text x="32" y="18" font-size="6" fill="#FF4D8F" font-weight="900" text-anchor="middle">≡</text>
+                <g>
+                  <circle cx="48" cy="16" r="9" fill="#FFD23F" stroke="#1B1F2A" stroke-width="0.6"/>
+                  <path d="M 44 16 L 47 19 L 52 13" stroke="#1B1F2A" stroke-width="1.5" fill="none"/>
+                  <text x="48" y="30" font-size="3" text-anchor="middle" font-weight="700">三年后</text>
+                </g>
+              </svg>
+            </div>
+            <div class="ename">可复现</div>
+            <div class="edesc">同一份 seed 任何时候跑都得到完全相同的数字。审稿、答辩、政策辩论时关键。</div>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ============ CH 4 — KEY INSIGHTS ============ -->
+  <section class="chap">
+    <div class="chapter-num">Chapter 4 · 关键洞察</div>
+    <h2 class="chapter-h">两件出乎意料的事。</h2>
+    <div class="ch4-row">
+      <div class="insight">
+        <div class="ins-tag">Insight 1</div>
+        <div class="ins-h">推送的"方向"<br>胜过"数量"。</div>
+        <div class="ins-viz">
+          <div class="twin">
+            <div class="t zoomable" data-zoom="poster_map_hp.svg">
+              <object type="image/svg+xml" data="poster_map_hp.svg"></object>
+              <div class="lbl"><span>本地推送</span><span class="delta">+14% 偶遇</span></div>
+            </div>
+            <div class="t zoomable" data-zoom="poster_map_gd.svg">
+              <object type="image/svg+xml" data="poster_map_gd.svg"></object>
+              <div class="lbl"><span>全球新闻</span><span class="delta bad">−8% 偶遇</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="ins-body">
+          两组都<strong>每天 5 条推送</strong>。差别只在内容指向哪里:本地 vs 全球。
+          推本地内容让虚拟居民偶遇增加约 14%;推全球新闻反而让偶遇减少。
+          <strong><em>注意力被拉去哪里,人就走去哪里。</em></strong>
+        </div>
+      </div>
+      <div class="insight">
+        <div class="ins-tag">Insight 2</div>
+        <div class="ins-h">注意力疲劳<br>是真实的天花板。</div>
+        <div class="ins-viz">
+          <div class="fatigue">
+            <div class="row"><span class="n">#1</span><span class="bar" style="width: 90%;"></span></div>
+            <div class="row"><span class="n">#2</span><span class="bar" style="width: 80%; opacity: 0.95;"></span></div>
+            <div class="row"><span class="n">#3</span><span class="bar" style="width: 70%; opacity: 0.85;"></span></div>
+            <div class="row"><span class="n">#4</span><span class="bar" style="width: 62%; opacity: 0.75;"></span></div>
+            <div class="row"><span class="n">#5</span><span class="bar" style="width: 55%; opacity: 0.65;"></span></div>
+            <div class="row"><span class="n">#8</span><span class="bar" style="width: 36%; opacity: 0.45;"></span><span class="lab"> ← half</span></div>
+            <div class="row"><span class="n">#12</span><span class="bar" style="width: 20%; opacity: 0.3;"></span></div>
+            <div class="row"><span class="n">#16</span><span class="bar" style="width: 11%; opacity: 0.2;"></span></div>
+            <p class="tiny" style="margin-top: 2mm; text-align: right;">第 N 条推送对注意力的边际效果 · 半衰期 ≈ 8 条/天</p>
+          </div>
+        </div>
+        <div class="ins-body">
+          一天里第 1 条推送有效;到第 8 条只剩<strong>一半效果</strong>;第 15 条几乎没用。
+          <strong><em>哪怕方向对,量超过 5–8 条/天,投入就在浪费。</em></strong>
+          市场上很多 hyperlocal app 每天推 20+ 条 —— 数据上,这是反效果。
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ CH 5 — DESIGN RESPONSE (4 RECIPES) ============ -->
+  <section class="chap">
+    <div class="chapter-num">Chapter 5 · 设计响应</div>
+    <h2 class="chapter-h">我们交付的是一套四方对照框架。下面就是我们测的四个 recipe。</h2>
+    <div class="ch5-recipes">
+      <div class="recipe">
+        <div class="rmap zoomable" data-zoom="poster_map_baseline.svg">
+          <object type="image/svg+xml" data="poster_map_baseline.svg"></object>
+        </div>
+        <div class="rbody">
+          <h4>① 对照组 · 什么都不推</h4>
+          <p>没有任何研究方推送。"本来什么样"的基线——其他组都跟它比。</p>
+        </div>
+      </div>
+      <div class="recipe core">
+        <div class="rmap zoomable" data-zoom="poster_map_hp.svg">
+          <object type="image/svg+xml" data="poster_map_hp.svg"></object>
+        </div>
+        <div class="rbody">
+          <h4>② 超在地推送(核心)</h4>
+          <p>每天 5 条本地内容。粉色圆环是 5 个 anchor 的覆盖范围。</p>
+        </div>
+      </div>
+      <div class="recipe">
+        <div class="rmap zoomable" data-zoom="poster_map_gd.svg">
+          <object type="image/svg+xml" data="poster_map_gd.svg"></object>
+        </div>
+        <div class="rbody">
+          <h4>③ 镜像组 · 推全球新闻</h4>
+          <p>同样 5 条/天,但内容跟身边无关。分离"量"和"方向"。</p>
+        </div>
+      </div>
+      <div class="recipe">
+        <div class="rmap zoomable" data-zoom="poster_map_pf.svg">
+          <object type="image/svg+xml" data="poster_map_pf.svg"></object>
+        </div>
+        <div class="rbody">
+          <h4>④ 反技术组 · 弱化手机</h4>
+          <p>不推送,把手机吸引力调低。看仅靠减少干扰够不够。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ CH 6 — DESIGN PIVOTS ============ -->
+  <section class="chap">
+    <div class="chapter-num">Chapter 6 · 设计过程中两次方向调整</div>
+    <h2 class="chapter-h">两次让我们改设计的真实转折。</h2>
+    <div class="ch6-row">
+      <div class="pivot">
+        <div class="pn">A</div>
+        <div class="pb">
+          <h4>从"两组"到"四组"</h4>
+          <div class="frame">原设计:<em>只有 baseline + 超在地推送两组</em>。客户会问"是推送本身有效,还是本地内容有效?"</div>
+          <div class="arrow">↓ pivot</div>
+          <div class="frame">加镜像组(同样多但全球新闻) + 反技术组(完全不推)。<strong>有了对照,才能干净归因。</strong></div>
+        </div>
+      </div>
+      <div class="pivot">
+        <div class="pn">B</div>
+        <div class="pb">
+          <h4>从"1 条 vs 20 条"到"等量"</h4>
+          <div class="frame">原设计:<em>hp 每天 1 条,gd 每天 20 条</em>。结果 hp 显著输 gd。</div>
+          <div class="arrow">↓ pivot</div>
+          <div class="frame">发现比的是"骚扰量级"不是"内容方向"。两组统一到 5 条/天,<strong>方向差异才浮出来</strong>。</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ CH 7 — TAKEAWAYS ============ -->
+  <section class="chap">
+    <div class="chapter-num">Chapter 7 · 给客户的 3 条 Takeaway</div>
+    <h2 class="chapter-h">如果你只能从这张海报记三件事——</h2>
+    <div class="takeaways">
+      <div class="ta">
+        <div class="n">01</div>
+        <div class="h">方向胜过数量。</div>
+        <div class="b">5 条精准本地推送 ≠ 5 条全球新闻。决定居民行为的是<u>内容指向哪里</u>,不是<u>推多少</u>。</div>
+      </div>
+      <div class="ta">
+        <div class="n">02</div>
+        <div class="h">5–8 条 / 天<br>是天花板。</div>
+        <div class="b">注意力疲劳让超过这个阈值的推送几乎无效。每天 20+ 条不是"加倍效果",是浪费。<u>克制比频率更重要</u>。</div>
+      </div>
+      <div class="ta">
+        <div class="n">03</div>
+        <div class="h">永远配镜像组。</div>
+        <div class="b">任何"参与度上升"声明必须配<u>同等推送量的反向对照</u>才可信。Pivot B 就是这条教训。</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ FOOTER ============ -->
+  <div class="footer-grid">
+    <div class="ft-card">
+      <h4>团队 / Team contributions</h4>
+      <p class="tiny" style="margin-bottom: 1.5mm;"><strong>[Member 1 · UniKey]</strong> [discipline] · [负责环节]</p>
+      <p class="tiny" style="margin-bottom: 1.5mm;"><strong>[Member 2 · UniKey]</strong> [discipline] · [负责环节]</p>
+      <p class="tiny" style="margin-bottom: 1.5mm;"><strong>[Member 3 · UniKey]</strong> [discipline] · [负责环节]</p>
+      <p class="tiny" style="color: var(--ink-soft); margin-top: 2mm;">
+        Contribution Agreement 见报告附件。所有成员同意作品可在 ADP Grad Show 展出。
+      </p>
+    </div>
+    <div class="ft-card">
+      <h4>诚实声明 · Limitations</h4>
+      <p class="tiny" style="line-height: 1.45;">
+        这些数字不是"Lane Cove 真居民会怎么样",是<strong>合成虚拟居民</strong>在模拟里的行为。
+        14 天 × 1000 agent × Gemini 全量(D1')正在跑;海报数字基于 100-agent 敏感度扫描 + 18-seed × 1d preflight。
+        <u>方法学可迁移</u>,具体数字需在目标城市本地重测。
+        全部局限见 limitations-ethics.md。
+      </p>
+    </div>
+    <div class="ft-card">
+      <h4>引用 · References (节选)</h4>
+      <p class="tiny" style="line-height: 1.45;">
+        ABS. (2021). <em>2021 Census — Lane Cove SAL12275</em>.<br>
+        Austroads. (2017). <em>Road Design Pt 6A</em>.<br>
+        Granovetter, M. (1973). <em>AJS 78</em>(6).<br>
+        Hampton, K., &amp; Wellman, B. (2017). <em>Sociology 51</em>(3).<br>
+        Jacobs, J. (1961). <em>Death and Life of Great American Cities</em>.<br>
+        Misra, S. et al. (2016). <em>Env. &amp; Behav. 48</em>(2).<br>
+        OpenStreetMap contributors. (2025).<br>
+        Putnam, R. (2000). <em>Bowling Alone</em>.
+      </p>
+    </div>
+  </div>
+
+</div>
+
+<!-- Lightbox modal -->
+<div class="lightbox" id="lb">
+  <button class="close" onclick="closeLB()">×</button>
+  <object type="image/svg+xml" id="lb-obj"></object>
+</div>
+
+<script>
+  // Click-to-enlarge lightbox: any .zoomable opens its data-zoom SVG full screen
+  document.querySelectorAll('.zoomable').forEach(el => {
+    el.addEventListener('click', () => {
+      const src = el.dataset.zoom;
+      if (!src) return;
+      document.getElementById('lb-obj').setAttribute('data', src);
+      document.getElementById('lb').classList.add('open');
+    });
+  });
+  function closeLB() {
+    document.getElementById('lb').classList.remove('open');
+    document.getElementById('lb-obj').setAttribute('data', '');
+  }
+  document.getElementById('lb').addEventListener('click', e => {
+    if (e.target.id === 'lb') closeLB();
+  });
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') closeLB();
+  });
+</script>
+
+</body>
+</html>

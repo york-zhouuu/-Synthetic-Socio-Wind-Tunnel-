@@ -36,6 +36,20 @@ def _extract_scalar_metrics(run: RunMetrics) -> dict[str, float]:
         for k, v in run.attention_allocation_ratio.items():
             out[f"attention.{k}"] = v
 
+    # thesis-downstream outcomes: tie counts. Captured per-seed in factory but
+    # previously absent from aggregate.mean_metrics → invisible in contest /
+    # B3 sensitivity checks. Add here so social-graph injection surfaces.
+    if run.weak_tie_formation_count is not None:
+        out["weak_tie_formation_count"] = float(run.weak_tie_formation_count)
+    if run.per_day:
+        last_day = run.per_day[-1]
+        if last_day.tie_count_total is not None:
+            out["tie_count_total_eod"] = float(last_day.tie_count_total)
+        if last_day.tie_count_weak is not None:
+            out["tie_count_weak_eod"] = float(last_day.tie_count_weak)
+        if last_day.tie_count_strong is not None:
+            out["tie_count_strong_eod"] = float(last_day.tie_count_strong)
+
     return out
 
 

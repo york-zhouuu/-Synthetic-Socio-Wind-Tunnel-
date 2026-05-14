@@ -16,9 +16,9 @@ supportive for some version of H_info）。
 from __future__ import annotations
 
 from datetime import datetime
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
-from pydantic import Field
+from pydantic import Field, PrivateAttr
 
 from synthetic_socio_wind_tunnel.attention.models import FeedItem
 from synthetic_socio_wind_tunnel.policy_hack.base import Variant, VariantContext
@@ -69,8 +69,14 @@ class GlobalDistractionVariant(Variant):
         description="与 A 共享选择逻辑：None 时选前一半 by agent_id 字典序。",
     )
     content_templates: tuple[str, ...] = Field(default=_DEFAULT_GLOBAL_TEMPLATES)
-    daily_push_count: int = Field(default=20, ge=1)
+    # B4 fix: equalize hp / gd push count to isolate "direction" effect.
+    # Both variants push 5/day per recipient. Old 20/day inflated gd vs hp's 1.
+    daily_push_count: int = Field(default=5, ge=1)
     urgency: float = Field(default=0.4, ge=0.0, le=1.0)
+
+    # Cache of resolved target_agent_ids — exposed via metadata_dict for the
+    # metric factory's protag-only trajectory_deviation_m (B1 fix).
+    _resolved_target_ids: tuple[str, ...] | None = PrivateAttr(default=None)
 
     def apply_day_start(self, ctx: VariantContext) -> None:
         if ctx.attention_service is None:
@@ -107,10 +113,19 @@ class GlobalDistractionVariant(Variant):
     ) -> tuple[str, ...]:
         """与 HyperlocalPushVariant 保持一致的 "前一半" 选择逻辑。"""
         if self.target_agent_ids is not None:
-            return self.target_agent_ids
-        sorted_ids = sorted(r.profile.agent_id for r in runtimes)
-        half = len(sorted_ids) // 2
-        return tuple(sorted_ids[:half])
+            resolved = self.target_agent_ids
+        else:
+            sorted_ids = sorted(r.profile.agent_id for r in runtimes)
+            half = len(sorted_ids) // 2
+            resolved = tuple(sorted_ids[:half])
+        self._resolved_target_ids = resolved
+        return resolved
+
+    def metadata_dict(self) -> dict[str, Any]:
+        meta = super().metadata_dict()
+        if self._resolved_target_ids is not None:
+            meta["target_agent_ids"] = self._resolved_target_ids
+        return meta
 
 
 __all__ = ["GlobalDistractionVariant"]

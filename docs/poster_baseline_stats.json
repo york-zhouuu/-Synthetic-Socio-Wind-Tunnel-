@@ -1,0 +1,29 @@
+{
+  "n_seeds": 18,
+  "n_buildings_in_radius": 2070,
+  "n_outdoor_in_radius": 1928,
+  "total_position_events": 1468033,
+  "dwell_by_type_pct": {
+    "street": 95.21,
+    "residential": 2.52,
+    "shop": 0.43,
+    "restaurant": 0.33,
+    "playground": 0.28,
+    "office": 0.25,
+    "cafe": 0.21,
+    "entertainment": 0.15,
+    "commercial": 0.15,
+    "park": 0.13,
+    "worship": 0.12,
+    "hospital": 0.08,
+    "hotel": 0.05,
+    "school": 0.04,
+    "bar": 0.02,
+    "community": 0.01,
+    "garden": 0.01
+  },
+  "dwell_residential_pct": 2.52,
+  "dwell_street_pct": 95.21,
+  "median_changes_per_seed": 82167.5,
+  "config_note": "1000-agent × 1-day × baseline × stub LLM preflight"
+}

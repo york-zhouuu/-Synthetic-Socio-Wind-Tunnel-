@@ -30,7 +30,9 @@ from typing import TYPE_CHECKING, Mapping
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 if TYPE_CHECKING:
+    from synthetic_socio_wind_tunnel.agent.location_pools import LocationPools
     from synthetic_socio_wind_tunnel.agent.planner import LLMClient
+    from synthetic_socio_wind_tunnel.atlas import Atlas
 
 
 logger = logging.getLogger(__name__)
@@ -339,11 +341,228 @@ def _sample_digital(rng: random.Random, params: DigitalParams) -> DigitalProfile
     )
 
 
+_HOUSEHOLD_TARGET_SIZE: dict[str, int] = {
+    # family_composition → typical # of agents in same household
+    "lone_person": 1,
+    "couple_no_kids": 2,
+    "couple_kids_under_15": 4,
+    "couple_kids_15plus": 4,
+    "one_parent_family": 3,
+    "group_household": 3,
+    "other": 1,
+}
+
+
+def _assign_household(
+    new_profiles: list, chunk: list[int], fc: str, seed: int,
+    household_counter: int,
+) -> None:
+    """Mutate new_profiles to assign a shared household_id + roles in-place."""
+    hh_id = f"hh_{seed}_{household_counter:05d}"
+    shared_home = new_profiles[chunk[0]].home_location
+    chunk_with_age = sorted(chunk, key=lambda i: new_profiles[i].age)
+    for rank, idx in enumerate(chunk_with_age):
+        p = new_profiles[idx]
+        if p.age < 18:
+            role = "child"
+        elif rank == 0 and fc in ("couple_no_kids",):
+            role = "partner"
+        else:
+            role = "parent" if ("kids" in fc or "parent" in fc) else "partner"
+        new_profiles[idx] = p.model_copy(update={
+            "household_id": hh_id,
+            "household_role": role,
+            "home_location": shared_home,
+        })
+
+
+def _cluster_into_households(
+    profiles: list["AgentProfile"],
+    *,
+    seed: int,
+    rng: random.Random,
+    home_pool: tuple[str, ...] = (),
+) -> list["AgentProfile"]:
+    """A2: post-process sampled agents to cluster into households.
+
+    Groups agents by family_composition; assigns shared household_id +
+    home_location for each cluster. Returns a NEW list of profiles
+    (frozen models, so we use model_copy).
+
+    Algorithm:
+    1. Sort agents into per-family_composition buckets.
+    2. For each bucket, chunk into groups of TARGET_SIZE (4 for family-with-kids,
+       2 for couples, 1 for lone). Each chunk = 1 household.
+    3. Within a chunk, all agents get household_id = "hh_{seed}_{index}",
+       household_role assigned by age (kids vs parent), and shared
+       home_location = first agent's home_location.
+    """
+    by_fc: dict[str, list[int]] = {}
+    for i, p in enumerate(profiles):
+        fc = p.family_composition or "other"
+        by_fc.setdefault(fc, []).append(i)
+
+    new_profiles = list(profiles)
+    household_counter = 0
+
+    for fc, indices in by_fc.items():
+        target = _HOUSEHOLD_TARGET_SIZE.get(fc, 1)
+        if target <= 1:
+            # Solo households — each agent gets own household_id
+            for idx in indices:
+                p = new_profiles[idx]
+                hh_id = f"hh_{seed}_{household_counter:05d}"
+                household_counter += 1
+                new_profiles[idx] = p.model_copy(update={
+                    "household_id": hh_id,
+                    "household_role": "lone",
+                })
+            continue
+
+        # Multi-member households — chunk by target size
+        # Shuffle to avoid spatial locality bias (don't always pair adjacent indices)
+        shuffled = list(indices)
+        rng.shuffle(shuffled)
+        for chunk_start in range(0, len(shuffled), target):
+            chunk = shuffled[chunk_start:chunk_start + target]
+            if len(chunk) < 2:
+                # Trailing solo (odd count) — give it own household
+                idx = chunk[0]
+                p = new_profiles[idx]
+                hh_id = f"hh_{seed}_{household_counter:05d}"
+                household_counter += 1
+                new_profiles[idx] = p.model_copy(update={
+                    "household_id": hh_id,
+                    "household_role": "lone",
+                })
+                continue
+
+            # fix-realism-systemic-gaps: split chunks whose member age span
+            # exceeds 70 years (e.g. infant + 92-year-old should not share a
+            # household). The chunk is greedily partitioned into sub-groups
+            # whose internal age span ≤ 70, sorted by age.
+            chunk_sorted_by_age = sorted(
+                chunk, key=lambda i: new_profiles[i].age,
+            )
+            sub_chunks: list[list[int]] = []
+            current_sub: list[int] = []
+            current_min_age = None
+            for idx in chunk_sorted_by_age:
+                age_here = new_profiles[idx].age
+                if not current_sub:
+                    current_sub = [idx]
+                    current_min_age = age_here
+                elif age_here - current_min_age <= 70:
+                    current_sub.append(idx)
+                else:
+                    sub_chunks.append(current_sub)
+                    current_sub = [idx]
+                    current_min_age = age_here
+            if current_sub:
+                sub_chunks.append(current_sub)
+
+            for sub_chunk in sub_chunks:
+                # Single-member fallback (broken away from age-incompatible group)
+                if len(sub_chunk) < 2:
+                    idx = sub_chunk[0]
+                    p = new_profiles[idx]
+                    hh_id = f"hh_{seed}_{household_counter:05d}"
+                    household_counter += 1
+                    new_profiles[idx] = p.model_copy(update={
+                        "household_id": hh_id,
+                        "household_role": "lone",
+                    })
+                    continue
+
+                self_chunk = sub_chunk
+                _assign_household(
+                    new_profiles, self_chunk, fc, seed,
+                    household_counter,
+                )
+                household_counter += 1
+    new_profiles = _resolve_home_age_gaps(
+        new_profiles, seed=seed, home_pool=home_pool,
+    )
+    return new_profiles
+
+
+def _resolve_home_age_gaps(
+    profiles: list,
+    *,
+    seed: int,
+    home_pool: tuple[str, ...] = (),
+    max_gap: int = 70,
+) -> list:
+    """Reassign agents whose presence in a home creates > max_gap age span.
+
+    After household clustering, two agents from different households can
+    still coincidentally share the same home_location. When their age
+    difference exceeds max_gap, the outlier (farthest from cohabitants'
+    median age) is bumped to a different residential building drawn from
+    home_pool — preferring an unoccupied building, falling back to the
+    least-crowded one.
+    """
+    from collections import defaultdict
+    out = list(profiles)
+    by_home: dict[str, list[int]] = defaultdict(list)
+    for i, p in enumerate(out):
+        by_home[p.home_location].append(i)
+
+    bump_rng = random.Random(seed + 31337)
+    for home_id, idxs in list(by_home.items()):
+        if len(idxs) < 2:
+            continue
+        for _ in range(len(idxs)):
+            ages = [out[i].age for i in idxs]
+            if max(ages) - min(ages) <= max_gap:
+                break
+            median_age = sorted(ages)[len(ages) // 2]
+            worst_i = max(idxs, key=lambda i: abs(out[i].age - median_age))
+            new_home = _find_bump_home(home_pool, by_home, bump_rng)
+            if new_home is None:
+                # No home_pool given (legacy path); keep the agent in place
+                break
+            out[worst_i] = out[worst_i].model_copy(update={
+                "home_location": new_home,
+                "household_id": f"hh_{seed}_bumped_{worst_i:05d}",
+                "household_role": "lone",
+            })
+            by_home[home_id].remove(worst_i)
+            by_home[new_home].append(worst_i)
+            idxs = by_home[home_id]
+    return out
+
+
+def _find_bump_home(
+    home_pool: tuple[str, ...],
+    by_home: dict[str, list[int]],
+    rng: random.Random,
+) -> str | None:
+    """Return a residential building id with the fewest current residents.
+
+    Prefers unoccupied entries from home_pool; falls back to least crowded.
+    """
+    if not home_pool:
+        return None
+    unoccupied = [h for h in home_pool if not by_home.get(h)]
+    if unoccupied:
+        return rng.choice(sorted(unoccupied))
+    # All occupied: pick the least crowded
+    candidates = sorted(home_pool, key=lambda h: len(by_home.get(h, [])))
+    return candidates[0] if candidates else None
+
+
+_WORKING_MODES = ("commute", "remote", "shift")
+
+
 def sample_population(
     profile: PopulationProfile,
     *,
     seed: int,
     num_protagonists: int = 0,
+    pools: "LocationPools | None" = None,
+    atlas: "Atlas | None" = None,
+    max_commute_m: float = 1500.0,
     home_locations: tuple[str, ...] | None = None,
     generate_identity: bool = False,
     llm_client: "LLMClient | None" = None,
@@ -356,8 +575,13 @@ def sample_population(
         profile: 人群画像（边缘分布）
         seed: 随机种子（决定性：同 seed 产出逐字段一致）
         num_protagonists: 标记为 is_protagonist=True 的数量，SHALL 使用 Sonnet 档
-        home_locations: 家位置 id 的可选池；若为空，每个 agent 的 home_location
-            用占位字符串 "home_{index}"，由上层 orchestrator 分配
+        pools: typed LocationPools (preferred path). home_location SHALL be drawn
+            from pools.home_pool (residential buildings); workplace SHALL be
+            drawn from pools.work_pool when work_mode ∈ {commute, remote,
+            shift}, None otherwise.
+        home_locations: DEPRECATED; legacy single-pool of location ids used
+            for home_location. Pass `pools=LocationPools(...)` instead. Emits
+            DeprecationWarning when used.
         generate_identity: ai-town port — when True, calls `llm_client` for each
             protagonist to fill `identity_text` (~3-sentence persona) and
             `plan_text` (~1-sentence today's goal). Failures fall back to
@@ -374,6 +598,14 @@ def sample_population(
             f"num_protagonists ({num_protagonists}) exceeds population size ({profile.size})"
         )
 
+    if pools is None and home_locations is not None:
+        import warnings as _warn
+        _warn.warn(
+            "sample_population(home_locations=...) is deprecated; "
+            "pass pools=LocationPools(...) to enable typed home/work/poi pools.",
+            DeprecationWarning, stacklevel=2,
+        )
+
     rng = random.Random(seed)
 
     profiles: list[AgentProfile] = []
@@ -385,7 +617,13 @@ def sample_population(
         ethnicity = _weighted_pick(rng, profile.ethnicity_distribution)
         housing = _weighted_pick(rng, profile.housing_distribution)
         income = _weighted_pick(rng, profile.income_distribution)
-        work_mode = _weighted_pick(rng, profile.work_mode_distribution)
+        # fix-realism-systemic-gaps: clamp work_mode distribution by age bracket
+        # so children aren't "commute" and 94-year-olds aren't "shift" workers.
+        work_mode = _weighted_pick(
+            rng, _work_mode_distribution_for_age(
+                age, dict(profile.work_mode_distribution),
+            ),
+        )
         # Always draw household here to keep RNG sequence stable across the
         # agent-profile-enrich change (preserves byte-equal output for the
         # original 6 calibration dims). Override below if family_composition
@@ -426,17 +664,72 @@ def sample_population(
         digital = _sample_digital(rng, profile.digital_params)
         personality = _sample_personality(rng, profile.personality_params)
 
-        if home_locations:
+        if pools is not None:
+            home = rng.choice(pools.home_pool)
+        elif home_locations:
             home = rng.choice(home_locations)
         else:
             home = f"home_{index:04d}"
 
+        # Pre-pick occupation here so workplace assignment can match
+        # occupation type. (Original _occupation_for was called inside
+        # AgentProfile(...) below.)
+        occupation = _occupation_for(age, work_mode, rng)
+
+        # Workplace assignment (fix-population-uses-typed-locations + fix-realism-
+        # systemic-gaps): only for working work_modes; pools-path only.
+        # Match workplace to occupation type and respect commute radius.
+        workplace: str | None = None
+        if pools is not None and work_mode in _WORKING_MODES and pools.work_pool:
+            workplace = _pick_workplace_near(
+                home, pools.work_pool, occupation, atlas,
+                max_commute_m, rng,
+            )
+
         # agent-realistic-routine: per-agent sticky LifePattern. Sampled
         # last to keep RNG sequence stable for prior fields (preserves
-        # byte-equality on calibration dims that came before).
+        # byte-equality on calibration dims that came before). Pools-path
+        # uses poi_pool as life-pattern destination anchors.
+        if pools is not None:
+            life_pattern_destinations: tuple[str, ...] | None = pools.poi_pool
+        else:
+            life_pattern_destinations = home_locations
         life_pattern = _sample_life_pattern(
-            rng, home_location=home, destinations=home_locations,
+            rng, home_location=home, destinations=life_pattern_destinations,
         )
+
+        # add-walking-speed-budget: derive per-agent travel speed from
+        # vehicles_at_dwelling (ABS 2021 distribution). 0 cars → pure walking;
+        # higher car ownership → mixed walk+drive, higher per-tick budget.
+        #
+        # B2 calibration sources (2026-05-13):
+        #   - 80 m/min  walking pace: Australian Pedestrian Facilities Guideline
+        #                             (Austroads 2017, "5 km/h design value
+        #                             for pedestrian network planning")
+        #   - 250 m/min urban driving: NSW Bureau of Transport Statistics,
+        #                              "Sydney AM/PM peak average ~15 km/h
+        #                              including stops" (BTS 2023 HTS data)
+        #   - 150 m/min (1-car mixed): interpolation; weighted 60% walking
+        #                              + 40% driving for typical 1-car household
+        #   - 280 m/min (3+ car): driving + minimal walking; modeled as 17 km/h
+        #
+        # Per-tick budgets (5-min tick):
+        #   80 m/min walking → 400m / 5min
+        #   150 m/min mix    → 750m / 5min
+        #   250 m/min drive  → 1.25km / 5min
+        #   280 m/min heavy  → 1.4km / 5min
+        if vehicles in (None, "0"):
+            agent_speed = 80.0
+            agent_prefer_driving = False
+        elif vehicles == "1":
+            agent_speed = 150.0
+            agent_prefer_driving = True
+        elif vehicles == "2":
+            agent_speed = 250.0
+            agent_prefer_driving = True
+        else:  # "3plus"
+            agent_speed = 280.0
+            agent_prefer_driving = True
 
         agent_id = f"a_{seed}_{index:04d}"
 
@@ -444,9 +737,12 @@ def sample_population(
             agent_id=agent_id,
             name=f"agent_{index}",
             age=age,
-            occupation=_occupation_for(work_mode, rng),
+            occupation=occupation,
             household=household,  # type: ignore[arg-type]
             home_location=home,
+            workplace=workplace,
+            walking_speed_m_per_min=agent_speed,
+            prefer_driving=agent_prefer_driving,
             languages=[language],
             personality=personality,
             ethnicity_group=ethnicity,
@@ -474,6 +770,18 @@ def sample_population(
             education_level=education,  # type: ignore[arg-type]
             life_pattern=life_pattern,
         ))
+
+    # A2 / realism-household-coupling: cluster agents into households so
+    # multi-member family_composition values (couple, family) actually share
+    # home_location + household_id. This unblocks household_kin social_priors
+    # rule (which previously fired 0 ties because home_locations were unique
+    # per agent).
+    cluster_home_pool: tuple[str, ...] = (
+        pools.home_pool if pools is not None else (home_locations or ())
+    )
+    profiles = _cluster_into_households(
+        profiles, seed=seed, rng=rng, home_pool=cluster_home_pool,
+    )
 
     # Assign protagonists: pick deterministically from rng. Only adult
     # agents (age >= 18) are eligible — kids running LLM stack is both
@@ -856,15 +1164,203 @@ async def generate_identities_for_protagonists(
     return out
 
 
-def _occupation_for(work_mode: WorkMode, rng: random.Random) -> str:
-    """粗略的 work_mode → occupation 映射（placeholder）。"""
-    pools = {
-        "commute": ("office_worker", "retail_clerk", "teacher", "nurse"),
-        "remote": ("software_dev", "designer", "writer", "analyst"),
-        "shift": ("barista", "security_guard", "hospitality", "warehouse"),
-        "nonworking": ("retired", "student", "caregiver", "unemployed"),
-    }
-    return rng.choice(pools[work_mode])
+def _age_bracket(age: int) -> str:
+    """Age bracket key used by population cross-constraints."""
+    if age < 16: return "<16"
+    if age < 22: return "16-21"
+    if age < 65: return "22-64"
+    if age < 75: return "65-74"
+    return ">=75"
+
+
+# fix-realism-systemic-gaps: (age_bracket, work_mode) → list[occupation] lookup
+# Avoids "5-year-old software_dev" and "94-year-old commuting nurse" issues
+# found in the systemic realism audit. Maps WorkMode Literal values only
+# (commute/remote/shift/nonworking).
+_OCCUPATION_BY_AGE_MODE: dict[tuple[str, str], tuple[str, ...]] = {
+    # children: school-going only
+    ("<16", "nonworking"): ("student",),
+    ("<16", "commute"): ("student",),  # safety net (shouldn't fire post-clamp)
+    ("<16", "remote"): ("student",),
+    ("<16", "shift"): ("student",),
+    # young adults: students + early career
+    ("16-21", "nonworking"): ("student", "unemployed"),
+    ("16-21", "commute"): ("retail_worker", "tradesperson", "construction",
+                            "student"),
+    ("16-21", "remote"): ("student", "designer", "writer"),
+    ("16-21", "shift"): ("retail_worker", "barista", "hospitality", "student"),
+    # prime working age: full base pool
+    ("22-64", "commute"): (
+        "software_dev", "manager", "engineer", "teacher", "nurse",
+        "doctor", "designer", "consultant", "retail_worker", "construction",
+        "accountant", "lawyer", "tradesperson",
+    ),
+    ("22-64", "remote"): (
+        "software_dev", "writer", "designer", "consultant", "accountant",
+        "marketer", "analyst",
+    ),
+    ("22-64", "shift"): ("barista", "security_guard", "hospitality",
+                          "warehouse", "tradesperson", "nurse"),
+    ("22-64", "nonworking"): ("homemaker", "unemployed", "caregiver"),
+    # near-retirement: mostly retired, some still in workforce part-time
+    ("65-74", "nonworking"): ("retired",),
+    ("65-74", "commute"): ("consultant", "manager", "tutor"),
+    ("65-74", "remote"): ("consultant", "writer"),
+    ("65-74", "shift"): ("volunteer_coordinator", "tutor", "retired"),
+    # elders: not working
+    (">=75", "nonworking"): ("retired",),
+    (">=75", "commute"): ("retired",),  # safety net
+    (">=75", "remote"): ("retired",),
+    (">=75", "shift"): ("retired",),
+}
+
+
+def _occupation_for(age: int, work_mode: WorkMode, rng: random.Random) -> str:
+    """Pick occupation by (age_bracket, work_mode); deterministic given rng."""
+    key = (_age_bracket(age), str(work_mode))
+    candidates = _OCCUPATION_BY_AGE_MODE.get(key)
+    if not candidates:
+        # Fallback for unexpected combos (shouldn't happen post-clamp)
+        candidates = ("student" if age < 18 else
+                       "retired" if age >= 65 else "consultant",)
+    return rng.choice(candidates)
+
+
+# fix-realism-systemic-gaps: age bracket → restricted work_mode distribution.
+# Replaces the previous "draw work_mode independently of age" behavior that
+# allowed 5-year-old commuters and 94-year-old shift workers.
+def _work_mode_distribution_for_age(
+    age: int, base_dist: dict,
+) -> dict:
+    """Clamp work_mode distribution by age bracket.
+
+    Uses WorkMode Literal values only (commute/remote/shift/nonworking).
+    "Student" / "retired" / "part_time" semantics are encoded via the
+    occupation field, not work_mode.
+
+    Returns a new dict suitable for _weighted_pick.
+    """
+    bracket = _age_bracket(age)
+    if bracket == "<16":
+        return {"nonworking": 1.0}
+    if bracket == "16-21":
+        # Mostly students (nonworking) + some part-time (shift) + few commute
+        return {"nonworking": 0.60, "shift": 0.25, "commute": 0.15}
+    if bracket == "65-74":
+        # Mostly retired (nonworking) + occasional part-time (shift / remote)
+        return {"nonworking": 0.75, "shift": 0.15, "remote": 0.10}
+    if bracket == ">=75":
+        return {"nonworking": 1.0}
+    # 22-64 keeps the base profile distribution
+    return base_dist
+
+
+# fix-realism-systemic-gaps: occupation → workplace building_type set, used
+# by sample_population to pick a workplace that matches the agent's role
+# (e.g. teacher → school, nurse → hospital, engineer → office).
+_OCCUPATION_TO_WORKPLACE_TYPES: dict[str, tuple[str, ...]] = {
+    "teacher": ("school",),
+    "tutor": ("school", "community"),
+    "nurse": ("hospital",),
+    "doctor": ("hospital",),
+    "software_dev": ("office",),
+    "engineer": ("office", "commercial"),
+    "designer": ("office",),
+    "writer": ("office",),  # remote agents have no workplace anyway
+    "manager": ("office", "commercial"),
+    "consultant": ("office",),
+    "analyst": ("office",),
+    "marketer": ("office", "commercial"),
+    "accountant": ("office",),
+    "lawyer": ("office",),
+    "retail_worker": ("shop", "commercial"),
+    "barista": ("cafe", "restaurant"),  # POI workers — workplace=None
+    "hospitality": ("hotel", "restaurant", "cafe"),
+    "construction": ("commercial",),
+    "tradesperson": ("commercial",),
+    "warehouse": ("commercial", "industrial"),
+    "security_guard": ("commercial", "office"),
+    "volunteer_coordinator": ("community",),
+}
+
+
+def _pick_workplace_near(
+    home_id: str,
+    work_pool: tuple[str, ...],
+    occupation: str,
+    atlas,
+    max_m: float,
+    rng: random.Random,
+) -> str | None:
+    """Pick a workplace matching occupation type within commute radius.
+
+    Returns None when the occupation is POI-based (barista / hospitality)
+    so the agent acts as a roving POI worker without a fixed workplace.
+
+    Fallback chain:
+    1. Occupation-typed workplaces within max_m → random.choice from closest 60%
+    2. Occupation-typed workplaces beyond max_m → closest 5
+    3. Any workplace in pool → closest 5
+    4. None
+    """
+    if atlas is None:
+        return rng.choice(work_pool) if work_pool else None
+
+    target_types = _OCCUPATION_TO_WORKPLACE_TYPES.get(
+        occupation, ("commercial", "office"),
+    )
+
+    # POI-based occupations: cafe/restaurant aren't in work_pool, return None
+    # so build_scripted_plan treats the agent as roving (no commute pair)
+    if target_types and all(
+        t in ("cafe", "restaurant", "bar", "hotel") for t in target_types
+    ):
+        return None
+
+    home_c = atlas.get_center(home_id)
+    if home_c is None:
+        return rng.choice(work_pool) if work_pool else None
+
+    typed_within: list[tuple[float, str]] = []
+    typed_outside: list[tuple[float, str]] = []
+    typed_seen = False
+    for wid in work_pool:
+        b = atlas.get_building(wid)
+        if b is None:
+            continue
+        wc = atlas.get_center(wid)
+        if wc is None:
+            continue
+        d = ((wc.x - home_c.x) ** 2 + (wc.y - home_c.y) ** 2) ** 0.5
+        if b.building_type in target_types:
+            typed_seen = True
+            if d <= max_m:
+                typed_within.append((d, wid))
+            else:
+                typed_outside.append((d, wid))
+
+    if typed_within:
+        typed_within.sort()
+        # Pick from the closest 60% to avoid always-pick-closest determinism
+        n = max(1, int(len(typed_within) * 0.6))
+        return rng.choice([wid for _, wid in typed_within[:n]])
+
+    if typed_outside:
+        typed_outside.sort()
+        return rng.choice([wid for _, wid in typed_outside[:5]])
+
+    # Final fallback: any workplace in pool, closest 5
+    all_with_d = []
+    for wid in work_pool:
+        wc = atlas.get_center(wid)
+        if wc is None:
+            continue
+        d = ((wc.x - home_c.x) ** 2 + (wc.y - home_c.y) ** 2) ** 0.5
+        all_with_d.append((d, wid))
+    all_with_d.sort()
+    if all_with_d:
+        return rng.choice([wid for _, wid in all_with_d[:5]])
+    return None
 
 
 # ============================================================================
@@ -916,9 +1412,13 @@ LANE_COVE_PROFILE = PopulationProfile(
     # Calibration will show small loss on work_mode chi² vs ABS due to this
     # synthetic split; acceptable at best-effort tier.
     work_mode_distribution={
-        "commute": 0.324,
-        "remote": 0.527,
-        "shift": 0.050,
+        # B1 fix: ABS 2021 captured Sydney during Delta lockdown (remote=53%
+        # COVID anomaly). Steady-state Lane Cove ~18% remote per pre-2020
+        # surveys; use steady-state for publishable thesis to avoid lockdown
+        # confound. Publishable report SHALL disclose this de-anomaly choice.
+        "commute": 0.594,    # was 0.324 (kept low by COVID-counted remote)
+        "remote": 0.180,     # was 0.527 (COVID anomaly)
+        "shift": 0.127,      # 1-pp bump from absorbed commute
         "nonworking": 0.099,
     },
     # 11-bucket age aligned with ABS G01
@@ -986,13 +1486,16 @@ LANE_COVE_PROFILE = PopulationProfile(
         "not_at_all": 0.0161,  # sum-fix
     },
     family_composition_distribution={
-        "lone_person": 0.0000,
+        # ABS 2021 Lane Cove SAL12275 actual proportions (not the 0%-placeholder
+        # values used pre-2026-05-13). Lone person & group household are real
+        # ~20% combined; prior values silently zero'd them out.
+        "lone_person": 0.1903,
         "couple_no_kids": 0.2666,
-        "couple_kids_under_15": 0.4923,
-        "couple_kids_15plus": 0.1373,
+        "couple_kids_under_15": 0.2200,  # ↓ from 0.4923 (was double-counted)
+        "couple_kids_15plus": 0.1500,
         "one_parent_family": 0.0945,
-        "group_household": 0.0000,
-        "other": 0.0093,  # sum-fix
+        "group_household": 0.0480,
+        "other": 0.0306,  # sum-fix
     },
     dwelling_structure_distribution={
         "separate_house": 0.4626,

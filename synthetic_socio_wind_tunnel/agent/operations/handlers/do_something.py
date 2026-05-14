@@ -86,6 +86,13 @@ def _build_do_something_prompt(args: dict) -> str:
         dest_list = ", ".join(destinations)
         parts.append(f"Places you could head to: {dest_list}")
 
+    # B4: hyperlocal conversation topics for grounding (Lane Cove discourse)
+    local_topics = args.get("local_topics", ())
+    if local_topics:
+        parts.append("Recent local topics in your area:")
+        for t in local_topics:
+            parts.append(f"- {t}")
+
     parts.append(
         "Pick exactly ONE action and output JSON ONLY (no prose, no markdown):\n"
         '  {"action":"invite_dialogue","target_agent_id":"<id>"}    -- '

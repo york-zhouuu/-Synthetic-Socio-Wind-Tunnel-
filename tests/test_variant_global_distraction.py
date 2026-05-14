@@ -54,12 +54,13 @@ class TestGlobalDistraction:
         assert v.is_mirror is True
         assert v.paired_variant == "hyperlocal_push"
 
-    def test_default_daily_count_20(self):
+    def test_default_daily_count_5(self):
+        """fix-bc-mechanics B4: gd 等量于 hp 的 daily_push_count=5。"""
         v = GlobalDistractionVariant()
         ctx = _setup(n_agents=4, day_index=1)
         v.apply_day_start(ctx)
         items = list(ctx.attention_service._feed_index.values())  # type: ignore[attr-defined]
-        assert len(items) == 20
+        assert len(items) == 5
 
     def test_global_source_no_hyperlocal_radius(self):
         v = GlobalDistractionVariant()

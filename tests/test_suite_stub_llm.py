@@ -35,8 +35,31 @@ class TestStubDispatch:
         assert any(s.destination == "cafe_main" for s in steps)
         assert any(s.action == "move" for s in steps)
 
-    def test_global_distraction_returns_empty(self):
-        stub = StubReplanLLM(seed=42, variant_name="global_distraction")
+    def test_global_distraction_returns_distraction_destination(self):
+        """B2 fix: gd no longer returns empty; goes to a non-target far area.
+
+        With no atlas + only target_location, fallback chain returns None →
+        empty plan. With destinations passed, fallback uses last destination.
+        """
+        stub = StubReplanLLM(
+            seed=42, variant_name="global_distraction",
+            target_location="cafe_main",
+            destinations=("park_a", "mall_b", "far_corner"),
+        )
+        raw = asyncio.run(stub.generate("prompt"))
+        steps = _parse_xml_plan(raw)
+        assert len(steps) >= 1, \
+            "gd SHALL return non-empty plan (B2 fix) when destinations available"
+        # Fallback in absence of atlas → destinations[-1] = "far_corner".
+        assert steps[0].destination == "far_corner"
+        assert steps[0].destination != "cafe_main"
+
+    def test_global_distraction_no_destinations_falls_back_empty(self):
+        """No atlas + no destinations → empty plan (degraded fallback)."""
+        stub = StubReplanLLM(
+            seed=42, variant_name="global_distraction",
+            target_location="cafe_main",
+        )
         raw = asyncio.run(stub.generate("prompt"))
         assert raw == _EMPTY_PLAN_XML
 
@@ -50,10 +73,18 @@ class TestStubDispatch:
         assert len(steps) >= 1
         assert any(s.destination == "park_main" for s in steps)
 
-    def test_phone_friction_returns_empty(self):
-        stub = StubReplanLLM(seed=42, variant_name="phone_friction")
+    def test_phone_friction_toward_community_location(self):
+        """B3 fix: pf no longer empty; goes to community heuristic location."""
+        stub = StubReplanLLM(
+            seed=42, variant_name="phone_friction",
+            destinations=("park_a", "mall_b"),
+        )
         raw = asyncio.run(stub.generate("prompt"))
-        assert raw == _EMPTY_PLAN_XML
+        steps = _parse_xml_plan(raw)
+        assert len(steps) >= 1, \
+            "pf SHALL return non-empty plan (B3 fix) when destinations available"
+        # Without atlas, picks destinations[0].
+        assert steps[0].destination == "park_a"
 
     def test_catalyst_seeding_returns_empty(self):
         stub = StubReplanLLM(seed=42, variant_name="catalyst_seeding")
@@ -122,13 +153,18 @@ class TestPlannerCompatibility:
             "recent_memories": [],
             "current_time": None,
         }
-        new_plan = asyncio.run(planner.replan(profile, current_plan, interrupt_ctx))
+        new_plan, _changed = asyncio.run(planner.replan(profile, current_plan, interrupt_ctx))
         assert isinstance(new_plan, DailyPlan)
         # stub 产出 destination=cafe_main 的 step；新 plan 应包含它
         assert any(s.destination == "cafe_main" for s in new_plan.steps)
 
     def test_empty_stub_fallback_preserves_plan(self):
-        """空 stub 返回 → Planner.replan fallback 返回原 plan 副本。"""
+        """空 stub 返回 → Planner.replan fallback 返回原 plan 副本。
+
+        Use catalyst_seeding here because gd / pf no longer return empty
+        in their typical configured form (B2/B3 fix). catalyst_seeding's
+        stub still returns _EMPTY_PLAN_XML by default.
+        """
         from synthetic_socio_wind_tunnel.agent import PlanStep
         profile = AgentProfile(
             agent_id="emma", name="Emma", age=30, occupation="x",
@@ -142,12 +178,101 @@ class TestPlannerCompatibility:
         current_plan = DailyPlan(
             agent_id="emma", date="2026-04-25", steps=[original_step],
         )
-        stub = StubReplanLLM(seed=42, variant_name="global_distraction")
+        stub = StubReplanLLM(seed=42, variant_name="catalyst_seeding")
         planner = Planner(llm_client=stub)
-        new_plan = asyncio.run(planner.replan(profile, current_plan, {
+        new_plan, _changed = asyncio.run(planner.replan(profile, current_plan, {
             "trigger_event": None, "recent_memories": [],
             "current_time": None,
         }))
         # 原 step 被保留
         assert len(new_plan.steps) == 1
         assert new_plan.steps[0].destination == "home"
+
+
+class TestStubWithPools:
+    """fix-population-uses-typed-locations: stub uses LocationPools."""
+
+    def _setup(self):
+        import os
+        import random
+        if not os.path.exists("data/lanecove_atlas.json"):
+            pytest.skip("Lane Cove atlas fixture not available")
+        from synthetic_socio_wind_tunnel import Atlas, build_location_pools
+        atlas = Atlas.from_json("data/lanecove_atlas.json")
+        pools = build_location_pools(
+            atlas, home_count=40, work_count=20, poi_count=30,
+            rng=random.Random(42),
+        )
+        target = pools.pick_target_location(
+            atlas, random.Random(42), prefer="community",
+        )
+        return atlas, pools, target
+
+    def test_hyperlocal_push_target_in_poi_pool(self):
+        atlas, pools, target = self._setup()
+        stub = StubReplanLLM(
+            seed=42, variant_name="hyperlocal_push",
+            target_location=target, atlas=atlas, pools=pools,
+        )
+        raw = asyncio.run(stub.generate("any"))
+        steps = _parse_xml_plan(raw)
+        assert any(s.destination == target for s in steps)
+        assert target in pools.poi_pool
+
+    def test_global_distraction_destination_in_poi_pool_and_not_street(self):
+        atlas, pools, target = self._setup()
+        stub = StubReplanLLM(
+            seed=42, variant_name="global_distraction",
+            target_location=target, atlas=atlas, pools=pools,
+        )
+        raw = asyncio.run(stub.generate("any"))
+        steps = _parse_xml_plan(raw)
+        assert steps, "gd stub must return non-empty plan"
+        dest = steps[0].destination
+        assert dest in pools.poi_pool, (
+            f"gd destination {dest} should be in poi_pool"
+        )
+        assert dest != target
+        outdoor = atlas.get_outdoor_area(dest)
+        if outdoor is not None:
+            assert outdoor.area_type != "street", (
+                f"gd destination {dest} is a street outdoor area "
+                f"(area_type={outdoor.area_type})"
+            )
+
+    def test_phone_friction_community_heuristic_not_street(self):
+        atlas, pools, target = self._setup()
+        stub = StubReplanLLM(
+            seed=42, variant_name="phone_friction",
+            target_location=target, atlas=atlas, pools=pools,
+        )
+        raw = asyncio.run(stub.generate("any"))
+        steps = _parse_xml_plan(raw)
+        assert steps, "pf stub must return non-empty plan"
+        dest = steps[0].destination
+        assert dest in pools.poi_pool
+
+        outdoor = atlas.get_outdoor_area(dest)
+        building = atlas.get_building(dest)
+        is_park = outdoor is not None and outdoor.area_type in (
+            "park", "playground", "garden",
+        )
+        is_community = building is not None and building.building_type in (
+            "community", "worship",
+        )
+        is_fallback_first_poi = dest == pools.poi_pool[0]
+        assert is_park or is_community or is_fallback_first_poi
+
+    def test_pools_path_reproducible(self):
+        atlas, pools, target = self._setup()
+        stub_a = StubReplanLLM(
+            seed=7, variant_name="global_distraction",
+            target_location=target, atlas=atlas, pools=pools,
+        )
+        stub_b = StubReplanLLM(
+            seed=7, variant_name="global_distraction",
+            target_location=target, atlas=atlas, pools=pools,
+        )
+        raw_a = asyncio.run(stub_a.generate("p"))
+        raw_b = asyncio.run(stub_b.generate("p"))
+        assert raw_a == raw_b

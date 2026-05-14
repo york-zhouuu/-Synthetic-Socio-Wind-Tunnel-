@@ -228,11 +228,13 @@ def inject_shared_memories_for_protagonists(
 __all__ = [
     "SharedMemoryRecord",
     "ArchetypeRecord",
+    "ConversationTopicRecord",
     "LifeHistoryRecord",
     "SocialPriorRule",
     "PriorTieRecord",
     "load_shared_memories",
     "load_archetypes",
+    "load_conversation_topics",
     "load_social_prior_rules",
     "match_archetype",
     "compute_social_priors_for_population",
@@ -241,6 +243,54 @@ __all__ = [
     "generate_life_history_for_protagonists",
     "inject_life_history",
 ]
+
+
+# ===========================================================================
+# Conversation topics — Lane Cove hyperlocal discussion seeds (B4)
+# ===========================================================================
+
+_DEFAULT_CONVERSATION_TOPICS_PATH = (
+    Path(__file__).resolve().parent.parent.parent
+    / "data" / "lanecove" / "conversation_topics.json"
+)
+
+
+@dataclass(frozen=True)
+class ConversationTopicRecord:
+    """One Lane Cove hyperlocal discussion topic for grounding LLM dialogues."""
+
+    topic_id: str
+    label: str
+    snippet: str
+    polarity: str = "neutral"
+    source: str = ""
+
+
+def load_conversation_topics(
+    path: Path | None = None,
+) -> tuple[ConversationTopicRecord, ...]:
+    """Load Lane Cove conversation topics from JSON.
+
+    Used by `do_something` handler caller (e.g. _setup_aitown_stack) to
+    inject `op.args["local_topics"]` so LLM-generated dialogue / actions
+    reference real local discourse.
+    """
+    target = path or _DEFAULT_CONVERSATION_TOPICS_PATH
+    if not target.exists():
+        return ()
+    with target.open(encoding="utf-8") as fh:
+        payload = json.load(fh)
+    raw_topics = payload.get("topics", [])
+    return tuple(
+        ConversationTopicRecord(
+            topic_id=t.get("topic_id", ""),
+            label=t.get("label", ""),
+            snippet=t.get("snippet", ""),
+            polarity=t.get("polarity", "neutral"),
+            source=t.get("source", ""),
+        )
+        for t in raw_topics
+    )
 
 
 # ===========================================================================
@@ -278,6 +328,7 @@ class ArchetypeRecord:
     plan_text_template_examples: tuple[str, ...]
     source_urls: tuple[str, ...]
     uncertain: bool = False
+    is_fallback: bool = False  # B1 fix: catch-all archetype, used only when no specific match
 
 
 def load_archetypes(
@@ -314,6 +365,7 @@ def load_archetypes(
                 ),
                 source_urls=tuple(e.get("source_urls") or ()),
                 uncertain=bool(e.get("uncertain", False)),
+                is_fallback=bool(e.get("is_fallback", False)),
             )
         except (KeyError, TypeError, ValueError) as exc:
             logger.warning(
@@ -427,16 +479,22 @@ def match_archetype(
 
     if not scored:
         return None
-    # Sort: score desc, approx_pct desc
-    scored.sort(key=lambda t: (-t[0], -t[1]))
-    best_score, _, best = scored[0]
-    # Threshold: require ≥2 net matched dimensions (age range + at least
-    # one specific field). Combined with the hard-veto on work_mode and
-    # housing_tenure mismatches above, this commits to an archetype only
-    # when its core identity aligns.
-    if best_score < 2.0:
-        return None
-    return best
+    # B1 fix: prefer specific archetypes (is_fallback=False) over catch-all.
+    # Specific archetypes still need ≥ 2 score; fallback can match at any
+    # score ≥ 1. This avoids the catch-all from out-scoring narrow archetypes
+    # by virtue of having broader (and thus more-points) match criteria.
+    specifics = [t for t in scored if not t[2].is_fallback]
+    fallbacks = [t for t in scored if t[2].is_fallback]
+
+    specifics.sort(key=lambda t: (-t[0], -t[1]))
+    if specifics and specifics[0][0] >= 2.0:
+        return specifics[0][2]
+
+    fallbacks.sort(key=lambda t: (-t[0], -t[1]))
+    if fallbacks and fallbacks[0][0] >= 1.0:
+        return fallbacks[0][2]
+
+    return None
 
 
 # ===========================================================================
@@ -466,6 +524,29 @@ class LifeHistoryRecord:
     tags: tuple[str, ...] = ()
 
 
+_LIFE_HISTORY_TEMPLATES_PATH = (
+    Path(__file__).resolve().parent.parent.parent
+    / "data" / "lanecove" / "life_history_templates.json"
+)
+
+
+def _load_life_history_templates_for_archetype(arch_id: str) -> list[str]:
+    """B2: load Lane Cove archetype-grounded life-history anchors.
+
+    Returns up to 8 first-person event templates the LLM uses as anchors
+    instead of free-form invention. Empty list if file missing or
+    archetype not in templates.
+    """
+    if not _LIFE_HISTORY_TEMPLATES_PATH.exists():
+        return []
+    try:
+        with _LIFE_HISTORY_TEMPLATES_PATH.open(encoding="utf-8") as fh:
+            raw = json.load(fh)
+        return list(raw.get("templates_by_archetype", {}).get(arch_id, []))
+    except Exception:
+        return []
+
+
 _DEFAULT_LIFE_HISTORY_PROMPT_TEMPLATE = """\
 你是 Lane Cove (Sydney NSW 2066) 城市模拟的人物背景作者。请为下面这位 \
 agent 写 {n_records} 条第一人称的过去经历（life history backstory），让 \
@@ -480,6 +561,9 @@ ta 在 day 0 走进模拟时已经有"我经历过的事"可以聊。
 - archetype: {archetype_label}（{archetype_id}）
 - LifePattern: 偏好 cafe={preferred_cafe}, leisure_park={preferred_leisure_park}, \
 weekend={weekend_outing}
+
+=== Life-event anchors (Lane Cove-grounded; vary on these) ===
+{life_event_anchors}
 
 === 输出要求 ===
 **只输出 JSON**，no prose, no markdown fence。Schema:
@@ -505,6 +589,8 @@ weekend={weekend_outing}
 不要泛化（避免"我有过一段难忘的经历"）
 - 与 archetype 一致：通勤白领的 backstory 别全是 council 议程；\
 退休志愿者的 backstory 别都是 CBD 加班
+- **优先变奏 Life-event anchors 中的事件**（如果提供了），加入具体年份 / 名字 / 细节，\
+不要忽略 anchors 直接写其它事——这些 anchors 是 Lane Cove 真实居民的典型经历模板
 """
 
 
@@ -526,6 +612,15 @@ async def _generate_life_history_for_one(
     preferred_park = (lp.preferred_leisure_park if lp else None) or "(无)"
     weekend = (lp.weekend_outing_destination if lp else None) or "(无)"
 
+    # B2: Lane Cove-grounded life-event anchors per archetype. LLM varies
+    # on these instead of free-form invention.
+    anchors = _load_life_history_templates_for_archetype(arch_id)
+    anchor_block = (
+        "\n".join(f"  - {a}" for a in anchors)
+        if anchors
+        else "(无 archetype 模板锚点；自由生成)"
+    )
+
     prompt = _DEFAULT_LIFE_HISTORY_PROMPT_TEMPLATE.format(
         n_records=n_records,
         name=profile.name,
@@ -538,6 +633,7 @@ async def _generate_life_history_for_one(
         preferred_cafe=preferred_cafe,
         preferred_leisure_park=preferred_park,
         weekend_outing=weekend,
+        life_event_anchors=anchor_block,
     )
 
     try:

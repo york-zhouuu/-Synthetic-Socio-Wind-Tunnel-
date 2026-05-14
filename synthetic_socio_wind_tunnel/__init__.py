@@ -42,6 +42,8 @@ from synthetic_socio_wind_tunnel.agent import (
     Intent,
     LANE_COVE_PROFILE,
     LLMClient,
+    LocationPoolError,
+    LocationPools,
     LockIntent,
     MoveIntent,
     OpenDoorIntent,
@@ -55,6 +57,7 @@ from synthetic_socio_wind_tunnel.agent import (
     SocialIntent,
     UnlockIntent,
     WaitIntent,
+    build_location_pools,
     sample_population,
 )
 from synthetic_socio_wind_tunnel.memory import (
@@ -185,6 +188,10 @@ __all__ = [
     "PopulationProfile",
     "LANE_COVE_PROFILE",
     "sample_population",
+    # Typed location pools (fix-population-uses-typed-locations)
+    "LocationPools",
+    "LocationPoolError",
+    "build_location_pools",
     # Attention Channel (realign-to-social-thesis)
     "AttentionService",
     "AttentionState",

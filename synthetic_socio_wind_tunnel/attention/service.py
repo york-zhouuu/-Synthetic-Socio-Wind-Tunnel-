@@ -66,6 +66,10 @@ class AttentionService:
         "_rng",
         "_delivery_log",
         "_consumed",
+        "_phone_attention",
+        "_phone_attention_baseline",
+        "_personality_openness",
+        "_notifications_today",
     )
 
     def __init__(
@@ -95,6 +99,17 @@ class AttentionService:
         # has already surfaced once. Prevents duplicate DIGITAL observations
         # on subsequent renders.
         self._consumed: dict[str, set[str]] = {}
+        # add-attention-induced-nearby-blindness: per-agent dynamic phone
+        # attention share. baseline = ambient screen-time fraction; current
+        # value rises with notification arrivals and decays per tick.
+        self._phone_attention: dict[str, float] = {}
+        self._phone_attention_baseline: dict[str, float] = {}
+        # Personality cache for delta computation (openness only); other
+        # fields read from DigitalProfile directly.
+        self._personality_openness: dict[str, float] = {}
+        # B5 fix: per-agent per-day notification count for fatigue computation.
+        # Resets at on_day_start (via reset_daily_counters).
+        self._notifications_today: dict[str, int] = {}
 
     # ---- Profile bookkeeping ----
 
@@ -103,6 +118,78 @@ class AttentionService:
 
     def _profile_for(self, agent_id: str) -> DigitalProfile:
         return self._profiles.get(agent_id, DigitalProfile())
+
+    # ---- Phone-attention state (add-attention-induced-nearby-blindness) ----
+
+    def set_phone_attention_baseline(
+        self, agent_id: str, baseline: float,
+    ) -> None:
+        """Register an agent's resting-state phone attention share.
+
+        Typically called once during simulation setup, e.g.
+        `set_phone_attention_baseline(a.id, baseline_screen_share(a.digital))`.
+        """
+        from synthetic_socio_wind_tunnel.attention.noticing import (
+            PHONE_ATTENTION_MAX, PHONE_ATTENTION_MIN,
+        )
+        b = max(PHONE_ATTENTION_MIN, min(PHONE_ATTENTION_MAX, baseline))
+        self._phone_attention_baseline[agent_id] = b
+        # Initialize current value to baseline if not set
+        if agent_id not in self._phone_attention:
+            self._phone_attention[agent_id] = b
+
+    def set_personality_openness(self, agent_id: str, openness: float) -> None:
+        """Cache personality.openness for notification-delta calculation."""
+        self._personality_openness[agent_id] = max(0.0, min(1.0, openness))
+
+    def get_phone_attention(self, agent_id: str) -> float:
+        """Current phone_attention for the agent (baseline if never delivered).
+
+        Unseen agents return 0.0 (assumed no phone presence).
+        """
+        if agent_id in self._phone_attention:
+            return self._phone_attention[agent_id]
+        return self._phone_attention_baseline.get(agent_id, 0.0)
+
+    def tick_decay_all(self) -> None:
+        """Apply one tick of geometric decay to every tracked agent."""
+        from synthetic_socio_wind_tunnel.attention.noticing import (
+            decay_phone_attention,
+        )
+        for aid, current in list(self._phone_attention.items()):
+            baseline = self._phone_attention_baseline.get(aid, 0.0)
+            self._phone_attention[aid] = decay_phone_attention(current, baseline)
+
+    def _accumulate_phone_attention(
+        self, agent_id: str, feed_item,
+    ) -> None:
+        """Add the delta from a delivered FeedItem to phone_attention.
+
+        B5: per-day notification count drives diminishing-returns fatigue.
+        """
+        from synthetic_socio_wind_tunnel.attention.noticing import (
+            PHONE_ATTENTION_MAX, compute_notification_delta,
+        )
+        digital = self._profile_for(agent_id)
+        responsiveness = getattr(digital, "notification_responsiveness", 0.5)
+        openness = self._personality_openness.get(agent_id, 0.5)
+        urgency = float(getattr(feed_item, "urgency", 0.5) or 0.5)
+        n_today = self._notifications_today.get(agent_id, 0)
+        delta = compute_notification_delta(
+            urgency, responsiveness, openness,
+            notifications_received_today=n_today,
+        )
+        self._notifications_today[agent_id] = n_today + 1
+        current = self._phone_attention.get(
+            agent_id, self._phone_attention_baseline.get(agent_id, 0.0),
+        )
+        self._phone_attention[agent_id] = min(
+            PHONE_ATTENTION_MAX, current + delta,
+        )
+
+    def reset_daily_counters(self) -> None:
+        """B5: reset per-day notification counts on day boundary."""
+        self._notifications_today.clear()
 
     # ---- FeedItem catalog ----
 
@@ -192,6 +279,10 @@ class AttentionService:
                 origin_hack_id=item.origin_hack_id,
                 suppressed_by_bias=False,
             ))
+            # add-attention-induced-nearby-blindness: successful delivery
+            # accumulates phone_attention on the recipient. Suppressed deliveries
+            # don't update attention (no notification reached the user).
+            self._accumulate_phone_attention(agent_id, item)
 
         return delivered_events
 

@@ -89,7 +89,7 @@ class TestReplanSuccess:
             "recent_memories": [],
             "current_time": datetime(2026, 4, 21, 8, 30),
         }
-        new_plan = asyncio.run(planner.replan(_profile(), _plan(), ctx))
+        new_plan, _changed = asyncio.run(planner.replan(_profile(), _plan(), ctx))
 
         # 保留前 2 个 step (current_step_index)，替换后 2 个
         assert len(new_plan.steps) == 4
@@ -113,7 +113,7 @@ class TestReplanSuccess:
             "recent_memories": [],
             "current_time": datetime(2026, 4, 21, 8, 30),
         }
-        new_plan = asyncio.run(planner.replan(_profile(), _plan(), ctx))
+        new_plan, _changed = asyncio.run(planner.replan(_profile(), _plan(), ctx))
         # current_step_index=2 保留前 2 + 1 个新 step = 3
         assert len(new_plan.steps) == 3
         assert new_plan.steps[2].time == "8:31"
@@ -126,7 +126,7 @@ class TestReplanSuccess:
             "recent_memories": [],
             "current_time": datetime.now(),
         }
-        asyncio.run(planner.replan(_profile(), _plan(), ctx))
+        asyncio.run(planner.replan(_profile(), _plan(), ctx))  # tuple discarded
         # LLM returned empty plan → fallback; call count 仍为 1
         assert len(mock.calls) == 1
 
@@ -141,7 +141,7 @@ class TestReplanFallback:
             "recent_memories": [],
             "current_time": datetime.now(),
         }
-        new_plan = asyncio.run(planner.replan(_profile(), original, ctx))
+        new_plan, _changed = asyncio.run(planner.replan(_profile(), original, ctx))
         assert len(new_plan.steps) == len(original.steps)
 
     def test_empty_llm_response_returns_original(self):
@@ -152,7 +152,7 @@ class TestReplanFallback:
             "recent_memories": [],
             "current_time": datetime.now(),
         }
-        new_plan = asyncio.run(planner.replan(_profile(), original, ctx))
+        new_plan, _changed = asyncio.run(planner.replan(_profile(), original, ctx))
         assert new_plan.steps == original.steps
 
 
@@ -169,7 +169,7 @@ class TestReplanPrompt:
             "recent_memories": [],
             "current_time": datetime.now(),
         }
-        asyncio.run(planner.replan(_profile(), _plan(), ctx))
+        asyncio.run(planner.replan(_profile(), _plan(), ctx))  # tuple discarded
         prompt = mock.calls[0][0]
         assert trigger.content in prompt
         assert "【手机】" in prompt
@@ -189,7 +189,7 @@ class TestReplanPrompt:
             "recent_memories": memories,
             "current_time": datetime.now(),
         }
-        asyncio.run(planner.replan(_profile(), _plan(), ctx))
+        asyncio.run(planner.replan(_profile(), _plan(), ctx))  # tuple discarded
         prompt = mock.calls[0][0]
         assert "coffee" in prompt
 
@@ -201,7 +201,7 @@ class TestReplanPrompt:
             "recent_memories": [],
             "current_time": datetime.now(),
         }
-        asyncio.run(planner.replan(_profile(), _plan(), ctx))
+        asyncio.run(planner.replan(_profile(), _plan(), ctx))  # tuple discarded
         prompt = mock.calls[0][0]
         assert "<plan>" in prompt
         assert "<step>" in prompt
@@ -213,5 +213,5 @@ class TestReplanNoPlan:
         planner = Planner(MockLLM(response=_EMPTY_PLAN_XML))
         ctx = {"trigger_event": _trigger(), "recent_memories": [],
                "current_time": datetime.now()}
-        new_plan = asyncio.run(planner.replan(_profile(), None, ctx))
+        new_plan, _changed = asyncio.run(planner.replan(_profile(), None, ctx))
         assert new_plan.steps == []

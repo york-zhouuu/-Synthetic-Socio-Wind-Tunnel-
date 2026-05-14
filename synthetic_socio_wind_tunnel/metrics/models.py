@@ -65,8 +65,16 @@ class RunMetrics(BaseModel):
 
     # 派生指标
     trajectory_deviation_m: float | None = None
-    """baseline-end vs intervention-end median 距离（向 target_location）；
-    仅 A / A' 填，其它 variant 留 None。"""
+    """**Push-target subset** median 距离（intervention-end 位置到 target_location）；
+    只对 `variant_metadata["target_agent_ids"]`（缺省时 fallback 到 protag）
+    的 agent 计算。仅 A / A' 填，其它 variant 留 None.
+
+    语义在 fix-variant-measurement-and-friction change 中收紧：原版本对全部
+    100 agent 取 median，10 protag 信号被 90 scripted agent 稀释（B1）。"""
+
+    trajectory_deviation_m_all: float | None = None
+    """**All-agent** median 距离（sanity 对照）；用于和 `trajectory_deviation_m`
+    对比看 spillover。仅 A / A' 填。"""
 
     encounter_stats: dict[str, float] = Field(default_factory=dict)
     """{"total": X, "per_day_median": Y, "diversity_pairs_total": Z, ...}"""

@@ -62,15 +62,20 @@ def run_mini_sim(*, n_agents: int, n_days: int, seed: int):
     atlas = create_atlas_from_osm()
     rng = random.Random(seed)
 
-    # Pick a working set of destinations connected to atlas
-    all_dests = list(atlas._region.outdoor_areas.keys())[:30]
-    if not all_dests:
-        all_dests = list(atlas._region.buildings.keys())[:30]
+    # fix-population-uses-typed-locations: use typed pools instead of
+    # outdoor-only single pool (agents must live in residential buildings).
+    from synthetic_socio_wind_tunnel.agent import build_location_pools
+    pools = build_location_pools(
+        atlas, home_count=max(40, n_agents // 2),
+        work_count=20, poi_count=30, rng=rng,
+    )
+    all_dests = list(pools.poi_pool)
 
     # Sample population with LifePattern
     template = LANE_COVE_PROFILE.model_copy(update={"size": n_agents})
     profiles = sample_population(
-        template, seed=seed, home_locations=tuple(all_dests),
+        template, seed=seed, pools=pools,
+        atlas=atlas,
     )
 
     ledger = Ledger()
@@ -86,7 +91,9 @@ def run_mini_sim(*, n_agents: int, n_days: int, seed: int):
             location_id=home,
         ))
         rt = AgentRuntime(profile=p, current_location=home)
-        rt.plan = build_scripted_plan(p, all_dests, start_date.isoformat(), rng)
+        rt.plan = build_scripted_plan(
+            p, date=start_date.isoformat(), rng=rng, pools=pools,
+        )
         runtimes.append(rt)
 
     orchestrator = Orchestrator(atlas, ledger, runtimes, tick_minutes=5, seed=seed)
@@ -128,7 +135,8 @@ def run_mini_sim(*, n_agents: int, n_days: int, seed: int):
             rt.current_location = home
             rt.cancel_movement()
             rt.plan = build_scripted_plan(
-                rt.profile, all_dests, current_date.isoformat(), rng_day,
+                rt.profile, date=current_date.isoformat(),
+                rng=rng_day, pools=pools,
             )
 
     result = runner.run_multi_day(

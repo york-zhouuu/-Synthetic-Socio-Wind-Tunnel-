@@ -9,9 +9,7 @@ conversation / metrics 等 Phase 2 能力都通过此通道注入或观察数字
 
 模块：`synthetic_socio_wind_tunnel/attention/`
 引入自：`realign-to-social-thesis`（归档于 2026-04-20）
-
 ## Requirements
-
 ### Requirement: FeedItem 与 NotificationEvent 数据模型
 
 系统 SHALL 在 `synthetic_socio_wind_tunnel/attention/models.py` 中定义：
@@ -193,3 +191,107 @@ list[FeedDeliveryRecord]`，其中 `FeedDeliveryRecord` 字段：
 - **WHEN** 10 条 local_news 推送给 1 个 global-biased agent，`feed_bias_suppression=0.5`
 - **THEN** `export_feed_log` 返回 10 条记录；其中 `suppressed_by_bias=True`
   的条数 SHALL 在预期范围内（期望值 5）
+
+### Requirement: AttentionService SHALL expose phone_attention state API
+
+`AttentionService` MUST provide three new methods to manage per-agent
+phone attention state:
+
+- `get_phone_attention(agent_id: str) -> float`: returns current value
+  (or baseline if agent unseen)
+- `set_phone_attention_baseline(agent_id: str, baseline: float) -> None`:
+  registers an agent's resting-state attention share (typically called
+  during simulation setup from `profile.digital.daily_screen_hours / 16`)
+- `tick_decay_all() -> None`: applies geometric decay to every tracked agent
+
+Internal state is a dict `_phone_attention: dict[str, float]` + a
+companion `_phone_attention_baseline: dict[str, float]`.
+
+#### Scenario: get_phone_attention returns baseline for unseen agent
+- **WHEN** `service.set_phone_attention_baseline("a1", 0.2)`, then
+  `service.get_phone_attention("a1")`
+- **THEN** returns `0.2`
+
+#### Scenario: tick_decay_all reduces all tracked values
+- **WHEN** two agents at 0.8 and 1.0, both with baseline 0.1, then `tick_decay_all`
+- **THEN** values become `max(0.1, 0.8 × 0.85)` ≈ 0.68 and `max(0.1, 1.0 × 0.85)` = 0.85
+
+### Requirement: AttentionService.deliver_feed_item SHALL accumulate phone_attention
+
+The `deliver_feed_item` method MUST update the recipient's phone_attention.
+When a feed item is successfully delivered to an agent, it SHALL accumulate
+that agent's `phone_attention` by the delta formula specified in the
+`attention-induced-noticing-gate` capability.
+
+Delta MUST be computed using `agent_profile` (passed by caller) for
+`digital.notification_responsiveness` and `personality.openness`. When
+profile is None, fallback is `responsiveness=0.5, openness=0.5`.
+
+#### Scenario: delivered notification updates attention
+- **WHEN** baseline=0.2, current=0.2, `deliver_feed_item(item, agent_id, profile)`
+  with `item.urgency=0.6`, `responsiveness=0.7`, `openness=0.5`
+- **THEN** attention after delivery > 0.2
+
+#### Scenario: suppressed notification does NOT update attention
+- **WHEN** delivery fails (suppressed_by_bias=True)
+- **THEN** attention SHALL remain unchanged
+
+### Requirement: compute_notification_delta SHALL apply cumulative-fatigue
+
+The `compute_notification_delta` function SHALL apply exponential per-day
+fatigue decay. The signature `compute_notification_delta(urgency,
+responsiveness, openness, *, notifications_received_today: int = 0)`
+MUST accept the daily count and decay with `FATIGUE_HALFLIFE_N = 8`:
+
+```
+delta_n = base_delta × exp(-ln(2) × notifications_received_today / 8)
+```
+
+This captures real-world desensitization: the 1st push of the day fires
+full attention; the 8th fires half; the 16th fires a quarter.
+
+#### Scenario: first notification full delta
+- **WHEN** `compute_notification_delta(0.5, 0.5, 0.5, notifications_received_today=0)`
+- **THEN** result SHALL equal `compute_notification_delta(0.5, 0.5, 0.5)`
+  (no fatigue at n=0)
+
+#### Scenario: 8th notification half delta
+- **WHEN** comparing `compute_notification_delta(0.5, 0.5, 0.5, n=0)` vs
+  `compute_notification_delta(0.5, 0.5, 0.5, n=8)`
+- **THEN** the n=8 value SHALL be approximately half the n=0 value (±5%)
+
+#### Scenario: 16th notification quarter delta
+- **WHEN** comparing n=0 vs n=16
+- **THEN** the n=16 value SHALL be approximately one-quarter the n=0 value
+
+### Requirement: AttentionService SHALL track daily notification count per agent
+
+`AttentionService` MUST maintain `_notifications_today: dict[agent_id, int]`
+counting notifications delivered to each agent within the current sim day.
+
+The counter MUST:
+1. Increment in `_accumulate_phone_attention(agent_id, feed_item)` after the
+   delta is added to phone_attention
+2. Be readable internally for the fatigue calculation passed to
+   `compute_notification_delta(...)`
+3. Reset on day boundary via `reset_daily_counters()` (caller invokes at
+   day-start hook)
+
+Backward compat: existing callers that don't invoke `reset_daily_counters()`
+SHALL see counters accumulate across day boundaries — equivalent to "no day
+reset" behavior, slightly different from intended but no exception raised.
+
+#### Scenario: counter increments per delivery
+- **WHEN** `deliver_feed_item` succeeds for agent "a1" once
+- **THEN** `service._notifications_today["a1"]` SHALL == 1
+
+#### Scenario: reset clears counters
+- **WHEN** `reset_daily_counters()` is called after 5 deliveries to "a1"
+- **THEN** `service._notifications_today.get("a1", 0)` SHALL == 0
+
+#### Scenario: fatigue applied via service
+- **WHEN** the service delivers 10 notifications to agent "a1" in one day,
+  with identical urgency/responsiveness/openness for each
+- **THEN** the per-notification phone_attention delta SHALL decrease
+  monotonically as the count rises
+

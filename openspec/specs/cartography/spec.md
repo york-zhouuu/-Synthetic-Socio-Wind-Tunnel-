@@ -5,9 +5,7 @@
 1. `GeoJSONImporter` — 从 OpenStreetMap 等 GeoJSON 自动导入；
 2. `RegionBuilder` — 程序化 fluent API，便于写单元测试与小规模手造地图。
 两者产出的 Region 都 SHALL 满足 atlas 的所有结构与完整性约束。
-
 ## Requirements
-
 ### Requirement: GeoJSON 导入主入口
 `GeoJSONImporter.import_file(path, region_id) → Region` SHALL：
 - 解析标准 FeatureCollection；
@@ -365,7 +363,6 @@ Lane Cove OSM 数据抓取脚本 SHALL 统一命名为 `tools/fetch_lanecove.py`
 - **THEN** SHALL 只看到一个 `fetch_lanecove.py`（非 `_v1` / `_v2` 变体），
   与 `fetch_overture.py` 并列作为两类数据抓取入口
 
-
 ### Requirement: Atlas 几何质量不变量
 
 cartography pipeline 产出的 Region SHALL 满足以下几何质量不变量：
@@ -412,7 +409,6 @@ cartography pipeline 产出的 Region SHALL 满足以下几何质量不变量：
 - **THEN** IoU > 0.5 重复对数量 SHALL == 0；
   > 30 m² 大重叠对数量 SHALL < 50
 
-
 ### Requirement: Dedup 实现独立模块化
 
 dedup 逻辑 SHALL 抽取为独立模块 `synthetic_socio_wind_tunnel/cartography/dedup.py`，
@@ -438,7 +434,6 @@ dedup 逻辑 SHALL 抽取为独立模块 `synthetic_socio_wind_tunnel/cartograph
 #### Scenario: 不引入新依赖
 - **WHEN** 检查 `pyproject.toml` 在本 change 前后差异
 - **THEN** SHALL MUST NOT 出现 shapely / geopandas / pyproj 等新依赖
-
 
 ### Requirement: OSM multipolygon relation 正确组装为闭合环
 
@@ -485,7 +480,6 @@ OSM fetch / 处理工具 SHALL 把 multipolygon relation 的 outer way 端点拼
 - **THEN** 输出的 GeoJSON SHALL 至少含 1 个 water polygon，name 为
   "Lane Cove River"，footprint 面积 > 50000 m²
 
-
 ### Requirement: Map Explorer 过滤地下水道 + 裁切到核心 bbox
 
 `tools/map_explorer/server.py` 加载 OSM 水 features 时 SHALL：(a) 过滤掉
@@ -518,3 +512,51 @@ bbox，避免 Sydney Harbour / Port Jackson 等大水域（数十 km²）淹没�
 #### Scenario: 完全在 bbox 外的水域被丢弃
 - **WHEN** OSM 水多边形完全在 render bbox 外（如远海湾）
 - **THEN** server MUST NOT 把它加入渲染层
+
+### Requirement: OutdoorArea SHALL declare access_mode for street segments
+
+`atlas.models.OutdoorArea` MUST expose a string field `access_mode` whose
+value is one of `{"pedestrian", "motor", "mixed"}`. Default value SHALL be
+`"mixed"` for backward compatibility with atlas snapshots produced before
+this field was introduced.
+
+For street segments (`area_type == "street"`), the cartography importer
+SHALL set `access_mode` from the OSM `highway` tag using the mapping:
+
+- `footway`, `path`, `steps`, `cycleway`, `pedestrian`, `corridor`, `track` → `"pedestrian"`
+- `motorway`, `motorway_link`, `trunk`, `trunk_link` → `"motor"`
+- everything else (`residential`, `primary`, `secondary`, `service`, ...) → `"mixed"`
+
+#### Scenario: footway tagged as pedestrian
+- **WHEN** importer reads a LineString with `properties["highway"] == "footway"`
+- **THEN** the produced `OutdoorArea.access_mode` SHALL == `"pedestrian"`
+
+#### Scenario: motorway tagged as motor
+- **WHEN** importer reads a LineString with `properties["highway"] == "motorway"`
+- **THEN** the produced `OutdoorArea.access_mode` SHALL == `"motor"`
+
+#### Scenario: residential street tagged as mixed
+- **WHEN** importer reads a LineString with `properties["highway"] == "residential"`
+- **THEN** the produced `OutdoorArea.access_mode` SHALL == `"mixed"`
+
+#### Scenario: missing highway tag falls back to mixed
+- **WHEN** importer reads a LineString without a `highway` property (rare)
+- **THEN** the produced `OutdoorArea.access_mode` SHALL == `"mixed"`
+
+### Requirement: Lane Cove atlas SHALL contain non-trivial pedestrian and motor counts
+
+The production Lane Cove atlas MUST contain segments in all three
+access_mode buckets after the importer fix and atlas rebuild. Built from
+`data/lanecove_enriched.geojson`, the atlas SHALL satisfy at minimum:
+- `pedestrian` segments ≥ 1500 (Lane Cove has rich footway network)
+- `motor` segments ≥ 100 (Pacific Highway / Epping Road on the periphery)
+- `mixed` segments ≥ 1000 (residential streets)
+
+This is a sanity check that prevents importer changes from accidentally
+de-typing every segment to one bucket.
+
+#### Scenario: distribution matches Lane Cove reality
+- **WHEN** `Atlas.from_json("data/lanecove_atlas.json")` is loaded after
+  importer fix applied and atlas rebuilt
+- **THEN** the per-`access_mode` counts SHALL satisfy the above thresholds
+

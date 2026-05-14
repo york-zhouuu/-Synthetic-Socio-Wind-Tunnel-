@@ -171,7 +171,7 @@ class TestD2ReplanTimeRewrite:
             "recent_memories": [],
             "current_time": datetime(2026, 4, 21, 15, 0),
         }
-        new_plan = asyncio.run(planner.replan(self._profile(), self._plan(), ctx))
+        new_plan, _changed = asyncio.run(planner.replan(self._profile(), self._plan(), ctx))
 
         # 新 future step 应在 index 2 位置
         rewritten = new_plan.steps[2]
@@ -191,7 +191,7 @@ class TestD2ReplanTimeRewrite:
             "recent_memories": [],
             "current_time": datetime(2026, 4, 21, 15, 0),
         }
-        new_plan = asyncio.run(planner.replan(self._profile(), self._plan(), ctx))
+        new_plan, _changed = asyncio.run(planner.replan(self._profile(), self._plan(), ctx))
         rewritten = new_plan.steps[2]
         assert rewritten.time == "15:30"
 
@@ -210,7 +210,7 @@ class TestD2ReplanTimeRewrite:
         # MockLLM 会让 _parse_plan 失败或 rewrite。先看是否被 parse 拒掉。
         # PlanStep 的 time 是 str，所以 "garbage" 能构造出 PlanStep，然后
         # _ensure_future_step_time 把它 rewrite 为 15:01
-        new_plan = asyncio.run(planner.replan(self._profile(), self._plan(), ctx))
+        new_plan, _changed = asyncio.run(planner.replan(self._profile(), self._plan(), ctx))
         rewritten = new_plan.steps[2]
         assert rewritten.time == "15:01"
 
@@ -222,7 +222,7 @@ class TestD2ReplanTimeRewrite:
             "recent_memories": [],
             "current_time": datetime(2026, 4, 21, 15, 0),
         }
-        asyncio.run(planner.replan(self._profile(), self._plan(), ctx))
+        asyncio.run(planner.replan(self._profile(), self._plan(), ctx))  # tuple discarded
         # prompt 应该包含 "必须 >= 当前时刻"
         prompt = llm.calls and "15:00" or ""
         # Actually calls is an int; look at the response storage another way

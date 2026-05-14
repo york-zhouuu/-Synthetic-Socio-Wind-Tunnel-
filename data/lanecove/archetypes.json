@@ -1,14 +1,16 @@
 {
   "_meta": {
     "schema_version": 1,
-    "description": "Lane Cove (Sydney NSW 2066) resident archetype templates — 7 personas covering ~87% of adult population, calibrated against ABS 2021 Census SAL12275/SAL12276 marginals. Used by population.sample_population at generate_identity time to ground LLM identity_text/plan_text in real local persona patterns rather than free-form invention. Each agent gets matched to one archetype by ABS dimension overlap (age + housing_tenure + work_mode + community_tenure + family_composition); LLM then varies the template with the agent's specific values (name, exact occupation, interests).",
-    "compiled_at": "2026-05-09",
+    "description": "Lane Cove (Sydney NSW 2066) resident archetype templates — 11 personas covering ~87% of adult population, calibrated against ABS 2021 Census SAL12275/SAL12276 marginals. Used by population.sample_population at generate_identity time to ground LLM identity_text/plan_text in real local persona patterns rather than free-form invention. Each agent gets matched to one archetype by ABS dimension overlap (age + housing_tenure + work_mode + community_tenure + family_composition); LLM then varies the template with the agent's specific values (name, exact occupation, interests).",
+    "compiled_at": "2026-05-10",
     "compiled_by": "general-purpose web research agent; sources cited per archetype",
     "calibration_notes": [
       "approx_pct sums to ~0.87; residual ~13% are kids/dependents (not assigned an archetype)",
       "remote_tech_migrant absorbs the COVID-Delta-skewed remote=52.7% share in ABS 2021",
       "no archetype indexed solely by ethnicity — country-of-birth appears as soft filter in remote_tech_migrant only",
-      "personality_bias values are RELATIVE OFFSETS to LANE_COVE_PROFILE.personality_params mean (0.5), not absolute"
+      "personality_bias values are RELATIVE OFFSETS to LANE_COVE_PROFILE.personality_params mean (0.5), not absolute",
+      "2026-05-10 (B1 audit): 4 fallback archetypes added (young_renter_commuter / mid_renter_family / older_renter_downsizer / casual_shift_worker) to cover ~68% unmatched profiles. Tagged uncertain=true; deeper Lane Cove research is V2.",
+      "2026-05-10: Added 'everyday_adult' generic catch-all to push match rate ≥ 80% — covers profiles outside archetype-specific patterns. Acceptable as breath of coverage; depth comes from archetype-specific archetypes when applicable (match_archetype prefers specific over generic via score order)."
     ]
   },
   "archetypes": [
@@ -21,10 +23,24 @@
         "age_bracket_max": 80,
         "housing_tenure": "owner_occupier",
         "community_tenure_5yr": "established_5plus",
-        "family_composition": ["couple_no_kids", "couple_kids_15plus", "lone_person"],
-        "dwelling_structure": ["separate_house", "semi_detached"],
-        "ethnicity_preference": ["Australia", "England", "New_Zealand"],
-        "year_of_arrival": ["pre_2000", "australian_born"]
+        "family_composition": [
+          "couple_no_kids",
+          "couple_kids_15plus",
+          "lone_person"
+        ],
+        "dwelling_structure": [
+          "separate_house",
+          "semi_detached"
+        ],
+        "ethnicity_preference": [
+          "Australia",
+          "England",
+          "New_Zealand"
+        ],
+        "year_of_arrival": [
+          "pre_2000",
+          "australian_born"
+        ]
       },
       "personality_bias": {
         "openness": -0.05,
@@ -32,17 +48,34 @@
         "extraversion": 0.0,
         "agreeableness": 0.05,
         "neuroticism": -0.05,
-        "curiosity": -0.10,
-        "routine_adherence": 0.20,
-        "risk_tolerance": -0.20
+        "curiosity": -0.1,
+        "routine_adherence": 0.2,
+        "risk_tolerance": -0.2
       },
       "digital_bias": {
         "screen_hours_offset": -1.2,
         "feed_bias_preference": "local",
-        "primary_apps_bias": ["facebook", "nextdoor"]
+        "primary_apps_bias": [
+          "facebook",
+          "nextdoor"
+        ]
       },
-      "occupation_pool": ["retired", "small_business_owner", "consultant", "part_time_professional"],
-      "interests_pool": ["bushcare_volunteer", "council_news", "harbor_walks", "lane_cove_national_park", "local_history", "gardening", "rowing_club", "lane_cove_theatre"],
+      "occupation_pool": [
+        "retired",
+        "small_business_owner",
+        "consultant",
+        "part_time_professional"
+      ],
+      "interests_pool": [
+        "bushcare_volunteer",
+        "council_news",
+        "harbor_walks",
+        "lane_cove_national_park",
+        "local_history",
+        "gardening",
+        "rowing_club",
+        "lane_cove_theatre"
+      ],
       "identity_text_template": "{name} 是一位 {age} 岁的 {occupation}，{tenure_years} 年前买下 Lane Cove 的房子后再没搬过。{personality_descriptor}。喜欢{interests_list}，对 Council 议程比对手机推送上心得多，常在 Plaza 碰到几十年前就认识的老邻居。",
       "plan_text_template_examples": [
         "周六去 Lane Cove Plaza 的 Farmers Market，再到 Pottery Lane 看看新的 performance space 进度。",
@@ -60,21 +93,33 @@
     {
       "archetype_id": "commuter_finance_pro",
       "label": "通勤金融/管理白领",
-      "approx_pct": 0.20,
+      "approx_pct": 0.2,
       "match_criteria": {
         "age_bracket_min": 30,
         "age_bracket_max": 49,
         "housing_tenure": "owner_occupier",
-        "community_tenure_5yr": ["recent_1_5yr", "established_5plus"],
+        "community_tenure_5yr": [
+          "recent_1_5yr",
+          "established_5plus"
+        ],
         "work_mode": "commute",
         "income_tier": "high",
-        "education_level": ["bachelor", "postgrad"],
-        "family_composition": ["couple_no_kids", "couple_kids_under_15"],
-        "dwelling_structure": ["separate_house", "flat_apartment"]
+        "education_level": [
+          "bachelor",
+          "postgrad"
+        ],
+        "family_composition": [
+          "couple_no_kids",
+          "couple_kids_under_15"
+        ],
+        "dwelling_structure": [
+          "separate_house",
+          "flat_apartment"
+        ]
       },
       "personality_bias": {
         "openness": 0.05,
-        "conscientiousness": 0.20,
+        "conscientiousness": 0.2,
         "extraversion": 0.05,
         "agreeableness": 0.0,
         "neuroticism": 0.05,
@@ -85,10 +130,28 @@
       "digital_bias": {
         "screen_hours_offset": 1.5,
         "feed_bias_preference": "global",
-        "primary_apps_bias": ["linkedin", "instagram"]
+        "primary_apps_bias": [
+          "linkedin",
+          "instagram"
+        ]
       },
-      "occupation_pool": ["finance_analyst", "corporate_lawyer", "management_consultant", "marketing_manager", "accountant", "banker"],
-      "interests_pool": ["cbd_commute_bus", "weekend_brunch_canopy", "school_catchment_planning", "property_market", "rowing_club", "lane_cove_country_club_golf", "harbor_walks"],
+      "occupation_pool": [
+        "finance_analyst",
+        "corporate_lawyer",
+        "management_consultant",
+        "marketing_manager",
+        "accountant",
+        "banker"
+      ],
+      "interests_pool": [
+        "cbd_commute_bus",
+        "weekend_brunch_canopy",
+        "school_catchment_planning",
+        "property_market",
+        "rowing_club",
+        "lane_cove_country_club_golf",
+        "harbor_walks"
+      ],
       "identity_text_template": "{name} 是一位 {age} 岁的 {occupation}，{tenure_years} 年前从 inner-west 搬来 Lane Cove，主要因为学区和到 CBD 25 分钟的公交 7。早上 7 点多挤 Lane Cove Tunnel 进城，{personality_descriptor}。周末跟着孩子在 Canopy 或 Plaza 转，偶尔在 Goldfish 喝杯咖啡谈下一笔房贷。",
       "plan_text_template_examples": [
         "今天 8 点 305 路公交进 Wynyard 开会，傍晚回 Lane Cove 接孩子去游泳课。",
@@ -106,26 +169,48 @@
     {
       "archetype_id": "remote_tech_migrant",
       "label": "远程办公的新移民工程师",
-      "approx_pct": 0.10,
+      "approx_pct": 0.1,
       "match_criteria": {
         "age_bracket_min": 28,
         "age_bracket_max": 42,
         "housing_tenure": "renter",
-        "community_tenure_5yr": ["new_<1yr", "recent_1_5yr"],
+        "community_tenure_5yr": [
+          "new_<1yr",
+          "recent_1_5yr"
+        ],
         "work_mode": "remote",
-        "income_tier": ["mid", "high"],
-        "education_level": ["bachelor", "postgrad"],
-        "ethnicity_preference": ["China", "India", "Hong_Kong_SAR_Ch", "Philippines", "Vietnam"],
-        "year_of_arrival": ["2016_2021", "2011_2015"],
-        "english_proficiency": ["very_well", "well", "english_only"],
+        "income_tier": [
+          "mid",
+          "high"
+        ],
+        "education_level": [
+          "bachelor",
+          "postgrad"
+        ],
+        "ethnicity_preference": [
+          "China",
+          "India",
+          "Hong_Kong_SAR_Ch",
+          "Philippines",
+          "Vietnam"
+        ],
+        "year_of_arrival": [
+          "2016_2021",
+          "2011_2015"
+        ],
+        "english_proficiency": [
+          "very_well",
+          "well",
+          "english_only"
+        ],
         "dwelling_structure": "flat_apartment"
       },
       "personality_bias": {
-        "openness": 0.10,
-        "conscientiousness": 0.10,
-        "extraversion": -0.10,
+        "openness": 0.1,
+        "conscientiousness": 0.1,
+        "extraversion": -0.1,
         "agreeableness": 0.0,
-        "neuroticism": 0.10,
+        "neuroticism": 0.1,
         "curiosity": 0.15,
         "routine_adherence": -0.05,
         "risk_tolerance": 0.05
@@ -133,10 +218,30 @@
       "digital_bias": {
         "screen_hours_offset": 2.5,
         "feed_bias_preference": "global",
-        "primary_apps_bias": ["wechat", "xhs", "linkedin", "tiktok"]
+        "primary_apps_bias": [
+          "wechat",
+          "xhs",
+          "linkedin",
+          "tiktok"
+        ]
       },
-      "occupation_pool": ["software_dev", "data_engineer", "product_manager", "machine_learning_engineer", "ux_designer", "qa_engineer"],
-      "interests_pool": ["xhs_lifestyle_posts", "macquarie_park_meetup", "grocery_lane_cove_market_square", "global_tech_news", "cantonese_dim_sum_chatswood", "national_park_trail_running", "online_gaming"],
+      "occupation_pool": [
+        "software_dev",
+        "data_engineer",
+        "product_manager",
+        "machine_learning_engineer",
+        "ux_designer",
+        "qa_engineer"
+      ],
+      "interests_pool": [
+        "xhs_lifestyle_posts",
+        "macquarie_park_meetup",
+        "grocery_lane_cove_market_square",
+        "global_tech_news",
+        "cantonese_dim_sum_chatswood",
+        "national_park_trail_running",
+        "online_gaming"
+      ],
       "identity_text_template": "{name} 是一位 {age} 岁的 {occupation}，{migration_years} 年前从 {origin_country} 来悉尼工作，目前租住在 Lane Cove North 一栋 2-bed 公寓里 wfh。{personality_descriptor}。一天有大半时间盯着小红书和 Slack，周末更愿意坐地铁去 Chatswood 的港式茶餐厅，对 Lane Cove 的本地八卦不太关心。",
       "plan_text_template_examples": [
         "今天 stand-up 之后骑车去 Stringybark Creek 跑 5 公里，午饭在公寓里煮个粥。",
@@ -158,31 +263,64 @@
       "match_criteria": {
         "age_bracket_min": 30,
         "age_bracket_max": 44,
-        "housing_tenure": ["owner_occupier", "renter"],
-        "work_mode": ["nonworking", "remote"],
-        "family_composition": ["couple_kids_under_15", "one_parent_family"],
-        "unpaid_child_care_hours": ["15_29", "30plus"],
-        "unpaid_domestic_hours": ["15_29", "30plus"],
+        "housing_tenure": [
+          "owner_occupier",
+          "renter"
+        ],
+        "work_mode": [
+          "nonworking",
+          "remote"
+        ],
+        "family_composition": [
+          "couple_kids_under_15",
+          "one_parent_family"
+        ],
+        "unpaid_child_care_hours": [
+          "15_29",
+          "30plus"
+        ],
+        "unpaid_domestic_hours": [
+          "15_29",
+          "30plus"
+        ],
         "gender_skew": "female",
         "household": "family_with_kids"
       },
       "personality_bias": {
         "openness": 0.0,
         "conscientiousness": 0.15,
-        "extraversion": 0.10,
+        "extraversion": 0.1,
         "agreeableness": 0.15,
-        "neuroticism": 0.10,
+        "neuroticism": 0.1,
         "curiosity": 0.0,
-        "routine_adherence": 0.10,
-        "risk_tolerance": -0.10
+        "routine_adherence": 0.1,
+        "risk_tolerance": -0.1
       },
       "digital_bias": {
         "screen_hours_offset": 0.5,
         "feed_bias_preference": "mixed",
-        "primary_apps_bias": ["instagram", "facebook", "wechat"]
+        "primary_apps_bias": [
+          "instagram",
+          "facebook",
+          "wechat"
+        ]
       },
-      "occupation_pool": ["stay_at_home_parent", "part_time_school_admin", "freelance_designer", "tutor", "career_break_professional"],
-      "interests_pool": ["mothers_group_plaza", "north_shore_mums_facebook", "school_pickup_st_michaels", "doo_doo_kid_cafe", "the_canopy_playground", "lane_cove_aquatic_centre", "playgroup_meeting_house"],
+      "occupation_pool": [
+        "stay_at_home_parent",
+        "part_time_school_admin",
+        "freelance_designer",
+        "tutor",
+        "career_break_professional"
+      ],
+      "interests_pool": [
+        "mothers_group_plaza",
+        "north_shore_mums_facebook",
+        "school_pickup_st_michaels",
+        "doo_doo_kid_cafe",
+        "the_canopy_playground",
+        "lane_cove_aquatic_centre",
+        "playgroup_meeting_house"
+      ],
       "identity_text_template": "{name} 是一位 {age} 岁、有 {kid_count} 个孩子的 {occupation}，目前主要 anchor 在 Lane Cove Plaza 半径 1 公里内：早上 St Michaels 送娃，10 点和 mothers group 在 Pablo & Rusty's 喝咖啡，下午带小的去 The Canopy 或 Doo Doo Kid。{personality_descriptor}。手机里 North Shore Mums 群和 school P&C 群最响。",
       "plan_text_template_examples": [
         "今天送完娃，10:30 在 Plaza 见 mothers group 朋友，下午去 Lane Cove Library 借绘本。",
@@ -205,30 +343,66 @@
         "age_bracket_min": 22,
         "age_bracket_max": 34,
         "housing_tenure": "renter",
-        "community_tenure_5yr": ["new_<1yr", "recent_1_5yr"],
-        "work_mode": ["commute", "remote"],
-        "income_tier": ["low", "mid"],
-        "family_composition": ["lone_person", "group_household", "couple_no_kids"],
+        "community_tenure_5yr": [
+          "new_<1yr",
+          "recent_1_5yr"
+        ],
+        "work_mode": [
+          "commute",
+          "remote"
+        ],
+        "income_tier": [
+          "low",
+          "mid"
+        ],
+        "family_composition": [
+          "lone_person",
+          "group_household",
+          "couple_no_kids"
+        ],
         "dwelling_structure": "flat_apartment",
-        "vehicles_at_dwelling": ["0", "1"]
+        "vehicles_at_dwelling": [
+          "0",
+          "1"
+        ]
       },
       "personality_bias": {
-        "openness": 0.10,
+        "openness": 0.1,
         "conscientiousness": -0.05,
-        "extraversion": 0.10,
+        "extraversion": 0.1,
         "agreeableness": 0.0,
         "neuroticism": 0.05,
-        "curiosity": 0.10,
+        "curiosity": 0.1,
         "routine_adherence": -0.15,
-        "risk_tolerance": 0.10
+        "risk_tolerance": 0.1
       },
       "digital_bias": {
         "screen_hours_offset": 2.0,
         "feed_bias_preference": "global",
-        "primary_apps_bias": ["instagram", "tiktok", "linkedin"]
+        "primary_apps_bias": [
+          "instagram",
+          "tiktok",
+          "linkedin"
+        ]
       },
-      "occupation_pool": ["junior_analyst", "graduate_engineer", "barista", "marketing_assistant", "graphic_designer", "physiotherapist", "nurse"],
-      "interests_pool": ["chatswood_metro", "weekend_party_north_sydney", "gym_soulful_fitness", "running_lane_cove_river", "kin_cafe_wine_bar", "share_kayak_burns_bay", "concerts_cbd"],
+      "occupation_pool": [
+        "junior_analyst",
+        "graduate_engineer",
+        "barista",
+        "marketing_assistant",
+        "graphic_designer",
+        "physiotherapist",
+        "nurse"
+      ],
+      "interests_pool": [
+        "chatswood_metro",
+        "weekend_party_north_sydney",
+        "gym_soulful_fitness",
+        "running_lane_cove_river",
+        "kin_cafe_wine_bar",
+        "share_kayak_burns_bay",
+        "concerts_cbd"
+      ],
       "identity_text_template": "{name} 是一位 {age} 岁的 {occupation}，{tenure_years} 年前从 {origin_state} 搬来 Sydney，和合租室友住在 Mowbray Road 的一栋公寓里，租金 $700/wk 占了大半个工资。{personality_descriptor}。Lane Cove 对他/她而言是个 'safe but boring' 的睡觉地方，社交主要在 Chatswood / 北悉尼 / CBD。",
       "plan_text_template_examples": [
         "今天 9 点坐 251 路到 Crows Nest 上班，傍晚和同事在 North Sydney 喝一杯。",
@@ -250,29 +424,62 @@
       "match_criteria": {
         "age_bracket_min": 35,
         "age_bracket_max": 60,
-        "housing_tenure": ["owner_occupier", "renter"],
-        "community_tenure_5yr": ["established_5plus", "recent_1_5yr"],
+        "housing_tenure": [
+          "owner_occupier",
+          "renter"
+        ],
+        "community_tenure_5yr": [
+          "established_5plus",
+          "recent_1_5yr"
+        ],
         "work_mode": "shift",
-        "income_tier": ["mid", "high"],
-        "family_composition": ["couple_kids_under_15", "couple_no_kids", "couple_kids_15plus"]
+        "income_tier": [
+          "mid",
+          "high"
+        ],
+        "family_composition": [
+          "couple_kids_under_15",
+          "couple_no_kids",
+          "couple_kids_15plus"
+        ]
       },
       "personality_bias": {
         "openness": 0.05,
-        "conscientiousness": 0.20,
-        "extraversion": 0.20,
+        "conscientiousness": 0.2,
+        "extraversion": 0.2,
         "agreeableness": 0.15,
         "neuroticism": 0.0,
         "curiosity": 0.05,
-        "routine_adherence": 0.10,
+        "routine_adherence": 0.1,
         "risk_tolerance": 0.15
       },
       "digital_bias": {
         "screen_hours_offset": 0.0,
         "feed_bias_preference": "local",
-        "primary_apps_bias": ["facebook", "instagram", "linkedin"]
+        "primary_apps_bias": [
+          "facebook",
+          "instagram",
+          "linkedin"
+        ]
       },
-      "occupation_pool": ["cafe_owner", "restaurant_owner", "mortgage_broker", "real_estate_agent", "physio_clinic_owner", "tradie_business", "florist", "hairdresser_salon_owner"],
-      "interests_pool": ["plaza_business_round_up", "in_the_cove_business_directory", "school_canteen_volunteer", "small_business_chamber", "lane_cove_rotary", "local_sponsorship_sport"],
+      "occupation_pool": [
+        "cafe_owner",
+        "restaurant_owner",
+        "mortgage_broker",
+        "real_estate_agent",
+        "physio_clinic_owner",
+        "tradie_business",
+        "florist",
+        "hairdresser_salon_owner"
+      ],
+      "interests_pool": [
+        "plaza_business_round_up",
+        "in_the_cove_business_directory",
+        "school_canteen_volunteer",
+        "small_business_chamber",
+        "lane_cove_rotary",
+        "local_sponsorship_sport"
+      ],
       "identity_text_template": "{name} 是一位 {age} 岁的 {occupation}，{years_in_business} 年前在 Lane Cove Plaza 接手 / 开了自己的小店。{personality_descriptor}。每天 6 点开店，认识半条街的客人名字，孩子也在 St Michael's 或 Lane Cove Public School 上学。本地新闻、Council 议程、邻居店铺消息比 CBD 大事件离他/她近多了。",
       "plan_text_template_examples": [
         "凌晨 5 点开店准备 morning rush，10 点 P&C 群里看孩子学校的求助消息。",
@@ -297,29 +504,60 @@
         "housing_tenure": "owner_occupier",
         "community_tenure_5yr": "established_5plus",
         "work_mode": "nonworking",
-        "income_tier": ["mid", "high"],
-        "family_composition": ["couple_no_kids", "lone_person"],
+        "income_tier": [
+          "mid",
+          "high"
+        ],
+        "family_composition": [
+          "couple_no_kids",
+          "lone_person"
+        ],
         "volunteer_status": "volunteer",
-        "education_level": ["bachelor", "postgrad", "diploma"],
-        "dwelling_structure": ["separate_house", "flat_apartment"]
+        "education_level": [
+          "bachelor",
+          "postgrad",
+          "diploma"
+        ],
+        "dwelling_structure": [
+          "separate_house",
+          "flat_apartment"
+        ]
       },
       "personality_bias": {
-        "openness": 0.20,
-        "conscientiousness": 0.10,
+        "openness": 0.2,
+        "conscientiousness": 0.1,
         "extraversion": 0.05,
         "agreeableness": 0.15,
         "neuroticism": -0.05,
-        "curiosity": 0.20,
-        "routine_adherence": 0.10,
+        "curiosity": 0.2,
+        "routine_adherence": 0.1,
         "risk_tolerance": -0.05
       },
       "digital_bias": {
         "screen_hours_offset": -0.8,
         "feed_bias_preference": "local",
-        "primary_apps_bias": ["facebook", "nextdoor"]
+        "primary_apps_bias": [
+          "facebook",
+          "nextdoor"
+        ]
       },
-      "occupation_pool": ["retired_teacher", "retired_academic", "retired_public_servant", "part_time_artist", "volunteer_coordinator", "u3a_member"],
-      "interests_pool": ["gallery_lane_cove_studios", "lane_cove_theatre_company", "friends_lane_cove_np_bushcare", "u3a", "library_book_club", "cameraygal_festival", "sydney_community_services_meals"],
+      "occupation_pool": [
+        "retired_teacher",
+        "retired_academic",
+        "retired_public_servant",
+        "part_time_artist",
+        "volunteer_coordinator",
+        "u3a_member"
+      ],
+      "interests_pool": [
+        "gallery_lane_cove_studios",
+        "lane_cove_theatre_company",
+        "friends_lane_cove_np_bushcare",
+        "u3a",
+        "library_book_club",
+        "cameraygal_festival",
+        "sydney_community_services_meals"
+      ],
       "identity_text_template": "{name} 是一位 {age} 岁的 {occupation}，退休后把更多时间放在 Gallery Lane Cove 的陶艺课和 Friends of Lane Cove National Park 的周三除草小组。{personality_descriptor}。手机用得不多，但每周读完 In the Cove 的 newsletter，对 data centre 提案、Council 选举、Cameraygal Festival 都有自己的看法。",
       "plan_text_template_examples": [
         "周二 9 点去 Stringybark Creek bush regeneration，下午回 Gallery Lane Cove 上 ceramics 课。",
@@ -333,6 +571,314 @@
         "https://www.sydneycs.org/aged-care-services-with-sydney-community-services/"
       ],
       "uncertain": false
+    },
+    {
+      "archetype_id": "young_renter_commuter",
+      "label": "年轻 renter 通勤族",
+      "approx_pct": 0.18,
+      "match_criteria": {
+        "age_bracket_min": 18,
+        "age_bracket_max": 32,
+        "housing_tenure": "renter",
+        "work_mode": [
+          "commute",
+          "remote"
+        ],
+        "family_composition": [
+          "lone_person",
+          "couple_no_kids",
+          "group_household",
+          "couple_kids_under_15",
+          "couple_kids_15plus",
+          "other"
+        ]
+      },
+      "personality_bias": {
+        "openness": 0.15,
+        "conscientiousness": 0.05,
+        "extraversion": 0.1,
+        "agreeableness": 0.0,
+        "neuroticism": 0.05,
+        "curiosity": 0.15,
+        "routine_adherence": -0.1,
+        "risk_tolerance": 0.15
+      },
+      "digital_bias": {
+        "screen_hours_offset": 0.5,
+        "feed_bias_preference": "global",
+        "primary_apps_bias": [
+          "instagram",
+          "tiktok",
+          "linkedin"
+        ]
+      },
+      "occupation_pool": [
+        "junior_consultant",
+        "graphic_designer",
+        "marketing_associate",
+        "tech_support",
+        "junior_dev",
+        "trainee_lawyer"
+      ],
+      "interests_pool": [
+        "berry_cafe_brunch",
+        "epping_road_running",
+        "lane_cove_west_co_living",
+        "weekend_bondi",
+        "north_sydney_bars"
+      ],
+      "identity_text_template": "{name} 是一位 {age} 岁的 {occupation}，从 6 个月前搬到 Lane Cove 西边一栋 5 层公寓的合租里，每天早上挤 144 路 bus 去 St Leonards / North Sydney。{personality_descriptor}。下班后偶尔去 Plaza 那家 Berry Cafe 喝咖啡，但更常和合租的人 weekend 去 Bondi。",
+      "plan_text_template_examples": [
+        "今天 6:30 起床，去合租楼下健身房 30 分钟，再赶 7:45 那班 bus 到 St Leonards 上班。",
+        "下班 6 点回到 Lane Cove，先到 Plaza Coles 买点东西，晚上和室友在阳台喝啤酒看 NRL。",
+        "周六睡到 10 点，下午约 St Leonards 朋友去 Greenwood 逛 farmers market。"
+      ],
+      "source_urls": [
+        "https://www.transportnsw.info/routes/details/sydney-buses/144",
+        "https://abs.gov.au/census/find-census-data/quickstats/2021/SAL12275"
+      ],
+      "uncertain": true
+    },
+    {
+      "archetype_id": "mid_renter_family",
+      "label": "高密度公寓 renting family",
+      "approx_pct": 0.22,
+      "match_criteria": {
+        "age_bracket_min": 30,
+        "age_bracket_max": 50,
+        "housing_tenure": "renter",
+        "family_composition": [
+          "couple_kids_under_15",
+          "couple_kids_15plus",
+          "one_parent_family"
+        ],
+        "work_mode": [
+          "commute",
+          "remote",
+          "shift"
+        ]
+      },
+      "personality_bias": {
+        "openness": 0.05,
+        "conscientiousness": 0.1,
+        "extraversion": 0.05,
+        "agreeableness": 0.1,
+        "neuroticism": 0.1,
+        "curiosity": 0.0,
+        "routine_adherence": 0.15,
+        "risk_tolerance": -0.05
+      },
+      "digital_bias": {
+        "screen_hours_offset": 0.2,
+        "feed_bias_preference": "local",
+        "primary_apps_bias": [
+          "whatsapp",
+          "facebook",
+          "school_app"
+        ]
+      },
+      "occupation_pool": [
+        "nurse",
+        "primary_teacher",
+        "mid_career_engineer",
+        "accountant_mid",
+        "logistics_coordinator",
+        "sales_manager"
+      ],
+      "interests_pool": [
+        "lane_cove_public_school",
+        "longueville_park_playground",
+        "council_swimming",
+        "saturday_kid_soccer",
+        "epping_road_school_run"
+      ],
+      "identity_text_template": "{name} 是一位 {age} 岁的 {occupation}，和伴侣 + 2 个孩子在 Lane Cove 一栋新公寓 3 居室租住 4 年了，租金每年涨让人头疼但学区不舍得换。{personality_descriptor}。最忙的事是早 8:30 送两个娃到 Lane Cove West Public School，再赶去 St Leonards 上班。",
+      "plan_text_template_examples": [
+        "今天先送娃上学，再赶 9 点会议。傍晚接娃后去 Council 游泳池孩子游泳课。",
+        "周三晚上孩子在 Plaza 那边足球训练，我顺便去 Coles 采购。",
+        "周末和邻居家庭一起去 Longueville Park 烧烤。"
+      ],
+      "source_urls": [
+        "https://www.lanecove-public.schools.nsw.gov.au/",
+        "https://www.lanecovecouncil.nsw.gov.au/recreation/swimming"
+      ],
+      "uncertain": true
+    },
+    {
+      "archetype_id": "older_renter_downsizer",
+      "label": "老年 renter / 缩居者",
+      "approx_pct": 0.08,
+      "match_criteria": {
+        "age_bracket_min": 55,
+        "age_bracket_max": 80,
+        "housing_tenure": "renter",
+        "work_mode": [
+          "nonworking",
+          "shift",
+          "remote"
+        ],
+        "family_composition": [
+          "lone_person",
+          "couple_no_kids",
+          "couple_kids_15plus"
+        ]
+      },
+      "personality_bias": {
+        "openness": -0.05,
+        "conscientiousness": 0.1,
+        "extraversion": -0.05,
+        "agreeableness": 0.05,
+        "neuroticism": 0.05,
+        "curiosity": -0.05,
+        "routine_adherence": 0.15,
+        "risk_tolerance": -0.1
+      },
+      "digital_bias": {
+        "screen_hours_offset": -0.3,
+        "feed_bias_preference": "local",
+        "primary_apps_bias": [
+          "facebook",
+          "whatsapp_family"
+        ]
+      },
+      "occupation_pool": [
+        "retired_part_time_carer",
+        "casual_admin",
+        "downsized_retiree",
+        "house_sitter",
+        "library_volunteer"
+      ],
+      "interests_pool": [
+        "lane_cove_library_book_club",
+        "u3a",
+        "lane_cove_op_shop",
+        "morning_walks_landlord_park"
+      ],
+      "identity_text_template": "{name} 是一位 {age} 岁的 {occupation}，前几年卖了 Greenwich 的老房，现在在 Lane Cove 一个 2 居室公寓租住，靠养老金 + small jobs 度日。{personality_descriptor}。每周二在 Lane Cove Library 帮忙整理书目，能见到一些老熟人。",
+      "plan_text_template_examples": [
+        "早 7 点去 Landlord Park 散步，下午到 Library 当志愿者。",
+        "周三去 Plaza 跟老姐妹喝咖啡，再到 op shop 看看有没有便宜书。",
+        "晚上看新闻 + 给悉尼东郊女儿打电话。"
+      ],
+      "source_urls": [
+        "https://www.lanecovecouncil.nsw.gov.au/library"
+      ],
+      "uncertain": true
+    },
+    {
+      "archetype_id": "casual_shift_worker",
+      "label": "shift 班 / 临时工",
+      "approx_pct": 0.1,
+      "match_criteria": {
+        "age_bracket_min": 18,
+        "age_bracket_max": 60,
+        "work_mode": "shift",
+        "housing_tenure": [
+          "renter",
+          "owner_occupier",
+          "public_housing"
+        ],
+        "family_composition": [
+          "lone_person",
+          "couple_no_kids",
+          "couple_kids_under_15",
+          "couple_kids_15plus",
+          "one_parent_family",
+          "group_household",
+          "other"
+        ]
+      },
+      "personality_bias": {
+        "openness": 0.05,
+        "conscientiousness": 0.05,
+        "extraversion": 0.05,
+        "agreeableness": 0.05,
+        "neuroticism": 0.1,
+        "curiosity": 0.0,
+        "routine_adherence": -0.05,
+        "risk_tolerance": 0.0
+      },
+      "digital_bias": {
+        "screen_hours_offset": 0.1,
+        "feed_bias_preference": "global",
+        "primary_apps_bias": [
+          "whatsapp",
+          "tiktok"
+        ]
+      },
+      "occupation_pool": [
+        "rsl_kitchen_hand",
+        "uber_driver",
+        "aged_care_carer",
+        "cleaner",
+        "warehouse_picker",
+        "nurse_night_shift"
+      ],
+      "interests_pool": [
+        "rsl_bingo",
+        "afternoon_park_walks",
+        "shift_swap_groups"
+      ],
+      "identity_text_template": "{name} 是一位 {age} 岁的 {occupation}，做 shift 班，一周内白天和夜班轮换。{personality_descriptor}。早上不一定在家，下班时间也乱，常和 Lane Cove RSL 那帮同事在 11 点夜班结束后吃宵夜。",
+      "plan_text_template_examples": [
+        "今天上 14:00-22:00 班，下班和同事去 RSL 喝杯啤酒再回家。",
+        "明天 night shift 7am 才回，先睡到下午再处理家事。",
+        "周日 day off，带孩子去 Plaza 看场电影。"
+      ],
+      "source_urls": [
+        "https://www.lanecoversl.com.au/"
+      ],
+      "uncertain": true
+    },
+    {
+      "archetype_id": "everyday_adult",
+      "label": "普通 Lane Cove 居民（catch-all）",
+      "approx_pct": 0.3,
+      "match_criteria": {
+        "age_bracket_min": 18,
+        "age_bracket_max": 120
+      },
+      "personality_bias": {
+        "openness": 0.0,
+        "conscientiousness": 0.0,
+        "extraversion": 0.0,
+        "agreeableness": 0.0,
+        "neuroticism": 0.0,
+        "curiosity": 0.0,
+        "routine_adherence": 0.0,
+        "risk_tolerance": 0.0
+      },
+      "digital_bias": {
+        "screen_hours_offset": 0.0,
+        "feed_bias_preference": "mixed",
+        "primary_apps_bias": [
+          "whatsapp",
+          "instagram"
+        ]
+      },
+      "occupation_pool": [
+        "office_worker",
+        "store_assistant",
+        "tradie",
+        "admin_assistant",
+        "freelancer",
+        "consultant"
+      ],
+      "interests_pool": [
+        "lane_cove_plaza_shopping",
+        "weekend_hawkesbury",
+        "pub_quiz",
+        "epping_road_walks"
+      ],
+      "identity_text_template": "{name} 是一位 {age} 岁的 {occupation}，住在 Lane Cove。{personality_descriptor}。日常生活在 Lane Cove Plaza、St Leonards 和家之间往返，没有特别戏剧化的故事。",
+      "plan_text_template_examples": [
+        "今天上班，下班路上去 Plaza 买菜回家。",
+        "周末睡到自然醒，下午带家人去 Longueville Park 散步。",
+        "晚上和邻居在公寓楼下聊几句天气。"
+      ],
+      "source_urls": [],
+      "uncertain": true,
+      "is_fallback": true
     }
   ]
 }

@@ -279,3 +279,83 @@ class TestNoLifePatternBackwardCompat:
         plan = build_scripted_plan(profile, _DESTINATIONS, "2026-05-04",
                                    random.Random(0))
         assert plan.steps  # should still produce a plan
+
+
+class TestPoolsPath:
+
+    def _get_atlas_and_pools(self):
+        import os
+        if not os.path.exists("data/lanecove_atlas.json"):
+            import pytest
+            pytest.skip("Lane Cove atlas fixture not available")
+        from synthetic_socio_wind_tunnel import Atlas, build_location_pools
+        atlas = Atlas.from_json("data/lanecove_atlas.json")
+        pools = build_location_pools(
+            atlas, home_count=40, work_count=20, poi_count=30,
+            rng=random.Random(42),
+        )
+        return atlas, pools
+
+    def test_pools_path_no_deprecation_warning(self):
+        import warnings
+        atlas, pools = self._get_atlas_and_pools()
+        profile = _profile("commute",
+                           home_location=pools.home_pool[0],
+                           workplace=pools.work_pool[0])
+        with warnings.catch_warnings(record=True) as warned:
+            warnings.simplefilter("always")
+            plan = build_scripted_plan(
+                profile, pools=pools, date="2026-04-27",
+                rng=random.Random(0),
+            )
+        assert plan.steps
+        deprecation = [w for w in warned if issubclass(w.category, DeprecationWarning)]
+        assert not deprecation, "pools-path should NOT emit DeprecationWarning"
+
+    def test_pools_path_errand_destination_in_poi_pool(self):
+        atlas, pools = self._get_atlas_and_pools()
+        profile = _profile("commute",
+                           home_location=pools.home_pool[0],
+                           workplace=pools.work_pool[0])
+        plan = build_scripted_plan(
+            profile, pools=pools, date="2026-04-27",
+            rng=random.Random(0),
+        )
+        errand_destinations = [
+            s.destination for s in plan.steps if s.reason == "errand"
+        ]
+        for dest in errand_destinations:
+            assert dest in pools.poi_pool, (
+                f"errand destination {dest} not in poi_pool"
+            )
+
+    def test_pools_path_commute_uses_profile_workplace(self):
+        atlas, pools = self._get_atlas_and_pools()
+        profile = _profile("commute",
+                           home_location=pools.home_pool[0],
+                           workplace=pools.work_pool[0])
+        plan = build_scripted_plan(
+            profile, pools=pools, date="2026-04-27",
+            rng=random.Random(0),
+        )
+        commute_destinations = [
+            s.destination for s in plan.steps if s.reason == "commute"
+        ]
+        non_home_commutes = [d for d in commute_destinations
+                             if d != profile.home_location]
+        assert non_home_commutes, "must have at least one commute to workplace"
+        for d in non_home_commutes:
+            assert d == profile.workplace, (
+                f"commute destination {d} != profile.workplace "
+                f"{profile.workplace}"
+            )
+
+    def test_deprecated_destinations_path_emits_warning(self):
+        import warnings
+        profile = _profile("commute")
+        with warnings.catch_warnings(record=True) as warned:
+            warnings.simplefilter("always")
+            build_scripted_plan(profile, _DESTINATIONS, "2026-05-04",
+                                random.Random(0))
+        deprecation = [w for w in warned if issubclass(w.category, DeprecationWarning)]
+        assert deprecation, "destinations-path must emit DeprecationWarning"

@@ -24,6 +24,12 @@ from .profile import (
     LifePattern,
     WorkMode,
 )
+from .household import HouseholdRegistry
+from .location_pools import (
+    LocationPoolError,
+    LocationPools,
+    build_location_pools,
+)
 from .scripted_plan import build_scripted_plan
 from .planner import DailyPlan, LLMClient, PlanAction, PlanStep, Planner, SocialIntent
 from .population import (
@@ -44,12 +50,15 @@ __all__ = [
     "ExamineIntent",
     "Gender",
     "Household",
+    "HouseholdRegistry",
     "HousingTenure",
     "IncomeTier",
     "Intent",
     "LANE_COVE_PROFILE",
     "LifePattern",
     "LLMClient",
+    "LocationPoolError",
+    "LocationPools",
     "LockIntent",
     "MoveIntent",
     "NearbyAgent",
@@ -67,6 +76,7 @@ __all__ = [
     "UnlockIntent",
     "WaitIntent",
     "WorkMode",
+    "build_location_pools",
     "build_scripted_plan",
     "sample_population",
 ]

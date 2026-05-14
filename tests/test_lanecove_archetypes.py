@@ -77,12 +77,16 @@ def _profile(**overrides) -> AgentProfile:
 class TestLoad:
 
     def test_load_default_archetypes(self):
-        """The default lane cove archetypes file loads 7 records."""
+        """The default lane cove archetypes file loads 12 records (post B1 expansion 2026-05-10)."""
         archs = load_archetypes()
-        assert len(archs) == 7
+        assert len(archs) == 12
         ids = {a.archetype_id for a in archs}
         assert "longtime_owner_occupier" in ids
         assert "primary_carer_parent" in ids
+        # B1 additions
+        assert "young_renter_commuter" in ids
+        assert "mid_renter_family" in ids
+        assert "everyday_adult" in ids
 
     def test_load_explicit_path(self, tmp_path: Path):
         payload = {
@@ -212,9 +216,9 @@ class TestMatching:
         matched = sum(
             1 for p in profiles if match_archetype(p, archs) is not None
         )
-        # Expect 20-50% match rate for full LANE_COVE distribution
-        # (rest are kids / edge ages)
-        assert 15 <= matched <= 70, f"matched={matched} out of expected band"
+        # Post B1 expansion (2026-05-10): with 12 archetypes incl. everyday_adult
+        # catch-all, ≥ 70% adults match (residuals are kids).
+        assert matched >= 50, f"matched={matched} too low post-B1 expansion"
 
 
 # ---------------------------------------------------------------------------

@@ -14,9 +14,7 @@ paired mirror"真正能被 `MultiDayRunner` 执行。
 施加干预。每条 variant 绑定一个 rival hypothesis（H_info / H_pull /
 H_meaning / H_structure），并承诺**零 LLM 调用**——feed 内容由 template +
 seed-bound RNG 产生，保证 reproducibility。
-
 ## Requirements
-
 ### Requirement: Variant 抽象基类
 
 `synthetic_socio_wind_tunnel/policy_hack/base.py` SHALL 定义 `Variant`
@@ -44,7 +42,6 @@ seed-bound RNG 产生，保证 reproducibility。
   `theoretical_lineage` / `success_criterion` / `failure_criterion` /
   `chain_position` / `is_mirror`；JSON-serializable
 
-
 ### Requirement: PhaseController 三段切换
 
 `PhaseController` SHALL 是 Pydantic frozen model，接收 `baseline_days` /
@@ -65,7 +62,6 @@ seed-bound RNG 产生，保证 reproducibility。
 - **WHEN** `PhaseController(baseline_days=1, intervention_days=1, post_days=1)`
 - **THEN** day 0 SHALL phase="baseline"；day 1 SHALL phase="intervention"；
   day 2 SHALL phase="post"
-
 
 ### Requirement: VariantRunnerAdapter 挂接 MultiDayRunner
 
@@ -100,7 +96,6 @@ seed-bound RNG 产生，保证 reproducibility。
 - **THEN** 返回的 list 为 `variant.apply_population(initial_profiles, rng)`
   的结果
 
-
 ### Requirement: PushTemplate 数据模型
 
 `synthetic_socio_wind_tunnel/policy_hack/personalizer.py` SHALL 定义 frozen Pydantic `PushTemplate`：
@@ -133,7 +128,6 @@ base_salience: float                         # ∈ [0, 1]
 
 - **WHEN** 持有实例尝试 `template.template_id = "x"`
 - **THEN** 应抛 `FrozenInstanceError` 或 Pydantic ValidationError
-
 
 ### Requirement: PushPersonalizer 服务
 
@@ -189,7 +183,6 @@ personalize(template: PushTemplate, profile: AgentProfile, *,
   调用 personalize(..., location="cafe_main")
 - **THEN** FeedItem.content SHALL 含 "cafe_main"，不含 "{location}"
 
-
 ### Requirement: PushTemplate 预设池
 
 `synthetic_socio_wind_tunnel/policy_hack/templates.py` SHALL 提供 5-8 个预设
@@ -212,7 +205,6 @@ PushTemplate 实例，覆盖典型 hyperlocal 场景：
 
 - **WHEN** 遍历 PUSH_TEMPLATES
 - **THEN** 每个 SHALL 是合法 PushTemplate（含 default 变体、非空 target_audience_tags）
-
 
 ### Requirement: HyperlocalPushVariant (A — H_info)
 
@@ -272,22 +264,31 @@ target_location。
 - **WHEN** 1 天 inject 给 5 agents 共 5 条 personalized FeedItem
 - **THEN** 5 条 FeedItem 的 `topic_id` 字段 SHALL 全相同
 
-
 ### Requirement: GlobalDistractionVariant (A' — paired mirror)
 
-`GlobalDistractionVariant` SHALL 对应 A 的 paired mirror：每日向同一组
-target agents 推送大量 global-news 类 feed_item，content 与 hyperlocal
-无关。
+`GlobalDistractionVariant` SHALL 对应 H_info 假设的镜像操作：在 intervention
+phase 每日饱和推送 global-news 内容（默认 20 条/day）；content 与 hyperlocal
+无关；hyperlocal_radius=None；source="global_news"。
+
+`apply_day_start(ctx)` SHALL：
+- 在 intervention phase 内每日构造 `daily_push_count` 条 FeedItem，调
+  `ctx.attention_service.inject_feed_item(item, target_ids)`
+
+**Stub 操作语义**（fix-variant-measurement-and-friction，2026-05-10）：当 `--use-real-llm` 关闭走 StubReplanLLM 时，本 variant
+SHALL 让 stub 返回 `_plan_toward(distraction_destination)` 而不是空 plan
+（参见 `suite-wiring` spec 的 StubReplanLLM 修订）。否则 gd 在 stub 路径下
+是 operationally inert，不能被作为 paired mirror 使用。
 
 字段：
 - `name = "global_distraction"`, `hypothesis = "H_info"`,
-  `is_mirror = True`, `paired_variant = "hyperlocal_push"`
-- `content_templates: tuple[str, ...]`（默认全球新闻 3-5 模板）
-- `daily_push_count: int = 20`（饱和推送）
-- `hyperlocal_radius_m: None = None`（非 hyperlocal）
+  `chain_position = "algorithmic-input"`, `is_mirror = True`,
+  `paired_variant = "hyperlocal_push"`
+- `target_agent_ids: tuple[str, ...] | None`（默认 None → 选前一半 by agent_id 字典序）
+- `content_templates: tuple[str, ...]`（默认 10 条 global news）
+- `daily_push_count: int = 20`
+- `urgency: float = 0.4`
 
-`apply_day_start(ctx)` SHALL 在 intervention 每日注入 `daily_push_count`
-条 feed_item；每条 category="news_global"；source="platform"。
+`metadata_dict()` SHALL 在返回 dict 中包含 `target_agent_ids`（resolved 后的实际集合），让 metric 工厂能据此计算 protag-only `trajectory_deviation_m`。
 
 #### Scenario: 每日推送 20 条（饱和）
 - **WHEN** 跑 14 天 GlobalDistractionVariant
@@ -299,24 +300,53 @@ target agents 推送大量 global-news 类 feed_item，content 与 hyperlocal
   字典序）
 - **THEN** A 的 target_ids SHALL == A' 的 target_ids
 
+#### Scenario: gd 注入 feed item 触发 replan
+- **WHEN** intervention day 1；50 个 target agent；daily_push_count=20
+- **THEN** 当日 attention_service.inject_feed_item SHALL 被调 ≥ 20 次；
+  StubReplanLLM(variant_name="global_distraction") 路径下，replan_count SHALL > 0
+
+#### Scenario: gd 与 baseline 在 encounter 上不再 byte-identical
+- **WHEN** 1 seed × 14 day × 100 agent，gd vs baseline；StubReplanLLM；
+- **THEN** gd 的 encounter_stats.total SHALL ≠ baseline 的 encounter_stats.total
+  （不再 byte-identical；具体方向 = "gd 把 target agent 拉向 distraction_destination
+   → encounter 模式不同"）
+
+#### Scenario: metadata_dict 输出含 target_agent_ids
+- **WHEN** `gd.metadata_dict()`；`gd._resolve_target_ids(runtimes)` 已计算
+- **THEN** 返回 dict SHALL 含 `target_agent_ids` 键，值是 tuple[str, ...]
 
 ### Requirement: PhoneFrictionVariant (B — H_pull)
 
 `PhoneFrictionVariant` SHALL 对应 H_pull 假设：在 intervention phase 开始
 时将每个 agent 的 `DigitalProfile.screen_time_hour` 乘以 `friction_multiplier`
-（默认 0.5）；post phase 开始时恢复。
+（默认 0.5）；post phase 开始时恢复。同时 SHALL 通过 `attention_service.inject_feed_item`
+注入 `friction_nudge` 类型的 trigger event，让 friction 通过
+attention → memory → replan 链路真正产生 plan-level 行为差异。
+
+**操作语义升级原因**（fix-variant-measurement-and-friction，2026-05-10）：仅修改 `profile.digital` 在当前 pipeline 下没有 movement
+下游 reader（参见 `docs/audit/2026-05-09-bug-hunt.md` B3），导致 pf 与 baseline
+全字段 byte-identical。注入 trigger event 让 friction 走 hp 同款的 attention →
+replan 因果链路，保持架构一致。
 
 字段：
 - `name = "phone_friction"`, `hypothesis = "H_pull"`,
   `chain_position = "attention-main"`
 - `friction_multiplier: float = 0.5`（范围 [0.1, 1.0]）
+- `nudge_content_templates: tuple[str, ...]` —— 默认 ≥ 3 条 friction nudge 文案
+  （如 "今天注意力被屏幕拽走了——出去走走？" / "放下手机，看看附近"）
+- `nudge_target_ratio: float = 1.0`（[0.1, 1.0]，默认全员；调试可降）
+- `primary_metric_name: str = "encounter.per_day_median"`（contest.json 用此键作 primary）
 
-`apply_day_start(ctx)` SHALL：
-- 第一个 intervention day（phase 切换点）：缓存每 agent 原 digital profile；
-  用 `profile.model_copy(update={"digital": DigitalProfile(...)})` 构造
-  新 profile 替换 `agent.runtime.profile`
+`apply_intervention_start(ctx)` SHALL：
+- 缓存每 agent 原 digital profile；用 `profile.model_copy(update={"digital": DigitalProfile(...)})` 构造新 profile 替换 `agent.runtime.profile`
+
+`apply_day_start(ctx)` SHALL（仅在 intervention phase）：
+- 选 `nudge_target_ratio * len(runtimes)` 个 agent（seed-bound 选取，agent_id 字典序）
+- 注入 1 条 FeedItem：`source="neighbourhood"`（FeedSource Literal 复用，最贴近"附近邻居"语义）, `category="self_reflection"`, `origin_hack_id="phone_friction"`, `urgency=0.5`, `content` 从 `nudge_content_templates` 中随机选
+- attention_service 投递后会被 memory.process_tick 检测，触发 planner.replan
+
+`apply_intervention_end(ctx)` SHALL：
 - 第一个 post day：恢复缓存的原 profile
-- 中间天：no-op
 
 #### Scenario: intervention 第一天应用乘法
 - **WHEN** Variant friction_multiplier=0.5；agent 原 screen_time_hour=4.0
@@ -325,9 +355,21 @@ target agents 推送大量 global-news 类 feed_item，content 与 hyperlocal
 
 #### Scenario: post phase 恢复
 - **WHEN** 进入 post phase 第一天
-- **THEN** agent.profile.digital.screen_time_hour SHALL 恢复为 intervention
-  前的 4.0
+- **THEN** agent.profile.digital.screen_time_hour SHALL 恢复为 intervention 前的 4.0
 
+#### Scenario: intervention 期 friction nudge 注入触发 replan
+- **WHEN** intervention day 1，PhoneFrictionVariant 实例 + 100 agent + StubReplanLLM(variant_name="phone_friction")
+- **THEN** attention_service.inject_feed_item SHALL 被调用 ≥ 1 次；
+  当日 replan_count SHALL > 0；
+  与 baseline 同 seed 同日的 plan 序列在至少一个 agent 上 SHALL 不相等
+
+#### Scenario: nudge_target_ratio 控制注入比例
+- **WHEN** PhoneFrictionVariant(nudge_target_ratio=0.3)；100 agent；intervention day 1
+- **THEN** 当日恰好 30 个 agent 的 trigger event SHALL 被检测到；其余 70 个 agent SHALL 无 friction trigger
+
+#### Scenario: pf primary metric 不再是 phone_feed_proxy
+- **WHEN** PhoneFrictionVariant.primary_metric_name 字段读取
+- **THEN** SHALL == "encounter.per_day_median"；contest.json 生成器 SHALL 据此选 primary metric
 
 ### Requirement: SharedAnchorVariant (C — H_meaning)
 
@@ -363,7 +405,6 @@ target agents 推送大量 global-news 类 feed_item，content 与 hyperlocal
 - **WHEN** PhaseController(1,1,1) + SharedAnchorVariant 跑 3 天
 - **THEN** intervention day (day 1) SHALL 注入 1 条 shared task
 
-
 ### Requirement: CatalystSeedingVariant (D — H_structure)
 
 `CatalystSeedingVariant` SHALL 对应 H_structure 假设：在 run 启动前
@@ -395,7 +436,6 @@ target agents 推送大量 global-news 类 feed_item，content 与 hyperlocal
 - **THEN** 所有 agent 的 age / occupation / home_location / housing_tenure
   字段 SHALL 与输入相同
 
-
 ### Requirement: CLI dispatch via VARIANTS registry
 
 `policy_hack` 模块 SHALL 暴露 `VARIANTS: dict[str, type[Variant]]` registry；
@@ -412,7 +452,6 @@ target agents 推送大量 global-news 类 feed_item，content 与 hyperlocal
 - **THEN** 跑 orchestrator + multi-day-runner SHALL 无 variant 参与；行为
   与 multi-day-simulation archive 时一致
 
-
 ### Requirement: 审计翻绿
 
 `synthetic_socio_wind_tunnel.policy_hack` 模块 SHALL importable；
@@ -421,7 +460,6 @@ target agents 推送大量 global-news 类 feed_item，content 与 hyperlocal
 #### Scenario: policy-hack audit
 - **WHEN** 运行 `make fitness-audit`
 - **THEN** `phase2-gaps.policy-hack` AuditResult 的 `status` SHALL 为 `pass`
-
 
 ### Requirement: MultiDayResult.metadata 携带 variant 信息
 
@@ -438,7 +476,6 @@ target agents 推送大量 global-news 类 feed_item，content 与 hyperlocal
 - **THEN** 产出的 dict 在 `metadata` key 下 SHALL 含 `variant_metadata` /
   `phase_config` 两个子键
 
-
 ### Requirement: Variant 不触发 LLM 调用
 
 4 条 primary variant + 1 mirror 的所有 apply_* 方法 SHALL **不**调用任何
@@ -448,3 +485,29 @@ LLM；feed 内容由 template + seed-bound RNG 产生。
 - **WHEN** 跑 `tests/test_variant_hyperlocal_push.py` 等用 variant 实际
   执行的测试，不 mock LLM
 - **THEN** 测试 SHALL 全部通过（证明 variant 不依赖 LLM）
+
+### Requirement: Variant push count SHALL be equalized for paired-mirror
+
+Variant push counts SHALL default to identical values across hp and gd.
+To isolate "where pushes point" from "how many pushes happen",
+`HyperlocalPushVariant.daily_push_count` and
+`GlobalDistractionVariant.daily_push_count` SHALL default to the SAME
+value (5). Previously hp had 1/day and gd had 20/day — confounding
+direction (local vs distant) with frequency.
+
+`HyperlocalPushVariant.hyperlocal_radius_m` SHALL default to 1000.0 m
+(aligned with CLAUDE.md canonical hyperlocal radius), not the legacy 500m.
+
+#### Scenario: hp and gd default to same push count
+- **WHEN** `HyperlocalPushVariant()` and `GlobalDistractionVariant()` are
+  constructed with defaults
+- **THEN** both SHALL have `daily_push_count == 5`
+
+#### Scenario: hp radius aligned with thesis canonical value
+- **WHEN** `HyperlocalPushVariant()` is constructed
+- **THEN** `instance.hyperlocal_radius_m` SHALL == 1000.0
+
+#### Scenario: explicit override preserved
+- **WHEN** `GlobalDistractionVariant(daily_push_count=10)` is constructed
+- **THEN** `instance.daily_push_count` SHALL == 10 (override beats default)
+

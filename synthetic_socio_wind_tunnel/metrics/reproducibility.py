@@ -57,12 +57,23 @@ def _hash_variants(variant_names: list[str]) -> dict[str, str]:
 
 
 def _resolve_model_version(use_real_llm: bool, provider: str | None = None) -> str:
+    """Pick a human-readable model_version string.
+
+    fix-encounter-detection-and-observability (B10): provider takes precedence
+    over use_real_llm — when ai-town stack runs Gemini handlers, the planner
+    may still be stub but the run's effective LLM was Gemini.
+    """
+    if provider == "anthropic":
+        return "anthropic:haiku-4-5"
+    if provider == "gemini":
+        return "gemini:flash-preview"
+    if provider == "deepseek":
+        return "deepseek:v4-pro+v4-flash"
+    if provider == "stub":
+        return "stub:v1"
+    # No explicit provider → fall back to use_real_llm flag
     if not use_real_llm:
         return "stub:v1"
-    if provider == "anthropic":
-        return "claude-haiku-4-5-20251001"
-    if provider == "gemini":
-        return "gemini-3-flash-preview"
     return f"real_llm:{provider or 'unknown'}"
 
 
@@ -98,6 +109,7 @@ def compute_reproducibility_lock(
     return {
         "seed_pool": list(seed_pool),
         "model_version": _resolve_model_version(use_real_llm, provider),
+        "provider": provider or ("anthropic" if use_real_llm else "stub"),
         "prompt_template_hash": _hash_prompt_template(
             use_real_llm,
             variant_name=variant_names[0] if variant_names else None,

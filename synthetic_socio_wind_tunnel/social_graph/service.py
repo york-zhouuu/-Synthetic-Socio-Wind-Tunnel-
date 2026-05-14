@@ -29,6 +29,7 @@ class SocialGraphService:
         "_ties",
         "_seen_in_tick",
         "_agent_to_pairs",
+        "_physical_only_count",
     )
 
     def __init__(self, *, K: int = 10) -> None:
@@ -42,6 +43,9 @@ class SocialGraphService:
         # adjacency index: agent_id -> set of pair-keys involving them.
         # O(1) ties_for / familiar_with on top of dict.
         self._agent_to_pairs: dict[str, set[tuple[str, str]]] = {}
+        # add-attention-induced-nearby-blindness: track physical-only colocations
+        # (encounters that didn't pass noticing gate). Not Tie-bearing.
+        self._physical_only_count: dict[tuple[str, str], int] = {}
 
     @property
     def K(self) -> int:
@@ -49,8 +53,46 @@ class SocialGraphService:
 
     # ---- 写入 ----
 
+    def record_noticed_encounter(
+        self, agent_a: str, agent_b: str, tick: int, day_index: int = 0,
+    ) -> Tie:
+        """Accumulate or create a tie for the (a, b) pair after a noticed
+        encounter (attention gate already passed by caller).
+
+        add-attention-induced-nearby-blindness: thesis-aligned weak-tie source.
+        Previously every co-location called this; now only attention-gated
+        co-locations do.
+        """
+        return self._record_encounter_internal(
+            agent_a, agent_b, tick, day_index, grow_strength=True,
+        )
+
+    def record_physical_encounter(
+        self, agent_a: str, agent_b: str, tick: int, day_index: int = 0,
+    ) -> Tie:
+        """Record geographic co-location without growing tie strength.
+
+        Useful for tracking colocation density independently of noticed
+        social bonding. No-op when the pair already has a noticed tie
+        (avoid double-counting in encounter_count).
+        """
+        return self._record_encounter_internal(
+            agent_a, agent_b, tick, day_index, grow_strength=False,
+        )
+
     def record_encounter(
         self, agent_a: str, agent_b: str, tick: int, day_index: int = 0,
+    ) -> Tie:
+        """Legacy alias: behaves like record_noticed_encounter.
+
+        Preserves prior test expectations. New callers SHALL use the explicit
+        physical/noticed variants.
+        """
+        return self.record_noticed_encounter(agent_a, agent_b, tick, day_index)
+
+    def _record_encounter_internal(
+        self, agent_a: str, agent_b: str, tick: int, day_index: int,
+        grow_strength: bool,
     ) -> Tie:
         """Accumulate or create a tie for the (a, b) pair at this tick.
 
@@ -63,11 +105,39 @@ class SocialGraphService:
         seen_this_tick = self._seen_in_tick.setdefault(tick, set())
         if key in seen_this_tick:
             # already counted in this tick — return current state without changes
-            return self._ties[key]
+            existing = self._ties.get(key)
+            if existing is not None:
+                return existing
+            # physical-only colocation with no tie yet — return synthetic
+            return Tie(
+                agent_a=key[0], agent_b=key[1],
+                encounter_count=1, strength=0.0,
+                first_seen_tick=tick, last_seen_tick=tick,
+                first_seen_day=day_index,
+            )
         seen_this_tick.add(key)
 
         existing = self._ties.get(key)
         if existing is None:
+            if not grow_strength:
+                # Physical-only encounter with no prior noticed tie: don't
+                # create a Tie (encounter_count starts at 1 in the model).
+                # Record physical-count in a side bookkeeping dict so
+                # downstream metrics can read it.
+                self._physical_only_count[key] = (
+                    self._physical_only_count.get(key, 0) + 1
+                )
+                # Return a sentinel zero-strength Tie not stored in the
+                # main _ties map (callers may inspect strength but won't
+                # find this in weak_ties listing).
+                return Tie(
+                    agent_a=key[0], agent_b=key[1],
+                    encounter_count=1,  # synthetic to satisfy invariant
+                    strength=0.0,  # explicit zero — physical only
+                    first_seen_tick=tick,
+                    last_seen_tick=tick,
+                    first_seen_day=day_index,
+                )
             tie = Tie(
                 agent_a=key[0], agent_b=key[1],
                 encounter_count=1,
@@ -80,19 +150,71 @@ class SocialGraphService:
             self._agent_to_pairs.setdefault(key[0], set()).add(key)
             self._agent_to_pairs.setdefault(key[1], set()).add(key)
         else:
-            new_count = existing.encounter_count + 1
-            tie = replace(
-                existing,
-                encounter_count=new_count,
-                strength=self._strength(new_count),
-                last_seen_tick=tick,
-            )
+            new_count = existing.encounter_count + (1 if grow_strength else 0)
+            if not grow_strength:
+                # Physical encounter on top of existing noticed tie: just
+                # bump last_seen_tick, don't change strength
+                tie = replace(existing, last_seen_tick=tick)
+                self._physical_only_count[key] = (
+                    self._physical_only_count.get(key, 0) + 1
+                )
+            else:
+                tie = replace(
+                    existing,
+                    encounter_count=new_count,
+                    strength=self._strength(new_count),
+                    last_seen_tick=tick,
+                )
             self._ties[key] = tie
         return tie
 
+    @property
+    def total_physical_only_encounters(self) -> int:
+        """Sum of all physical co-locations that didn't pass the noticing gate."""
+        return sum(self._physical_only_count.values())
+
     def _strength(self, encounter_count: int) -> float:
         """Asymptotic strength formula: N / (N + K)."""
+        if encounter_count <= 0:
+            return 0.0
         return encounter_count / (encounter_count + self._K)
+
+    # A4 fix: tie decay half-life. 30 days = real-world weak-tie attrition rate
+    # (rough estimate; "If you haven't seen them in a month, the relationship
+    # weakens"). Used by effective_strength() at read time.
+    _TIE_DECAY_HALFLIFE_DAYS: float = 30.0
+    _TICKS_PER_DAY: int = 288
+
+    def effective_strength(self, tie, now_tick: int) -> float:
+        """Strength accounting for time since last_seen — exponential decay.
+
+        A tie last reinforced 30 days ago retains 50% of its raw strength.
+        Raw tie.strength is preserved (immutable Tie); decay applied here.
+        """
+        days_since = max(
+            0.0, (now_tick - tie.last_seen_tick) / self._TICKS_PER_DAY,
+        )
+        if days_since == 0:
+            return tie.strength
+        import math as _math
+        decay = _math.exp(-_math.log(2) * days_since / self._TIE_DECAY_HALFLIFE_DAYS)
+        return tie.strength * decay
+
+    def weak_ties_decayed(self, agent_id: str, *, now_tick: int) -> list:
+        """A4 fix: weak ties using time-decayed strength."""
+        out = []
+        for t in self.ties_for(agent_id):
+            s = self.effective_strength(t, now_tick)
+            if WEAK_TIE_THRESHOLD <= s < STRONG_TIE_THRESHOLD:
+                out.append(t)
+        return out
+
+    def strong_ties_decayed(self, agent_id: str, *, now_tick: int) -> list:
+        """A4 fix: strong ties using time-decayed strength."""
+        return [
+            t for t in self.ties_for(agent_id)
+            if self.effective_strength(t, now_tick) >= STRONG_TIE_THRESHOLD
+        ]
 
     def preload_ties(self, prior_records, *, day_index: int = -1) -> int:
         """Bulk-create Tie records from PriorTieRecord items (lane cove

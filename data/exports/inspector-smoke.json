@@ -1,0 +1,1538 @@
+{
+  "version": 1,
+  "generated_at": "2026-05-08T11:24:26.844515+00:00",
+  "source_sha": "a67d96493c2e091393d6f5df95e06d9b16336747",
+  "scope": {
+    "variant": "hyperlocal_push",
+    "seed": 42,
+    "n_agents_total": 30,
+    "n_agents_inspected": 4,
+    "num_days": 3,
+    "start_date": "2026-04-22",
+    "phase_config": {
+      "baseline_days": 1,
+      "intervention_days": 1,
+      "post_days": 1
+    },
+    "target_location": "kenneth_street_seg_2_3",
+    "shared_location": "stringybark_reserve"
+  },
+  "agents": [
+    {
+      "agent_id": "a_42_0000",
+      "name": "agent_0",
+      "age": 45,
+      "occupation": "teacher",
+      "household": "family_with_kids",
+      "home_location": "dunois_street_seg_1_1",
+      "is_protagonist": false,
+      "base_model": "claude-haiku-4-5-20251001",
+      "gender": "female",
+      "work_mode": "commute",
+      "vehicles_at_dwelling": "1",
+      "family_composition": "couple_kids_under_15",
+      "unpaid_child_care_hours": "none",
+      "personality": {
+        "extraversion": 0.614,
+        "openness": 0.656,
+        "conscientiousness": 0.277,
+        "agreeableness": 0.197,
+        "neuroticism": 0.0,
+        "curiosity": 0.379,
+        "routine_adherence": 0.317,
+        "risk_tolerance": 0.675
+      },
+      "digital": {
+        "daily_screen_hours": 4.18,
+        "notification_responsiveness": 0.38
+      },
+      "life_pattern": {
+        "preferred_cafe": "william_edward_street_seg_1_4",
+        "preferred_leisure_park": "road_3987_seg_3",
+        "preferred_errand_destination": "road_2312_seg_1",
+        "morning_commute_minute": 28,
+        "evening_return_minute": 25,
+        "weekend_outing_destination": "dunois_street_seg_3"
+      }
+    },
+    {
+      "agent_id": "a_42_0004",
+      "name": "agent_4",
+      "age": 18,
+      "occupation": "writer",
+      "household": "couple",
+      "home_location": "arabella_street_seg_4",
+      "is_protagonist": false,
+      "base_model": "claude-haiku-4-5-20251001",
+      "gender": "female",
+      "work_mode": "remote",
+      "vehicles_at_dwelling": "1",
+      "family_composition": "couple_no_kids",
+      "unpaid_child_care_hours": "15_29",
+      "personality": {
+        "extraversion": 0.848,
+        "openness": 0.771,
+        "conscientiousness": 0.048,
+        "agreeableness": 0.327,
+        "neuroticism": 0.616,
+        "curiosity": 0.699,
+        "routine_adherence": 0.546,
+        "risk_tolerance": 0.697
+      },
+      "digital": {
+        "daily_screen_hours": 0.0,
+        "notification_responsiveness": 0.26
+      },
+      "life_pattern": {
+        "preferred_cafe": "road_2312_seg_1",
+        "preferred_leisure_park": "road_4719_seg_1",
+        "preferred_errand_destination": "kenneth_street_seg_2_3",
+        "morning_commute_minute": 39,
+        "evening_return_minute": 28,
+        "weekend_outing_destination": "francis_street_seg_2_1"
+      }
+    },
+    {
+      "agent_id": "a_42_0006",
+      "name": "agent_6",
+      "age": 10,
+      "occupation": "office_worker",
+      "household": "family_with_kids",
+      "home_location": "road_4719_seg_1",
+      "is_protagonist": false,
+      "base_model": "claude-haiku-4-5-20251001",
+      "gender": "female",
+      "work_mode": "commute",
+      "vehicles_at_dwelling": "1",
+      "family_composition": "one_parent_family",
+      "unpaid_child_care_hours": "none",
+      "personality": {
+        "extraversion": 0.219,
+        "openness": 0.731,
+        "conscientiousness": 0.25,
+        "agreeableness": 0.673,
+        "neuroticism": 0.549,
+        "curiosity": 0.88,
+        "routine_adherence": 0.909,
+        "risk_tolerance": 0.614
+      },
+      "digital": {
+        "daily_screen_hours": 4.23,
+        "notification_responsiveness": 0.47
+      },
+      "life_pattern": {
+        "preferred_cafe": "road_3987_seg_3",
+        "preferred_leisure_park": "kenneth_street_seg_2_3",
+        "preferred_errand_destination": "road_4717_seg_1",
+        "morning_commute_minute": 41,
+        "evening_return_minute": 57,
+        "weekend_outing_destination": "cowper_street_seg_1_2"
+      }
+    },
+    {
+      "agent_id": "a_42_0026",
+      "name": "agent_26",
+      "age": 60,
+      "occupation": "analyst",
+      "household": "family_with_kids",
+      "home_location": "cowper_street_seg_1_2",
+      "is_protagonist": false,
+      "base_model": "claude-haiku-4-5-20251001",
+      "gender": "female",
+      "work_mode": "remote",
+      "vehicles_at_dwelling": "2",
+      "family_composition": "couple_kids_under_15",
+      "unpaid_child_care_hours": "none",
+      "personality": {
+        "extraversion": 0.654,
+        "openness": 0.463,
+        "conscientiousness": 0.343,
+        "agreeableness": 0.595,
+        "neuroticism": 0.644,
+        "curiosity": 0.285,
+        "routine_adherence": 0.925,
+        "risk_tolerance": 0.159
+      },
+      "digital": {
+        "daily_screen_hours": 2.69,
+        "notification_responsiveness": 0.46
+      },
+      "life_pattern": {
+        "preferred_cafe": "road_2312_seg_1",
+        "preferred_leisure_park": "arabella_street_seg_4",
+        "preferred_errand_destination": "arabella_street_seg_1_7",
+        "morning_commute_minute": 15,
+        "evening_return_minute": 26,
+        "weekend_outing_destination": "kenneth_street_seg_1_3"
+      }
+    }
+  ],
+  "routines": [
+    {
+      "agent_id": "a_42_0000",
+      "days": [
+        {
+          "date": "2026-04-22",
+          "weekday": "Wednesday",
+          "day_index": 0,
+          "steps": [
+            {
+              "time": "8:28",
+              "action": "move",
+              "destination": "road_4717_seg_1",
+              "activity": "commute to workplace",
+              "duration_min": 480,
+              "social_intent": "alone",
+              "reason": "commute"
+            },
+            {
+              "time": "15:00",
+              "action": "move",
+              "destination": "cowper_street_seg_1_2",
+              "activity": "school pickup for kids",
+              "duration_min": 30,
+              "social_intent": "open_to_chat",
+              "reason": "kids"
+            },
+            {
+              "time": "18:30",
+              "action": "stay",
+              "destination": "dunois_street_seg_1_1",
+              "activity": "family dinner",
+              "duration_min": 60,
+              "social_intent": "alone",
+              "reason": "family"
+            },
+            {
+              "time": "14:00",
+              "action": "move",
+              "destination": "road_4722_seg_1",
+              "activity": "errand",
+              "duration_min": 30,
+              "social_intent": "open_to_chat",
+              "reason": "errand"
+            },
+            {
+              "time": "17:25",
+              "action": "move",
+              "destination": "dunois_street_seg_1_1",
+              "activity": "commute home",
+              "duration_min": 20,
+              "social_intent": "alone",
+              "reason": "commute"
+            },
+            {
+              "time": "18:00",
+              "action": "move",
+              "destination": "william_edward_street_seg_1_4",
+              "activity": "leisure",
+              "duration_min": 60,
+              "social_intent": "open_to_chat",
+              "reason": "leisure"
+            },
+            {
+              "time": "21:30",
+              "action": "move",
+              "destination": "dunois_street_seg_1_1",
+              "activity": "rest at home",
+              "duration_min": 480,
+              "social_intent": "alone",
+              "reason": "end of day"
+            }
+          ]
+        },
+        {
+          "date": "2026-04-23",
+          "weekday": "Thursday",
+          "day_index": 1,
+          "steps": [
+            {
+              "time": "8:28",
+              "action": "move",
+              "destination": "arabella_street_seg_4",
+              "activity": "commute to workplace",
+              "duration_min": 480,
+              "social_intent": "alone",
+              "reason": "commute"
+            },
+            {
+              "time": "15:00",
+              "action": "move",
+              "destination": "francis_street_seg_2_1",
+              "activity": "school pickup for kids",
+              "duration_min": 30,
+              "social_intent": "open_to_chat",
+              "reason": "kids"
+            },
+            {
+              "time": "18:30",
+              "action": "stay",
+              "destination": "dunois_street_seg_1_1",
+              "activity": "family dinner",
+              "duration_min": 60,
+              "social_intent": "alone",
+              "reason": "family"
+            },
+            {
+              "time": "15:00",
+              "action": "move",
+              "destination": "road_3413_seg_2",
+              "activity": "errand",
+              "duration_min": 30,
+              "social_intent": "open_to_chat",
+              "reason": "errand"
+            },
+            {
+              "time": "17:25",
+              "action": "move",
+              "destination": "dunois_street_seg_1_1",
+              "activity": "commute home",
+              "duration_min": 20,
+              "social_intent": "alone",
+              "reason": "commute"
+            },
+            {
+              "time": "19:00",
+              "action": "move",
+              "destination": "road_4717_seg_1",
+              "activity": "leisure",
+              "duration_min": 60,
+              "social_intent": "open_to_chat",
+              "reason": "leisure"
+            },
+            {
+              "time": "21:30",
+              "action": "move",
+              "destination": "dunois_street_seg_1_1",
+              "activity": "rest at home",
+              "duration_min": 480,
+              "social_intent": "alone",
+              "reason": "end of day"
+            }
+          ]
+        },
+        {
+          "date": "2026-04-24",
+          "weekday": "Friday",
+          "day_index": 2,
+          "steps": [
+            {
+              "time": "8:28",
+              "action": "move",
+              "destination": "road_4719_seg_1",
+              "activity": "commute to workplace",
+              "duration_min": 480,
+              "social_intent": "alone",
+              "reason": "commute"
+            },
+            {
+              "time": "15:00",
+              "action": "move",
+              "destination": "kenneth_street_seg_2_3",
+              "activity": "school pickup for kids",
+              "duration_min": 30,
+              "social_intent": "open_to_chat",
+              "reason": "kids"
+            },
+            {
+              "time": "18:30",
+              "action": "stay",
+              "destination": "dunois_street_seg_1_1",
+              "activity": "family dinner",
+              "duration_min": 60,
+              "social_intent": "alone",
+              "reason": "family"
+            },
+            {
+              "time": "16:00",
+              "action": "move",
+              "destination": "road_4717_seg_1",
+              "activity": "errand",
+              "duration_min": 30,
+              "social_intent": "open_to_chat",
+              "reason": "errand"
+            },
+            {
+              "time": "17:25",
+              "action": "move",
+              "destination": "dunois_street_seg_1_1",
+              "activity": "commute home",
+              "duration_min": 20,
+              "social_intent": "alone",
+              "reason": "commute"
+            },
+            {
+              "time": "18:00",
+              "action": "move",
+              "destination": "road_5077_seg_1",
+              "activity": "leisure",
+              "duration_min": 60,
+              "social_intent": "open_to_chat",
+              "reason": "leisure"
+            },
+            {
+              "time": "21:30",
+              "action": "move",
+              "destination": "dunois_street_seg_1_1",
+              "activity": "rest at home",
+              "duration_min": 480,
+              "social_intent": "alone",
+              "reason": "end of day"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "agent_id": "a_42_0004",
+      "days": [
+        {
+          "date": "2026-04-22",
+          "weekday": "Wednesday",
+          "day_index": 0,
+          "steps": [
+            {
+              "time": "9:00",
+              "action": "stay",
+              "destination": "arabella_street_seg_4",
+              "activity": "remote work",
+              "duration_min": 180,
+              "social_intent": "alone",
+              "reason": "work"
+            },
+            {
+              "time": "11:00",
+              "action": "move",
+              "destination": "kenneth_street_seg_2_3",
+              "activity": "errand",
+              "duration_min": 45,
+              "social_intent": "open_to_chat",
+              "reason": "errand"
+            },
+            {
+              "time": "13:00",
+              "action": "move",
+              "destination": "arabella_street_seg_4",
+              "activity": "afternoon work block",
+              "duration_min": 180,
+              "social_intent": "alone",
+              "reason": "work"
+            },
+            {
+              "time": "11:00",
+              "action": "move",
+              "destination": "cowper_street_seg_1_2",
+              "activity": "leisure outing",
+              "duration_min": 60,
+              "social_intent": "open_to_chat",
+              "reason": "leisure"
+            },
+            {
+              "time": "21:30",
+              "action": "move",
+              "destination": "arabella_street_seg_4",
+              "activity": "rest at home",
+              "duration_min": 480,
+              "social_intent": "alone",
+              "reason": "end of day"
+            }
+          ]
+        },
+        {
+          "date": "2026-04-23",
+          "weekday": "Thursday",
+          "day_index": 1,
+          "steps": [
+            {
+              "time": "9:00",
+              "action": "stay",
+              "destination": "arabella_street_seg_4",
+              "activity": "remote work",
+              "duration_min": 180,
+              "social_intent": "alone",
+              "reason": "work"
+            },
+            {
+              "time": "14:00",
+              "action": "move",
+              "destination": "kenneth_street_seg_2_3",
+              "activity": "errand",
+              "duration_min": 45,
+              "social_intent": "open_to_chat",
+              "reason": "errand"
+            },
+            {
+              "time": "13:00",
+              "action": "move",
+              "destination": "arabella_street_seg_4",
+              "activity": "afternoon work block",
+              "duration_min": 180,
+              "social_intent": "alone",
+              "reason": "work"
+            },
+            {
+              "time": "19:00",
+              "action": "move",
+              "destination": "road_4719_seg_1",
+              "activity": "leisure outing",
+              "duration_min": 60,
+              "social_intent": "open_to_chat",
+              "reason": "leisure"
+            },
+            {
+              "time": "21:30",
+              "action": "move",
+              "destination": "arabella_street_seg_4",
+              "activity": "rest at home",
+              "duration_min": 480,
+              "social_intent": "alone",
+              "reason": "end of day"
+            }
+          ]
+        },
+        {
+          "date": "2026-04-24",
+          "weekday": "Friday",
+          "day_index": 2,
+          "steps": [
+            {
+              "time": "8:00",
+              "action": "stay",
+              "destination": "arabella_street_seg_4",
+              "activity": "remote work",
+              "duration_min": 180,
+              "social_intent": "alone",
+              "reason": "work"
+            },
+            {
+              "time": "14:00",
+              "action": "move",
+              "destination": "kenneth_street_seg_2_3",
+              "activity": "errand",
+              "duration_min": 45,
+              "social_intent": "open_to_chat",
+              "reason": "errand"
+            },
+            {
+              "time": "13:00",
+              "action": "move",
+              "destination": "arabella_street_seg_4",
+              "activity": "afternoon work block",
+              "duration_min": 180,
+              "social_intent": "alone",
+              "reason": "work"
+            },
+            {
+              "time": "10:00",
+              "action": "move",
+              "destination": "road_4719_seg_1",
+              "activity": "leisure outing",
+              "duration_min": 60,
+              "social_intent": "open_to_chat",
+              "reason": "leisure"
+            },
+            {
+              "time": "21:30",
+              "action": "move",
+              "destination": "arabella_street_seg_4",
+              "activity": "rest at home",
+              "duration_min": 480,
+              "social_intent": "alone",
+              "reason": "end of day"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "agent_id": "a_42_0006",
+      "days": [
+        {
+          "date": "2026-04-22",
+          "weekday": "Wednesday",
+          "day_index": 0,
+          "steps": [
+            {
+              "time": "8:41",
+              "action": "move",
+              "destination": "road_3987_seg_3",
+              "activity": "commute to workplace",
+              "duration_min": 480,
+              "social_intent": "alone",
+              "reason": "commute"
+            },
+            {
+              "time": "15:00",
+              "action": "move",
+              "destination": "william_edward_street_seg_1_4",
+              "activity": "school pickup for kids",
+              "duration_min": 30,
+              "social_intent": "open_to_chat",
+              "reason": "kids"
+            },
+            {
+              "time": "18:30",
+              "action": "stay",
+              "destination": "road_4719_seg_1",
+              "activity": "family dinner",
+              "duration_min": 60,
+              "social_intent": "alone",
+              "reason": "family"
+            },
+            {
+              "time": "14:00",
+              "action": "move",
+              "destination": "road_4028_seg_1",
+              "activity": "errand",
+              "duration_min": 30,
+              "social_intent": "open_to_chat",
+              "reason": "errand"
+            },
+            {
+              "time": "17:57",
+              "action": "move",
+              "destination": "road_4719_seg_1",
+              "activity": "commute home",
+              "duration_min": 20,
+              "social_intent": "alone",
+              "reason": "commute"
+            },
+            {
+              "time": "18:00",
+              "action": "move",
+              "destination": "road_3987_seg_3",
+              "activity": "leisure",
+              "duration_min": 60,
+              "social_intent": "open_to_chat",
+              "reason": "leisure"
+            },
+            {
+              "time": "21:30",
+              "action": "move",
+              "destination": "road_4719_seg_1",
+              "activity": "rest at home",
+              "duration_min": 480,
+              "social_intent": "alone",
+              "reason": "end of day"
+            }
+          ]
+        },
+        {
+          "date": "2026-04-23",
+          "weekday": "Thursday",
+          "day_index": 1,
+          "steps": [
+            {
+              "time": "8:41",
+              "action": "move",
+              "destination": "arabella_street_seg_1_7",
+              "activity": "commute to workplace",
+              "duration_min": 480,
+              "social_intent": "alone",
+              "reason": "commute"
+            },
+            {
+              "time": "15:00",
+              "action": "move",
+              "destination": "arabella_street_seg_4",
+              "activity": "school pickup for kids",
+              "duration_min": 30,
+              "social_intent": "open_to_chat",
+              "reason": "kids"
+            },
+            {
+              "time": "18:30",
+              "action": "stay",
+              "destination": "road_4719_seg_1",
+              "activity": "family dinner",
+              "duration_min": 60,
+              "social_intent": "alone",
+              "reason": "family"
+            },
+            {
+              "time": "16:00",
+              "action": "move",
+              "destination": "road_4717_seg_1",
+              "activity": "errand",
+              "duration_min": 30,
+              "social_intent": "open_to_chat",
+              "reason": "errand"
+            },
+            {
+              "time": "17:57",
+              "action": "move",
+              "destination": "road_4719_seg_1",
+              "activity": "commute home",
+              "duration_min": 20,
+              "social_intent": "alone",
+              "reason": "commute"
+            },
+            {
+              "time": "20:00",
+              "action": "move",
+              "destination": "road_3987_seg_3",
+              "activity": "leisure",
+              "duration_min": 60,
+              "social_intent": "open_to_chat",
+              "reason": "leisure"
+            },
+            {
+              "time": "21:30",
+              "action": "move",
+              "destination": "road_4719_seg_1",
+              "activity": "rest at home",
+              "duration_min": 480,
+              "social_intent": "alone",
+              "reason": "end of day"
+            }
+          ]
+        },
+        {
+          "date": "2026-04-24",
+          "weekday": "Friday",
+          "day_index": 2,
+          "steps": [
+            {
+              "time": "8:41",
+              "action": "move",
+              "destination": "road_2312_seg_1",
+              "activity": "commute to workplace",
+              "duration_min": 480,
+              "social_intent": "alone",
+              "reason": "commute"
+            },
+            {
+              "time": "15:00",
+              "action": "move",
+              "destination": "arabella_street_seg_4",
+              "activity": "school pickup for kids",
+              "duration_min": 30,
+              "social_intent": "open_to_chat",
+              "reason": "kids"
+            },
+            {
+              "time": "18:30",
+              "action": "stay",
+              "destination": "road_4719_seg_1",
+              "activity": "family dinner",
+              "duration_min": 60,
+              "social_intent": "alone",
+              "reason": "family"
+            },
+            {
+              "time": "14:00",
+              "action": "move",
+              "destination": "road_4717_seg_1",
+              "activity": "errand",
+              "duration_min": 30,
+              "social_intent": "open_to_chat",
+              "reason": "errand"
+            },
+            {
+              "time": "17:57",
+              "action": "move",
+              "destination": "road_4719_seg_1",
+              "activity": "commute home",
+              "duration_min": 20,
+              "social_intent": "alone",
+              "reason": "commute"
+            },
+            {
+              "time": "18:00",
+              "action": "move",
+              "destination": "road_3987_seg_3",
+              "activity": "leisure",
+              "duration_min": 60,
+              "social_intent": "open_to_chat",
+              "reason": "leisure"
+            },
+            {
+              "time": "21:30",
+              "action": "move",
+              "destination": "road_4719_seg_1",
+              "activity": "rest at home",
+              "duration_min": 480,
+              "social_intent": "alone",
+              "reason": "end of day"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "agent_id": "a_42_0026",
+      "days": [
+        {
+          "date": "2026-04-22",
+          "weekday": "Wednesday",
+          "day_index": 0,
+          "steps": [
+            {
+              "time": "8:00",
+              "action": "stay",
+              "destination": "cowper_street_seg_1_2",
+              "activity": "remote work",
+              "duration_min": 180,
+              "social_intent": "alone",
+              "reason": "work"
+            },
+            {
+              "time": "16:00",
+              "action": "move",
+              "destination": "arabella_street_seg_1_7",
+              "activity": "errand",
+              "duration_min": 45,
+              "social_intent": "open_to_chat",
+              "reason": "errand"
+            },
+            {
+              "time": "13:00",
+              "action": "move",
+              "destination": "cowper_street_seg_1_2",
+              "activity": "afternoon work block",
+              "duration_min": 180,
+              "social_intent": "alone",
+              "reason": "work"
+            },
+            {
+              "time": "15:00",
+              "action": "move",
+              "destination": "arabella_street_seg_4",
+              "activity": "school pickup for kids",
+              "duration_min": 30,
+              "social_intent": "open_to_chat",
+              "reason": "kids"
+            },
+            {
+              "time": "11:00",
+              "action": "move",
+              "destination": "arabella_street_seg_4",
+              "activity": "leisure outing",
+              "duration_min": 60,
+              "social_intent": "open_to_chat",
+              "reason": "leisure"
+            },
+            {
+              "time": "21:30",
+              "action": "move",
+              "destination": "cowper_street_seg_1_2",
+              "activity": "rest at home",
+              "duration_min": 480,
+              "social_intent": "alone",
+              "reason": "end of day"
+            }
+          ]
+        },
+        {
+          "date": "2026-04-23",
+          "weekday": "Thursday",
+          "day_index": 1,
+          "steps": [
+            {
+              "time": "9:00",
+              "action": "stay",
+              "destination": "cowper_street_seg_1_2",
+              "activity": "remote work",
+              "duration_min": 180,
+              "social_intent": "alone",
+              "reason": "work"
+            },
+            {
+              "time": "11:00",
+              "action": "move",
+              "destination": "arabella_street_seg_1_7",
+              "activity": "errand",
+              "duration_min": 45,
+              "social_intent": "open_to_chat",
+              "reason": "errand"
+            },
+            {
+              "time": "13:00",
+              "action": "move",
+              "destination": "cowper_street_seg_1_2",
+              "activity": "afternoon work block",
+              "duration_min": 180,
+              "social_intent": "alone",
+              "reason": "work"
+            },
+            {
+              "time": "15:00",
+              "action": "move",
+              "destination": "kenneth_street_seg_1_3",
+              "activity": "school pickup for kids",
+              "duration_min": 30,
+              "social_intent": "open_to_chat",
+              "reason": "kids"
+            },
+            {
+              "time": "17:00",
+              "action": "move",
+              "destination": "arabella_street_seg_4",
+              "activity": "leisure outing",
+              "duration_min": 60,
+              "social_intent": "open_to_chat",
+              "reason": "leisure"
+            },
+            {
+              "time": "21:30",
+              "action": "move",
+              "destination": "cowper_street_seg_1_2",
+              "activity": "rest at home",
+              "duration_min": 480,
+              "social_intent": "alone",
+              "reason": "end of day"
+            }
+          ]
+        },
+        {
+          "date": "2026-04-24",
+          "weekday": "Friday",
+          "day_index": 2,
+          "steps": [
+            {
+              "time": "8:00",
+              "action": "stay",
+              "destination": "cowper_street_seg_1_2",
+              "activity": "remote work",
+              "duration_min": 180,
+              "social_intent": "alone",
+              "reason": "work"
+            },
+            {
+              "time": "14:00",
+              "action": "move",
+              "destination": "arabella_street_seg_1_7",
+              "activity": "errand",
+              "duration_min": 45,
+              "social_intent": "open_to_chat",
+              "reason": "errand"
+            },
+            {
+              "time": "13:00",
+              "action": "move",
+              "destination": "cowper_street_seg_1_2",
+              "activity": "afternoon work block",
+              "duration_min": 180,
+              "social_intent": "alone",
+              "reason": "work"
+            },
+            {
+              "time": "15:00",
+              "action": "move",
+              "destination": "arabella_street_seg_1_7",
+              "activity": "school pickup for kids",
+              "duration_min": 30,
+              "social_intent": "open_to_chat",
+              "reason": "kids"
+            },
+            {
+              "time": "18:00",
+              "action": "move",
+              "destination": "road_2312_seg_1",
+              "activity": "leisure outing",
+              "duration_min": 60,
+              "social_intent": "open_to_chat",
+              "reason": "leisure"
+            },
+            {
+              "time": "21:30",
+              "action": "move",
+              "destination": "cowper_street_seg_1_2",
+              "activity": "rest at home",
+              "duration_min": 480,
+              "social_intent": "alone",
+              "reason": "end of day"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "push_history": [
+    {
+      "agent_id": "a_42_0000",
+      "tick": 0,
+      "day": 1,
+      "simulated_time": "00:00",
+      "feed_item_id": "hyperlocal_push_42_1_0_a_42_0000",
+      "delivered": true,
+      "suppressed_by_bias": false,
+      "origin_hack_id": "hyperlocal_push",
+      "source": "local_news",
+      "category": "event",
+      "urgency": 0.39,
+      "content": "kenneth_street_seg_2_3 周日下午 3 点新邻居见面会——孩子可一起来，会有简单游戏。",
+      "hyperlocal_radius": 500.0
+    },
+    {
+      "agent_id": "a_42_0004",
+      "tick": 0,
+      "day": 1,
+      "simulated_time": "00:00",
+      "feed_item_id": "hyperlocal_push_42_1_0_a_42_0004",
+      "delivered": true,
+      "suppressed_by_bias": false,
+      "origin_hack_id": "hyperlocal_push",
+      "source": "local_news",
+      "category": "event",
+      "urgency": 0.48,
+      "content": "kenneth_street_seg_2_3 周日下午 3 点新邻居见面会——已经住了一阵的也可以来欢迎新邻居。",
+      "hyperlocal_radius": 500.0
+    },
+    {
+      "agent_id": "a_42_0006",
+      "tick": 0,
+      "day": 1,
+      "simulated_time": "00:00",
+      "feed_item_id": "hyperlocal_push_42_1_0_a_42_0006",
+      "delivered": true,
+      "suppressed_by_bias": false,
+      "origin_hack_id": "hyperlocal_push",
+      "source": "local_news",
+      "category": "event",
+      "urgency": 0.6,
+      "content": "kenneth_street_seg_2_3 周日下午 3 点新邻居见面会——刚搬来的一定要来，大家轮流自我介绍 + 介绍自己怎么找到 Lane Cove。",
+      "hyperlocal_radius": 500.0
+    }
+  ],
+  "replan_traces": [],
+  "perception_dumps": [
+    {
+      "agent_id": "a_42_0000",
+      "tick": 0,
+      "day": 1,
+      "simulated_time": "00:00",
+      "trigger": "after_push",
+      "location_id": "arabella_street_seg_4",
+      "location_name": "Arabella Street (4)",
+      "narrative": "You are in Arabella Street (4). Present: a_42_0005",
+      "entities_seen": [
+        "a_42_0005"
+      ],
+      "items_noticed": [],
+      "ambient_sounds": [],
+      "ambient_smells": [],
+      "lighting": "artificial",
+      "weather": "clear"
+    },
+    {
+      "agent_id": "a_42_0004",
+      "tick": 0,
+      "day": 1,
+      "simulated_time": "00:00",
+      "trigger": "after_push",
+      "location_id": "arabella_street_seg_4",
+      "location_name": "Arabella Street (4)",
+      "narrative": "You are in Arabella Street (4). Present: a_42_0014",
+      "entities_seen": [
+        "a_42_0014"
+      ],
+      "items_noticed": [],
+      "ambient_sounds": [],
+      "ambient_smells": [],
+      "lighting": "artificial",
+      "weather": "clear"
+    },
+    {
+      "agent_id": "a_42_0006",
+      "tick": 0,
+      "day": 1,
+      "simulated_time": "00:00",
+      "trigger": "after_push",
+      "location_id": "arabella_street_seg_1_7",
+      "location_name": "Arabella Street (1)",
+      "narrative": "You are in Arabella Street (1).",
+      "entities_seen": [],
+      "items_noticed": [],
+      "ambient_sounds": [],
+      "ambient_smells": [],
+      "lighting": "artificial",
+      "weather": "clear"
+    }
+  ],
+  "replan_decision_log": [
+    {
+      "agent_id": "a_42_0000",
+      "tick": 0,
+      "simulated_time": "2026-04-23T00:00:00",
+      "candidate_kind": "notification",
+      "candidate_urgency": 0.39,
+      "threshold_computed": 1.376395618485674,
+      "base_components": {
+        "base": 1.55,
+        "routine_adherence": 0.09505139721924029,
+        "curiosity": -0.11358655630802984,
+        "openness": -0.09846980426110927,
+        "conscientiousness": 0.04160333357255481,
+        "risk_tolerance": -0.06752024486112813,
+        "extraversion": -0.030682506875853856
+      },
+      "context_modifier": 0.0,
+      "replan_count_today": 0,
+      "rng_roll": 0.6394267984578837,
+      "decision": false
+    },
+    {
+      "agent_id": "a_42_0000",
+      "tick": 0,
+      "simulated_time": "2026-04-24T00:00:00",
+      "candidate_kind": "notification",
+      "candidate_urgency": 0.39,
+      "threshold_computed": 1.376395618485674,
+      "base_components": {
+        "base": 1.55,
+        "routine_adherence": 0.09505139721924029,
+        "curiosity": -0.11358655630802984,
+        "openness": -0.09846980426110927,
+        "conscientiousness": 0.04160333357255481,
+        "risk_tolerance": -0.06752024486112813,
+        "extraversion": -0.030682506875853856
+      },
+      "context_modifier": 0.0,
+      "replan_count_today": 0,
+      "rng_roll": 0.21863797480360336,
+      "decision": false
+    },
+    {
+      "agent_id": "a_42_0004",
+      "tick": 0,
+      "simulated_time": "2026-04-23T00:00:00",
+      "candidate_kind": "notification",
+      "candidate_urgency": 0.48,
+      "threshold_computed": 1.2832699066925821,
+      "base_components": {
+        "base": 1.55,
+        "routine_adherence": 0.16371820139957757,
+        "curiosity": -0.2098400439438506,
+        "openness": -0.11569011340855649,
+        "conscientiousness": 0.007199705759774388,
+        "risk_tolerance": -0.06972660298142364,
+        "extraversion": -0.042391240132939045
+      },
+      "context_modifier": 0.0,
+      "replan_count_today": 0,
+      "rng_roll": 0.22321073814882275,
+      "decision": false
+    },
+    {
+      "agent_id": "a_42_0004",
+      "tick": 0,
+      "simulated_time": "2026-04-24T00:00:00",
+      "candidate_kind": "notification",
+      "candidate_urgency": 0.48,
+      "threshold_computed": 1.2832699066925821,
+      "base_components": {
+        "base": 1.55,
+        "routine_adherence": 0.16371820139957757,
+        "curiosity": -0.2098400439438506,
+        "openness": -0.11569011340855649,
+        "conscientiousness": 0.007199705759774388,
+        "risk_tolerance": -0.06972660298142364,
+        "extraversion": -0.042391240132939045
+      },
+      "context_modifier": 0.0,
+      "replan_count_today": 0,
+      "rng_roll": 0.1988376506866485,
+      "decision": false
+    },
+    {
+      "agent_id": "a_42_0006",
+      "tick": 0,
+      "simulated_time": "2026-04-23T00:00:00",
+      "candidate_kind": "notification",
+      "candidate_urgency": 0.6,
+      "threshold_computed": 1.4142210444664354,
+      "base_components": {
+        "base": 1.55,
+        "routine_adherence": 0.2727740770685988,
+        "curiosity": -0.2641083693928463,
+        "openness": -0.10960567958659456,
+        "conscientiousness": 0.037502325024129125,
+        "risk_tolerance": -0.06139105085456689,
+        "extraversion": -0.01095025779228486
+      },
+      "context_modifier": 0.0,
+      "replan_count_today": 0,
+      "rng_roll": 0.6766994874229113,
+      "decision": false
+    },
+    {
+      "agent_id": "a_42_0006",
+      "tick": 0,
+      "simulated_time": "2026-04-24T00:00:00",
+      "candidate_kind": "notification",
+      "candidate_urgency": 0.6,
+      "threshold_computed": 1.4142210444664354,
+      "base_components": {
+        "base": 1.55,
+        "routine_adherence": 0.2727740770685988,
+        "curiosity": -0.2641083693928463,
+        "openness": -0.10960567958659456,
+        "conscientiousness": 0.037502325024129125,
+        "risk_tolerance": -0.06139105085456689,
+        "extraversion": -0.01095025779228486
+      },
+      "context_modifier": 0.0,
+      "replan_count_today": 0,
+      "rng_roll": 0.5449414806032167,
+      "decision": false
+    }
+  ],
+  "social_graph": {
+    "available": true,
+    "K": 10,
+    "weak_threshold": 0.1,
+    "strong_threshold": 0.5,
+    "totals": {
+      "ties": 145,
+      "weak": 33,
+      "strong": 0
+    },
+    "per_inspected_agent": {
+      "a_42_0000": [
+        {
+          "other_agent_id": "a_42_0005",
+          "encounter_count": 2,
+          "strength": 0.1667,
+          "first_seen_tick": 0,
+          "last_seen_tick": 234,
+          "first_seen_day": 1
+        },
+        {
+          "other_agent_id": "a_42_0011",
+          "encounter_count": 2,
+          "strength": 0.1667,
+          "first_seen_tick": 0,
+          "last_seen_tick": 234,
+          "first_seen_day": 0
+        },
+        {
+          "other_agent_id": "a_42_0018",
+          "encounter_count": 1,
+          "strength": 0.0909,
+          "first_seen_tick": 0,
+          "last_seen_tick": 0,
+          "first_seen_day": 0
+        },
+        {
+          "other_agent_id": "a_42_0015",
+          "encounter_count": 1,
+          "strength": 0.0909,
+          "first_seen_tick": 0,
+          "last_seen_tick": 0,
+          "first_seen_day": 2
+        },
+        {
+          "other_agent_id": "a_42_0016",
+          "encounter_count": 1,
+          "strength": 0.0909,
+          "first_seen_tick": 0,
+          "last_seen_tick": 0,
+          "first_seen_day": 0
+        },
+        {
+          "other_agent_id": "a_42_0010",
+          "encounter_count": 1,
+          "strength": 0.0909,
+          "first_seen_tick": 234,
+          "last_seen_tick": 234,
+          "first_seen_day": 1
+        },
+        {
+          "other_agent_id": "a_42_0003",
+          "encounter_count": 1,
+          "strength": 0.0909,
+          "first_seen_tick": 234,
+          "last_seen_tick": 234,
+          "first_seen_day": 2
+        },
+        {
+          "other_agent_id": "a_42_0012",
+          "encounter_count": 1,
+          "strength": 0.0909,
+          "first_seen_tick": 0,
+          "last_seen_tick": 0,
+          "first_seen_day": 0
+        },
+        {
+          "other_agent_id": "a_42_0009",
+          "encounter_count": 1,
+          "strength": 0.0909,
+          "first_seen_tick": 234,
+          "last_seen_tick": 234,
+          "first_seen_day": 0
+        },
+        {
+          "other_agent_id": "a_42_0020",
+          "encounter_count": 1,
+          "strength": 0.0909,
+          "first_seen_tick": 0,
+          "last_seen_tick": 0,
+          "first_seen_day": 0
+        },
+        {
+          "other_agent_id": "a_42_0021",
+          "encounter_count": 1,
+          "strength": 0.0909,
+          "first_seen_tick": 240,
+          "last_seen_tick": 240,
+          "first_seen_day": 1
+        }
+      ],
+      "a_42_0004": [
+        {
+          "other_agent_id": "a_42_0028",
+          "encounter_count": 2,
+          "strength": 0.1667,
+          "first_seen_tick": 144,
+          "last_seen_tick": 240,
+          "first_seen_day": 1
+        },
+        {
+          "other_agent_id": "a_42_0026",
+          "encounter_count": 1,
+          "strength": 0.0909,
+          "first_seen_tick": 177,
+          "last_seen_tick": 177,
+          "first_seen_day": 2
+        },
+        {
+          "other_agent_id": "a_42_0023",
+          "encounter_count": 1,
+          "strength": 0.0909,
+          "first_seen_tick": 240,
+          "last_seen_tick": 240,
+          "first_seen_day": 1
+        },
+        {
+          "other_agent_id": "a_42_0022",
+          "encounter_count": 1,
+          "strength": 0.0909,
+          "first_seen_tick": 192,
+          "last_seen_tick": 192,
+          "first_seen_day": 1
+        },
+        {
+          "other_agent_id": "a_42_0027",
+          "encounter_count": 1,
+          "strength": 0.0909,
+          "first_seen_tick": 240,
+          "last_seen_tick": 240,
+          "first_seen_day": 1
+        },
+        {
+          "other_agent_id": "a_42_0024",
+          "encounter_count": 1,
+          "strength": 0.0909,
+          "first_seen_tick": 132,
+          "last_seen_tick": 132,
+          "first_seen_day": 2
+        },
+        {
+          "other_agent_id": "a_42_0014",
+          "encounter_count": 1,
+          "strength": 0.0909,
+          "first_seen_tick": 177,
+          "last_seen_tick": 177,
+          "first_seen_day": 1
+        },
+        {
+          "other_agent_id": "a_42_0011",
+          "encounter_count": 1,
+          "strength": 0.0909,
+          "first_seen_tick": 240,
+          "last_seen_tick": 240,
+          "first_seen_day": 1
+        }
+      ],
+      "a_42_0006": [
+        {
+          "other_agent_id": "a_42_0010",
+          "encounter_count": 3,
+          "strength": 0.2308,
+          "first_seen_tick": 0,
+          "last_seen_tick": 252,
+          "first_seen_day": 0
+        },
+        {
+          "other_agent_id": "a_42_0027",
+          "encounter_count": 1,
+          "strength": 0.0909,
+          "first_seen_tick": 0,
+          "last_seen_tick": 0,
+          "first_seen_day": 0
+        },
+        {
+          "other_agent_id": "a_42_0005",
+          "encounter_count": 1,
+          "strength": 0.0909,
+          "first_seen_tick": 234,
+          "last_seen_tick": 234,
+          "first_seen_day": 0
+        },
+        {
+          "other_agent_id": "a_42_0020",
+          "encounter_count": 1,
+          "strength": 0.0909,
+          "first_seen_tick": 0,
+          "last_seen_tick": 0,
+          "first_seen_day": 0
+        },
+        {
+          "other_agent_id": "a_42_0016",
+          "encounter_count": 1,
+          "strength": 0.0909,
+          "first_seen_tick": 0,
+          "last_seen_tick": 0,
+          "first_seen_day": 0
+        },
+        {
+          "other_agent_id": "a_42_0011",
+          "encounter_count": 1,
+          "strength": 0.0909,
+          "first_seen_tick": 234,
+          "last_seen_tick": 234,
+          "first_seen_day": 1
+        },
+        {
+          "other_agent_id": "a_42_0015",
+          "encounter_count": 1,
+          "strength": 0.0909,
+          "first_seen_tick": 0,
+          "last_seen_tick": 0,
+          "first_seen_day": 0
+        }
+      ],
+      "a_42_0026": [
+        {
+          "other_agent_id": "a_42_0019",
+          "encounter_count": 3,
+          "strength": 0.2308,
+          "first_seen_tick": 132,
+          "last_seen_tick": 192,
+          "first_seen_day": 0
+        },
+        {
+          "other_agent_id": "a_42_0004",
+          "encounter_count": 1,
+          "strength": 0.0909,
+          "first_seen_tick": 177,
+          "last_seen_tick": 177,
+          "first_seen_day": 2
+        },
+        {
+          "other_agent_id": "a_42_0013",
+          "encounter_count": 1,
+          "strength": 0.0909,
+          "first_seen_tick": 201,
+          "last_seen_tick": 201,
+          "first_seen_day": 0
+        },
+        {
+          "other_agent_id": "a_42_0024",
+          "encounter_count": 1,
+          "strength": 0.0909,
+          "first_seen_tick": 132,
+          "last_seen_tick": 132,
+          "first_seen_day": 0
+        },
+        {
+          "other_agent_id": "a_42_0018",
+          "encounter_count": 1,
+          "strength": 0.0909,
+          "first_seen_tick": 177,
+          "last_seen_tick": 177,
+          "first_seen_day": 2
+        },
+        {
+          "other_agent_id": "a_42_0014",
+          "encounter_count": 1,
+          "strength": 0.0909,
+          "first_seen_tick": 192,
+          "last_seen_tick": 192,
+          "first_seen_day": 2
+        },
+        {
+          "other_agent_id": "a_42_0016",
+          "encounter_count": 1,
+          "strength": 0.0909,
+          "first_seen_tick": 228,
+          "last_seen_tick": 228,
+          "first_seen_day": 2
+        },
+        {
+          "other_agent_id": "a_42_0023",
+          "encounter_count": 1,
+          "strength": 0.0909,
+          "first_seen_tick": 201,
+          "last_seen_tick": 201,
+          "first_seen_day": 0
+        }
+      ]
+    }
+  },
+  "conversation": {
+    "available": true,
+    "totals": {
+      "info_count": 1,
+      "max_hops": 1,
+      "info_reaching_2plus_hops": 0,
+      "avg_reach_per_info": 11.0
+    },
+    "top_propagated": [
+      {
+        "info_id": "info_hp_neighbour_meet",
+        "reach": 11,
+        "max_hops": 1,
+        "mean_hops": 0.091
+      }
+    ],
+    "per_inspected_agent_known": {
+      "a_42_0000": [
+        {
+          "info_id": "info_hp_neighbour_meet",
+          "content": "kenneth_street_seg_2_3 周日下午 3 点新邻居见面会——孩子可一起来，会有简单游戏。",
+          "category": "push",
+          "salience": 0.8,
+          "origin_agent_id": "a_42_0000",
+          "origin_day_index": 1,
+          "hops_at_learn": 0,
+          "first_learned_tick": 0
+        }
+      ],
+      "a_42_0004": [
+        {
+          "info_id": "info_hp_neighbour_meet",
+          "content": "kenneth_street_seg_2_3 周日下午 3 点新邻居见面会——孩子可一起来，会有简单游戏。",
+          "category": "push",
+          "salience": 0.8,
+          "origin_agent_id": "a_42_0000",
+          "origin_day_index": 1,
+          "hops_at_learn": 0,
+          "first_learned_tick": 0
+        }
+      ],
+      "a_42_0006": [
+        {
+          "info_id": "info_hp_neighbour_meet",
+          "content": "kenneth_street_seg_2_3 周日下午 3 点新邻居见面会——孩子可一起来，会有简单游戏。",
+          "category": "push",
+          "salience": 0.8,
+          "origin_agent_id": "a_42_0000",
+          "origin_day_index": 1,
+          "hops_at_learn": 0,
+          "first_learned_tick": 0
+        }
+      ],
+      "a_42_0026": []
+    }
+  },
+  "personalization": {
+    "audience_tag_by_inspected_agent": {
+      "a_42_0000": "parents",
+      "a_42_0004": "default",
+      "a_42_0006": "newcomer",
+      "a_42_0026": "parents"
+    }
+  }
+}

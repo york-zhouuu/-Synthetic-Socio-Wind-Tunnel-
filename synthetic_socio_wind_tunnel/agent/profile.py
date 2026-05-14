@@ -45,6 +45,7 @@ EducationLevel = Literal[
     "postgrad", "bachelor", "diploma", "year_12",
     "year_11_or_below", "no_qualification",
 ]
+HouseholdRole = Literal["parent", "child", "partner", "lone"]
 
 
 class LifePattern(BaseModel):
@@ -79,6 +80,24 @@ class AgentProfile(BaseModel):
 
     # === 居住 ===
     home_location: str  # 家的 location_id (初始值，可被 Life Pattern 更新)
+
+    # === 工作地（fix-population-uses-typed-locations）===
+    # 通勤/远程/班次的 agent SHALL 有 workplace（取自 LocationPools.work_pool）。
+    # retired/unemployed/homemaker/not_working SHALL workplace=None。
+    workplace: str | None = None
+
+    # === 出行速度（add-walking-speed-budget）===
+    # 由 vehicles_at_dwelling 推导。Orchestrator 用此值 × tick_minutes 决定
+    # 每 tick 能走多远；NavigationService 用 prefer_driving 决定 route filter。
+    walking_speed_m_per_min: float = 80.0  # 5 km/h default walking pace
+    prefer_driving: bool = False           # 0-vehicle households stay on foot
+
+    # === A2 / realism-household-coupling: household identity ===
+    # Multiple agents sharing a household_id SHALL share the same home_location.
+    # Default = "household_<agent_id>" (solo household) for backwards compat
+    # with current population sampling (which assigns unique home_0000 etc.).
+    household_id: str = ""  # Filled by sample_population; default empty (solo)
+    household_role: HouseholdRole = "lone"
 
     # === 人格（typed-personality change 引入，替换 dict[str, float]）===
     personality: PersonalityTraits = Field(default_factory=PersonalityTraits)
@@ -143,3 +162,39 @@ class AgentProfile(BaseModel):
     model_config = {"frozen": True, "extra": "forbid"}
     # extra="forbid" so that removed fields like personality_traits / personality_description
     # raise ValidationError if re-introduced — catches migration regressions.
+
+
+def validate_against_atlas(profile: "AgentProfile", atlas) -> None:
+    """Assert profile.home_location and workplace match atlas semantics.
+
+    Raises ValueError on:
+    - home_location is not a building OR not building_type == "residential"
+    - workplace is not a building OR not in {office, school, commercial,
+      community, hospital} (when non-None)
+    """
+    home = atlas.get_building(profile.home_location)
+    if home is None:
+        raise ValueError(
+            f"home_location {profile.home_location!r} is not a building; "
+            f"home_location MUST be a residential building"
+        )
+    if home.building_type != "residential":
+        raise ValueError(
+            f"home_location {profile.home_location!r} has type "
+            f"{home.building_type!r}, MUST be residential"
+        )
+
+    if profile.workplace is not None:
+        work = atlas.get_building(profile.workplace)
+        if work is None:
+            raise ValueError(
+                f"workplace {profile.workplace!r} is not a building"
+            )
+        valid_work_types = {
+            "commercial", "community", "hospital", "office", "school",
+        }
+        if work.building_type not in valid_work_types:
+            raise ValueError(
+                f"workplace {profile.workplace!r} has type "
+                f"{work.building_type!r}, MUST be in {sorted(valid_work_types)}"
+            )

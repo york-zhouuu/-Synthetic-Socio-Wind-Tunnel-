@@ -56,56 +56,85 @@ def _compute_trajectory_deviation_m(
     variant_name: str,
     variant_metadata: dict[str, Any],
     phase_config: dict[str, Any],
-) -> float | None:
+    protag_ids: set[str] | None = None,
+) -> tuple[float | None, float | None]:
     """
     对 A (hyperlocal_push) / A' (global_distraction) 计算 intervention 末日
-    到 target_location 的 median 距离（across target agents）。
+    到 target_location 的 median 距离。
 
-    其它 variant 留 None（留给未来 variant-specific 算子）。
+    返回 `(traj_dev_m_target_subset, traj_dev_m_all)`：
+    - 第一个是 push-target subset 上的 median（thesis 主信号；
+      90 scripted agent 不会稀释 10 protag 的信号）
+    - 第二个是全 agent 上的 median（sanity 对照）
+
+    target_subset 来源（按优先级）：
+    1. `variant_metadata["target_agent_ids"]`（hp/gd resolve 后写入）
+    2. 调用方传入的 `protag_ids` fallback（is_protagonist=True 的子集）
+    3. 都缺省时第一个返回值为 None；第二个仍可填
+
+    其它 variant（baseline / phone_friction / shared_anchor / catalyst_seeding）
+    两个值都返回 None。
     """
     if atlas is None:
-        return None
+        return None, None
     if variant_name not in {"hyperlocal_push", "global_distraction"}:
-        return None
+        return None, None
 
     target_location = variant_metadata.get("target_location")
     if target_location is None:
-        # 从 extensions / parameters 找（variant 实例构造时传入的 field）
         target_location = variant_metadata.get("parameters", {}).get("target_location")
     if target_location is None:
-        return None
+        return None, None
 
+    # fix-population-uses-typed-locations: target_location may be a building
+    # (community / cafe / park-building) or an outdoor area. Use atlas-wide
+    # center lookup so both work.
     try:
-        target_area = atlas.get_outdoor_area(target_location)
+        target_center = atlas.get_center(target_location)
     except Exception:
-        return None
-    if target_area is None:
-        return None
-    target_center = target_area.center
+        target_center = None
+    if target_center is None:
+        return None, None
 
     interv_end = _intervention_end_day(phase_config)
     if interv_end < 0 or interv_end >= len(per_day):
-        return None
+        return None, None
 
     end_locations = per_day[interv_end].end_of_day_location_by_agent
     if not end_locations:
-        return None
+        return None, None
 
-    distances: list[float] = []
-    for _agent_id, loc_id in end_locations.items():
+    target_ids_meta = variant_metadata.get("target_agent_ids")
+    if target_ids_meta:
+        subset_ids: set[str] = set(target_ids_meta)
+    elif protag_ids:
+        subset_ids = set(protag_ids)
+    else:
+        subset_ids = set()
+
+    distances_all: list[float] = []
+    distances_subset: list[float] = []
+    for agent_id, loc_id in end_locations.items():
+        # fix-population-uses-typed-locations: end-of-day loc may be a
+        # residential building or POI building, not only outdoor_area.
         try:
-            area = atlas.get_outdoor_area(loc_id)
+            agent_center = atlas.get_center(loc_id)
         except Exception:
+            agent_center = None
+        if agent_center is None:
             continue
-        if area is None:
-            continue
-        dx = area.center.x - target_center.x
-        dy = area.center.y - target_center.y
-        distances.append(math.sqrt(dx * dx + dy * dy))
+        dx = agent_center.x - target_center.x
+        dy = agent_center.y - target_center.y
+        d = math.sqrt(dx * dx + dy * dy)
+        distances_all.append(d)
+        if agent_id in subset_ids:
+            distances_subset.append(d)
 
-    if not distances:
-        return None
-    return float(statistics.median(distances))
+    median_all = float(statistics.median(distances_all)) if distances_all else None
+    median_subset = (
+        float(statistics.median(distances_subset)) if distances_subset else None
+    )
+    return median_subset, median_all
 
 
 # ---------------------------------------------------------------------------
@@ -208,12 +237,22 @@ def build_run_metrics(
     variant_metadata = variant_metadata or {"name": variant_name}
     phase_config = phase_config or {"baseline_days": 4, "intervention_days": 6, "post_days": 4}
 
-    trajectory = _compute_trajectory_deviation_m(
+    # protag_ids fallback: read from injected memory_service.
+    # ai-town port stamps `_protagonist_ids` set onto MemoryService.
+    protag_ids: set[str] | None = None
+    msvc = recorder.memory_service
+    if msvc is not None:
+        ids = getattr(msvc, "_protagonist_ids", None)
+        if ids:
+            protag_ids = set(ids)
+
+    trajectory_subset, trajectory_all = _compute_trajectory_deviation_m(
         per_day,
         atlas=atlas,
         variant_name=variant_name,
         variant_metadata=variant_metadata,
         phase_config=phase_config,
+        protag_ids=protag_ids,
     )
 
     encounter_stats = _encounter_stats(per_day)
@@ -266,7 +305,8 @@ def build_run_metrics(
         variant_name=variant_name,
         num_days=len(per_day),
         per_day=tuple(per_day),
-        trajectory_deviation_m=trajectory,
+        trajectory_deviation_m=trajectory_subset,
+        trajectory_deviation_m_all=trajectory_all,
         encounter_stats=encounter_stats,
         space_activation=space_activation,
         feed_stats=feed_stats,

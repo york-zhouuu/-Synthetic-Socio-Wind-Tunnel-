@@ -61,12 +61,13 @@ class TestHyperlocalPush:
         assert recipients == {"a00", "a01", "a02"}
 
     def test_multi_day_count(self):
+        """fix-bc-mechanics B4: default daily_push_count=5."""
         v = HyperlocalPushVariant(target_location="cafe_main")
         ctx_day1 = _setup_ctx(n_agents=4, day_index=1)
         v.apply_day_start(ctx_day1)
         count_after_1_call = len(ctx_day1.attention_service._delivery_log)  # type: ignore[attr-defined]
-        # 4 agents → 2 target；1 feed_item × 2 delivered = 2 records
-        assert count_after_1_call == 2
+        # 4 agents → 2 target；5 feed_items × 2 delivered = 10 records
+        assert count_after_1_call == 10
 
     def test_explicit_target_agent_ids(self):
         v = HyperlocalPushVariant(
@@ -80,17 +81,18 @@ class TestHyperlocalPush:
         assert recipients == {"a02", "a03"}
 
     def test_feed_item_has_hyperlocal_radius(self):
+        """fix-bc-mechanics B4: daily_push_count=5 → 5 feed_items per recipient."""
         v = HyperlocalPushVariant(
             target_location="cafe_main", hyperlocal_radius_m=800.0,
         )
         ctx = _setup_ctx(n_agents=2, day_index=1)
         v.apply_day_start(ctx)
-        # Inspect injected feed items by recent feed_item_id
         feed_items = list(ctx.attention_service._feed_index.values())  # type: ignore[attr-defined]
-        assert len(feed_items) == 1
-        assert feed_items[0].hyperlocal_radius == 800.0
-        assert feed_items[0].source == "local_news"
-        assert feed_items[0].category == "event"
+        assert len(feed_items) == 5
+        for it in feed_items:
+            assert it.hyperlocal_radius == 800.0
+            assert it.source == "local_news"
+            assert it.category == "event"
 
     def test_daily_push_count_multiple(self):
         # push-content-individualization: each "push" now generates one

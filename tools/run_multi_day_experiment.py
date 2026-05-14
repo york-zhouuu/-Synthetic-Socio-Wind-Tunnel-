@@ -131,11 +131,21 @@ def build_single_seed_run(
     ledger = Ledger()
     ledger.current_time = datetime.combine(start_date, datetime.min.time())
 
-    # 目的地：连通的 20 个 outdoor_area（在 sample_population 前算出供 home 用）
-    destinations = _pick_connected_destinations(atlas, 20, rng)
+    # fix-population-uses-typed-locations: typed home/work/poi pools replace
+    # the old outdoor-only single pool. Without this, agent.home_location is
+    # a street segment and dwell never lands in residential buildings.
+    from synthetic_socio_wind_tunnel.agent import build_location_pools
+    pools = build_location_pools(
+        atlas,
+        home_count=max(40, n_agents // 2),
+        work_count=20,
+        poi_count=30,
+        rng=rng,
+    )
+    destinations = list(pools.poi_pool)
 
     # ---- variant 解析 ----
-    target_location = destinations[0] if destinations else None
+    target_location = pools.pick_target_location(atlas, rng, prefer="community")
     variant, controller = _build_variant_and_controller(
         variant_name, phase_days, target_location=target_location,
     )
@@ -148,7 +158,8 @@ def build_single_seed_run(
     profiles = sample_population(
         profile_template,
         seed=seed,
-        home_locations=tuple(destinations),
+        pools=pools,
+        atlas=atlas,
     )
 
     # D catalyst_seeding 需要在构造 runtime 前改 personality
@@ -168,7 +179,7 @@ def build_single_seed_run(
         ))
         runtime = AgentRuntime(profile=p, current_location=home_loc)
         runtime.plan = build_scripted_plan(
-            p, destinations, start_date.isoformat(), rng,
+            p, date=start_date.isoformat(), rng=rng, pools=pools,
         )
         runtimes.append(runtime)
 
@@ -196,7 +207,8 @@ def build_single_seed_run(
         local_rng = random.Random(seed + day_index)
         for rt in runtimes:
             rt.plan = build_scripted_plan(
-                rt.profile, destinations, current_date.isoformat(), local_rng,
+                rt.profile, date=current_date.isoformat(),
+                rng=local_rng, pools=pools,
             )
             home = rt.profile.home_location or rt.current_location
             ent = ledger.get_entity(rt.profile.agent_id)

@@ -88,6 +88,16 @@ class TickResult:
     encounter_candidates: tuple[EncounterCandidate, ...]
     simulated_date: date | None = None
     day_index: int = 0
+    # add-per-tick-position-logging: end-of-tick entity_id → location_id
+    # snapshot. Subscribers (PositionTraceRecorder) consume this for
+    # per-tick agent path visualization. Empty tuple when no entities tracked.
+    entity_locations: tuple[tuple[str, str], ...] = ()
+    # Per-agent intra-tick movement sequences (street-by-street). A single
+    # MoveIntent may walk through N street segments within one tick; this
+    # field exposes the sequence so visualizers can render the actual path.
+    # Empty tuple → no agent moved this tick. Each element is
+    # (agent_id, (loc_1, loc_2, ..., loc_N)) where loc_N is end-of-tick loc.
+    movement_traces: tuple[tuple[str, tuple[str, ...]], ...] = ()
 
 
 @dataclass(frozen=True)

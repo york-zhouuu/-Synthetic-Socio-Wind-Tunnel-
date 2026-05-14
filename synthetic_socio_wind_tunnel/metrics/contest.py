@@ -25,10 +25,10 @@ from synthetic_socio_wind_tunnel.metrics.models import (
 _PRIMARY_METRIC_DISPATCH: dict[str, str] = {
     "hyperlocal_push": "trajectory_deviation_m",
     "global_distraction": "trajectory_deviation_m",
-    # 其它 variant 选 "encounter.per_day_median" 作 primary——简化第一版；
-    # phone_friction 理想用 "attention.physical_world"（本 change 只有
-    # phone_feed_proxy；未来扩展）
-    "phone_friction": "attention.phone_feed_proxy",
+    # B4 fix: phone_friction 不再用 degenerate 的 phone_feed_proxy（pf 与
+    # baseline 都不注入 feed → 都是 0 → 永远 inconclusive）；改为
+    # encounter.per_day_median——friction 应推人去户外，encounter 上升。
+    "phone_friction": "encounter.per_day_median",
     "shared_anchor": "encounter.per_day_median",
     "catalyst_seeding": "encounter.per_day_median",
     "baseline": "encounter.per_day_median",
@@ -43,13 +43,13 @@ _PRIMARY_METRIC_DISPATCH: dict[str, str] = {
 # global_distraction: 同 feed channel 反向 → distance 升高 →
 #   higher is "consistent with 镜像假设"（但我们比较 baseline 时 lower still means same pattern as baseline）
 #   实际上是"与 baseline 有 delta 即证 channel dual-use"——方向不定
-# phone_friction: phone_feed_proxy 应 lower（friction 降低 phone 占用）
+# phone_friction: encounter.per_day_median 应 higher（friction 推人去户外，遇见更多）
 # shared_anchor: encounter 应 higher（共享锚点导致 co-visit）
 # catalyst_seeding: encounter 应 higher（connector 增加连接）
 _DIRECTION_DISPATCH: dict[str, str] = {
     "hyperlocal_push": "lower",     # 距离 target_location 越小越 support
     "global_distraction": "higher",  # 距离 target 越大越 support "distraction dual-use"
-    "phone_friction": "lower",       # phone_feed_proxy 应下降
+    "phone_friction": "higher",      # B4 fix: encounter.per_day_median 应上升
     "shared_anchor": "higher",       # encounter 应上升
     "catalyst_seeding": "higher",    # encounter 应上升
     "baseline": "lower",             # placeholder；baseline 不做 alignment

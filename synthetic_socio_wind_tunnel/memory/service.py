@@ -66,6 +66,7 @@ class MemoryService:
         "_consumed_feed_item_ids",
         "_event_counter",
         "_replan_count_today",
+        "_replan_no_op_count_today",
         "_last_day_index",
         "_rng",
         # ai-town port (Phase B)
@@ -74,6 +75,7 @@ class MemoryService:
         "_embeddings_cache",
         "_last_reflection_time",
         "_protagonist_ids",
+        "_noticing_seed",
     )
 
     def __init__(
@@ -122,10 +124,17 @@ class MemoryService:
         self._consumed_feed_item_ids: dict[str, set[str]] = {}
         self._event_counter = 0
         # realism-attention-rebalance：per-agent 当日 replan 次数（疲劳衰减）
+        # B7 fix: split into "plan-changed" (replan_count_today) vs
+        # "fallback / unchanged" (replan_no_op_count_today). Only the first
+        # counts toward the dose-response cap on agent fatigue.
         self._replan_count_today: dict[str, int] = {}
+        self._replan_no_op_count_today: dict[str, int] = {}
         self._last_day_index: int = -1
         # seeded rng for should_replan probabilistic gate
         self._rng = random.Random(seed) if seed is not None else random.Random()
+        # add-attention-induced-nearby-blindness: store raw seed so the
+        # noticing gate's hash-based RNG produces reproducible decisions.
+        self._noticing_seed: int = seed if seed is not None else 0
         # ai-town port (Phase B): protagonist set + reflection bookkeeping
         self._importance_scorer = importance_scorer
         self._reflection_service = reflection_service
@@ -137,6 +146,51 @@ class MemoryService:
         if agent_id not in self._stores:
             self._stores[agent_id] = MemoryStore()
         return self._stores[agent_id]
+
+    def _is_encounter_noticed(
+        self, agent_a: str, agent_b: str, *, tick: int, day_index: int,
+        shared_location_id: str | None = None,
+        a_movement_count: int = 0,
+        b_movement_count: int = 0,
+    ) -> bool:
+        """noticing gate combining attention + polygon size + transit discount.
+
+        B6 fix: if either agent passed through many segments this tick
+        (driving through), discount noticing — they're transiting, not
+        settling. transit_factor = 1 / (1 + max(a_moves, b_moves) / 5).
+        """
+        if self._attention_service is None:
+            return True
+        from synthetic_socio_wind_tunnel.attention.noticing import noticed_pair
+        a_attn = self._attention_service.get_phone_attention(agent_a)
+        b_attn = self._attention_service.get_phone_attention(agent_b)
+        # B6 transit penalty: if either agent moved many segments this tick,
+        # treat colocation as drive-by rather than settled encounter.
+        transit_factor = 1.0 / (1.0 + max(a_movement_count, b_movement_count) / 5.0)
+        # Encode into attention max so the existing formula picks it up:
+        # higher effective attn → lower noticing prob.
+        effective_a = a_attn + (1.0 - transit_factor) * 0.5
+        effective_b = b_attn + (1.0 - transit_factor) * 0.5
+        pair = tuple(sorted((agent_a, agent_b)))
+
+        # A3 fix: compute polygon extent for the shared location so large
+        # parks discount noticing. atlas not always available — None bypass.
+        polygon_extent = None
+        if shared_location_id is not None and self._atlas is not None:
+            loc = (
+                self._atlas.get_outdoor_area(shared_location_id)
+                or self._atlas.get_building(shared_location_id)
+            )
+            if loc is not None and loc.polygon and loc.polygon.vertices:
+                xs = [v.x for v in loc.polygon.vertices]
+                ys = [v.y for v in loc.polygon.vertices]
+                polygon_extent = max(max(xs) - min(xs), max(ys) - min(ys))
+
+        return noticed_pair(
+            effective_a, effective_b,
+            seed=self._noticing_seed, day=day_index, tick=tick, pair=pair,
+            polygon_extent_m=polygon_extent,
+        )
 
     def _next_event_id(self, agent_id: str, tick: int) -> str:
         self._event_counter += 1
@@ -322,6 +376,12 @@ class MemoryService:
         sim_time = tick_result.simulated_time
         day_index = tick_result.day_index
 
+        # add-attention-induced-nearby-blindness: decay phone_attention once
+        # per tick. Notification deliveries (which raise attention) happen
+        # later in process_tick, so decay first preserves expected dynamics.
+        if self._attention_service is not None:
+            self._attention_service.tick_decay_all()
+
         # 1. 从 commits 派生 action events
         for commit in tick_result.commits:
             self._record_action(
@@ -334,7 +394,23 @@ class MemoryService:
 
         # 2. 从 encounter_candidates 派生双向 encounter events
         #    + 若 social_graph 注入，同步累积 pairwise tie
+        # add-attention-induced-nearby-blindness: only attention-gated
+        # ("noticed") encounters grow weak ties. Physical co-locations still
+        # record as memory events but skip strength accumulation.
+        # B6 fix: build per-agent movement count for this tick (transit penalty)
+        moves_this_tick: dict[str, int] = {}
+        for agent_id, locs in tick_result.movement_traces:
+            moves_this_tick[agent_id] = len(locs)
+
         for enc in tick_result.encounter_candidates:
+            # A3 fix: pick first shared location for polygon-size discount
+            shared_loc = enc.shared_locations[0] if enc.shared_locations else None
+            noticed = self._is_encounter_noticed(
+                enc.agent_a, enc.agent_b, tick=tick, day_index=day_index,
+                shared_location_id=shared_loc,
+                a_movement_count=moves_this_tick.get(enc.agent_a, 0),
+                b_movement_count=moves_this_tick.get(enc.agent_b, 0),
+            )
             for me, other in ((enc.agent_a, enc.agent_b), (enc.agent_b, enc.agent_a)):
                 event = MemoryEvent(
                     event_id=self._next_event_id(me, tick),
@@ -348,15 +424,23 @@ class MemoryService:
                     urgency=0.3,
                     importance=0.5,
                     participants=(other,),
-                    tags=("encounter",),
+                    tags=("encounter", "noticed" if noticed else "unnoticed"),
                     day_index=day_index,
                 )
                 self.record(me, event)
-            # social-graph-capability: 累积 pairwise tie（同 tick 同 pair 幂等）
+            # social-graph-capability: pairwise tie accumulation.
+            # noticed → grows strength; unnoticed → physical-only counter.
             if self._social_graph is not None:
-                self._social_graph.record_encounter(
-                    enc.agent_a, enc.agent_b, tick=tick, day_index=day_index,
-                )
+                if noticed:
+                    self._social_graph.record_noticed_encounter(
+                        enc.agent_a, enc.agent_b,
+                        tick=tick, day_index=day_index,
+                    )
+                else:
+                    self._social_graph.record_physical_encounter(
+                        enc.agent_a, enc.agent_b,
+                        tick=tick, day_index=day_index,
+                    )
 
         # 3. 从 AttentionService 派生 notification / task_received events
         #    + 若 conversation 注入：把每条新 ingested 的 push 转 Information
@@ -400,6 +484,7 @@ class MemoryService:
         # realism-attention-rebalance：跨日 boundary 时清零 replan 计数（疲劳衰减重置）
         if self._last_day_index != -1 and day_index != self._last_day_index:
             self._replan_count_today.clear()
+            self._replan_no_op_count_today.clear()
         self._last_day_index = day_index
 
         for agent_id, agent in agents.items():
@@ -432,20 +517,62 @@ class MemoryService:
                             agent_id, tick_result, agent,
                         ),
                     }
+                    # A1: render perception 一次给 Planner.replan 看。
+                    # agent.perception_pipeline / agent._perception 任一存在时
+                    # render；否则降级 None（兼容现有 1190 测试基线）。
+                    perceptual_view = self._render_perception_for(agent)
                     try:
-                        new_plan = asyncio.run(planner.replan(
+                        new_plan, plan_changed = asyncio.run(planner.replan(
                             agent.profile, agent.plan, interrupt_ctx,
+                            perceptual_context=perceptual_view,
                         ))
                         agent.plan = new_plan
-                        replans.append((agent_id, candidate))
-                        # 累加当日 replan 计数
-                        self._replan_count_today[agent_id] = replan_count + 1
+                        if plan_changed:
+                            replans.append((agent_id, candidate))
+                            # 累加当日 replan 计数（仅 plan 真改才计 — B7 fix）
+                            self._replan_count_today[agent_id] = replan_count + 1
+                        else:
+                            # plan 未改：fallback / 空 LLM 输出。计入 no-op
+                            no_op_n = self._replan_no_op_count_today.get(
+                                agent_id, 0,
+                            )
+                            self._replan_no_op_count_today[agent_id] = no_op_n + 1
                     except Exception:
                         # Planner.replan 内部已有 fallback；外层再兜一次保险
                         pass
                     break  # 一 tick 内至多一次 replan / agent
 
         return replans
+
+    def _render_perception_for(self, agent: "AgentRuntime") -> Any:
+        """A1 / realism-perception-loop: render SubjectiveView for replan prompt.
+
+        Returns SubjectiveView | None — None when agent's perception pipeline
+        not injected (backwards compat with current 1190 test baseline).
+        """
+        pipeline = getattr(agent, "perception_pipeline", None) or getattr(
+            agent, "_perception", None,
+        )
+        if pipeline is None:
+            return None
+        try:
+            from synthetic_socio_wind_tunnel.perception.models import (
+                ObserverContext,
+            )
+            ctx_kwargs = agent.build_observer_context()
+            obs_ctx = ObserverContext(**ctx_kwargs)
+            return pipeline.render(obs_ctx)
+        except Exception:
+            return None
+
+    def replan_no_op_count_today_total(self) -> int:
+        """Sum of per-agent fallback / no-op replans today.
+
+        Counter resets on day boundary; sample before next day starts to
+        capture the day's total. Used by suite-wiring's metric writer to
+        populate `RunMetrics.extensions.replan_no_op_count` (B7 fix).
+        """
+        return sum(self._replan_no_op_count_today.values())
 
     # ---- realism-attention-rebalance helpers ----
 

@@ -188,6 +188,7 @@ class NavigationService:
         to_location: str,
         strategy: PathStrategy = PathStrategy.SHORTEST,
         check_doors: bool = True,
+        mode: str = "any",
     ) -> NavigationResult:
         """
         查找从起点到终点的路线
@@ -238,6 +239,16 @@ class NavigationService:
             for neighbor, dist, door_id, action in self._full_graph.get(current, []):
                 if neighbor in visited:
                     continue
+
+                # add-walking-speed-budget: filter edges by access_mode.
+                # mode="walking": exclude motorway-only edges (cars only).
+                # mode="driving": no filter — drivers can also walk last-mile
+                #   to a destination via pedestrian paths (park + walk).
+                # mode="any" (default): no filter — backward compat.
+                if mode == "walking":
+                    nbr_area = self._atlas.get_outdoor_area(neighbor)
+                    if nbr_area is not None and nbr_area.access_mode == "motor":
+                        continue
 
                 # 计算代价
                 edge_cost = dist

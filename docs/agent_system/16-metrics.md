@@ -88,11 +88,18 @@ Contest + Report 两层 assert 无禁用词；测试覆盖。
 
 ### Primary metric dispatch
 
+> **2026-05-10 update（fix-variant-measurement-and-friction）**：
+> - `trajectory_deviation_m` 语义改为 **protag-only median**（push 真实作用对象的子集），
+>   不再被 90 个 scripted agent 稀释（B1）。`RunMetrics.trajectory_deviation_m_all`
+>   保留为 sanity 对照字段。
+> - `phone_friction` primary metric 从 degenerate 的 `attention.phone_feed_proxy`
+>   切到 `encounter.per_day_median`（B4），方向 `lower → higher`（friction 应推人遇见更多）。
+
 | variant | primary metric | direction |
 |---|---|---|
-| `hyperlocal_push` | `trajectory_deviation_m` | lower（离 target 越近越 consistent） |
-| `global_distraction` | `trajectory_deviation_m` | higher（mirror: 离 target 越远越 consistent） |
-| `phone_friction` | `attention.phone_feed_proxy` | lower |
+| `hyperlocal_push` | `trajectory_deviation_m` (protag-only) | lower（离 target 越近越 consistent） |
+| `global_distraction` | `trajectory_deviation_m` (protag-only) | higher（mirror: 离 target 越远越 consistent） |
+| `phone_friction` | `encounter.per_day_median` | higher（friction 推人户外，遇见更多） |
 | `shared_anchor` | `encounter.per_day_median` | higher |
 | `catalyst_seeding` | `encounter.per_day_median` | higher |
 | `baseline` | `encounter.per_day_median` | —（reference） |

@@ -59,7 +59,8 @@ class TestComputeReproducibilityLock:
             variant_names=["baseline"], phase_config={},
             provider="anthropic",
         )
-        assert "claude" in lock["model_version"]
+        # Post fix-encounter-detection-and-observability: anthropic:haiku-4-5
+        assert "anthropic" in lock["model_version"]
 
     def test_real_llm_gemini_model_version(self):
         lock = compute_reproducibility_lock(

@@ -58,8 +58,12 @@ class TestCLIMinimalSmoke:
         hp_dir = suite_dir / "variant_hyperlocal_push"
         assert baseline_dir.is_dir()
         assert hp_dir.is_dir()
-        assert len(list(baseline_dir.glob("seed_*.json"))) == 2
-        assert len(list(hp_dir.glob("seed_*.json"))) == 2
+        # add-per-tick-position-logging writes companion seed_*_positions.json;
+        # filter those out when counting per-seed metric dumps.
+        def _metric_seeds(d):
+            return [p for p in d.glob("seed_*.json") if "_positions" not in p.name]
+        assert len(_metric_seeds(baseline_dir)) == 2
+        assert len(_metric_seeds(hp_dir)) == 2
         assert (baseline_dir / "aggregate.json").exists()
         assert (hp_dir / "aggregate.json").exists()
 

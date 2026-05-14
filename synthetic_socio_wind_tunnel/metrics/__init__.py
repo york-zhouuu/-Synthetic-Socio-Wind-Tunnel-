@@ -29,6 +29,10 @@ from synthetic_socio_wind_tunnel.metrics.models import (
     RunMetrics,
     SuiteAggregate,
 )
+from synthetic_socio_wind_tunnel.metrics.position_trace import (
+    PositionChange,
+    PositionTraceRecorder,
+)
 from synthetic_socio_wind_tunnel.metrics.recorder import TickMetricsRecorder
 from synthetic_socio_wind_tunnel.metrics.report import write_markdown
 
@@ -39,9 +43,11 @@ __all__ = [
     "ContestRow",
     "DayMetricsSummary",
     "EvidenceAlignment",
+    "PositionChange",
     "RunMetrics",
     "SuiteAggregate",
     # Services
+    "PositionTraceRecorder",
     "TickMetricsRecorder",
     "build_run_metrics",
     "build_suite_aggregate",

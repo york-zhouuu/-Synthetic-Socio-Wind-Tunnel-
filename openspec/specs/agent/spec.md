@@ -4,9 +4,7 @@
 `agent` 模块实现计划式（planning-based）智能体：每个 agent 在一天开始时由 LLM
 生成 `DailyPlan`，随后按计划执行，仅在被打断时重规划。通过分层模型预算
 （10 个 Sonnet 主角 + 990 个 Haiku 分级）控制 1000 agent 的 LLM 成本。
-
 ## Requirements
-
 ### Requirement: AgentProfile 作为静态身份
 `agent.profile.AgentProfile` SHALL 包含：
 `agent_id`、`name`、`age`、`occupation`、`household`、`home_location`、
@@ -551,7 +549,6 @@ async replan(
 - **WHEN** caller 传入仅含 trigger_event + recent_memories + current_time 的旧 schema interrupt_ctx
 - **THEN** `replan` SHALL 不抛异常；prompt 中缺失的 block（current_step / nearby_agents）SHALL 整块省略，不显示"无 / 空"占位
 
-
 ### Requirement: Planner LLM I/O 使用轻量格式 + 容忍自由词汇
 
 `Planner` SHALL 使用 XML（或同等轻量结构化格式）作为 LLM I/O 形态——
@@ -620,7 +617,6 @@ SocialIntent。
   PlanStep 的 `action` 字段 SHALL 为 PlanAction Literal 之一（4 类）；
   `social_intent` SHALL 为 SocialIntent Literal 之一（3 类）
 
-
 ### Requirement: 同义词映射不在 spec 层面写死
 
 同义词映射表（如 `visit → move` / `work → stay`）SHALL 作为 implementation
@@ -633,7 +629,6 @@ detail 存在 `synthetic_socio_wind_tunnel/agent/planner.py` 内部；spec 不
 - **WHEN** 团队向同义词表新增 `"jog" → "move"`
 - **THEN** spec MUST NOT 要求修改；只需更新 `_ACTION_SYNONYMS` dict +
   对应单元测试覆盖
-
 
 ### Requirement: AgentProfile 含 gender 字段
 
@@ -659,7 +654,6 @@ change（见 design Open Q5）。
   （和=0.9）
 - **THEN** Pydantic SHALL 抛 ValidationError（与现有其它 distribution
   validator 一致）
-
 
 ### Requirement: LANE_COVE_PROFILE 校准至 ABS Census 2021
 
@@ -695,7 +689,6 @@ LANE_COVE_PROFILE 6 维分布 SHALL 校准至 ABS Census 2021 Lane Cove SA2
 - **WHEN** 6 个维度全部 p > 0.10
 - **THEN** `assess_population_calibration` 返回 `acceptance_level: "strict"`
 
-
 ### Requirement: scripted_plan 三模式（commute / errand / leisure）
 
 非主角 agent（Haiku tier）的脚本化日程 SHALL 按 `profile.work_mode` 分派
@@ -727,7 +720,6 @@ hourly 热度做加权采样。
   `tools/run_multi_day_experiment.py`、`tools/replan_trace.py` import
   路径 SHALL 全部指向 `synthetic_socio_wind_tunnel.agent.scripted_plan`
 
-
 ### Requirement: 行为校准至 ABS Travel Survey + Popular Times
 
 baseline 14d × 1000 agent sim 的行为分布 SHALL 通过 best-effort 行为
@@ -748,7 +740,6 @@ acceptance：
   `compute_popular_times_emd(sim_visits, popular_times_data)`
 - **THEN** 返回 `dict[poi_id, float]`；best-effort 通过要求 ≥ 70%
   POI 的 EMD < 0.25
-
 
 ### Requirement: calibration 模块独立于 hot path
 
@@ -771,7 +762,6 @@ suite report 链接而非重算。
 - **THEN** 它 SHALL 读 `data/calibration/calibration_report.json`，
   MUST NOT 重新计算 chi²/KS/EMD
 
-
 ### Requirement: calibration 数据源 ship 在仓库
 
 `data/calibration/` 目录 SHALL 含三份静态 JSON：
@@ -790,7 +780,6 @@ ABS 转换 helper），MUST NOT 直接手编 JSON。
 - **THEN** 顶层 dict SHALL 含 `source: str`、`downloaded: str` (ISO date)
   字段；`docs/calibration/01-data-sources.md` SHALL 含对应的下载 URL
   + 字段映射规则
-
 
 ### Requirement: AgentProfile 含 thesis-direct 维度字段
 
@@ -830,7 +819,6 @@ ABS Census 2021 的 thesis-relevant 维度。所有字段 default `None`，向�
 - **WHEN** 构造 `AgentProfile(community_tenure_5yr="brand_new")`（非 Literal 值）
 - **THEN** Pydantic SHALL 抛 ValidationError
 
-
 ### Requirement: PopulationProfile 含 13 个新 distribution
 
 `PopulationProfile` SHALL 含 13 个 distribution 字段对应 AgentProfile 新字段，
@@ -849,7 +837,6 @@ validator。
 - **WHEN** PopulationProfile 不配置 `disability_status_distribution`
 - **THEN** 采样产生的 agent.disability_status SHALL == None；其它已配置
   字段不受影响
-
 
 ### Requirement: family_composition 与 household 自动映射
 
@@ -873,7 +860,6 @@ household 字段公共类型 MUST NOT 改变（保持 3-bucket Literal）；现�
   `household_distribution`
 - **THEN** sample_population SHALL 用 household_distribution 采样；
   agent.family_composition 保持 None；agent.household 仍按当前逻辑赋值
-
 
 ### Requirement: calibration 评估新维度递进式
 
@@ -899,7 +885,6 @@ key，不限于原 6 维。
 - **THEN** acceptance_level SHALL == "best-effort"；report SHALL 在
   disclosure 段列出 Tier 3 failed dims
 
-
 ### Requirement: convert_abs_census.py 含 `--full` flag
 
 `tools/convert_abs_census.py` SHALL 接受 `--full` flag：
@@ -915,7 +900,6 @@ key，不限于原 6 维。
 #### Scenario: 不带 --full 输出 6 维
 - **WHEN** 跑 `python3 tools/convert_abs_census.py`（无 flag）
 - **THEN** 输出 JSON 的 `distributions` SHALL 仅含原 6 个 key（向后兼容）
-
 
 ### Requirement: stereotype audit module 提供 swap / blind / distance helpers
 
@@ -957,7 +941,6 @@ checklist #2 的硬门禁实施。
 - **WHEN** 检查 runtime.py / planner.py / orchestrator import 列表
 - **THEN** 都 SHALL NOT 含 `from .audit import` 或 `import synthetic_socio_wind_tunnel.agent.audit`
 
-
 ### Requirement: stereotype audit CLI 单一入口
 
 `tools/run_stereotype_audit.py` SHALL 是跑三协议的唯一 CLI 入口；输出
@@ -978,7 +961,6 @@ CLI 接受 `--scale {dev|publishable}` flag：
   无 `--use-real-llm`
 - **THEN** SHALL sys.exit(2) + 诊断 message："publishable scale requires
   --use-real-llm"
-
 
 ### Requirement: audit report JSON schema
 
@@ -1003,7 +985,6 @@ CLI 接受 `--scale {dev|publishable}` flag：
 - **THEN** report.cross_model_test.state SHALL == "skipped (stub mode)"；
   overall_passed SHALL 仍能基于其它两协议判定（dev mode 时 disclose
   cross_model 未跑）
-
 
 ### Requirement: AgentProfile 含 LifePattern 字段
 
@@ -1031,7 +1012,6 @@ CLI 接受 `--scale {dev|publishable}` flag：
 - **WHEN** 既有 `AgentProfile(agent_id=..., name=..., age=..., ...)` 调用
 - **THEN** SHALL 不抛；`life_pattern` 默认 None；公共 API 兼容
 
-
 ### Requirement: scripted_plan 区分 weekday vs weekend
 
 `build_scripted_plan(profile, destinations, date, rng)` SHALL 按
@@ -1051,7 +1031,6 @@ CLI 接受 `--scale {dev|publishable}` flag：
 - **WHEN** 跑 100 agent × 7 day baseline（混合 work_mode），weekday 5 天
   + weekend 2 天
 - **THEN** weekday 平均每天 encounter ≥ weekend 平均每天 × 1.15
-
 
 ### Requirement: scripted_plan 读 8 个 profile 维度做 conditioning
 
@@ -1080,7 +1059,6 @@ CLI 接受 `--scale {dev|publishable}` flag：
 - **THEN** commute step SHALL 通过一个 transit via-point 或显示 "transit"
   reason；MUST NOT 直接 home → workplace（无 via）
 
-
 ### Requirement: LifePattern 通过 routine_adherence gated 锁定
 
 scripted_plan 用 LifePattern.preferred_* 字段时 SHALL 由
@@ -1103,7 +1081,6 @@ agent 14 天保持 LifePattern 的"sticky"通过这门控随机性涌现：高�
 - **WHEN** 同样筛 routine_adherence < 0.4 的 agents
 - **THEN** 14 天 unique leisure venue 数中位数 ≥ 4 个
 
-
 ### Requirement: Popular Times 加权采样（graceful fallback）
 
 `scripted_plan._pick_destination` SHALL 接受 `current_hour: int | None`
@@ -1122,7 +1099,6 @@ JSON 不存在 / current_hour 为 None / POI 在 popular_times 里没记录 → 
   90、cafe_secondary 周一 8am 热度 30
 - **THEN** 在 current_hour=8 的多次 _pick_destination 调用中，cafe_main
   采样比例 SHOULD 显著高于 cafe_secondary（卡方 p < 0.05）
-
 
 ### Requirement: Realism CLI 输出量化指标
 
@@ -1299,3 +1275,146 @@ familiar_with(other_agent_id: str, threshold: float = 0.1) -> bool
 - **WHEN** emma 跟 linda 累积 encounter_count=2（strength ≈ 0.167）
 - **THEN** `emma_runtime.familiar_with("linda", threshold=0.1)` SHALL 返回 True
 - **AND** `emma_runtime.familiar_with("linda", threshold=0.2)` SHALL 返回 False
+
+### Requirement: AgentProfile SHALL carry per-agent walking speed and driving preference
+
+`AgentProfile` MUST expose two new fields:
+
+- `walking_speed_m_per_min: float = 80.0` — effective travel speed used by
+  orchestrator's per-tick distance budget. Default 80 m/min (5 km/h) is
+  standard walking pace; higher values reflect mixed walking + driving.
+- `prefer_driving: bool = False` — whether the agent's NavigationService
+  route should be computed in "driving" mode (which currently means: no
+  filter; can use pedestrian and motor edges).
+
+Both default to walking-only behaviour, so existing test fixtures and
+archived experiments continue to work unchanged.
+
+#### Scenario: defaults preserve walking-only behaviour
+- **WHEN** test code constructs `AgentProfile(agent_id="x", name="x", ...)`
+  without specifying speed
+- **THEN** `agent.walking_speed_m_per_min` SHALL == `80.0`;
+  `agent.prefer_driving` SHALL be `False`
+
+### Requirement: sample_population SHALL derive speed from vehicles_at_dwelling
+
+`sample_population` MUST set each generated `AgentProfile.walking_speed_m_per_min`
+and `prefer_driving` from the agent's sampled `vehicles_at_dwelling` value
+using the following deterministic mapping:
+
+| `vehicles_at_dwelling` | `walking_speed_m_per_min` | `prefer_driving` |
+|---|---|---|
+| `None`, `"0"`         | 80.0                        | False           |
+| `"1"`                 | 150.0                       | True            |
+| `"2"`                 | 250.0                       | True            |
+| `"3plus"`             | 280.0                       | True            |
+
+These defaults are first-order estimates aligned with Lane Cove ABS 2021
+(SAL12275) household vehicle distribution; calibration is acknowledged
+as a publishable Limitation.
+
+#### Scenario: zero-car agent walks
+- **WHEN** sample_population generates an agent with `vehicles_at_dwelling == "0"`
+- **THEN** `agent.walking_speed_m_per_min` SHALL == `80.0`;
+  `agent.prefer_driving` SHALL be `False`
+
+#### Scenario: two-car agent drives
+- **WHEN** sample_population generates an agent with `vehicles_at_dwelling == "2"`
+- **THEN** `agent.walking_speed_m_per_min` SHALL == `250.0`;
+  `agent.prefer_driving` SHALL be `True`
+
+#### Scenario: ABS-consistent distribution
+- **WHEN** sample_population(n=100, seed=42) generates a Lane Cove cohort
+- **THEN** the per-speed bucket counts SHALL approximate
+  `{80: ~9, 150: ~50, 250: ~32, 280: ~9}` (within ±5% Monte Carlo noise);
+  the joint sum SHALL equal 100
+
+### Requirement: LANE_COVE_PROFILE family_composition SHALL match ABS 2021 reality
+
+The `LANE_COVE_PROFILE.family_composition_distribution` MUST reflect ABS
+2021 SAL12275 Lane Cove household composition values, NOT placeholder
+zeros that silently double-count one family type:
+
+| key | proportion |
+|---|---|
+| `lone_person`           | 0.1903 |
+| `couple_no_kids`        | 0.2666 |
+| `couple_kids_under_15`  | 0.2200 |
+| `couple_kids_15plus`    | 0.1500 |
+| `one_parent_family`     | 0.0945 |
+| `group_household`       | 0.0480 |
+| `other`                 | 0.0306 |
+
+All 7 keys MUST be present with non-zero values. Sum MUST equal 1.0 ± 1e-3.
+
+Pre-fix bug: `lone_person=0.0` and `group_household=0.0` were placeholders;
+the missing ~24% was implicitly absorbed into `couple_kids_under_15` which
+ballooned to 49% — twice the realistic share. School-pickup load
+proportionally inflated.
+
+#### Scenario: distribution sums to 1
+- **WHEN** caller reads `LANE_COVE_PROFILE.family_composition_distribution`
+- **THEN** `sum(distribution.values())` SHALL approximate 1.0 within ±0.001
+
+#### Scenario: lone_person and group_household non-zero
+- **WHEN** caller iterates `LANE_COVE_PROFILE.family_composition_distribution`
+- **THEN** `distribution["lone_person"]` SHALL be > 0.15;
+  `distribution["group_household"]` SHALL be > 0.03
+
+#### Scenario: under-15 share matches ABS
+- **WHEN** sample_population draws 100 agents from LANE_COVE_PROFILE with seed
+- **THEN** `couple_kids_under_15` count SHALL be in range [15, 30] (target 22 ± noise)
+
+### Requirement: LANE_COVE_PROFILE work_mode SHALL reflect steady-state, not COVID anomaly
+
+The `LANE_COVE_PROFILE.work_mode_distribution` MUST reflect steady-state
+Sydney commute patterns, NOT the ABS 2021 raw values captured during Delta
+lockdown (which had `remote=52.7%`, anomalously high). Steady-state values
+SHALL be:
+
+| key | proportion |
+|---|---|
+| `commute`    | 0.594 |
+| `remote`     | 0.180 |
+| `shift`      | 0.127 |
+| `nonworking` | 0.099 |
+
+Publishable reports SHALL disclose this de-anomaly choice in §Limitations.
+
+#### Scenario: remote share is steady-state
+- **WHEN** caller reads `LANE_COVE_PROFILE.work_mode_distribution["remote"]`
+- **THEN** value SHALL be approximately 0.18 (within ±0.02)
+
+#### Scenario: distribution sums to 1
+- **WHEN** caller reads `LANE_COVE_PROFILE.work_mode_distribution`
+- **THEN** `sum(distribution.values())` SHALL approximate 1.0 within ±0.001
+
+### Requirement: scripted_plan SHALL restrict child agents' destinations
+
+`build_scripted_plan` MUST post-process child-aged agents to limit their
+destination autonomy:
+
+- `profile.age < 6`: every step's destination SHALL be `profile.home_location`,
+  action SHALL be `"stay"`
+- `profile.age 6-12`: commute / school-pickup destinations preserved; meal /
+  end-of-day destinations forced to `home_location`; errand / outing
+  destinations forced to `home_location`; leisure may be preserved
+
+The post-process runs after `_meal_steps` + `_reroute_school_pickup` so
+all upstream destinations exist before clamping.
+
+#### Scenario: toddler stays home
+- **WHEN** build_scripted_plan runs for a 4-year-old agent
+- **THEN** every plan step's destination SHALL == `profile.home_location`
+  and action SHALL == `"stay"`
+
+#### Scenario: school-age child commutes to school only
+- **WHEN** build_scripted_plan runs for a 9-year-old agent with kids in
+  family_composition
+- **THEN** commute step destination SHALL be a school building (from work_pool);
+  errand / outing steps SHALL be at home_location
+
+#### Scenario: teen unrestricted
+- **WHEN** build_scripted_plan runs for a 15-year-old agent
+- **THEN** no destination restriction SHALL apply (age >= 13 path)
+

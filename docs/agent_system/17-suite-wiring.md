@@ -75,14 +75,19 @@ ContestReport 给出方向正确的 evidence_alignment
 
 ## StubReplanLLM Dispatch 表
 
+> **2026-05-10 update（fix-variant-measurement-and-friction）**：原版本 gd / pf
+> 都返回 `"<plan></plan>"`，导致 Planner.replan fallback `deep_copy(unchanged)`，
+> variant 在 stub 路径下完全无可观测效应（B2/B3）。修订后 gd 返回"distraction
+> destination"，pf 返回"community heuristic"，两者都有真 plan 改动。
+
 | variant_name | Stub 响应 | 期望行为 |
 |---|---|---|
-| `hyperlocal_push` | JSON: 1 条 step 走向 `target_location` | agent trajectory 向 target 靠拢 |
-| `global_distraction` | `"[]"` | Planner fallback 保持原 plan；trajectory 不变 |
-| `shared_anchor` | JSON: 1 条 step 走向 community heuristic（park/plaza） | anchor 组 agent 聚集到 community location |
-| `phone_friction` | `"[]"` | profile 改动生效在 DigitalProfile；replan 不直接改 plan |
-| `catalyst_seeding` | `"[]"` | personality 改动影响 should_replan 阈值；plan 结构不变 |
-| `baseline` / 未知 | `"[]"` | 无 variant 信号；零 replan |
+| `hyperlocal_push` | XML: 1 条 step 走向 `target_location` | agent trajectory 向 target 靠拢 |
+| `global_distraction` | XML: 1 条 step 走向 `_pick_distraction_location()`（atlas 中距 target 最远 outdoor area；fallback `destinations[-1]`） | agent trajectory 向 distraction 方向；与 hp 镜像 |
+| `shared_anchor` | XML: 1 条 step 走向 community heuristic（park/plaza） | anchor 组 agent 聚集到 community location |
+| `phone_friction` | XML: 1 条 step 走向 `_pick_community_location()`（park/plaza 优先；fallback `destinations[0]`） | friction 把人拉回户外；与 nudge feed_item 注入配合 |
+| `catalyst_seeding` | `"<plan></plan>"` | personality 改动影响 should_replan 阈值；plan 结构不变 |
+| `baseline` / 未知 | `"<plan></plan>"` | 无 variant 信号；零 replan |
 
 **关键设计**：Stub **不解析 prompt 内容**；按构造时注入的 `variant_name`
 分派。稳定、可测、与 prompt 演变解耦。
@@ -127,17 +132,25 @@ pipeline 再开 `--use-real-llm`。Cost 控制是未来 `model-budget` change �
 ```json
 {
   "extensions": {
-    "replan_count": 8,
-    "replan_by_day": [0, 4, 4]
+    "replan_count": 8,            // plan 真改的 replan 次数
+    "replan_by_day": [0, 4, 4],
+    "replan_no_op_count": 0,      // LLM fallback / 空 plan，plan 未改
+    "replan_no_op_by_day": [0, 0, 0]
   }
 }
 ```
 
+> **2026-05-10 update**：`replan_count` 语义收紧（B7 fix）—— 只在 plan 真改
+> 时计数；fallback / 空 plan 计入 `replan_no_op_count`。原版本不区分两者，
+> 让 gd 的"假 replan"被 reader 误判为有效行为。
+
 可立即用来 sanity-check wiring 是否生效：
 - `baseline.replan_count == 0` → feed 无注入 → 预期
 - `hyperlocal_push.replan_count > 0` → 注入成功且 agents 被触发 → 预期
-- `global_distraction.replan_count > 0` 但 trajectory_deviation_m 不降 →
-  stub 返回 "[]" → Planner fallback → 预期
+- `global_distraction.replan_count > 0` → stub 返非空 distraction plan
+- `phone_friction.replan_count > 0` → friction nudge 注入触发 replan
+- `replan_no_op_count` 在 stub 路径下应 == 0（除 catalyst_seeding 外，stub
+  对配置好的 variant 永不返空 plan）
 
 ---
 

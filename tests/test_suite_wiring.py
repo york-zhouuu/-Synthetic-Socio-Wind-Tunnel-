@@ -156,7 +156,12 @@ class TestDumpFields:
 
         suite_dirs = list(tmp_path.glob("*_dump_check"))
         assert len(suite_dirs) == 1
-        seed_files = list((suite_dirs[0] / "variant_hyperlocal_push").glob("seed_*.json"))
+        # add-per-tick-position-logging writes seed_*_positions.json companions;
+        # filter those out when counting per-seed metric dumps.
+        seed_files = [
+            p for p in (suite_dirs[0] / "variant_hyperlocal_push").glob("seed_*.json")
+            if "_positions" not in p.name
+        ]
         assert len(seed_files) == 1
         data = json.loads(seed_files[0].read_text(encoding="utf-8"))
         ext = data["run_metrics"]["extensions"]

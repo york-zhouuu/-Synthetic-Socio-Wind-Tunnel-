@@ -1,25 +1,36 @@
-# Synthetic Socio Wind Tunnel
+# Synthetic Socio Wind Tunnel · 合成社会风洞
 
-> *A simulation environment for testing hyperlocal social interventions — before deploying them in the real world.*
+> 一句话研究问题：**手机注意力在高密度城市制造"附近性盲区"——超在地推送能否反向把人带回附近？**
+
+实验场景：悉尼真实街区 **Lane Cove**，1000 个 AI 智能体，14 天 4 对照变体（baseline / 超在地推送 / 镜像全球新闻 / 减少手机吸力）。
+
+📖 **快速入口（先看这三份）**：
+- **[`docs/项目产出物.html`](docs/项目产出物.html)** — 用日常语言讲项目在做什么、要产出什么（给没接触过项目的人看）
+- **[`docs/四个对照组.html`](docs/四个对照组.html)** — 4 个对照实验各自在干啥、为什么 4 个不是 1 个
+- **[`docs/项目状态.md`](docs/项目状态.md)** — 内部 status board：当前阶段、待办、时间线
 
 ---
 
-## Project Status (as of 2026-04-25)
+## Project Status (2026-05-12)
 
-**装置 100% / 实验产出 0%** — 11 capability 全部归档；全栈 smoke 跑通；
-但 agent 拟真度不足，任何 publishable suite 当前都标
-`[unpublishable preview]`，因为 8 项 pre-publication checklist 缺 ≥ 3 项。
+**装置已完成 + D2 publishable run 进行中**。round-1/round-2 修复（共 10 个 measurement bug）+ A1 perception-loop archive + B 全套（archetype / life-history / social-priors / conversation-topics）archive + A2/A3 minimum-viable ship + D1' DeepSeek smoke 通过。
 
 | 维度 | 状态 |
 |---|---|
-| Capabilities archived | **11**（atlas / ledger / engine / perception / cartography / attention-channel / agent / orchestrator / memory / multi-day-run / policy-hack / metrics / suite-wiring 等） |
-| 治理层 spec | **3** — thesis-focus / research-design / validation-strategy |
-| Pytest | 506 passed, 2 skipped |
-| Pre-publication checklist | **3 ✓ / 3 ✗ / 2 ⚠️** （详见 [`19-system-snapshot.md`](docs/agent_system/19-system-snapshot.md)） |
-| 阻塞下一里程碑 | `agent-calibration`、`stereotype-audit`、`face-validity-protocol` 三个未做 |
+| **测试基线** | **1267 passed / 3 skipped**（从 Phase 1 的 506 → Phase 2 + 修复后的 1267） |
+| **OpenSpec archives** | **20+ 个 change**（含 A1 / B 整套 / round-1 fix-variant-measurement / round-2 fix-encounter-detection / DeepSeek tier client）|
+| **运行中** | D2 publishable: 15 seed × 14 day × 100 agent × DeepSeek（启动 2026-05-11 17:26，预估 60-80 hr）|
+| **D1' 验证结果** | hp encounter -1.2%（与 Gemini +4.4% 对比，需 D2 多 seed 确认）/ traj_dev hp 188m < gd 232m ✅ / pf +7.1% ✅ |
+| **Provider 支持** | Gemini Flash + Anthropic Haiku/Sonnet + DeepSeek v4-pro/flash + stub（4 家 + 多 tier 路由）|
+| **修复历史** | 2 轮 bug audit 共修 10 个 measurement bug，见 [`docs/audit/2026-05-09-bug-hunt.md`](docs/audit/2026-05-09-bug-hunt.md) |
+| **局限与伦理** | [`docs/limitations-ethics.md`](docs/limitations-ethics.md) —— synthetic ≠ real / LLM bias / 单城市外推风险 / 15-seed < 30 publishable 门槛 |
 
-完整快照（架构图、数据流、capability 矩阵、历史决策、候选路径）：
-[`docs/agent_system/19-system-snapshot.md`](docs/agent_system/19-system-snapshot.md)
+仍 propose-only 待 implement：
+- A2 §4-§6（scripted_plan household coordination + multi_day_run 集成）
+- A3 §3-§7（move_entity overflow + orchestrator 集成 + metrics）
+- D2 完成后的 v4 报告 HTML（基于真数据）
+
+完整时间线 + 决策点 + 候选路径：[`docs/项目状态.md`](docs/项目状态.md) §3 + §5
 
 ### Quick visualize
 

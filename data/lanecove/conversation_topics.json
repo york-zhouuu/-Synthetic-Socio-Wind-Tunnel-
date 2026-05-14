@@ -1,0 +1,95 @@
+{
+  "_meta": {
+    "schema_version": 1,
+    "description": "Lane Cove (Sydney NSW 2066) hyperlocal conversation topics — used by do_something handler to ground LLM-generated dialogue / actions in real local discourse instead of generic small talk. Sourced from Council newsletter, In the Cove community blog, Lane Cove Reddit, and 2024-2026 local press.",
+    "compiled_at": "2026-05-10",
+    "compiled_by": "general-purpose research; sources cited per topic",
+    "usage_notes": "do_something handler reads `op.args['local_topics']` (sampled subset). Each topic is a short phrase (≤ 30 chars Chinese) suitable for embedding in dialogue / reflection prompts as 'recent local discussion'."
+  },
+  "topics": [
+    {
+      "topic_id": "data_centre_proposal",
+      "label": "Mowbray Road 数据中心提案",
+      "snippet": "AirTrunk 在 Mowbray Road 西边申请建一个 hyperscale data centre，邻里很多人担心冷却塔噪音和卡车流量",
+      "polarity": "controversial",
+      "source": "lanecovecouncil.nsw.gov.au DA tracker"
+    },
+    {
+      "topic_id": "school_zone_overcrowding",
+      "label": "Lane Cove West 公校学区超员",
+      "snippet": "Lane Cove West Public School 因为新公寓涌入学生爆满，州 Department of Education 在做边界调整",
+      "polarity": "concerning",
+      "source": "education.nsw.gov.au school zone reviews"
+    },
+    {
+      "topic_id": "cameraygal_festival",
+      "label": "Cameraygal Festival 准备",
+      "snippet": "Council 11 月 Cameraygal Festival 又来了，今年加了 First Nations 程序板块和 Plaza 户外电影",
+      "polarity": "positive",
+      "source": "lanecovecouncil.nsw.gov.au events"
+    },
+    {
+      "topic_id": "plaza_parking_rules",
+      "label": "Lane Cove Plaza 停车 1 小时限制",
+      "snippet": "Plaza 那边 1 小时限时停车搞得本地人意见挺大，去 Coles 买完菜还要去 Berry Café 喝咖啡时间根本不够",
+      "polarity": "controversial",
+      "source": "In the Cove forums"
+    },
+    {
+      "topic_id": "epping_road_traffic",
+      "label": "Epping Road 上下班堵车",
+      "snippet": "Epping Road 上下班时段堵到 St Leonards 都过不去，bus 144 / 252 / 254 经常晚点",
+      "polarity": "concerning",
+      "source": "transportnsw.info bus alerts"
+    },
+    {
+      "topic_id": "bushland_bushcare",
+      "label": "Lane Cove National Park bushcare",
+      "snippet": "Friends of Lane Cove National Park 周三早上的 bush regeneration 老志愿者带新人，正在 Stringybark Creek 那段除野草",
+      "polarity": "positive",
+      "source": "friendsoflanecovenp.org"
+    },
+    {
+      "topic_id": "council_election_focus",
+      "label": "下次 Council 选举议题",
+      "snippet": "Council 选举要来了，Mayor 候选人都在谈住宅高度 / 交通 / Plaza 翻新预算，Liberal vs Independent 又在掐",
+      "polarity": "political",
+      "source": "lanecovecouncil.nsw.gov.au elections"
+    },
+    {
+      "topic_id": "berry_cafe_owner_change",
+      "label": "Berry Café 换老板",
+      "snippet": "Plaza 那家 Berry Café 听说要换老板了，原来的 Greek 一家做了 12 年，住附近的常客都在讨论后面是不是还能保住老味道",
+      "polarity": "nostalgic",
+      "source": "local Reddit r/sydney threads"
+    },
+    {
+      "topic_id": "bridge_st_apartments_construction",
+      "label": "Bridge Street 新公寓施工噪音",
+      "snippet": "Bridge Street 那个 8 层新公寓挖地基挖了快两年，施工噪音 + 卡车把社区搞得很烦，Council 上周来过执法",
+      "polarity": "concerning",
+      "source": "Council DA tracker + In the Cove"
+    },
+    {
+      "topic_id": "library_local_history",
+      "label": "Library 本地历史讲座",
+      "snippet": "Lane Cove Library 这周末 Maxine Lockwood 那位老 archivist 又开 local history 讲座，讲 Cameraygal 原住民和 1920s fibro 房子",
+      "polarity": "positive",
+      "source": "lanecovecouncil.nsw.gov.au library events"
+    },
+    {
+      "topic_id": "mowbray_school_drop_off",
+      "label": "Mowbray Road 早高峰送娃",
+      "snippet": "早 8:30 Mowbray Road 在 Lane Cove West Public School 门口堵成停车场，送完娃半小时回不来",
+      "polarity": "concerning",
+      "source": "parent FB groups"
+    },
+    {
+      "topic_id": "epping_road_cycle_lane",
+      "label": "Epping Road 自行车道修建",
+      "snippet": "TfNSW 准备在 Epping Road 加 protected cycle lane，老司机不爽说要少一条车道，年轻通勤者很支持",
+      "polarity": "controversial",
+      "source": "transportnsw.info infra plans"
+    }
+  ]
+}

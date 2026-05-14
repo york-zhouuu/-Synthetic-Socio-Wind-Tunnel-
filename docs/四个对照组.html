@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Synthetic Socio Wind Tunnel · 四个对照组到底在干什么</title>
+<style>
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC",
+               "Hiragino Sans GB", "Microsoft YaHei", "Source Han Sans", sans-serif;
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 80px 48px 120px;
+  line-height: 1.75;
+  color: #1f1f1f;
+  background: #fbfaf6;
+  font-size: 16px;
+}
+.tagline {
+  font-size: 13px;
+  letter-spacing: 0.15em;
+  color: #888;
+  text-transform: uppercase;
+  margin-bottom: 12px;
+}
+h1 {
+  font-size: 36px;
+  font-weight: 700;
+  line-height: 1.2;
+  margin: 0 0 16px;
+  letter-spacing: -0.01em;
+}
+.hook {
+  font-size: 20px;
+  color: #5b5b5b;
+  margin: 0 0 60px;
+  font-weight: 300;
+}
+h2 {
+  font-size: 26px;
+  font-weight: 600;
+  margin: 80px 0 24px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid #1f1f1f;
+}
+h3 {
+  font-size: 19px;
+  font-weight: 600;
+  margin: 0 0 10px;
+}
+p { margin: 0 0 18px; }
+strong { color: #000; font-weight: 600; }
+em { font-style: normal; background: #fff4cc; padding: 1px 4px; }
+.pullquote {
+  border-left: 4px solid #c8553d;
+  padding: 8px 24px;
+  margin: 32px 0;
+  color: #444;
+  font-size: 18px;
+  font-style: italic;
+  background: #fff;
+}
+
+/* Variant card */
+.variant {
+  background: #fff;
+  border: 1px solid #e5e2d6;
+  border-radius: 12px;
+  padding: 32px 36px;
+  margin: 28px 0;
+  position: relative;
+  border-top: 6px solid #888;
+}
+.variant.baseline { border-top-color: #6b7280; }
+.variant.hp { border-top-color: #c8553d; }
+.variant.gd { border-top-color: #fd7e14; }
+.variant.pf { border-top-color: #198754; }
+
+.variant .tag {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 3px 10px;
+  border-radius: 12px;
+  margin-bottom: 12px;
+}
+.variant.baseline .tag { background: #e8eaed; color: #4a5568; }
+.variant.hp .tag { background: #faece8; color: #c8553d; }
+.variant.gd .tag { background: #fff4e6; color: #b45309; }
+.variant.pf .tag { background: #e6f4ea; color: #1e7e34; }
+
+.variant h3 .alt {
+  font-size: 13px;
+  color: #999;
+  font-weight: 400;
+  font-family: ui-monospace, "SF Mono", "Cascadia Code", monospace;
+  margin-left: 8px;
+}
+.variant p { margin-bottom: 14px; }
+.variant .what,
+.variant .why,
+.variant .means,
+.variant .analogy {
+  margin-bottom: 14px;
+}
+.variant .label {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: #c8553d;
+  background: #faece8;
+  padding: 3px 10px;
+  border-radius: 12px;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+}
+.variant.baseline .label { color: #4a5568; background: #e8eaed; }
+.variant.gd .label { color: #b45309; background: #fff4e6; }
+.variant.pf .label { color: #1e7e34; background: #e6f4ea; }
+.variant .analogy {
+  background: #fdf6e3;
+  border-left: 3px solid #b58900;
+  padding: 12px 18px;
+  font-size: 15px;
+  color: #444;
+  border-radius: 0 6px 6px 0;
+  margin-top: 18px;
+}
+.variant .analogy .label-analogy {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: #b58900;
+  text-transform: uppercase;
+  display: block;
+  margin-bottom: 4px;
+}
+
+/* TOC */
+.toc {
+  background: #fff;
+  border: 1px solid #e5e2d6;
+  border-radius: 8px;
+  padding: 16px 24px;
+  margin: 32px 0;
+  font-size: 14px;
+}
+.toc strong {
+  display: block;
+  margin-bottom: 8px;
+  color: #888;
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  font-weight: 700;
+}
+.toc a {
+  color: #c8553d;
+  text-decoration: none;
+  margin-right: 16px;
+  line-height: 2;
+}
+.toc a:hover { text-decoration: underline; }
+
+/* Logic diagram */
+.logic-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin: 32px 0;
+}
+.logic-cell {
+  background: #fff;
+  border: 1px solid #e5e2d6;
+  border-radius: 8px;
+  padding: 16px 20px;
+}
+.logic-cell .pair {
+  font-size: 14px;
+  color: #555;
+  margin-bottom: 6px;
+}
+.logic-cell .pair-title {
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+/* Findings table */
+table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 16px 0;
+  font-size: 14px;
+}
+th, td {
+  padding: 10px 14px;
+  border-bottom: 1px solid #e5e2d6;
+  text-align: left;
+}
+th { background: #f4f1e8; font-weight: 600; font-size: 13px; }
+tr:nth-child(even) td { background: #fafaf6; }
+.delta-pos { color: #1e7e34; font-weight: 600; }
+.delta-neg { color: #c8553d; font-weight: 600; }
+.delta-zero { color: #6b7280; }
+
+footer {
+  margin-top: 100px;
+  padding-top: 32px;
+  border-top: 1px solid #d8d4c4;
+  color: #888;
+  font-size: 14px;
+}
+footer a { color: #c8553d; text-decoration: none; }
+footer a:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+
+<!-- HERO -->
+<header>
+  <p class="tagline">Synthetic Socio Wind Tunnel · 对照实验</p>
+  <h1>四个对照组到底在干什么？</h1>
+  <p class="hook">为什么不是一个干预试一下，而是四个并排比？</p>
+</header>
+
+<div class="toc">
+  <strong>这页讲什么</strong>
+  <a href="#why-4">① 为什么不是 1 个对照，是 4 个</a>
+  <a href="#variants">② 四个对照组各自在干啥</a>
+  <a href="#pairing">③ 配对设计：A 和 A' 互为镜子</a>
+  <a href="#findings">④ 当前实测结果</a>
+</div>
+
+<!-- ① WHY 4 -->
+<section id="why-4">
+
+<h2>① 为什么是 4 个，不是 1 个</h2>
+
+<p>
+研究的核心问题是：<strong>反向超在地推送能不能把人带回附近？</strong> 你可能以为最直接的做法是：
+</p>
+
+<ul>
+  <li>跑一组"开了推送的 Lane Cove"</li>
+  <li>跑一组"什么都不做的 Lane Cove"</li>
+  <li>看两组差多少 → 写论文</li>
+</ul>
+
+<p>
+这是<strong>朴素对照</strong>。问题在于，就算"开推送组"的居民走得更近邻里更多偶遇了，**也无法回答几个核心质疑**：
+</p>
+
+<div class="pullquote">
+"<strong>万一不是<u>超在地</u>推送起作用，而是<u>有推送</u>就起作用呢？</strong>"<br>
+"<strong>万一不是<u>推送</u>起作用，而是<u>少看手机</u>起作用呢？</strong>"
+</div>
+
+<p>
+要堵住这些质疑，我们需要**多组对照同时跑**，每组只换一个变量，看哪个变量真的负责改变结果。
+这种设计叫 <em>rival hypothesis</em>（对手假说并排测试），是社会实验严谨度的标配。
+</p>
+
+<p>
+所以我们设了 <strong>4 个对照组</strong>：①什么都不做的基线 + ②本项目主推的超在地干预 +
+③主干预的"反向镜像"（用同样的推送基建推全球新闻）+ ④完全相反的思路（不推送，反而<em>减弱</em>手机吸力）。
+</p>
+
+</section>
+
+<!-- ② THE 4 VARIANTS -->
+<section id="variants">
+
+<h2>② 四个对照组，各自在干啥</h2>
+
+<!-- baseline -->
+<div class="variant baseline">
+  <span class="tag">对照组 / Baseline</span>
+  <h3>① 什么都不推 <span class="alt">baseline</span></h3>
+
+  <div class="what">
+    <span class="label">是什么</span>
+    <p>
+    1000 个 Lane Cove AI 居民正常过 14 天。手机正常用，平台<strong>不主动推任何东西</strong>，
+    研究者完全不干预。该上班上班、该接娃接娃、该刷手机刷手机。
+    </p>
+  </div>
+
+  <div class="why">
+    <span class="label">解决什么问题</span>
+    <p>
+    "<strong>不干预的世界长什么样？</strong>" —— 这是其它三组要对比的<strong>参照线</strong>。
+    没这条线，"实验组提高了 X%" 这种话就没有意义（提高什么的 X%？）。
+    </p>
+  </div>
+
+  <div class="means">
+    <span class="label">意义</span>
+    <p>
+    所有 thesis 数字都以此为零点。Lane Cove 居民"自然状态下"的偶遇密度 / 弱关系数 /
+    轨迹分布是<strong>不可见的城市常态</strong>，需要先量化才能识别"干预带来了什么"。
+    </p>
+  </div>
+
+  <div class="analogy">
+    <span class="label-analogy">类比</span>
+    临床试验里的安慰剂组。<strong>不吃药也跟踪 14 天</strong>，看身体自然怎么变；
+    然后跟真吃药组比。
+  </div>
+</div>
+
+<!-- hp -->
+<div class="variant hp">
+  <span class="tag">实验组 / hyperlocal_push（hp）</span>
+  <h3>② 超在地推送 <span class="alt">hyperlocal_push · 简写 hp</span></h3>
+
+  <div class="what">
+    <span class="label">是什么</span>
+    <p>
+    每天上午 9 点，平台向 10 个"主角居民"推一条 <strong>1000 米内</strong>正在发生的本地事件——
+    比如 "今晚 7:30 Cowper 街口的 Berry Café 有社区即兴音乐会，免费进场"、
+    "Lane Cove West 公校门口贴了寻物启事，谁见过那只走丢的橘猫"……
+    </p>
+    <p>
+    推送内容是**真在 1000 米内**会发生的事，不是搬运的远方资讯。被推的 10 个主角是项目里
+    "走 LLM 决策树"的 protagonist，他们会用 LLM 自己判断：要不要因为这条推送改变今天的路线。
+    </p>
+  </div>
+
+  <div class="why">
+    <span class="label">解决什么问题</span>
+    <p>
+    "<strong>反向用手机把人拉回附近，能不能成？</strong>" —— 这是项目的<strong>主问题</strong>。
+    手机平台天然把注意力拉到远方（朋友圈 / 国际新闻 / 短视频），那同一套平台基建反过来用，
+    专门推 1000 米内的事，能不能让用户从屏幕走出去 / 走到附近真实地点 / 见到附近的人？
+    </p>
+  </div>
+
+  <div class="means">
+    <span class="label">意义</span>
+    <p>
+    这一组是<strong>整个项目的灵魂证据</strong>。如果 hp 跟 baseline 没区别，
+    thesis 就垮了——"反向超在地推送"这个干预手段无效。如果 hp 在轨迹 / 偶遇 / 弱关系上都
+    显著偏向"更附近"，那 thesis 立住——平台基建可以反向用来对抗附近性盲区。
+    </p>
+  </div>
+
+  <div class="analogy">
+    <span class="label-analogy">类比</span>
+    临床试验里的<strong>真药组</strong>。所有其他组的存在都是为了和它对比。
+  </div>
+</div>
+
+<!-- gd -->
+<div class="variant gd">
+  <span class="tag">镜像组 / global_distraction（gd）</span>
+  <h3>③ 推全球新闻（hp 的镜像） <span class="alt">global_distraction · 简写 gd</span></h3>
+
+  <div class="what">
+    <span class="label">是什么</span>
+    <p>
+    给<strong>同一组 10 个主角</strong>推送，<strong>同样的频率</strong>、
+    <strong>同样的强度</strong>，但内容反过来——推的全是<strong>跟附近毫无关系的远方资讯</strong>：
+    国际新闻、股市波动、远方明星动态、远方城市的爆款话题。
+    </p>
+    <p>
+    技术上跟 hp 用的是<em>同一套推送基建</em>，只换内容。代码上只差一行：
+    <code>source="local_news"</code> 换成 <code>source="global_news"</code>。
+    </p>
+  </div>
+
+  <div class="why">
+    <span class="label">解决什么问题</span>
+    <p>
+    "<strong>万一是<u>有推送</u>就起作用，不是<u>超在地</u>起作用？</strong>"
+    </p>
+    <p>
+    设想 hp 跑出来"居民偶遇 +5%"。怀疑者会问："会不会任何形式的推送都让人改变行为？
+    你为什么坚信是<em>本地</em>这个 attribute 让它生效，不是<em>有推送</em>这个事实本身？"
+    </p>
+    <p>
+    这种质疑只有一种方法堵：<strong>跑一个推送频率/强度一样、但内容反向的对照组</strong>。
+    如果 gd 跟 baseline 差不多（或者朝相反方向走），就证明"是<em>超在地</em>这个内容属性
+    让 hp 起作用，不是<em>推送</em>这个动作本身"。
+    </p>
+  </div>
+
+  <div class="means">
+    <span class="label">意义</span>
+    <p>
+    gd 是<strong>thesis 因果归因的关键防线</strong>。同时它也证明了一个有伦理价值的事实：
+    平台推送基建是<strong>双刃剑</strong>——同样的渠道，往左走能修复附近性，
+    往右走能加深附近性盲区。设计师 / 政策制定者都应该意识到这点。
+    </p>
+  </div>
+
+  <div class="analogy">
+    <span class="label-analogy">类比</span>
+    临床里的<strong>"剂量相同但成分相反"对照</strong>。比如测试一种"抗抑郁"新药，
+    需要同时跑一组"剂量相同但已知<u>引发</u>抑郁的物质"——证明症状改善是<em>这个成分</em>
+    的功劳，不是"打了一针"的安慰效应。
+  </div>
+</div>
+
+<!-- pf -->
+<div class="variant pf">
+  <span class="tag">反技术组 / phone_friction（pf）</span>
+  <h3>④ 减少手机吸引力 <span class="alt">phone_friction · 简写 pf</span></h3>
+
+  <div class="what">
+    <span class="label">是什么</span>
+    <p>
+    完全反向的思路——<strong>不推任何东西</strong>，反而把所有居民的手机使用强度<strong>砍半</strong>：
+    每天屏幕时间缩短 50%、推送响应度降低、feed 内容偏置从"全球"切到"本地"。
+    同时还会推一条 nudge："今天注意力被屏幕拽走了——出去走走？"
+    </p>
+  </div>
+
+  <div class="why">
+    <span class="label">解决什么问题</span>
+    <p>
+    "<strong>万一是<u>少看手机</u>起作用，不是<u>推送什么</u>起作用？</strong>"
+    </p>
+    <p>
+    研究领域有<strong>两种竞争的理论</strong>：
+    </p>
+    <ul>
+      <li><strong>H_info（信息不足假说）</strong>：附近不被感知，是因为<em>附近的信号不够强</em>；
+        平台应该<strong>主动推送</strong>附近内容来弥补 → 对应 <strong>hp 组</strong></li>
+      <li><strong>H_pull（手机吸力过强假说）</strong>：附近不被感知，是因为<em>手机把注意力拉走了</em>；
+        平台应该<strong>减少索取</strong>注意力 → 对应 <strong>pf 组</strong></li>
+    </ul>
+    <p>
+    两种理论给出的<strong>行动方向相反</strong>——一个加内容，一个减索取。
+    哪种是真的核心？只有把它们并排跑一遍才知道。
+    </p>
+  </div>
+
+  <div class="means">
+    <span class="label">意义</span>
+    <p>
+    pf 是<strong>项目最大的伦理 fallback</strong>。即使 hp 不成立（"加推送"被证明无效），
+    只要 pf 成立（"减手机"有效），项目仍能给出有用的政策结论：
+    "<strong>解决附近性盲区不需要新的平台干预，<u>减少现有平台的索取</u>就够了</strong>"。
+    </p>
+    <p>
+    这条线对答辩 / 政策圈极其重要——给出"<em>不必引入新干预，反而是<u>少做</u>更管用</em>"
+    的反直觉发现。
+    </p>
+  </div>
+
+  <div class="analogy">
+    <span class="label-analogy">类比</span>
+    临床里的<strong>"停掉一种已有用药 vs 加新药"对照</strong>。
+    比如测试"中年人失眠"，要同时跑"开新的安眠药" + "停掉每天的咖啡因"两组——
+    可能发现根本不需要新药，少喝两杯咖啡就够了。
+  </div>
+</div>
+
+</section>
+
+<!-- ③ PAIRING DESIGN -->
+<section id="pairing">
+
+<h2>③ 配对设计——四个组其实是两对镜子</h2>
+
+<p>
+四个组不是平列堆放的，它们组成了<strong>两对"镜子"</strong>，每对回答一个具体质疑：
+</p>
+
+<div class="logic-grid">
+  <div class="logic-cell" style="border-top: 4px solid #c8553d;">
+    <div class="pair">第一对镜子：内容方向</div>
+    <div class="pair-title">hp ↔ gd</div>
+    <p style="margin: 0; font-size: 14px; color: #555;">
+    一组推 1000 米内的本地内容（hp），另一组推全球远方内容（gd）。
+    都用同一套平台 / 同样频率 / 同样强度。
+    <strong>如果 hp 起作用而 gd 不起 / 反向</strong>，就证明<em>是"超在地"这个内容属性
+    在起作用</em>，不是"推送"本身。
+    </p>
+  </div>
+
+  <div class="logic-cell" style="border-top: 4px solid #198754;">
+    <div class="pair">第二对镜子：干预方向</div>
+    <div class="pair-title">hp ↔ pf</div>
+    <p style="margin: 0; font-size: 14px; color: #555;">
+    一组"加推送给注意力"（hp），另一组"减手机吸力"（pf）——两种完全相反的解决思路。
+    <strong>如果两者都起作用</strong>，说明附近性盲区是<em>双因素问题</em>（信号不足 + 注意力被夺）；
+    <strong>如果只 hp 起作用</strong>，附近性盲区是信号问题；
+    <strong>如果只 pf 起作用</strong>，附近性盲区是注意力问题（更厚重的政策含义）。
+    </p>
+  </div>
+</div>
+
+<p>
+baseline 不参与镜像，它是<strong>所有比较的零点</strong>——hp vs baseline / gd vs baseline /
+pf vs baseline 三个独立 delta 共同构成 thesis 答卷。
+</p>
+
+</section>
+
+<!-- ④ FINDINGS -->
+<section id="findings">
+
+<h2>④ 当前实测——D1' DeepSeek 验证（1 seed × 14 day × 100 agent）</h2>
+
+<p>
+首次跑 DeepSeek 真 LLM 验证后的初步数据（注意：1 个种子的数据 noise 大，<strong>真正的 thesis 答卷</strong>
+等 D2 跑完 15 个种子才出，~2-3 天后）：
+</p>
+
+<table>
+<thead>
+<tr><th>对照组</th><th>偶遇总数</th><th>vs 基线</th><th>轨迹偏离 (protag)</th><th>含义</th></tr>
+</thead>
+<tbody>
+<tr>
+  <td>① 什么都不推（基线）</td>
+  <td>1.20M</td>
+  <td class="delta-zero">—</td>
+  <td>—</td>
+  <td>Lane Cove 自然状态参照线</td>
+</tr>
+<tr>
+  <td>② 超在地推送（hp）</td>
+  <td>1.18M</td>
+  <td class="delta-neg">−1.2%</td>
+  <td><strong>188m</strong></td>
+  <td>偶遇略降，但轨迹拉得近——证据混合</td>
+</tr>
+<tr>
+  <td>③ 推全球新闻（gd）</td>
+  <td>1.13M</td>
+  <td class="delta-neg">−5.8%</td>
+  <td>232m</td>
+  <td>偶遇明显降，轨迹远离——证明"<em>推送方向</em>真影响结果"</td>
+</tr>
+<tr>
+  <td>④ 减少手机吸力（pf）</td>
+  <td>1.28M</td>
+  <td class="delta-pos">+7.1%</td>
+  <td>—</td>
+  <td><strong>偶遇显著上升 → 支持 H_pull</strong></td>
+</tr>
+</tbody>
+</table>
+
+<p>
+<strong>初步解读</strong>：
+</p>
+
+<ul>
+  <li>第二对镜子（hp vs pf）一边发力一边不太发力——<strong>"减少手机吸力"那条更直接</strong>；</li>
+  <li>第一对镜子（hp vs gd）方向<strong>明确</strong>——hp 把主角拉得离推送地 188m，gd 把主角推到 232m 外，
+    证明<em>推送方向</em>真在塑造物理轨迹；</li>
+  <li>但 hp 的<strong>偶遇 -1.2%</strong> 反直觉——把人聚到一个点反而减少了"散点遇见"的对子数。
+    这不是 thesis 失败，是<strong>发现了机制层次</strong>：hp 制造<em>局部聚集</em>，
+    pf 制造<em>分散探索</em>，两者都打破盲区但路径不同。</li>
+</ul>
+
+<div class="pullquote">
+"打破附近性盲区"不一定意味着"全城整体偶遇增加"。它可以是
+<strong>10 个被推送的人真的去了那个本地音乐会</strong>，也可以是
+<strong>1000 个人因为少看手机各自走出户外</strong>。<br>
+两种都<u>有效</u>，但<u>形状不同</u>。
+</div>
+
+<p>
+D2 跑完 15 个种子的 95% 置信区间后，会有更稳定的答案。
+</p>
+
+</section>
+
+<footer>
+  <p>
+  来源：项目 thesis（<a href="agent_system/00-thesis.md">docs/agent_system/00-thesis.md</a>）·
+  实验设计契约（<code>openspec/specs/experimental-design/spec.md</code>） ·
+  D1' 实测数据（<code>docs/2026-05-11-d1-deepseek-smoke-results.md</code>）
+  </p>
+  <p>
+  四个对照组的英文术语：baseline / hyperlocal_push (hp) / global_distraction (gd) / phone_friction (pf)
+  </p>
+</footer>
+
+</body>
+</html>

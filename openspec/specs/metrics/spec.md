@@ -21,9 +21,7 @@ social-downstream）；`weak_tie_formation_count` / `info_propagation_hops` /
 
 模块：`synthetic_socio_wind_tunnel/metrics/`
 入口 CLI：`tools/run_variant_suite.py`
-
 ## Requirements
-
 ### Requirement: TickMetricsRecorder 采样 per-tick 数据
 
 `synthetic_socio_wind_tunnel/metrics/recorder.py` SHALL 定义
@@ -108,7 +106,6 @@ rollup 为 `DayMetricsSummary`。
 - **WHEN** 100 agents × 288 tick × 14 day × 1 seed，与无 recorder baseline 比较
 - **THEN** wall time 增量 SHALL ≤ 10%（baseline ~10s → 带 recorder ≤ 11s）
 
-
 ### Requirement: RunMetrics 数据模型
 
 `synthetic_socio_wind_tunnel/metrics/models.py` SHALL 定义
@@ -118,7 +115,8 @@ rollup 为 `DayMetricsSummary`。
 - `variant_name: str`（"baseline" 为默认）
 - `num_days: int`
 - `per_day: tuple[DayMetricsSummary, ...]`
-- `trajectory_deviation_m: float | None = None`（baseline→intervention 差）
+- `trajectory_deviation_m: float | None = None`（**push-target subset median**：仅对 `variant_metadata["target_agent_ids"]` 中 agent 计算到 target_location 的 median 距离；缺省时为 None）
+- `trajectory_deviation_m_all: float | None = None`（**all-agent median**，sanity 对照；hp/gd 计算，其它 variant 为 None）
 - `encounter_stats: dict[str, float]`（total / per_day_median / diversity）
 - `space_activation: dict[str, float]`（location → cumulative dwell_tick_count）
 - `feed_stats: dict[str, int]`（per FeedSource delivered / suppressed）
@@ -127,6 +125,8 @@ rollup 为 `DayMetricsSummary`。
 - `weak_tie_formation_count: int | None = None`（`social-graph` 填）
 - `info_propagation_hops: dict[str, int] | None = None`（`conversation` 填）
 - `extensions: dict[str, Any] = {}`（未来 recorder 挂载用）
+
+**语义变更说明**（fix-variant-measurement-and-friction，2026-05-10）：原 `trajectory_deviation_m` 在 100 个 agent 上取 median 会被 90 个 scripted agent 稀释（参见 `docs/audit/2026-05-09-bug-hunt.md` B1）。本 change 收紧为"push 真实作用对象的子集"，让 thesis 信号在 metric 上可见。
 
 #### Scenario: 构造完整 RunMetrics 并 JSON dump
 - **WHEN** 14 天 run 结束，构造 RunMetrics；调 `.model_dump_json()`
@@ -137,6 +137,13 @@ rollup 为 `DayMetricsSummary`。
 - **THEN** `weak_tie_formation_count` SHALL 为 None；`info_propagation_hops`
   SHALL 为 None
 
+#### Scenario: traj_dev_m 与 traj_dev_m_all 的 baseline 行为
+- **WHEN** variant_name == "baseline"，构造 RunMetrics
+- **THEN** `trajectory_deviation_m` SHALL 为 None；`trajectory_deviation_m_all` SHALL 为 None
+
+#### Scenario: traj_dev_m 与 traj_dev_m_all 的 hyperlocal_push 行为
+- **WHEN** variant_name == "hyperlocal_push"，variant_metadata 提供 target_location 与 target_agent_ids（10 个 protag）
+- **THEN** `trajectory_deviation_m` SHALL 是 10 个 protag 到 target 的 median；`trajectory_deviation_m_all` SHALL 是 100 个 agent 的 median；两者通常显著不同
 
 ### Requirement: RunMetrics.from_recorder 工厂
 
@@ -144,19 +151,25 @@ rollup 为 `DayMetricsSummary`。
 把 TickMetricsRecorder 的累积数据 + MultiDayResult + variant metadata 合并
 为 RunMetrics 实例。
 
-trajectory_deviation_m 的第一版计算 SHALL 是：
+trajectory_deviation_m 计算 SHALL：
+
 ```
 1. 对每 agent：
-    baseline_end_loc = location_id at end of baseline phase
     intervention_end_loc = location_id at end of intervention phase
-    post_end_loc = location_id at end of post phase
 2. 若 variant 是 hyperlocal_push / global_distraction：
-    trajectory_deviation_m = median(
-        euclidean_distance(intervention_end_loc_center, target_location_center)
-        for agent in target_agents
-    )
-3. 其它 variant：留 None（由 D4 Risk 处理，未来 variant-specific 计算）
+    target_ids = variant_metadata.get("target_agent_ids") or set()
+    target_loc = variant_metadata.get("target_location")
+    distances_target = [
+        euclidean(intervention_end_loc_center, target_loc_center)
+        for agent_id in target_ids if agent_id in end_locations
+    ]
+    distances_all = [...same calc on all agents in end_locations...]
+    trajectory_deviation_m     = median(distances_target) if distances_target else None
+    trajectory_deviation_m_all = median(distances_all) if distances_all else None
+3. 其它 variant：两值都留 None
 ```
+
+**注意**：当 `target_agent_ids` 缺省（如 hyperlocal_push 的早期实例没注入这个字段），factory SHALL fallback 到 `[rt.profile.agent_id for rt in runtimes if rt.profile.is_protagonist]`，与 ai-town port 后的 protag set 对齐。
 
 #### Scenario: 从 recorder + result 组装
 - **WHEN** `RunMetrics.from_recorder(recorder=rec, multi_day_result=result,
@@ -164,6 +177,9 @@ trajectory_deviation_m 的第一版计算 SHALL 是：
 - **THEN** 返回实例的 `seed` / `variant_name` / `num_days` SHALL 与输入一致；
   `per_day` SHALL 有 num_days 条
 
+#### Scenario: target_agent_ids 缺省时 fallback 到 protag
+- **WHEN** variant_metadata 不含 target_agent_ids；runtimes 中有 10 个 is_protagonist=True 的 agent
+- **THEN** trajectory_deviation_m SHALL 在这 10 个 agent 上计算 median；不应退回到 100 个 agent 的全集
 
 ### Requirement: SuiteAggregate 跨 seed 统计
 
@@ -177,6 +193,9 @@ trajectory_deviation_m 的第一版计算 SHALL 是：
 - `encounter_stats.per_day_median`
 - `feed_stats`（每 source 独立统计）
 - `attention_allocation_ratio.physical_world`
+- `weak_tie_formation_count`（thesis-downstream outcome；social-graph 注入时才非 None）
+- `tie_count_total_eod` / `tie_count_weak_eod` / `tie_count_strong_eod`
+  （per_day 最后一日的 cumulative，从 `DayMetricsSummary.tie_count_*` 取）
 
 输出的 SuiteAggregate SHALL 含：
 - `variant_name: str`
@@ -195,6 +214,16 @@ trajectory_deviation_m 的第一版计算 SHALL 是：
 - **THEN** aggregate SHALL 仍可构造；但产出的 SuiteAggregate.metadata 字段
   SHALL 含 `"degraded_preliminary_not_publishable": true` 标记
 
+#### Scenario: social-graph 注入时聚合暴露 weak-tie outcome
+- **WHEN** 7 个 RunMetrics 传入，每个 RunMetrics.weak_tie_formation_count 非 None
+- **THEN** SuiteAggregate.per_metric_stats SHALL 含 key `"weak_tie_formation_count"`，
+  该 dict 含 5 键（median / iqr_lo / iqr_hi / ci95_lo / ci95_hi）；缺失会使 B3
+  sensitivity sweep 无法用聚合数据验证 thesis 方向稳健性
+
+#### Scenario: 无 social-graph 注入时保持向后兼容
+- **WHEN** 7 个 RunMetrics 传入，每个 RunMetrics.weak_tie_formation_count 为 None
+- **THEN** SuiteAggregate.per_metric_stats SHALL NOT 含 `"weak_tie_formation_count"` key，
+  与旧聚合输出保持等价
 
 ### Requirement: ContestReport rival hypothesis 打分
 
@@ -237,7 +266,6 @@ MUST NOT 包含 "proved / falsified / confirmed / refuted" 关键词。
 - **THEN** A 的行 SHALL 有 `mirror_delta = A_effect - A'_effect`；A' 的行
   SHALL 有 `mirror_delta = A'_effect - A_effect`（对称）
 
-
 ### Requirement: ReportWriter 五幕 Markdown
 
 `synthetic_socio_wind_tunnel/metrics/report.py` SHALL 提供
@@ -268,7 +296,6 @@ MUST NOT 包含 "proved / falsified / confirmed / refuted" 关键词。
 - **WHEN** suite 只含 variants（无 baseline）
 - **THEN** Act 1 Baseline 区段 SHALL 标注 "⚠️ no baseline run in suite;
   Act 3 contest uses first variant as reference"
-
 
 ### Requirement: Suite CLI
 
@@ -304,7 +331,6 @@ MUST NOT 包含 "proved / falsified / confirmed / refuted" 关键词。
 - **WHEN** `--variants unknown_foo`
 - **THEN** CLI SHALL exit code ≠ 0；stderr 列出合法 variant 名
 
-
 ### Requirement: build_single_seed_run 接受可选 recorder
 
 `tools/run_multi_day_experiment.py::build_single_seed_run` SHALL 接受
@@ -318,7 +344,6 @@ SHALL 把它注册为 orchestrator 的 `on_tick_end` 订阅者。
 - **WHEN** `build_single_seed_run(seed=42, n_agents=100, ..., recorder=None)`
 - **THEN** 行为 SHALL 与不传 recorder 完全一致
 
-
 ### Requirement: 零依赖 numpy / pandas
 
 `metrics` 模块 SHALL 仅使用 Python stdlib + pydantic 已引入的依赖，
@@ -328,7 +353,6 @@ SHALL 把它注册为 orchestrator 的 `on_tick_end` 订阅者。
 #### Scenario: 模块 import 不引入 numpy
 - **WHEN** `import synthetic_socio_wind_tunnel.metrics` 执行
 - **THEN** `sys.modules` 不新增 `numpy` / `pandas` / `scipy` 项
-
 
 ### Requirement: 未来 social-graph / conversation 挂载接口
 
@@ -409,7 +433,6 @@ recorder 持有 conversation 时填充为 dict：
 - **THEN** `RunMetrics.from_recorder(recorder).info_propagation_hops`
   SHALL 为 None
 
-
 ### Requirement: 审计翻绿
 
 `synthetic_socio_wind_tunnel.metrics` 模块 SHALL importable；
@@ -418,3 +441,43 @@ recorder 持有 conversation 时填充为 dict：
 #### Scenario: metrics audit
 - **WHEN** 运行 `make fitness-audit`
 - **THEN** `phase2-gaps.metrics` AuditResult 的 `status` SHALL 为 `pass`
+
+### Requirement: PositionTraceRecorder SHALL record sparse position-change events
+
+The class `synthetic_socio_wind_tunnel.metrics.PositionTraceRecorder` MUST
+subscribe to `Orchestrator.on_tick_end` and record `PositionChange` events
+ONLY when an agent's `location_id` differs from its previously recorded value.
+
+This sparseness ensures that storage scales with movement volume (~20
+events/agent/day), not with tick count × agent count.
+
+The recorder MUST expose:
+- `on_tick_end(tick_result: TickResult) -> None`: hook signature
+- `to_dict() -> dict`: serializable form
+- `write(path: Path) -> None`: write JSON to a file
+- `total_changes: int` property: total recorded change count
+
+The output JSON SHALL conform to schema `position_trace_v1` containing
+`n_agents`, `n_changes`, and a `changes` list where each entry has
+`tick: int`, `day: int`, `agent_id: str`, `location_id: str`.
+
+#### Scenario: stationary agent yields no extra records
+- **WHEN** the same agent's location is unchanged across 10 consecutive ticks
+- **THEN** only 1 PositionChange event SHALL be recorded (the first sighting)
+
+#### Scenario: position change recorded
+- **WHEN** agent A at location "home" on tick 0, then "cafe" on tick 5
+- **THEN** the recorder SHALL store 2 changes:
+  `(tick=0, agent_id="A", location_id="home")` and
+  `(tick=5, agent_id="A", location_id="cafe")`
+
+#### Scenario: empty location skipped
+- **WHEN** an agent's location_id is empty string at the tick boundary
+- **THEN** the recorder SHALL NOT record a change
+
+#### Scenario: companion JSON file produced by suite
+- **WHEN** `tools/run_variant_suite.py` finishes a seed run
+- **THEN** a `seed_<N>_positions.json` file SHALL exist next to
+  `seed_<N>.json` inside `variant_<name>/`; its `changes` array SHALL be
+  non-empty for any non-trivial run
+

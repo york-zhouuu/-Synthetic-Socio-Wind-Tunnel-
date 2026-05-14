@@ -86,6 +86,7 @@ class Orchestrator:
         "_resolver",
         "_hooks",
         "_async_tick_end_hooks",
+        "_walking_speed_m_per_min",
     )
 
     def __init__(
@@ -101,6 +102,7 @@ class Orchestrator:
         tick_minutes: int = 5,
         seed: int = 0,
         num_days: int = 1,
+        walking_speed_m_per_min: float = 80.0,
     ) -> None:
         # -- validate --
         # num_days=1 是单日默认；>1 由 MultiDayRunner 按天循环调 run()
@@ -129,6 +131,10 @@ class Orchestrator:
         self._agents = list(agents)
         self._attention_service = attention_service
         self._tick_minutes = tick_minutes
+        # add-walking-speed-budget: 80 m/min = 5 km/h average walk; 5-min
+        # tick → 400m max travel per tick. Prevents the "agent walks 22
+        # street segments in 5 min" teleport bug.
+        self._walking_speed_m_per_min = max(1.0, walking_speed_m_per_min)
         self._ticks_per_day = 1440 // tick_minutes
         self._seed = seed
         self._num_days = num_days
@@ -357,13 +363,26 @@ class Orchestrator:
             if trace is not None:
                 traces[decision.agent_id] = trace
 
-        # 5. Encounter detection
-        encounter_candidates = self._detect_encounters(tick_index, traces)
+        # 5. Encounter detection — pass end-of-tick entity locations to
+        # capture co-presence of stationary agents (B9 fix).
+        entity_locations: dict[str, str] = {}
+        for ent_id in self._ledger.list_entity_ids():
+            ent = self._ledger.get_entity(ent_id)
+            if ent is not None and ent.location_id:
+                entity_locations[ent_id] = ent.location_id
+        encounter_candidates = self._detect_encounters(
+            tick_index, traces, entity_locations=entity_locations,
+        )
 
         # 6. Advance time
         self._ledger.current_time = tick_start_time + timedelta(minutes=self._tick_minutes)
 
         # 7. Build TickResult (on_tick_end fires in run() to centralize stat collection)
+        movement_traces_tuple = tuple(
+            (agent_id, trace.locations)
+            for agent_id, trace in traces.items()
+            if trace and trace.locations
+        )
         return TickResult(
             tick_index=tick_index,
             simulated_time=tick_start_time,
@@ -371,6 +390,8 @@ class Orchestrator:
             encounter_candidates=tuple(encounter_candidates),
             simulated_date=resolved_date,
             day_index=day_index,
+            entity_locations=tuple(entity_locations.items()),
+            movement_traces=movement_traces_tuple,
         )
 
     # ---- Observer context with position bridge (D11) ----
@@ -430,37 +451,103 @@ class Orchestrator:
         agent: "AgentRuntime",
     ) -> tuple[SimulationResult, TickMovementTrace | None]:
         """
-        MoveIntent 展开：NavigationService.find_route → 逐 step move_entity。
-        每 sub-step 的成功 location 追加到 TickMovementTrace。
+        MoveIntent 展开 (add-walking-speed-budget): advance the agent along
+        NavigationService route subject to a per-tick distance budget so a
+        long route spreads across multiple ticks instead of teleporting.
+
+        Budget = tick_minutes × walking_speed_m_per_min (default 5 × 80 = 400m).
+        Remaining route steps are cached on `agent._in_flight_route_remaining`
+        so the next tick resumes walking from where this one stopped.
         """
         from_loc = agent.current_location
         if from_loc == intent.to_location:
-            # Already there — no move, no trace (won't produce encounters either)
+            # Already there — clear any stale in-flight state
+            agent._in_flight_route_remaining = []
+            agent._in_flight_target = None
             return SimulationResult.ok(message="already_at_location"), None
 
-        route = self._navigation.find_route(from_loc, intent.to_location)
-        if not route.success or not route.steps:
-            return SimulationResult.fail(
-                f"Route not found: {route.error or 'no steps'}",
-                error_code=SimulationErrorCode.LOCATION_UNREACHABLE,
-            ), None
+        # Resume in-flight walk if same target; else recompute route
+        if (agent._in_flight_target == intent.to_location
+                and agent._in_flight_route_remaining):
+            steps_to_walk = list(agent._in_flight_route_remaining)
+        else:
+            # add-walking-speed-budget: filter route by transport mode so
+            # car-less agents skip motorway-only segments and driving agents
+            # avoid footpaths.
+            agent_mode = (
+                "driving" if getattr(agent.profile, "prefer_driving", False)
+                else "walking"
+            )
+            route = self._navigation.find_route(
+                from_loc, intent.to_location, mode=agent_mode,
+            )
+            if not route.success or not route.steps:
+                # Fall back to mode='any' so we don't fail just because of
+                # mode filter — agent will still respect speed budget per tick.
+                route = self._navigation.find_route(from_loc, intent.to_location)
+            if not route.success or not route.steps:
+                agent._in_flight_route_remaining = []
+                agent._in_flight_target = None
+                return SimulationResult.fail(
+                    f"Route not found: {route.error or 'no steps'}",
+                    error_code=SimulationErrorCode.LOCATION_UNREACHABLE,
+                ), None
+            steps_to_walk = list(route.steps)
+            agent._in_flight_target = intent.to_location
 
-        # Walk each NavigationStep: each step has a to_location
+        # C3 fix: per-trip mode override. Driver going to a near destination
+        # (< 500m straight-line) defaults to walking pace instead of driving.
+        # Captures "1-car household walks to grocery, drives to work" behavior.
+        agent_speed = float(getattr(
+            agent.profile, "walking_speed_m_per_min",
+            self._walking_speed_m_per_min,
+        ) or self._walking_speed_m_per_min)
+        prefer_driving = getattr(agent.profile, "prefer_driving", False)
+        if prefer_driving:
+            home_c = self._atlas.get_center(from_loc)
+            dest_c = self._atlas.get_center(intent.to_location)
+            if home_c and dest_c:
+                straight_line_m = (
+                    (home_c.x - dest_c.x) ** 2 + (home_c.y - dest_c.y) ** 2
+                ) ** 0.5
+                # Short trip → walk pace (overrides driver baseline)
+                if straight_line_m < 500.0:
+                    agent_speed = 80.0
+        tick_budget_m = self._tick_minutes * agent_speed
         trace_locations: list[str] = []
+        consumed_distance = 0.0
         last_result = SimulationResult.ok(message="no_steps")
-        for nav_step in route.steps:
+        idx = 0
+        for nav_step in steps_to_walk:
+            step_distance = float(getattr(nav_step, "distance", 0.0) or 0.0)
             step_location = nav_step.to_location
             result = self._simulation.move_entity(agent_id, step_location)
             if not result.success:
-                # Stop on failure; agent stays at last successful sub-step
                 last_result = result
                 break
-            # Update agent's cached current_location so subsequent ticks see it
             agent.current_location = step_location
             trace_locations.append(step_location)
             last_result = result
+            consumed_distance += step_distance
+            idx += 1
+            # Stop after current step if we've already used the tick's budget.
+            # Always advance at least 1 step per tick (avoids stuck-at-zero
+            # when one segment alone exceeds budget).
+            if consumed_distance >= tick_budget_m:
+                break
 
-        trace = TickMovementTrace(locations=tuple(trace_locations)) if trace_locations else None
+        # Save remaining for next tick; clear if route done
+        remaining = steps_to_walk[idx:]
+        if remaining:
+            agent._in_flight_route_remaining = remaining
+        else:
+            agent._in_flight_route_remaining = []
+            agent._in_flight_target = None
+
+        trace = (
+            TickMovementTrace(locations=tuple(trace_locations))
+            if trace_locations else None
+        )
         return last_result, trace
 
     # ---- Encounter detection ----
@@ -469,18 +556,38 @@ class Orchestrator:
         self,
         tick_index: int,
         traces: dict[str, TickMovementTrace],
+        entity_locations: dict[str, str] | None = None,
     ) -> list[EncounterCandidate]:
         """
-        O(total_trace_length): group agents by each visited location,
-        emit pair (a, b) for any location shared.
-        """
-        if not traces:
-            return []
+        Two sources fed into a per-location bucket:
 
+        1. **trace-based** — for agents who moved this tick, every sub-step
+           location in their TickMovementTrace.
+        2. **end-of-tick co-presence** — `entity_locations[agent_id]` is each
+           agent's `current_location` at tick end (from Ledger snapshot),
+           covers stationary agents (WaitIntent / no movement).
+
+        B9 fix (fix-encounter-detection-and-observability, 2026-05-10): without
+        source (2), agents dwelling at a location were invisible to encounter
+        detection — systematically undercount encounters during dwell windows.
+
+        O(total_trace_length + N) — N = number of entities.
+        """
         location_visitors: dict[str, set[str]] = defaultdict(set)
+
+        # Source 1: trace-based (walking through)
         for agent_id, trace in traces.items():
             for loc in trace.locations:
                 location_visitors[loc].add(agent_id)
+
+        # Source 2: end-of-tick co-presence (stationary + walking-arrived)
+        if entity_locations:
+            for agent_id, loc in entity_locations.items():
+                if loc:
+                    location_visitors[loc].add(agent_id)
+
+        if not location_visitors:
+            return []
 
         # Collect pair → shared locations
         pair_shared: dict[tuple[str, str], set[str]] = defaultdict(set)

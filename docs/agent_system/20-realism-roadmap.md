@@ -68,6 +68,21 @@
 
 按"产品 ROI / 工时" 排序：
 
+### Stage 0.5 — `fix-population-uses-typed-locations` 🔧 IN-FLIGHT 2026-05-12
+**目标**：修 thesis-blocking bug — agent.home_location 落到 residential building，
+scripted_plan 走进 cafe / shop / office 而非街段。
+
+- 旧 wiring：`_pick_connected_destinations(atlas)` 只从 outdoor_areas 抽 →
+  agent 14 天 dwell 93% 在 street、0% 在 residential
+- 新 wiring：`build_location_pools(atlas)` 按 atlas building_type / area_type
+  返回 typed `LocationPools(home_pool / work_pool / poi_pool)`；agent 工厂 +
+  scripted_plan + variant stub 全部消费 typed pools
+- 1-day smoke ACCEPTANCE：residential ≥ 40% / street ≤ 20% PASS（60.1% / 0%）
+
+**视觉/产品验收**：
+- 3D dashboard hex 密度柱出现在 residential 建筑顶上而非街段
+- agent X 的 routine 图能区分"在家"vs"在街上"
+
 ### Stage 1 — `realism-time-and-self` ✅ ARCHIVED 2026-04-28
 **目标**：F1 + F3 — 时空真实 + 个人 routine 锚定
 

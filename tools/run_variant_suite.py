@@ -100,6 +100,11 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--seeds", type=int, default=30)
     p.add_argument("--num-days", type=int, default=14)
     p.add_argument("--agents", type=int, default=100)
+    p.add_argument("--num-protagonists", type=int, default=None,
+                   help="LLM-driven protagonist count (Sonnet tier). Default "
+                        "is 10%% of --agents. Set higher (e.g. 50%%) for "
+                        "publishable runs so variant push effects aren't "
+                        "diluted by 90%% scripted-only agents (A2 disclosure).")
     p.add_argument("--mode", choices=["dev", "publishable"], default="publishable")
     p.add_argument("--phase-days", type=str, default="4,6,4")
     p.add_argument("--start-date", type=str, default="2026-04-22")
@@ -113,12 +118,43 @@ def parse_args() -> argparse.Namespace:
                         "do_something + reflection; lane cove data injected "
                         "(archetypes/shared_memories/life_history/social_priors). "
                         "Implies generate_identity=True at sample time.")
-    p.add_argument("--aitown-provider", choices=["gemini", "anthropic", "stub"],
+    p.add_argument("--aitown-provider",
+                   choices=["gemini", "anthropic", "deepseek", "stub"],
                    default="gemini",
                    help="LLM provider for ai-town ops. gemini=GEMINI_API_KEY env "
-                        "(default), anthropic=ANTHROPIC_API_KEY env, stub=zero-cost "
-                        "deterministic test client.")
+                        "(default), anthropic=ANTHROPIC_API_KEY env, "
+                        "deepseek=DEEPSEEK_API_KEY env (v4-pro for sonnet tier, "
+                        "v4-flash for haiku/nano), stub=zero-cost deterministic.")
+    p.add_argument("--suite-dir", type=Path, default=None,
+                   help="Use this exact suite directory (skip the auto "
+                        "timestamp-prefixed subdir). Required for --resume.")
+    p.add_argument("--resume", action="store_true",
+                   help="Skip seeds whose seed_<N>.json already exists in the "
+                        "target variant_<X>/ subdir (load run_metrics from "
+                        "disk instead). Skip whole variant if aggregate.json "
+                        "exists. Use with --suite-dir.")
+    p.add_argument("--workers", type=int, default=1,
+                   help="Process-level parallelism: split variants across N "
+                        "worker subprocesses, each running ALL seeds for one "
+                        "variant against a shared --suite-dir. Coordinator "
+                        "process aggregates at the end. Default 1 (serial). "
+                        "Pick min(workers, len(variants)).")
     return p.parse_args()
+
+
+def _parse_phase_days_to_dict(phase_days: str) -> dict[str, int]:
+    """Split "4,6,4" → {"baseline_days":4,"intervention_days":6,"post_days":4}.
+
+    Raises ValueError if not exactly 3 comma-separated ints.
+    """
+    parts = [int(x.strip()) for x in phase_days.split(",")]
+    if len(parts) != 3:
+        raise ValueError(f"--phase-days expects '4,6,4'; got {phase_days!r}")
+    return {
+        "baseline_days": parts[0],
+        "intervention_days": parts[1],
+        "post_days": parts[2],
+    }
 
 
 def _build_variant(
@@ -128,13 +164,11 @@ def _build_variant(
     target_location: str | None,
 ) -> tuple[Variant | None, PhaseController]:
     """解析 phase + 可选 variant 实例化。baseline 返 (None, controller)。"""
-    parts = [int(x.strip()) for x in phase_days.split(",")]
-    if len(parts) != 3:
-        raise ValueError(f"--phase-days expects '4,6,4'; got {phase_days!r}")
+    pc = _parse_phase_days_to_dict(phase_days)
     controller = PhaseController(
-        baseline_days=parts[0],
-        intervention_days=parts[1],
-        post_days=parts[2],
+        baseline_days=pc["baseline_days"],
+        intervention_days=pc["intervention_days"],
+        post_days=pc["post_days"],
     )
     if variant_name == "baseline":
         return None, controller
@@ -463,8 +497,24 @@ def run_seed_with_metrics(
     ledger = Ledger()
     ledger.current_time = datetime.combine(start_date, datetime.min.time())
 
-    destinations = _pick_connected_destinations(atlas, 20, rng)
-    target_location = destinations[0] if destinations else None
+    # fix-population-uses-typed-locations + fix-realism-systemic-gaps: typed
+    # pools (with PoolQuotas) replace single-pool outdoor-only destinations.
+    # PoolQuotas guarantees food_drink / shop / leisure minimums and balances
+    # work_pool across office/school/commercial. n_agents scales pool sizes
+    # so 1000-agent runs don't share 20 workplaces.
+    from synthetic_socio_wind_tunnel.agent import build_location_pools
+    pools = build_location_pools(
+        atlas,
+        home_count=max(40, n_agents // 2),
+        n_agents=n_agents,
+        rng=rng,
+    )
+    target_location = pools.pick_target_location(
+        atlas, rng, prefer="community",
+    )
+    # Provide poi_pool as `destinations` view for any internal call sites that
+    # haven't yet migrated. Stub LLM consumes `pools` directly below.
+    destinations = list(pools.poi_pool)
 
     variant, controller = _build_variant(
         variant_name, phase_days, target_location=target_location,
@@ -484,7 +534,8 @@ def run_seed_with_metrics(
         profiles = sample_population(
             profile_template,
             seed=seed,
-            home_locations=tuple(destinations),
+            pools=pools,
+            atlas=atlas,
             num_protagonists=num_protagonists,
             generate_identity=True,
             llm_client=identity_llm,
@@ -494,7 +545,8 @@ def run_seed_with_metrics(
         profiles = sample_population(
             profile_template,
             seed=seed,
-            home_locations=tuple(destinations),
+            pools=pools,
+            atlas=atlas,
         )
 
     adapter: VariantRunnerAdapter | None = None
@@ -505,7 +557,8 @@ def run_seed_with_metrics(
     # 初始化 runtime + Ledger entities + scripted plan
     runtimes: list[AgentRuntime] = []
     for p in profiles:
-        home_loc = p.home_location or (rng.choice(destinations) if destinations else "unknown")
+        home_loc = p.home_location or (rng.choice(pools.home_pool)
+                                       if pools.home_pool else "unknown")
         ledger.set_entity(EntityState(
             entity_id=p.agent_id,
             position=Coord(x=0.0, y=0.0),
@@ -513,11 +566,25 @@ def run_seed_with_metrics(
         ))
         runtime = AgentRuntime(profile=p, current_location=home_loc)
         runtime.plan = build_scripted_plan(
-            p, destinations, start_date.isoformat(), rng,
+            p, date=start_date.isoformat(), rng=rng, pools=pools, atlas=atlas,
         )
         runtimes.append(runtime)
 
     attention_service = AttentionService(ledger=ledger, seed=seed)
+    # add-attention-induced-nearby-blindness: register per-agent phone_attention
+    # baseline (ambient screen-time fraction) + cache personality.openness for
+    # notification delta computation. Without this, all agents share the
+    # default 0.0 baseline and 0.5 openness fallback.
+    from synthetic_socio_wind_tunnel.attention.noticing import baseline_screen_share
+    for p in profiles:
+        attention_service.set_phone_attention_baseline(
+            p.agent_id, baseline_screen_share(p.digital),
+        )
+        attention_service.set_personality_openness(
+            p.agent_id, p.personality.openness,
+        )
+        # Cache digital profile for delta computation (responsiveness)
+        attention_service.set_profile(p.agent_id, p.digital)
     orchestrator = Orchestrator(
         atlas, ledger, runtimes,
         attention_service=attention_service,
@@ -581,15 +648,28 @@ def run_seed_with_metrics(
     )
     orchestrator.register_on_tick_end(recorder.on_tick_end)
 
+    # add-per-tick-position-logging: capture sparse agent position-change
+    # events for 3D dashboard time-slider replay. Written to a separate
+    # seed_<N>_positions.json file to keep the main metrics JSON lean.
+    from synthetic_socio_wind_tunnel.metrics import PositionTraceRecorder
+    position_recorder = PositionTraceRecorder()
+    orchestrator.register_on_tick_end(position_recorder.on_tick_end)
+
     # --- suite-wiring: Memory + Planner + StubReplanLLM ---
-    # shared_anchor 的 heuristic target：park/plaza > destinations[0]
-    shared_loc = _pick_community_location(atlas, tuple(destinations))
+    # fix-population-uses-typed-locations: shared_loc 从 poi_pool 选 community
+    # heuristic，避免回退到 street；pools 全程传入 stub。
+    shared_loc = _pick_community_location(
+        atlas, tuple(destinations), poi_pool=pools.poi_pool,
+    )
     llm_client = make_llm_client(
         use_real=use_real_llm,
         variant_name=variant_name,
         seed=seed,
         target_location=target_location,
         shared_location=shared_loc,
+        atlas=atlas,
+        destinations=tuple(destinations),
+        pools=pools,
     )
     planner = Planner(llm_client=llm_client)
     # realism-attention-rebalance：seed + atlas 给 should_replan 的概率门 +
@@ -605,8 +685,11 @@ def run_seed_with_metrics(
 
     agents_by_id = {r.profile.agent_id: r for r in runtimes}
 
-    # 跨 day 累加 replan 计数
-    replan_counter = {"total": 0, "by_day": [0] * num_days}
+    # 跨 day 累加 replan 计数（B7 fix: 拆 plan-changed vs no-op）
+    replan_counter = {
+        "total": 0, "by_day": [0] * num_days,
+        "no_op_total": 0, "no_op_by_day": [0] * num_days,
+    }
     current_day_ref = {"idx": 0}
 
     def _memory_hook(tr) -> None:
@@ -616,6 +699,11 @@ def run_seed_with_metrics(
         d = tr.day_index
         if 0 <= d < num_days:
             replan_counter["by_day"][d] += n
+            # no_op_today 是 cumulative per day（process_tick 内部跨日 reset）；
+            # 取每 tick 之后的 max 值就能在 day 末尾保留 day 总和。
+            no_op_today = memory.replan_no_op_count_today_total()
+            current = replan_counter["no_op_by_day"][d]
+            replan_counter["no_op_by_day"][d] = max(current, no_op_today)
         current_day_ref["idx"] = d
 
     orchestrator.register_on_tick_end(_memory_hook)
@@ -667,7 +755,8 @@ def run_seed_with_metrics(
         local_rng = random.Random(seed + day_index)
         for rt in runtimes:
             rt.plan = build_scripted_plan(
-                rt.profile, destinations, current_date.isoformat(), local_rng,
+                rt.profile, date=current_date.isoformat(),
+                rng=local_rng, pools=pools, atlas=atlas,
             )
             home = rt.profile.home_location or rt.current_location
             ent = ledger.get_entity(rt.profile.agent_id)
@@ -749,28 +838,42 @@ def run_seed_with_metrics(
         phase_config=controller.model_dump(),
     )
 
-    # suite-wiring: replan counters → RunMetrics.extensions
+    # suite-wiring: replan counters → RunMetrics.extensions (B7 fix split)
+    no_op_total = sum(replan_counter["no_op_by_day"])
     run_metrics = run_metrics.with_extensions(
         replan_count=replan_counter["total"],
         replan_by_day=list(replan_counter["by_day"]),
+        replan_no_op_count=no_op_total,
+        replan_no_op_by_day=list(replan_counter["no_op_by_day"]),
     )
 
     # publishable-finalize: stamp 7-field reproducibility lock
     from synthetic_socio_wind_tunnel.metrics.reproducibility import (
         compute_reproducibility_lock,
     )
+    # B10 fix: thread provider through so rep_lock.model_version reflects
+    # the actual LLM used. Order of precedence:
+    #   use_aitown=True  → aitown_provider drives both ai-town stack + identity
+    #   use_real_llm=True (without aitown) → anthropic for planner.replan
+    #   else → stub
+    if use_aitown:
+        effective_provider = aitown_provider
+    elif use_real_llm:
+        effective_provider = "anthropic"
+    else:
+        effective_provider = "stub"
     rep_lock = compute_reproducibility_lock(
         seed_pool=[seed],
         use_real_llm=use_real_llm,
         variant_names=[variant_name],
-        phase_config={
-            "baseline_days": phase_days[0],
-            "intervention_days": phase_days[1],
-            "post_days": phase_days[2],
-        },
-        provider=None,  # caller doesn't pass; suite-level merges below
+        phase_config=_parse_phase_days_to_dict(phase_days),
+        provider=effective_provider,
     )
     run_metrics = run_metrics.with_extensions(reproducibility_lock=rep_lock)
+
+    # add-per-tick-position-logging: stash recorder for caller-side
+    # serialization next to the seed JSON file.
+    variant_metadata["position_recorder"] = position_recorder
 
     return result, run_metrics, variant_metadata
 
@@ -786,9 +889,20 @@ def main() -> int:
         return 2
 
     start_date = date.fromisoformat(args.start_date)
-    ts = datetime.now().strftime("%Y%m%d_%H%M%S")
-    suite_dir = args.output_dir / f"{ts}_{args.suite_name}"
-    suite_dir.mkdir(parents=True, exist_ok=True)
+    if args.suite_dir is not None:
+        suite_dir = args.suite_dir
+        if args.resume and not suite_dir.exists():
+            print(f"[suite] --resume specified but --suite-dir {suite_dir} "
+                  f"does not exist; nothing to resume from", file=sys.stderr)
+            return 2
+        suite_dir.mkdir(parents=True, exist_ok=True)
+        if args.resume:
+            print(f"[suite] RESUME mode — existing seed_*.json will be "
+                  f"loaded from disk instead of re-run")
+    else:
+        ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+        suite_dir = args.output_dir / f"{ts}_{args.suite_name}"
+        suite_dir.mkdir(parents=True, exist_ok=True)
 
     print(f"[suite] {args.suite_name} | variants={variants} | "
           f"seeds={args.seeds} × days={args.num_days} | mode={args.mode}")
@@ -797,16 +911,112 @@ def main() -> int:
     t0 = time.perf_counter()
     aggregates: dict[str, SuiteAggregate] = {}
 
-    for variant_name in variants:
+    # Process-level parallelism (--workers N > 1): fan out variants across
+    # subprocess workers, each writing into the same --suite-dir. Coordinator
+    # (this process) blocks until all workers exit, then re-loads aggregates
+    # and builds the final contest report. Each worker calls THIS SAME script
+    # with --variants <single> --workers 1 --suite-dir <shared> --resume.
+    if args.workers > 1 and len(variants) > 1:
+        import subprocess as _sp
+        from concurrent.futures import ThreadPoolExecutor as _TPE
+        n_workers = min(args.workers, len(variants))
+        print(f"[suite] worker-pool mode: {n_workers} parallel workers "
+              f"× {len(variants)} variants")
+
+        def _run_worker(variant_name: str) -> tuple[str, int, str]:
+            worker_log = suite_dir / f"worker_{variant_name}.log"
+            cmd = [
+                sys.executable, "tools/run_variant_suite.py",
+                "--variants", variant_name,
+                "--seeds", str(args.seeds),
+                "--num-days", str(args.num_days),
+                "--agents", str(args.agents),
+                "--mode", args.mode,
+                "--phase-days", args.phase_days,
+                "--start-date", args.start_date,
+                "--suite-name", args.suite_name,
+                "--suite-dir", str(suite_dir),
+                "--workers", "1",  # critical: prevent recursion
+                "--resume",  # safe by default; skips already-done seeds
+            ]
+            if args.num_protagonists is not None:
+                cmd += ["--num-protagonists", str(args.num_protagonists)]
+            if args.use_real_llm:
+                cmd += ["--use-real-llm"]
+            if args.use_aitown:
+                cmd += ["--use-aitown",
+                        "--aitown-provider", args.aitown_provider]
+            with open(worker_log, "w", encoding="utf-8") as lf:
+                proc = _sp.run(cmd, stdout=lf, stderr=_sp.STDOUT)
+            return variant_name, proc.returncode, str(worker_log)
+
+        with _TPE(max_workers=n_workers) as pool:
+            results = list(pool.map(_run_worker, variants))
+        for v, rc, log in results:
+            status = "ok" if rc == 0 else f"FAIL rc={rc}"
+            print(f"  worker[{v}]: {status} → {log}")
+        # Re-load per-variant aggregates from disk to build the suite contest
+        for v in variants:
+            agg = suite_dir / f"variant_{v}" / "aggregate.json"
+            if agg.exists():
+                with open(agg, "r", encoding="utf-8") as f:
+                    aggregates[v] = SuiteAggregate.model_validate(json.load(f))
+            else:
+                print(f"  [warn] {v} aggregate missing — contest will skip it",
+                      file=sys.stderr)
+        # Skip the per-variant serial loop below
+        _skip_serial = True
+    else:
+        _skip_serial = False
+
+    if not _skip_serial:
+      for variant_name in variants:
         variant_dir = suite_dir / f"variant_{variant_name}"
         variant_dir.mkdir(parents=True, exist_ok=True)
         runs: list[RunMetrics] = []
         print(f"\n[variant] {variant_name}")
 
+        # Resume: if this variant's aggregate already exists, skip the whole
+        # variant — load aggregate from disk so contest report can still
+        # cross-compare.
+        agg_file = variant_dir / "aggregate.json"
+        if args.resume and agg_file.exists():
+            try:
+                with open(agg_file, "r", encoding="utf-8") as f:
+                    aggregates[variant_name] = SuiteAggregate.model_validate(
+                        json.load(f),
+                    )
+                print(f"  [resumed] aggregate.json exists → variant skipped")
+                continue
+            except Exception as e:
+                print(f"  [resume] failed to load existing aggregate: {e}; "
+                      f"falling through to re-run", file=sys.stderr)
+
         captured_variant_metadata: dict = {"name": variant_name}
         for i in range(args.seeds):
             seed = 42 + i
+            seed_file_resume = variant_dir / f"seed_{seed}.json"
+            # Resume: if seed file exists, load run_metrics back from disk
+            # rather than re-running the (expensive) seed.
+            if args.resume and seed_file_resume.exists():
+                try:
+                    with open(seed_file_resume, "r", encoding="utf-8") as f:
+                        d = json.load(f)
+                    resumed_rm = RunMetrics.model_validate(d["run_metrics"])
+                    runs.append(resumed_rm)
+                    print(f"  seed={seed} [resumed from "
+                          f"{seed_file_resume.name}]")
+                    continue
+                except Exception as e:
+                    print(f"  [resume] seed_{seed}.json load failed: {e}; "
+                          f"re-running", file=sys.stderr)
             t_s = time.perf_counter()
+            # A2 fix: --num-protagonists CLI; default 10% of agents
+            n_protag = (
+                args.num_protagonists
+                if args.num_protagonists is not None
+                else max(1, args.agents // 10)
+            )
             result, run_metrics, captured_variant_metadata = run_seed_with_metrics(
                 seed=seed, n_agents=args.agents, start_date=start_date,
                 num_days=args.num_days, mode=args.mode,
@@ -814,6 +1024,7 @@ def main() -> int:
                 use_real_llm=args.use_real_llm,
                 use_aitown=args.use_aitown,
                 aitown_provider=args.aitown_provider,
+                num_protagonists=n_protag,
             )
             t_e = time.perf_counter()
 
@@ -825,9 +1036,19 @@ def main() -> int:
             }
             with open(seed_file, "w", encoding="utf-8") as f:
                 json.dump(dump, f, ensure_ascii=False, indent=2)
+
+            # add-per-tick-position-logging: write companion position trace
+            # for 3D dashboard replay.
+            pos_recorder = captured_variant_metadata.pop("position_recorder", None)
+            pos_file = variant_dir / f"seed_{seed}_positions.json"
+            pos_changes = 0
+            if pos_recorder is not None:
+                pos_recorder.write(pos_file)
+                pos_changes = pos_recorder.total_changes
             runs.append(run_metrics)
             print(f"  seed={seed} wall={t_e - t_s:.1f}s "
-                  f"encs={result.total_encounters} → {seed_file.name}")
+                  f"encs={result.total_encounters} pos_changes={pos_changes} "
+                  f"→ {seed_file.name}")
 
         # aggregate — 用真实跑出来的 variant_metadata（factory 已填 target_location 等）
         aggregate = build_suite_aggregate(runs, variant_metadata=captured_variant_metadata)

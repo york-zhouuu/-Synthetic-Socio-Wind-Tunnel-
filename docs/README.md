@@ -98,8 +98,18 @@
 
 ## 进度与规划
 
+- **[项目状态.md](项目状态.md)** — 顶层 status board（latest）
+- **[sessions/](sessions/)** — 按日的工作日志 / smoke 报告（2026-05-10 起）
+- **[audit/](audit/)** — 系统审计报告（realism 11 维、deep issues、bug hunt）
+- **[limitations-ethics.md](limitations-ethics.md)** — Publishable 限制 +
+  伦理边界 + 旧实验数据局限
 - **[WIP-progress-report.md](WIP-progress-report.md)** — **2026-04-21
-  时点快照**。最新进度以 19-system-snapshot.md 为准。
+  时点快照（STALE）**。最新进度以 项目状态.md 为准。
+
+## 对外发布物
+
+- **[项目产出物.html](项目产出物.html)** — 6 大产出物公众解释（叙述风格样板）
+- **[四个对照组.html](四个对照组.html)** — baseline / hp / gd / pf 公众解释
 
 ## 校准 / 评估数据
 

@@ -69,3 +69,53 @@ class TestAggregator:
         agg = build_suite_aggregate(runs)
         assert "encounter_count_per_day" in agg.per_day_time_series
         assert len(agg.per_day_time_series["encounter_count_per_day"]) == 5
+
+
+def _run_with_weak_tie(seed: int, weak_tie_count: int | None,
+                      tie_total_eod: int | None = None) -> RunMetrics:
+    """Helper: build RunMetrics with thesis-downstream tie outcomes."""
+    per_day = (
+        DayMetricsSummary(
+            day_index=0,
+            encounter_count_total=100,
+            move_success_count=50,
+            tie_count_total=tie_total_eod,
+            tie_count_weak=tie_total_eod,
+            tie_count_strong=0 if tie_total_eod is not None else None,
+        ),
+    )
+    return RunMetrics(
+        seed=seed, variant_name="baseline", num_days=1, per_day=per_day,
+        encounter_stats={"total": 100.0},
+        weak_tie_formation_count=weak_tie_count,
+    )
+
+
+class TestAggregatorWeakTie:
+    """fix-remaining-mechanics: aggregator must expose thesis-downstream
+    weak-tie counts so B3 sensitivity sweep can compare across rates."""
+
+    def test_weak_tie_exposed_when_present(self):
+        runs = [_run_with_weak_tie(s, weak_tie_count=100 + s * 10) for s in range(7)]
+        agg = build_suite_aggregate(runs)
+        assert "weak_tie_formation_count" in agg.per_metric_stats
+        stats = agg.per_metric_stats["weak_tie_formation_count"]
+        assert set(stats.keys()) == {
+            "median", "iqr_lo", "iqr_hi", "ci95_lo", "ci95_hi",
+        }
+        # median of [100,110,...,160] is 130
+        assert stats["median"] == pytest.approx(130.0, abs=0.1)
+
+    def test_weak_tie_absent_when_none(self):
+        runs = [_run_with_weak_tie(s, weak_tie_count=None) for s in range(5)]
+        agg = build_suite_aggregate(runs)
+        assert "weak_tie_formation_count" not in agg.per_metric_stats
+
+    def test_per_day_tie_count_eod_exposed(self):
+        runs = [
+            _run_with_weak_tie(s, weak_tie_count=50, tie_total_eod=200 + s * 5)
+            for s in range(7)
+        ]
+        agg = build_suite_aggregate(runs)
+        assert "tie_count_total_eod" in agg.per_metric_stats
+        assert "tie_count_weak_eod" in agg.per_metric_stats

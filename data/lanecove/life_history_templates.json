@@ -1,0 +1,109 @@
+{
+  "_meta": {
+    "schema_version": 1,
+    "description": "Lane Cove archetype-grounded life-history templates. Each archetype has 5-8 first-person life events that LLM uses as anchors when generating per-protag life_history (rather than free-form invention). Events reference real Lane Cove places, schools, council moments, neighborhood patterns. LLM varies templates with agent-specific name/age/details.",
+    "compiled_at": "2026-05-10",
+    "compiled_by": "B2 (soul-memory-relations-completeness change); pragmatic first-pass — not yet deep web-researched per-archetype",
+    "uncertain": true,
+    "usage_notes": "_generate_life_history_for_one reads the archetype_id from the matched archetype; samples N=5 events from this archetype's pool; passes them as 'life_event_anchors' to the LLM prompt. LLM then expands with concrete year/place/name details."
+  },
+  "templates_by_archetype": {
+    "longtime_owner_occupier": [
+      "1992 年搬进 Lane Cove，那时 Pacific Highway 上还有几栋 fibro 老房子",
+      "孩子在 Greenwich Public School 上的小学，现在已经成家搬到 North Shore",
+      "认识 Council 的 Pam Palmer 二十多年，Mayor 选举每次都投她",
+      "见证 Lane Cove Plaza 翻新两轮，老 Berry Café 老板换了三任",
+      "退休前在 St Leonards 的会计事务所做 senior accountant 三十年",
+      "每年 Cameraygal Festival 都会去摆 Friends of Lane Cove National Park 的志愿者摊",
+      "Mowbray Road 数据中心提案对邻居影响很大，去年签了反对联名信"
+    ],
+    "primary_carer_parent": [
+      "孩子在 Lane Cove West Public School 念三年级，每天 8:30 送完娃我才能开始干活",
+      "在 Mowbray 妈妈群和邻居妈妈们交换免费 hand-me-down 衣服",
+      "去年和先生一起花了 6 个月装修 Lane Cove North 那套公寓的儿童房",
+      "周末的'家长日程'就是 Plaza Coles + Council 游泳池 + Pizza 取餐",
+      "孩子开始踢 Lane Cove FC 业余足球后，周末多了个固定 schedule",
+      "Council 学区调整公告出来那天我和邻居一起急着开 P&C 会"
+    ],
+    "commuter_finance_pro": [
+      "每天 7:25 那班 144 路从 Greenwich 到 St Leonards，再换 train 到 City",
+      "5 年前从 Bondi 搬到 Lane Cove，主要是 work-life balance + 学区",
+      "在 Macquarie Park 一家 funds management 公司做 portfolio manager",
+      "周末有时去 Northbridge 那家咖啡店见客户，Lane Cove Plaza 太吵",
+      "孩子在 Lane Cove Public School 念初小，每天的 morning rush 就是接力赛",
+      "去年公司搬到 Barangaroo，每天 commute 时间多了 15 分钟，开始偶尔 work from home"
+    ],
+    "remote_tech_migrant": [
+      "2022 年从 Hong Kong 移民，那时 Lane Cove 房价还没现在这么离谱",
+      "在一家美国 SaaS 公司做 senior engineer，每天和 SF 团队 standup",
+      "中午基本都在 Berry Café 工作 + 喝一杯 long black",
+      "Plaza 的 K-mart 关掉那天，邻居 group chat 整整聊了一晚上",
+      "学英文的妈妈在 Cameraygal Festival 的 Multicultural 摊位帮忙",
+      "和老婆经常去 Lane Cove West 的 Korean BBQ，老板娘也是 2020 后到的"
+    ],
+    "early_career_renter": [
+      "2024 年从 Brisbane 来 Sydney 第一份正式工作，跟 2 个朋友合租 Plaza 北边一套",
+      "在 North Sydney 一家广告 agency 做 junior strategist",
+      "每周三晚上去 St Leonards 的 jiu-jitsu gym 练拳",
+      "周末和 flatmate 在阳台办 BBQ，能看到 Plaza 那边",
+      "刚开始喜欢 Lane Cove 的安静，最近觉得有点闷想搬 Newtown",
+      "Plaza 的 Greek 餐厅 souvlaki 是工作日 lunch 的固定选择"
+    ],
+    "local_small_business_owner": [
+      "在 Plaza 开 dry cleaner 12 年，认识 Lane Cove 一半中年女性",
+      "店里挂的 vintage 照片是 Council Heritage Walk 推荐的本地老照片",
+      "每周二送货到 St Leonards 一家公寓 concierge，跟那边 portera 也熟",
+      "Mowbray Road 数据中心提案如果通过，会影响店门口的卡车流量",
+      "做老板做了 12 年还在交 mortgage，孩子已经在 ACU 念书了",
+      "经常和 Berry Café 老板交换情报：今天哪条街道 closure / 谁要装修"
+    ],
+    "creative_retiree_volunteer": [
+      "退休前在 Lane Cove 高中教了 30 年艺术，无数学生现在还会回来打招呼",
+      "Gallery Lane Cove 周二的陶艺课是 12 年的固定 schedule",
+      "周三早上和 Friends of Lane Cove NP 在 Stringybark Creek 除野草",
+      "U3A 本地历史小组每月一次讲 Cameraygal 原住民和 Aboriginal 地名",
+      "孩子搬出去自己住后，开始全力做 Sydney Community Services 的志愿者",
+      "Lane Cove Theatre Company 的 community play 经常去帮忙做布景"
+    ],
+    "young_renter_commuter": [
+      "6 个月前搬来 Lane Cove，主要是离 St Leonards 上班近 + 房租比 North Sydney 便宜",
+      "和 2 个 flatmate 合租 Pacific Highway 西边一栋公寓的 3 居室",
+      "周末偶尔去 Bondi，但更多时候在 Plaza 那家 Berry Café 处理 weekend admin",
+      "公司在 St Leonards 一家 consulting，每天早上挤 144 路",
+      "Lane Cove RSL 的 Wednesday night 现场音乐是认识本地人的一个口子",
+      "想买房还远得很，目前能 save 10% 已经很满意了"
+    ],
+    "mid_renter_family": [
+      "和先生 + 2 个孩子在 Lane Cove West 一栋新公寓 3 居室租住 4 年了",
+      "去年房租涨了 8%，让人头疼，但孩子在 Lane Cove West Public School 不舍得换",
+      "我做 nurse，先生做 mid-career engineer，两个人都在 St Leonards 上班",
+      "周末 schedule 永远是 Saturday morning soccer + Sunday Council 游泳池",
+      "Mowbray Road 早高峰送娃简直是 nightmare，half hour 才能回到家",
+      "想搬到更南边能买房，但小学换不掉，所以每年继续 renew lease"
+    ],
+    "older_renter_downsizer": [
+      "2018 年卖了 Greenwich 的老房，那时孩子都搬出去了，独自住 4 居室太空",
+      "现在在 Lane Cove 北边一栋 2 居室公寓租住，靠养老金 + small jobs 度日",
+      "每周二在 Lane Cove Library 当志愿者，能见到一些老熟人",
+      "周三早上去 Landlord Park 散步，下午到 Plaza 的 op shop 看便宜书",
+      "晚上看 ABC News 新闻 + 给悉尼东郊的女儿打电话",
+      "Council 选举的时候很关注 affordable housing 议题，和 Mayor 候选人写过邮件"
+    ],
+    "casual_shift_worker": [
+      "做 shift 班 8 年，aged care + RSL kitchen 两份临时工换着上",
+      "白天和夜班轮换，作息乱得让人头疼，但小孩 daycare 费用至少能 cover",
+      "夜班结束后经常和同事在 Lane Cove RSL 吃宵夜，老板娘记得每个人的菜",
+      "住 Plaza 北边公屋 12 年，邻居 churn 很高，但同楼的几户老 neighbour 还在",
+      "周日 day off 带孩子去 Council 游泳池，年票 family 一年 $400 是必要支出",
+      "Council 的 community services 帮过几次，疫情时拿到 emergency relief"
+    ],
+    "everyday_adult": [
+      "在 Lane Cove 住了几年，工作生活基本就是 Plaza + St Leonards 两点一线",
+      "不是太关心 Council 政治，但 Mowbray Road 数据中心议题让我去签了反对",
+      "周末偶尔去 Hawkesbury 露营，更多时候就是在家躺着",
+      "和邻居见面会打招呼，但没深交",
+      "孩子（如果有）在附近的公校念书，作息基本就是 schedule 围着学校转",
+      "年底 Cameraygal Festival 会去逛逛但不会 commit 太多时间"
+    ]
+  }
+}

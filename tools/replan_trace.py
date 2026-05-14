@@ -200,8 +200,14 @@ def setup_run(
     ledger = Ledger()
     ledger.current_time = datetime.combine(start_date, datetime.min.time())
 
-    destinations = _pick_connected_destinations(atlas, 20, rng)
-    target_location = destinations[0] if destinations else None
+    # fix-population-uses-typed-locations: typed pools
+    from synthetic_socio_wind_tunnel.agent import build_location_pools
+    pools = build_location_pools(
+        atlas, home_count=max(40, n_agents // 2),
+        work_count=20, poi_count=30, rng=rng,
+    )
+    destinations = list(pools.poi_pool)
+    target_location = pools.pick_target_location(atlas, rng, prefer="community")
 
     # Variant + controller
     parts = [int(x.strip()) for x in phase_days.split(",")]
@@ -221,7 +227,8 @@ def setup_run(
     })
     profiles = sample_population(
         profile_template, seed=seed,
-        home_locations=tuple(destinations),
+        pools=pools,
+        atlas=atlas,
     )
 
     adapter: VariantRunnerAdapter | None = None
@@ -254,7 +261,7 @@ def setup_run(
         ))
         rt = AgentRuntime(profile=p, current_location=home_loc)
         rt.plan = build_scripted_plan(
-            p, destinations, start_date.isoformat(), rng,
+            p, date=start_date.isoformat(), rng=rng, pools=pools,
         )
         runtimes.append(rt)
 
@@ -271,12 +278,15 @@ def setup_run(
     orchestrator.register_on_tick_end(tracer.on_tick_end)
 
     # Memory + Planner（与 suite-wiring 同步装配）
-    shared_loc = _pick_community_location(atlas, tuple(destinations))
+    shared_loc = _pick_community_location(
+        atlas, tuple(destinations), poi_pool=pools.poi_pool,
+    )
     llm_client = make_llm_client(
         use_real=use_real_llm, variant_name=variant_name, seed=seed,
         target_location=target_location, shared_location=shared_loc,
         provider=llm_provider, gemini_model=gemini_model,
         enable_thinking=enable_thinking,
+        pools=pools,
     )
     planner = Planner(llm_client=llm_client)
     # social-graph-capability + conversation-capability + push-content-individualization
@@ -335,7 +345,8 @@ def setup_run(
         local_rng = random.Random(seed + day_index)
         for rt in runtimes:
             rt.plan = build_scripted_plan(
-                rt.profile, destinations, current_date.isoformat(), local_rng,
+                rt.profile, date=current_date.isoformat(),
+                rng=local_rng, pools=pools,
             )
             home = rt.profile.home_location or rt.current_location
             ent = ledger.get_entity(rt.profile.agent_id)

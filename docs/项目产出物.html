@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Synthetic Socio Wind Tunnel — 这个项目在做什么</title>
+<style>
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC",
+                 "Hiragino Sans GB", "Microsoft YaHei", "Source Han Sans",
+                 sans-serif;
+    max-width: 880px;
+    margin: 0 auto;
+    padding: 80px 48px 120px;
+    line-height: 1.75;
+    color: #1f1f1f;
+    background: #fbfaf6;
+    font-size: 16px;
+  }
+  /* Header */
+  .tagline {
+    font-size: 13px;
+    letter-spacing: 0.15em;
+    color: #888;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+  h1 {
+    font-size: 38px;
+    font-weight: 700;
+    line-height: 1.2;
+    margin: 0 0 16px;
+    letter-spacing: -0.01em;
+  }
+  .hook {
+    font-size: 22px;
+    color: #5b5b5b;
+    margin: 0 0 60px;
+    font-weight: 300;
+  }
+  /* Sections */
+  h2 {
+    font-size: 26px;
+    font-weight: 600;
+    margin: 80px 0 24px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid #1f1f1f;
+  }
+  h3 {
+    font-size: 19px;
+    font-weight: 600;
+    margin: 0 0 10px;
+  }
+  p { margin: 0 0 18px; }
+  strong { color: #000; font-weight: 600; }
+  em { font-style: normal; background: #fff4cc; padding: 1px 4px; }
+
+  /* Quote / pull-out */
+  .pullquote {
+    border-left: 4px solid #c8553d;
+    padding: 8px 24px;
+    margin: 32px 0;
+    color: #444;
+    font-size: 18px;
+    font-style: italic;
+    background: #fff;
+  }
+
+  /* Phenomenon panel */
+  .panel {
+    background: #fff;
+    border: 1px solid #e5e2d6;
+    border-radius: 8px;
+    padding: 28px 32px;
+    margin: 32px 0;
+  }
+  .panel-title {
+    font-size: 14px;
+    color: #888;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  /* The 4 variants visual */
+  .variants {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+    margin: 24px 0;
+  }
+  .variant-card {
+    background: #fff;
+    border: 1px solid #e5e2d6;
+    border-radius: 8px;
+    padding: 18px 20px;
+  }
+  .variant-card .vname {
+    font-size: 13px;
+    color: #999;
+    letter-spacing: 0.05em;
+    margin-bottom: 4px;
+  }
+  .variant-card .vtitle {
+    font-weight: 600;
+    margin-bottom: 6px;
+    color: #1f1f1f;
+  }
+  .variant-card .vdesc {
+    font-size: 14px;
+    color: #555;
+    line-height: 1.6;
+  }
+
+  /* Deliverables */
+  .deliverable {
+    background: #fff;
+    border: 1px solid #e5e2d6;
+    border-radius: 12px;
+    padding: 32px 36px;
+    margin: 24px 0;
+    position: relative;
+  }
+  .deliverable .num {
+    position: absolute;
+    top: 24px;
+    right: 32px;
+    font-size: 56px;
+    font-weight: 800;
+    color: #f0ece0;
+    line-height: 1;
+  }
+  .deliverable h3 {
+    font-size: 22px;
+    margin-bottom: 6px;
+  }
+  .deliverable .alt-name {
+    font-size: 13px;
+    color: #999;
+    margin-bottom: 18px;
+  }
+  .deliverable .what,
+  .deliverable .why,
+  .deliverable .means {
+    margin-bottom: 16px;
+  }
+  .deliverable .label {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    color: #c8553d;
+    background: #faece8;
+    padding: 3px 10px;
+    border-radius: 12px;
+    margin-bottom: 6px;
+    text-transform: uppercase;
+  }
+  .deliverable p {
+    margin: 0;
+    color: #333;
+  }
+  .status {
+    margin-top: 18px;
+    padding-top: 16px;
+    border-top: 1px dashed #e5e2d6;
+    font-size: 14px;
+  }
+  .badge {
+    display: inline-block;
+    font-size: 12px;
+    padding: 2px 10px;
+    border-radius: 12px;
+    font-weight: 600;
+    margin-right: 8px;
+  }
+  .badge-done { background: #e6f4ea; color: #1e7e34; }
+  .badge-partial { background: #fff4cc; color: #8a6d00; }
+  .badge-pending { background: #fde2e2; color: #b32424; }
+
+  /* Status table */
+  .status-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 8px;
+    margin: 20px 0;
+  }
+  .status-row {
+    display: flex;
+    align-items: flex-start;
+    background: #fff;
+    border: 1px solid #e5e2d6;
+    border-radius: 6px;
+    padding: 12px 16px;
+    gap: 12px;
+  }
+  .status-row .badge { flex-shrink: 0; }
+  .status-row .desc { color: #444; font-size: 15px; }
+
+  /* Footer */
+  footer {
+    margin-top: 100px;
+    padding-top: 32px;
+    border-top: 1px solid #d8d4c4;
+    color: #888;
+    font-size: 14px;
+  }
+  footer a { color: #c8553d; text-decoration: none; }
+  footer a:hover { text-decoration: underline; }
+
+  /* Visualization SVG */
+  .chain-diagram {
+    width: 100%;
+    max-width: 720px;
+    margin: 24px auto;
+    display: block;
+  }
+
+  /* TOC */
+  .toc {
+    background: #fff;
+    border: 1px solid #e5e2d6;
+    border-radius: 8px;
+    padding: 16px 24px;
+    margin: 32px 0;
+    font-size: 14px;
+  }
+  .toc strong { display: block; margin-bottom: 8px; color: #888; font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; font-weight: 700; }
+  .toc a { color: #c8553d; text-decoration: none; margin-right: 16px; line-height: 2; }
+  .toc a:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+
+<!-- HERO -->
+<header>
+  <p class="tagline">Synthetic Socio Wind Tunnel · 合成社会风洞</p>
+  <h1>当手机让你看不见身边的邻居<br>能不能反过来用手机把你带回附近？</h1>
+  <p class="hook">一个用 AI 智能体在虚拟城市里做的社会学实验。</p>
+</header>
+
+<div class="toc">
+  <strong>这页讲什么</strong>
+  <a href="#problem">① 我们在研究什么</a>
+  <a href="#how">② 怎么研究</a>
+  <a href="#deliverables">③ 六大产出</a>
+  <a href="#progress">④ 现在做到哪</a>
+</div>
+
+<!-- PROBLEM -->
+<section id="problem">
+
+<h2>① 我们在研究什么</h2>
+
+<p>
+你住在一栋公寓里。楼上、楼下、隔壁都住着人。<strong>你认识他们吗？</strong>
+大概率不认识。即便每天在电梯里碰面，眼睛也低着——盯着手机。
+</p>
+
+<p>
+这不是性格问题，也不是道德问题。这是一种<strong>系统性现象</strong>：
+现代手机把我们的注意力源源不断地拉向"全球内容"——国际新闻、远方的网红、
+朋友圈里几百公里外的朋友——而我们身边 50 米内正在发生的事
+（楼下咖啡馆有人在弹琴、街角有走丢的猫、邻居在办读书会）则被
+我们的"信号雷达"自动滤掉了。
+</p>
+
+<div class="pullquote">
+我们把这个现象叫做<strong>"附近性盲区"</strong>（Nearby Blindness）：
+在物理意义上彼此最近的人，在心理意义上反而最远。
+</div>
+
+<p>
+这不是诗意的比喻，而是一个可以测量的研究问题。
+当一个高密度社区的人均"附近性"持续下降，整个社区的<strong>社会黏性</strong>
+（弱关系数量、临时帮助意愿、突发事件互助能力）也会跟着下降——
+即便所有人都还住在那里。
+</p>
+
+<div class="panel">
+  <p class="panel-title">本项目的研究假设</p>
+  <p style="font-size:18px;line-height:1.6;margin-bottom:0;">
+  既然手机把注意力拉走了，那能不能 <em>反过来</em> 用手机把它拉回来？
+  如果一个平台开始<strong>主动推送你附近正在发生的事</strong>——
+  1000 米内的咖啡馆、街角的小型展览、楼下的临时活动——
+  这种"超在地性"反向推送能不能<strong>让你的脚步真的走出去</strong>？
+  能不能在物理意义上把人重新放回"附近"？
+  </p>
+</div>
+
+</section>
+
+<!-- HOW -->
+<section id="how">
+
+<h2>② 怎么研究</h2>
+
+<p>
+直接在真实世界里做这个实验？<strong>不可行</strong>。
+你不能强行给一万个人推一个月的本地推送，去看他们会不会走路去见邻居。
+伦理上不允许、成本上也不可控、变量也无法严密对照。
+</p>
+
+<p>
+所以我们换一种方法：<strong>构建一个"合成社会"</strong>。
+</p>
+
+<p>
+在悉尼真实街区 <strong>Lane Cove</strong> 的地图上，造 1000 个 AI 智能体。
+他们不是简单的 NPC，而是基于澳大利亚人口普查数据画像的"虚拟居民"——
+有 7 种人格原型（年轻通勤者 / 主要照顾者父母 / 退休邻里 / 远程工作者……），
+有真实的日常路线（早 8 点出门工作、12 点吃饭、傍晚回家），
+有真实的手机使用习惯（每日屏幕时间、对推送的响应度、信息源偏好）。
+</p>
+
+<p>
+然后我们在这群虚拟居民身上跑<strong>对照实验</strong>——
+连续 14 个仿真日，分四组：
+</p>
+
+<div class="variants">
+  <div class="variant-card">
+    <div class="vname">A 对照组</div>
+    <div class="vtitle">什么都不推</div>
+    <div class="vdesc">自然基线。手机正常，平台不干预。看 1000 个 AI 居民自己会怎么过 14 天。</div>
+  </div>
+  <div class="variant-card">
+    <div class="vname">B 实验组（核心）</div>
+    <div class="vtitle">超在地推送</div>
+    <div class="vdesc">每天向居民推送他们 1000 米内正在发生的事——本地音乐会、社区公告、街角咖啡馆事件。看他们会不会真的走出去。</div>
+  </div>
+  <div class="variant-card">
+    <div class="vname">C 镜像组</div>
+    <div class="vtitle">推全球新闻</div>
+    <div class="vdesc">同样的推送频率，但内容是国际新闻、远方明星动态、宏观议题。这是 B 的"反向镜像"——证明这套推送基础设施<strong>用反了能让附近变得更看不见</strong>。</div>
+  </div>
+  <div class="variant-card">
+    <div class="vname">D 反技术组</div>
+    <div class="vtitle">减少手机吸引力</div>
+    <div class="vdesc">让所有居民的手机使用强度降一半（缩短屏幕时间、降低推送响应度）。
+    看光是"少看手机"够不够把人拉回附近——区分 H_pull（手机吸力假说）vs H_info（信号不足假说）。</div>
+  </div>
+</div>
+
+<p>
+这四组在<strong>同一个虚拟 Lane Cove、同一批居民、同一组随机种子</strong>上各跑 30 次（产生足够强的统计置信区间），
+然后比较每组的：
+</p>
+
+<ul>
+  <li><strong>居民走的路线</strong>（是否被拉到推送地点附近？还是仍走原本的轨迹？）</li>
+  <li><strong>居民间的偶遇频率</strong>（同一时间在同一地点共在过的次数）</li>
+  <li><strong>空间使用热点</strong>（公园、广场、街角的人流密度）</li>
+  <li><strong>新建立的弱关系数量</strong>（之前没认识但因为某次同时间在场而开始有联系的对子）</li>
+</ul>
+
+<p>
+如果 B 组（超在地推送）的居民相比 A 组（什么都不推），在这四个指标上<strong>显著向"更附近"的方向移动</strong>，
+我们就有了一条<strong>从"反向注意力干预"到"打破附近性盲区"的因果证据</strong>。
+</p>
+
+</section>
+
+<!-- DELIVERABLES -->
+<section id="deliverables">
+
+<h2>③ 项目六大产出</h2>
+
+<p>
+项目跑完之后，我们会留下六样东西。这六样不是"任务清单"，
+而是按"<strong>不同的人会从哪里读起</strong>"来组织的。
+</p>
+
+<!-- 1 -->
+<div class="deliverable">
+  <div class="num">1</div>
+  <h3>实验答案</h3>
+  <p class="alt-name">120 次仿真跑出来的统计结果（30 个种子 × 4 组 × 14 天）</p>
+
+  <div class="what">
+    <span class="label">是什么</span>
+    <p>
+    一份汇总表，每一组干预对应一行：<strong>这一组让"附近性"提升了 / 下降了 / 没变</strong>，
+    数字带 95% 置信区间。
+    </p>
+  </div>
+
+  <div class="why">
+    <span class="label">解决什么问题</span>
+    <p>
+    "<strong>这个 thesis 到底成不成立？</strong>"——这是项目最直接的答案。
+    没有这一行表，所有别的产出都只是"假设的样子"。
+    跨 30 个随机种子让"这是不是侥幸结果"这种质疑无法成立。
+    </p>
+  </div>
+
+  <div class="means">
+    <span class="label">意义</span>
+    <p>
+    这是<strong>整个项目的因果证据</strong>。当有人问"你怎么知道超在地推送有效"，
+    你指给他看的就是这一行数字。
+    其它五个产出物都是为了让<strong>这一行数字</strong>更可读、更可信、更可复现。
+    </p>
+  </div>
+</div>
+
+<!-- 2 -->
+<div class="deliverable">
+  <div class="num">2</div>
+  <h3>研究故事（五幕报告）</h3>
+  <p class="alt-name">把统计数字翻译成读者能跟着走的论述</p>
+
+  <div class="what">
+    <span class="label">是什么</span>
+    <p>
+    一份按固定五幕结构写的报告：
+    ① <strong>诊断</strong>（什么是附近性盲区，为什么它是问题）→
+    ② <strong>药方</strong>（我们试了什么干预，每种干预对应哪个理论假说）→
+    ③ <strong>证据</strong>（数字告诉我们什么）→
+    ④ <strong>解读</strong>（这意味着什么、不意味着什么）→
+    ⑤ <strong>边界</strong>（我们不能声称的东西、外推到现实世界的伦理风险）。
+    </p>
+  </div>
+
+  <div class="why">
+    <span class="label">解决什么问题</span>
+    <p>
+    "<strong>没人会去读 120 个 JSON 文件。</strong>"
+    研究做完了，但如果不能讲成一个<strong>读者能跟着想下去的故事</strong>，影响力到不了任何人。
+    </p>
+  </div>
+
+  <div class="means">
+    <span class="label">意义</span>
+    <p>
+    这是<strong>对外的主文档</strong>。答辩、评审、政策圈、产品圈、媒体圈
+    五种受众都从这里读起。它把数字翻译成"超在地推送可能 / 可能不会改变什么"
+    这样的语言，让懂城市规划但不懂 agent-based modeling 的人也能讨论。
+    </p>
+  </div>
+</div>
+
+<!-- 3 -->
+<div class="deliverable">
+  <div class="num">3</div>
+  <h3>地图与图表</h3>
+  <p class="alt-name">让人一眼看到"AI 居民被拉到了哪里"的视觉证据</p>
+
+  <div class="what">
+    <span class="label">是什么</span>
+    <p>
+    一个网页：左边是 Lane Cove 真实街道地图，叠了 4 组干预下 1000 个 AI 居民的轨迹热力图——
+    哪条街变红了、哪些公园被使用了、推送地点附近的人流如何变化。右边是 6 张柱状图比较 4 组的核心指标。
+    </p>
+  </div>
+
+  <div class="why">
+    <span class="label">解决什么问题</span>
+    <p>
+    数字告诉你"<strong>有多少</strong>"，地图告诉你"<strong>在哪里</strong>"。
+    "encounter density 提升 12%" 是个数字；
+    "Cowper 街口附近的偶遇密度从冷蓝色变成了热橙色" 是个画面。
+    画面留得住、转得开、说得清。
+    </p>
+  </div>
+
+  <div class="means">
+    <span class="label">意义</span>
+    <p>
+    项目的<strong>展示门面</strong>。在评议会、答辩、给非研究人员讲项目时，
+    这是最先出现的页面。"在 Lane Cove 这条具体的街道上做实验"是这个项目独有的资产——
+    其它 agent 模拟项目用的是抽象网格，我们用的是真悉尼街区。这页就是这个独特性的可视化兑现。
+    </p>
+  </div>
+</div>
+
+<!-- 4 -->
+<div class="deliverable">
+  <div class="num">4</div>
+  <h3>可运行的虚拟城市</h3>
+  <p class="alt-name">代码 + 1190 个测试 = 一台"社会学风洞"</p>
+
+  <div class="what">
+    <span class="label">是什么</span>
+    <p>
+    完整的 Python 仿真系统：真实地图导入、AI 居民人格生成、日常计划构造、
+    手机推送注入、agent 间对话、记忆/反思、多日时间循环、指标采集。
+    一行命令就能跑出新的实验。
+    </p>
+  </div>
+
+  <div class="why">
+    <span class="label">解决什么问题</span>
+    <p>
+    论文一旦写完就静止了，但<strong>研究问题会持续延伸</strong>：
+    "换个城市还成立吗？""换种推送内容呢？""老龄化人口下还成立吗？"
+    没有可运行的系统，每个新问题都得重新开发。有了它，<strong>每个新假设只需要换参数再跑一遍</strong>。
+    </p>
+  </div>
+
+  <div class="means">
+    <span class="label">意义</span>
+    <p>
+    项目的<strong>资产沉淀</strong>。研究结束后这套系统可以开源给学术圈，
+    供研究"超在地性 / 城市社会学 / agent-based urbanism" 的其它团队复用。
+    它的存在让这个项目不只是"一篇论文"，而是"<strong>一种可重复的研究方法</strong>"。
+    </p>
+  </div>
+</div>
+
+<!-- 5 -->
+<div class="deliverable">
+  <div class="num">5</div>
+  <h3>可验证的研究记录</h3>
+  <p class="alt-name">每个数字都附带"如何重新跑出来"的指纹</p>
+
+  <div class="what">
+    <span class="label">是什么</span>
+    <p>
+    每次跑完实验，结果文件里都附 7 个字段的"<strong>复现指纹</strong>"：
+    用了哪些随机种子、哪个 AI 模型版本（Gemini Flash / Claude Haiku 等）、
+    AI 提示词文本的哈希、人群配置文件的哈希、代码的 git 提交号、实验阶段配置。
+    任何人拿到这 7 个字段，可以一行命令重跑出 byte-identical 的同一组数字。
+    </p>
+  </div>
+
+  <div class="why">
+    <span class="label">解决什么问题</span>
+    <p>
+    "<strong>你怎么知道你的结论不是因为某次随机种子运气好？</strong>"
+    "<strong>当 AI 模型升级到下一代，你的结论还成立吗？</strong>"
+    这是所有用 AI 做研究的项目都会遇到的质疑——AI 不是固定算法，
+    随便升级一次模型，旧研究的根基就摇晃。
+    </p>
+  </div>
+
+  <div class="means">
+    <span class="label">意义</span>
+    <p>
+    项目的<strong>可信度合同</strong>。它让读者第一时间能定位
+    "如果将来发现这个结论错了，是模型变了 / 代码变了 / 还是 thesis 真错了？"
+    没有这层 metadata，研究的学术信誉会随时间衰减；有了它，研究三年后还可以被检验、被引用、被挑战——而不是被遗忘。
+    </p>
+  </div>
+</div>
+
+<!-- 6 -->
+<div class="deliverable">
+  <div class="num">6</div>
+  <h3>研究知识库</h3>
+  <p class="alt-name">让三个月后的人（包括你自己）能接得上手</p>
+
+  <div class="what">
+    <span class="label">是什么</span>
+    <p>
+    包含：项目核心 thesis 文档（单一权威来源）、17 篇系统设计说明、
+    bug 修复历史（10 个测量陷阱的发现与修复过程）、地图构建管线、
+    项目顶层介绍、伦理边界声明。
+    </p>
+  </div>
+
+  <div class="why">
+    <span class="label">解决什么问题</span>
+    <p>
+    "<strong>三个月后，没人记得为什么当初要这么设计</strong>"。
+    这是一切研究项目的真实问题——做的时候每个决定都心知肚明，
+    但隔了一段时间没人能回答"为什么 hyperlocal 半径选 1000 米不是别的值？"
+    "为什么修了那个测量 bug 之后结论反转了？"
+    </p>
+  </div>
+
+  <div class="means">
+    <span class="label">意义</span>
+    <p>
+    项目的<strong>可继承性</strong>。一份研究的影响半衰期取决于它的文档。
+    当导师、同行、未来的研究者来看这份工作，文档帮他们省 80% 的"重新搞懂这是什么"的时间，
+    才能把精力放在"怎么继续推进"上。
+    </p>
+  </div>
+</div>
+
+</section>
+
+<!-- PROGRESS -->
+<section id="progress">
+
+<h2>④ 现在做到哪里</h2>
+
+<p>项目目前的真实状态：</p>
+
+<div class="status-grid">
+
+  <div class="status-row">
+    <span class="badge badge-done">已完成</span>
+    <div class="desc">
+      <strong>产出 4：可运行的虚拟城市</strong>。
+      整套仿真系统跑得动，1190 个自动化测试全部通过。
+      底盘扎实，可以开始真跑实验。
+    </div>
+  </div>
+
+  <div class="status-row">
+    <span class="badge badge-done">已完成</span>
+    <div class="desc">
+      <strong>产出 5：复现指纹</strong>。
+      7 字段元数据已经在每次跑完时自动写入；用 Gemini 的成本 / Claude 的成本 / 模型版本 / 代码版本都被记录。
+    </div>
+  </div>
+
+  <div class="status-row">
+    <span class="badge badge-partial">部分完成</span>
+    <div class="desc">
+      <strong>产出 6：研究知识库</strong>。
+      系统设计文档充分，但项目顶层 README 还停留在早期版本；伦理边界声明缺总文档。
+      细节齐全、入口未刷新。
+    </div>
+  </div>
+
+  <div class="status-row">
+    <span class="badge badge-pending">待完成</span>
+    <div class="desc">
+      <strong>产出 1：实验答案</strong>。
+      装置 ready，<strong>30 次大规模实验还没真跑</strong>。
+      之前跑过的版本带有 10 个测量 bug（已全部修复），数据不能用作结论依据。
+      <em>这是后续最关键的一步——所有别的产出物都在等它。</em>
+    </div>
+  </div>
+
+  <div class="status-row">
+    <span class="badge badge-pending">待完成</span>
+    <div class="desc">
+      <strong>产出 2：研究故事（五幕报告）</strong>。
+      报告生成器已实现，但需要等产出 1 完成后基于真实数据重新生成。
+    </div>
+  </div>
+
+  <div class="status-row">
+    <span class="badge badge-pending">待完成</span>
+    <div class="desc">
+      <strong>产出 3：地图与图表</strong>。
+      v3 版本的可视化是 pre-fix 数据快照（结论已知错误）。修复后需要重做 v4，
+      使用真实数据 + 新增的 protag-only 轨迹偏离 / 真实 token 成本 / provider 标签等字段。
+    </div>
+  </div>
+
+</div>
+
+<div class="panel" style="margin-top:40px;">
+  <p class="panel-title">下一步推荐</p>
+  <p style="margin-bottom:12px;">
+  在跑 30 次大规模真实实验之前，先做一次<strong>小规模真 LLM 验证</strong>
+  （1 种子 × 14 天 × 真实 Gemini 调用），确认管道里所有 10 个修复都在多日跑下表现正确，
+  特别是<strong>核心信号方向（hp 是否真的能让 encounter 提升）</strong>。
+  </p>
+  <p style="margin-bottom:0;">
+  如果方向对、成本可控（&lt; $50），再上 30 种子 × 14 天的 publishable 大跑。
+  方向不对 / 成本失控的话，回去定位是装置问题还是 thesis 真不成立。
+  </p>
+</div>
+
+</section>
+
+<footer>
+  <p>
+  项目代号：<strong>Synthetic Socio Wind Tunnel</strong>（合成社会风洞） ·
+  研究地点：<strong>Lane Cove, Sydney</strong> ·
+  最近大事：2026-05-10 完成 round-1 + round-2 共 10 个测量 bug 的修复，
+  装置准备好做 publishable run
+  </p>
+  <p>
+  权威 thesis 文档：<a href="agent_system/00-thesis.md">docs/agent_system/00-thesis.md</a> ·
+  完整 bug 修复历史：<a href="audit/2026-05-09-bug-hunt.md">docs/audit/2026-05-09-bug-hunt.md</a>
+  </p>
+</footer>
+
+</body>
+</html>

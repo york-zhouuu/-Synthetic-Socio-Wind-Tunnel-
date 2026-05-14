@@ -143,6 +143,27 @@ _HIGHWAY_WIDTHS: dict[str, float] = {
 }
 
 
+# add-walking-speed-budget: OSM highway → who may travel here.
+# Used to populate OutdoorArea.access_mode so NavigationService can filter
+# routes (car-less agents skip motorways; driving agents skip footways).
+_PEDESTRIAN_HIGHWAYS = frozenset({
+    "footway", "path", "steps", "cycleway", "pedestrian", "corridor",
+    "track",  # mostly walking trails in suburb context
+})
+_MOTOR_ONLY_HIGHWAYS = frozenset({
+    "motorway", "motorway_link", "trunk", "trunk_link",
+})
+
+
+def _highway_to_access_mode(highway_type: str) -> str:
+    """Map OSM highway tag → OutdoorArea.access_mode."""
+    if highway_type in _PEDESTRIAN_HIGHWAYS:
+        return "pedestrian"
+    if highway_type in _MOTOR_ONLY_HIGHWAYS:
+        return "motor"
+    return "mixed"
+
+
 class GeoJSONImporter:
     """
     Import GeoJSON data into Atlas format with full road network support.
@@ -335,6 +356,14 @@ class GeoJSONImporter:
         material = self._infer_material(props)
         building_type = self._infer_building_type(props)
 
+        # fix-realism-systemic-gaps: affordance-aware reclassification.
+        # OSM building tags reflect physical form ("warehouse"); POI categories
+        # reflect function ("restaurant"). Function wins — a warehouse running
+        # as a restaurant is a restaurant for thesis purposes.
+        building_type = self._maybe_reclassify_from_affordances(
+            building_type, props.get("affordances"),
+        )
+
         # Collect OSM + Overture tags (prefix kept so downstream can disambiguate).
         osm_tags: dict[str, str] = {}
         for key in ("amenity", "shop", "building", "cuisine", "opening_hours",
@@ -435,6 +464,131 @@ class GeoJSONImporter:
         "religious_organization": "worship",
     }
 
+    # fix-realism-systemic-gaps: Overture data ships category names directly
+    # (e.g. "cafe", "restaurant", "church_cathedral") rather than the prefixed
+    # form ("eat_and_drink.cafe") the legacy mapping assumed. Direct lookup
+    # MUST run before prefix split fallback.
+    _OVERTURE_CATEGORY_TO_TYPE: dict[str, str] = {
+        # food / drink
+        "cafe": "cafe", "coffee_shop": "cafe", "tea_room": "cafe",
+        "bakery": "cafe", "breakfast_restaurant": "cafe",
+        "restaurant": "restaurant", "fast_food_restaurant": "restaurant",
+        "pizza_place": "restaurant", "japanese_restaurant": "restaurant",
+        "italian_restaurant": "restaurant", "chinese_restaurant": "restaurant",
+        "thai_restaurant": "restaurant", "indian_restaurant": "restaurant",
+        "korean_restaurant": "restaurant", "vietnamese_restaurant": "restaurant",
+        "mediterranean_restaurant": "restaurant", "mexican_restaurant": "restaurant",
+        "seafood_restaurant": "restaurant", "sushi_restaurant": "restaurant",
+        "asian_restaurant": "restaurant", "noodle_house": "restaurant",
+        "burger_restaurant": "restaurant", "sandwich_shop": "restaurant",
+        "caterer": "restaurant", "ice_cream_parlor": "cafe",
+        "bar": "bar", "pub": "bar", "wine_bar": "bar", "beer_garden": "bar",
+        "cocktail_bar": "bar", "nightclub": "bar", "sports_bar": "bar",
+        "bar_and_grill_restaurant": "bar", "brewery": "bar",
+        "tavern": "bar", "lounge": "bar",
+        # shop / retail
+        "shop": "shop", "supermarket": "shop", "convenience_store": "shop",
+        "grocery_store": "shop", "department_store": "shop",
+        "shopping_center": "shop", "clothing_store": "shop",
+        "bookstore": "shop", "florist": "shop", "jewelry_store": "shop",
+        "shoe_store": "shop", "electronics_store": "shop", "hardware_store": "shop",
+        "furniture_store": "shop", "gift_shop": "shop", "toy_store": "shop",
+        "pet_store": "shop", "sporting_goods_store": "shop",
+        "pharmacy": "shop", "beauty_supply": "shop",
+        "hair_salon": "shop", "nail_salon": "shop", "barber_shop": "shop",
+        "gas_station": "shop", "auto_parts_store": "shop",
+        # education
+        "school": "school", "kindergarten": "school", "preschool": "school",
+        "elementary_school": "school", "middle_school": "school",
+        "high_school": "school", "secondary_school": "school",
+        "university": "school", "college": "school", "vocational_school": "school",
+        # health
+        "hospital": "hospital", "clinic": "hospital", "medical_center": "hospital",
+        "dentist": "hospital", "doctor": "hospital", "physician": "hospital",
+        "physiotherapist": "hospital", "speech_therapist": "hospital",
+        "optometrist": "hospital", "chiropractor": "hospital",
+        # community / civic
+        "library": "community", "community_centre": "community",
+        "community_center": "community", "town_hall": "community",
+        "post_office": "community", "police_station": "community",
+        "fire_station": "community", "civic_building": "community",
+        # worship
+        "church_cathedral": "worship", "mosque": "worship", "synagogue": "worship",
+        "temple": "worship", "buddhist_temple": "worship", "hindu_temple": "worship",
+        # office / professional
+        "office": "office", "real_estate_agent": "office",
+        "professional_services": "office", "advertising_agency": "office",
+        "consulting": "office", "accounting": "office",
+        "financial_services": "office", "law_firm": "office",
+        "insurance_agency": "office", "marketing_agency": "office",
+        # entertainment / hospitality
+        "cinema": "entertainment", "theatre": "entertainment",
+        "museum": "entertainment", "art_gallery": "entertainment",
+        "amusement_park": "entertainment", "casino": "entertainment",
+        "bowling_alley": "entertainment", "arcade": "entertainment",
+        "hotel": "hotel", "motel": "hotel", "bed_and_breakfast": "hotel",
+        "hostel": "hotel", "guesthouse": "hotel",
+        "gym": "entertainment", "fitness_center": "entertainment",
+        "yoga_studio": "entertainment", "dance_studio": "entertainment",
+        # explicit non-building categories left for outdoor area processing
+        # ("park", "playground", "garden" are outdoor_areas, not buildings)
+    }
+
+    # Affordance categories that signal a stronger "real function" than the
+    # OSM building tag — used by _maybe_reclassify_from_affordances.
+    _AFFORDANCE_CATEGORY_TO_TYPE: dict[str, str] = {
+        "cafe": "cafe", "coffee_shop": "cafe", "tea_room": "cafe",
+        "bakery": "cafe", "breakfast_restaurant": "cafe",
+        "ice_cream_parlor": "cafe",
+        "restaurant": "restaurant", "fast_food_restaurant": "restaurant",
+        "pizza_place": "restaurant", "japanese_restaurant": "restaurant",
+        "italian_restaurant": "restaurant", "chinese_restaurant": "restaurant",
+        "thai_restaurant": "restaurant", "indian_restaurant": "restaurant",
+        "korean_restaurant": "restaurant", "vietnamese_restaurant": "restaurant",
+        "mediterranean_restaurant": "restaurant", "mexican_restaurant": "restaurant",
+        "seafood_restaurant": "restaurant", "sushi_restaurant": "restaurant",
+        "asian_restaurant": "restaurant", "noodle_house": "restaurant",
+        "burger_restaurant": "restaurant", "sandwich_shop": "restaurant",
+        "caterer": "restaurant",
+        "bar": "bar", "pub": "bar", "wine_bar": "bar",
+        "beer_garden": "bar", "cocktail_bar": "bar", "sports_bar": "bar",
+        "bar_and_grill_restaurant": "bar", "brewery": "bar",
+        "tavern": "bar", "lounge": "bar",
+    }
+
+    def _maybe_reclassify_from_affordances(
+        self, building_type: str, raw_affordances,
+    ) -> str:
+        """When initial classification yields a generic shell type
+        (utility/industrial/residential) but the building hosts a real
+        cafe/restaurant/bar POI, upgrade to that functional type.
+
+        Returns the (possibly updated) building_type. Idempotent — buildings
+        already classified as cafe/restaurant/bar are left unchanged.
+        """
+        if building_type in ("cafe", "restaurant", "bar"):
+            return building_type
+        if building_type not in (
+            "utility", "industrial", "residential", "shop", "commercial",
+        ):
+            # Already specific (school/hospital/worship/office/etc.) — keep
+            return building_type
+        if not isinstance(raw_affordances, list):
+            return building_type
+
+        for item in raw_affordances:
+            if not isinstance(item, dict):
+                continue
+            category = (
+                item.get("category")
+                or item.get("overture:place:category")
+                or ""
+            )
+            hit = self._AFFORDANCE_CATEGORY_TO_TYPE.get(str(category).lower())
+            if hit:
+                return hit
+        return building_type
+
     def _extract_affordances(self, props: dict) -> tuple:
         """Turn any `properties["affordances"]` list (from conflation) into
         an ActivityAffordance tuple. Unknown entries are tolerated."""
@@ -470,15 +624,24 @@ class GeoJSONImporter:
     def _infer_building_type(self, props: dict) -> str:
         """Infer building functional type.
 
-        Priority: Overture Place category > OSM amenity > OSM shop >
-                  OSM building tag > Overture class > default residential.
+        Priority: Overture direct category > Overture prefix split (legacy) >
+                  OSM amenity > OSM shop > OSM building tag > Overture class >
+                  default residential.
+
         Overture place category wins over raw Overture class because the POI
         is the concrete activity signal ("cafe") rather than a generic zoning
-        ("commercial").
+        ("commercial"). fix-realism-systemic-gaps: direct lookup added because
+        real Overture data uses unprefixed category names ("cafe" not
+        "eat_and_drink.cafe") — the prefix split was a near-no-op on real data.
         """
         # Overture Place category (set by conflation when a POI binds here)
         ov_place_cat = props.get("overture:place:category") or ""
         if ov_place_cat:
+            # Direct category lookup first (current Overture format)
+            direct = self._OVERTURE_CATEGORY_TO_TYPE.get(ov_place_cat)
+            if direct:
+                return direct
+            # Legacy prefix split fallback for older Overture exports
             prefix = ov_place_cat.split(".", 1)[0]
             hit = self._OVERTURE_PLACE_PREFIX_TO_TYPE.get(prefix)
             if hit:
@@ -602,6 +765,7 @@ class GeoJSONImporter:
         road_name = props.get("name", f"road_{self._segment_counter}")
         highway_type = props.get("highway", "residential")
         road_width = _HIGHWAY_WIDTHS.get(highway_type, 6.0)
+        access_mode = _highway_to_access_mode(highway_type)
 
         # Keep raw (lon, lat) pairs in parallel with projected points so we
         # can match intersections at OSM node resolution.
@@ -645,6 +809,7 @@ class GeoJSONImporter:
                 vegetation_density=0.0,
                 road_name=road_name,
                 segment_index=i,
+                access_mode=access_mode,
             ))
             endpoint_keys.append((
                 self._coord_key(raw_coords[start_idx]),

@@ -137,9 +137,20 @@ def _pick_connected_destinations(
     rng: random.Random,
 ) -> list[str]:
     """
+    DEPRECATED — 只从 outdoor_areas 单池采样，导致 agent.home_location 落在街
+    段而非 residential building（fix-population-uses-typed-locations bug 根因）。
+    新代码 SHALL 用 `synthetic_socio_wind_tunnel.agent.build_location_pools`。
+
     BFS 从一个种子 outdoor_area 出发，找出 n 个 mutual-reachable 的
     outdoor_area。避免 agent 的 plan 指向不连通的子图。
     """
+    import warnings as _warn
+    _warn.warn(
+        "_pick_connected_destinations is deprecated; use "
+        "synthetic_socio_wind_tunnel.agent.build_location_pools for typed "
+        "home/work/poi pools.",
+        DeprecationWarning, stacklevel=2,
+    )
     outdoor_ids = list(atlas.region.outdoor_areas.keys())
     if not outdoor_ids:
         raise ValueError("atlas has no outdoor_areas")

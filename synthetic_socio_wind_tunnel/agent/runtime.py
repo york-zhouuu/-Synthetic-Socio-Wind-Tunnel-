@@ -161,6 +161,15 @@ class AgentRuntime:
     # Intent and clears it.
     _pending_action: dict | None = None
 
+    # add-walking-speed-budget: in-flight multi-tick walking state.
+    # When orchestrator's _dispatch_move can't complete a long route in one
+    # tick's distance budget (default 400m @ 80 m/min × 5 min), remaining
+    # NavigationSteps are cached here so the next tick resumes from where
+    # this tick stopped — agent keeps walking instead of teleporting.
+    # Cleared when route exhausted or agent's plan target changes.
+    _in_flight_route_remaining: list = field(default_factory=list)
+    _in_flight_target: str | None = None
+
     def __post_init__(self) -> None:
         if not self.current_location:
             self.current_location = self.profile.home_location

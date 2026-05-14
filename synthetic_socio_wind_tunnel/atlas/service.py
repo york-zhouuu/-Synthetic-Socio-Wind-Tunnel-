@@ -123,11 +123,15 @@ class Atlas:
     # ========== Type-based Queries (按类型查询) ==========
 
     def list_buildings_by_type(self, building_type: str) -> list[Building]:
-        """List all buildings of a given type (cafe, residential, etc.)."""
-        return [
-            b for b in self._region.buildings.values()
-            if b.building_type == building_type
-        ]
+        """List all buildings of a given type (cafe, residential, etc.).
+
+        Results are sorted by building id (alphabetically) for determinism.
+        """
+        return sorted(
+            (b for b in self._region.buildings.values()
+             if b.building_type == building_type),
+            key=lambda b: b.id,
+        )
 
     def list_residential_buildings(self) -> list[Building]:
         """All residential buildings, as candidate homes for agent placement.
@@ -135,10 +139,62 @@ class Atlas:
         Used by orchestrators / agent factories to assign `AgentProfile.home_location`.
         Each residential building carries a default `reside` affordance with a
         `capacity` hint so callers can spread agents without overfilling.
-        Phase 2 (see openspec/changes/phase-2-roadmap) will layer tenant and
-        household demographics on top of this list.
+        Results are sorted by building id (alphabetically) for determinism.
         """
         return self.list_buildings_by_type("residential")
+
+    _WORKPLACE_TYPES = ("commercial", "community", "hospital", "office", "school")
+    _POI_BUILDING_GROUPS = {
+        "food_drink": ("bar", "cafe", "restaurant"),
+        "shop": ("shop",),
+        "leisure": ("entertainment", "hotel", "worship"),
+        "civic": ("community",),
+    }
+    _POI_OUTDOOR_LEISURE = ("garden", "park", "playground")
+
+    def list_workplaces(self) -> list[Building]:
+        """All workplace-class buildings, used to assign agent workplaces.
+
+        Returns buildings with building_type in {commercial, community,
+        hospital, office, school}. Sorted by building id (alphabetically) for
+        determinism. Residential buildings are excluded by construction (the
+        set above is disjoint from "residential").
+        """
+        out: list[Building] = []
+        for bt in self._WORKPLACE_TYPES:
+            out.extend(self.list_buildings_by_type(bt))
+        return sorted(out, key=lambda b: b.id)
+
+    def list_pois(self) -> dict[str, list]:
+        """Group all POIs (non-residential, non-workplace-exclusive) by category.
+
+        Returns dict with 4 keys:
+        - food_drink: buildings with type in {bar, cafe, restaurant}
+        - shop: buildings with type "shop"
+        - leisure: buildings with type in {entertainment, hotel, worship}
+          plus outdoor_areas with area_type in {garden, park, playground}
+        - civic: buildings with type "community" (overlaps with workplaces;
+          intentional — community buildings serve dual role)
+
+        Each group sorted by id (alphabetically). The civic category
+        deliberately overlaps with list_workplaces() for community buildings,
+        but pool builders MUST resolve overlap before draw.
+        """
+        groups: dict[str, list] = {}
+
+        for category, types in self._POI_BUILDING_GROUPS.items():
+            items = []
+            for bt in types:
+                items.extend(self.list_buildings_by_type(bt))
+            groups[category] = sorted(items, key=lambda b: b.id)
+
+        outdoor_leisure = [
+            a for a in self._region.outdoor_areas.values()
+            if a.area_type in self._POI_OUTDOOR_LEISURE
+        ]
+        groups["leisure"].extend(sorted(outdoor_leisure, key=lambda a: a.id))
+        groups["leisure"].sort(key=lambda o: o.id)
+        return groups
 
     def list_street_segments(self) -> list[OutdoorArea]:
         """List all street segments."""
