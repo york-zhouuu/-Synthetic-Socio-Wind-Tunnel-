@@ -1,0 +1,115 @@
+{
+  "variant_name": "phone_friction",
+  "variant_metadata": {
+    "name": "phone_friction",
+    "hypothesis": "H_pull",
+    "theoretical_lineage": "Simon 注意力稀缺 + Wu《Attention Merchants》：手机商业模式过度索取注意力；降低 pull 能让人自发回到附近。",
+    "success_criterion": "Friction 期间 agents 的 AttentionState.allocation 'physical_world' 占比上升；空间探索熵上升；encounter 密度上升。Evidence consistent with H_pull.",
+    "failure_criterion": "Friction 无显著行为变化（allocation 分布 IQR 重叠）；或效果仅在 friction 期间，post 立刻回归。Not consistent with H_pull.",
+    "chain_position": "attention-main",
+    "is_mirror": false,
+    "paired_variant": null,
+    "primary_metric_name": "encounter.per_day_median",
+    "reproducibility_lock": {
+      "seed_pool": [
+        42
+      ],
+      "model_version": "deepseek:v4-pro+v4-flash",
+      "provider": "deepseek",
+      "prompt_template_hash": "stub:phone_friction",
+      "LANE_COVE_PROFILE_hash": "71b4ea04d57a4b9d7ead12e874b0f79fdc3473e66b7e9cea504bfb097d3c4ced",
+      "variants_loaded": {
+        "phone_friction": "b54829dc3b56c469430cbf1175b9ea3c459b54085b8ada62c34fe51c04d6aaa1"
+      },
+      "code_commit": "7a62a8ebf321a1b4a25d756149af1ebf23a70a4d",
+      "phase_config": {
+        "baseline_days": 4,
+        "intervention_days": 6,
+        "post_days": 4
+      }
+    }
+  },
+  "seed_count": 1,
+  "seeds": [
+    42
+  ],
+  "per_metric_stats": {
+    "encounter.total": {
+      "median": 1280302.0,
+      "iqr_lo": 1280302.0,
+      "iqr_hi": 1280302.0,
+      "ci95_lo": 1280302.0,
+      "ci95_hi": 1280302.0
+    },
+    "encounter.per_day_median": {
+      "median": 87181.5,
+      "iqr_lo": 87181.5,
+      "iqr_hi": 87181.5,
+      "ci95_lo": 87181.5,
+      "ci95_hi": 87181.5
+    },
+    "encounter.per_day_max": {
+      "median": 110658.0,
+      "iqr_lo": 110658.0,
+      "iqr_hi": 110658.0,
+      "ci95_lo": 110658.0,
+      "ci95_hi": 110658.0
+    },
+    "encounter.diversity_pairs_total": {
+      "median": 28183.0,
+      "iqr_lo": 28183.0,
+      "iqr_hi": 28183.0,
+      "ci95_lo": 28183.0,
+      "ci95_hi": 28183.0
+    },
+    "feed.neighbourhood.delivered": {
+      "median": 600.0,
+      "iqr_lo": 600.0,
+      "iqr_hi": 600.0,
+      "ci95_lo": 600.0,
+      "ci95_hi": 600.0
+    },
+    "attention.phone_feed_proxy": {
+      "median": 0.02142857142857143,
+      "iqr_lo": 0.02142857142857143,
+      "iqr_hi": 0.02142857142857143,
+      "ci95_lo": 0.02142857142857143,
+      "ci95_hi": 0.02142857142857143
+    }
+  },
+  "per_day_time_series": {
+    "encounter_count_per_day": [
+      85206.0,
+      79208.0,
+      76657.0,
+      92715.0,
+      86942.0,
+      80882.0,
+      78619.0,
+      85991.0,
+      87421.0,
+      96454.0,
+      110658.0,
+      106004.0,
+      103184.0,
+      110361.0
+    ],
+    "move_success_per_day": [
+      28800.0,
+      28800.0,
+      28800.0,
+      28800.0,
+      28800.0,
+      28794.0,
+      28800.0,
+      28743.0,
+      28800.0,
+      28765.0,
+      28670.0,
+      28719.0,
+      28675.0,
+      28682.0
+    ]
+  },
+  "degraded_preliminary_not_publishable": true
+}

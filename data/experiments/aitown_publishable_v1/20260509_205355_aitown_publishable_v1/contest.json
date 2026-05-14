@@ -1,0 +1,80 @@
+{
+  "suite_name": "aitown_publishable_v1",
+  "rows": [
+    {
+      "variant_name": "baseline",
+      "hypothesis": null,
+      "primary_metric": "encounter.per_day_median",
+      "primary_effect_size": 1314.0,
+      "primary_effect_ci": [
+        935.9,
+        1673.1
+      ],
+      "baseline_reference": 1314.0,
+      "evidence_alignment": "inconclusive",
+      "mirror_delta": null,
+      "paired_variant": null,
+      "notes": "baseline reference; evidence alignment not computed"
+    },
+    {
+      "variant_name": "hyperlocal_push",
+      "hypothesis": "H_info",
+      "primary_metric": "trajectory_deviation_m",
+      "primary_effect_size": 325.5193439071238,
+      "primary_effect_ci": [
+        212.80904262272605,
+        394.8951645576933
+      ],
+      "baseline_reference": null,
+      "evidence_alignment": "inconclusive",
+      "mirror_delta": null,
+      "paired_variant": null,
+      "notes": "inconclusive: CI overlap between variant and reference for trajectory_deviation_m [preliminary—seed count < 30]"
+    },
+    {
+      "variant_name": "global_distraction",
+      "hypothesis": "H_info",
+      "primary_metric": "trajectory_deviation_m",
+      "primary_effect_size": 325.5193439071238,
+      "primary_effect_ci": [
+        212.80904262272605,
+        426.827675747625
+      ],
+      "baseline_reference": null,
+      "evidence_alignment": "inconclusive",
+      "mirror_delta": 0.0,
+      "paired_variant": "hyperlocal_push",
+      "notes": "inconclusive: CI overlap between variant and reference for trajectory_deviation_m [preliminary—seed count < 30]"
+    },
+    {
+      "variant_name": "phone_friction",
+      "hypothesis": "H_pull",
+      "primary_metric": "attention.phone_feed_proxy",
+      "primary_effect_size": 0.0,
+      "primary_effect_ci": [
+        0.0,
+        0.0
+      ],
+      "baseline_reference": 0.0,
+      "evidence_alignment": "inconclusive",
+      "mirror_delta": null,
+      "paired_variant": null,
+      "notes": "inconclusive: CI overlap between variant and reference for attention.phone_feed_proxy [preliminary—seed count < 30]"
+    }
+  ],
+  "baseline_row": {
+    "variant_name": "baseline",
+    "hypothesis": null,
+    "primary_metric": "encounter.per_day_median",
+    "primary_effect_size": 1314.0,
+    "primary_effect_ci": [
+      935.9,
+      1673.1
+    ],
+    "baseline_reference": 1314.0,
+    "evidence_alignment": "inconclusive",
+    "mirror_delta": null,
+    "paired_variant": null,
+    "notes": "baseline reference; evidence alignment not computed"
+  }
+}

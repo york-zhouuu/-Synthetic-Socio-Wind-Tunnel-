@@ -1,0 +1,128 @@
+{
+  "variant_name": "baseline",
+  "variant_metadata": {
+    "name": "baseline",
+    "reproducibility_lock": {
+      "seed_pool": [
+        42,
+        43,
+        44,
+        45,
+        46,
+        47,
+        48,
+        49,
+        50,
+        51,
+        52,
+        53,
+        54,
+        55,
+        56
+      ],
+      "model_version": "deepseek:v4-pro+v4-flash",
+      "provider": "deepseek",
+      "prompt_template_hash": "stub:baseline",
+      "LANE_COVE_PROFILE_hash": "71b4ea04d57a4b9d7ead12e874b0f79fdc3473e66b7e9cea504bfb097d3c4ced",
+      "variants_loaded": {
+        "baseline": "8ba8496a2525ae171ffd104d632dede6ef418d9b95962a9d88e2fcdbc8d48d24"
+      },
+      "code_commit": "7a62a8ebf321a1b4a25d756149af1ebf23a70a4d",
+      "phase_config": {
+        "baseline_days": 4,
+        "intervention_days": 6,
+        "post_days": 4
+      }
+    }
+  },
+  "seed_count": 15,
+  "seeds": [
+    42,
+    43,
+    44,
+    45,
+    46,
+    47,
+    48,
+    49,
+    50,
+    51,
+    52,
+    53,
+    54,
+    55,
+    56
+  ],
+  "per_metric_stats": {
+    "encounter.total": {
+      "median": 1190533.0,
+      "iqr_lo": 1150391.0,
+      "iqr_hi": 1216766.0,
+      "ci95_lo": 1119779.0,
+      "ci95_hi": 1383579.8
+    },
+    "encounter.per_day_median": {
+      "median": 83436.5,
+      "iqr_lo": 80560.75,
+      "iqr_hi": 84644.0,
+      "ci95_lo": 77664.475,
+      "ci95_hi": 96620.52500000001
+    },
+    "encounter.per_day_max": {
+      "median": 92767.0,
+      "iqr_lo": 89918.0,
+      "iqr_hi": 97495.0,
+      "ci95_lo": 87437.4,
+      "ci95_hi": 111341.8
+    },
+    "encounter.diversity_pairs_total": {
+      "median": 35052.0,
+      "iqr_lo": 32394.5,
+      "iqr_hi": 37970.5,
+      "ci95_lo": 29866.7,
+      "ci95_hi": 42266.75
+    },
+    "attention.phone_feed_proxy": {
+      "median": 0.0,
+      "iqr_lo": 0.0,
+      "iqr_hi": 0.0,
+      "ci95_lo": 0.0,
+      "ci95_hi": 0.0
+    }
+  },
+  "per_day_time_series": {
+    "encounter_count_per_day": [
+      81035.0,
+      79869.0,
+      80927.0,
+      91496.0,
+      92767.0,
+      81797.0,
+      83300.0,
+      83247.0,
+      80620.0,
+      81613.0,
+      92361.0,
+      92752.0,
+      81683.0,
+      79915.0
+    ],
+    "move_success_per_day": [
+      28800.0,
+      28800.0,
+      28800.0,
+      28800.0,
+      28800.0,
+      28800.0,
+      28800.0,
+      28800.0,
+      28800.0,
+      28800.0,
+      28800.0,
+      28800.0,
+      28800.0,
+      28800.0
+    ]
+  },
+  "degraded_preliminary_not_publishable": true
+}

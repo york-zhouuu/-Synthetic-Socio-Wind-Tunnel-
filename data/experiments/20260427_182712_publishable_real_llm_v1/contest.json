@@ -1,0 +1,110 @@
+{
+  "suite_name": "publishable_real_llm_v1",
+  "rows": [
+    {
+      "variant_name": "baseline",
+      "hypothesis": null,
+      "primary_metric": "encounter.per_day_median",
+      "primary_effect_size": 1585.5,
+      "primary_effect_ci": [
+        1030.225,
+        2140.7749999999996
+      ],
+      "baseline_reference": 1585.5,
+      "evidence_alignment": "inconclusive",
+      "mirror_delta": null,
+      "paired_variant": null,
+      "notes": "baseline reference; evidence alignment not computed"
+    },
+    {
+      "variant_name": "hyperlocal_push",
+      "hypothesis": "H_info",
+      "primary_metric": "trajectory_deviation_m",
+      "primary_effect_size": 183.97585770194934,
+      "primary_effect_ci": [
+        127.93364578755232,
+        240.01806961634634
+      ],
+      "baseline_reference": null,
+      "evidence_alignment": "inconclusive",
+      "mirror_delta": null,
+      "paired_variant": null,
+      "notes": "inconclusive: CI overlap between variant and reference for trajectory_deviation_m [preliminary—seed count < 30]"
+    },
+    {
+      "variant_name": "global_distraction",
+      "hypothesis": "H_info",
+      "primary_metric": "trajectory_deviation_m",
+      "primary_effect_size": 211.55657422173925,
+      "primary_effect_ci": [
+        178.3225242440053,
+        244.79062419947326
+      ],
+      "baseline_reference": null,
+      "evidence_alignment": "inconclusive",
+      "mirror_delta": 27.580716519789917,
+      "paired_variant": "hyperlocal_push",
+      "notes": "inconclusive: CI overlap between variant and reference for trajectory_deviation_m [preliminary—seed count < 30]"
+    },
+    {
+      "variant_name": "shared_anchor",
+      "hypothesis": "H_meaning",
+      "primary_metric": "encounter.per_day_median",
+      "primary_effect_size": 1482.5,
+      "primary_effect_ci": [
+        945.275,
+        2019.725
+      ],
+      "baseline_reference": 1585.5,
+      "evidence_alignment": "inconclusive",
+      "mirror_delta": null,
+      "paired_variant": null,
+      "notes": "inconclusive: CI overlap between variant and reference for encounter.per_day_median [preliminary—seed count < 30]"
+    },
+    {
+      "variant_name": "phone_friction",
+      "hypothesis": "H_pull",
+      "primary_metric": "attention.phone_feed_proxy",
+      "primary_effect_size": 0.0,
+      "primary_effect_ci": [
+        0.0,
+        0.0
+      ],
+      "baseline_reference": 0.0,
+      "evidence_alignment": "inconclusive",
+      "mirror_delta": null,
+      "paired_variant": null,
+      "notes": "inconclusive: CI overlap between variant and reference for attention.phone_feed_proxy [preliminary—seed count < 30]"
+    },
+    {
+      "variant_name": "catalyst_seeding",
+      "hypothesis": "H_structure",
+      "primary_metric": "encounter.per_day_median",
+      "primary_effect_size": 1585.5,
+      "primary_effect_ci": [
+        1030.225,
+        2140.7749999999996
+      ],
+      "baseline_reference": 1585.5,
+      "evidence_alignment": "inconclusive",
+      "mirror_delta": null,
+      "paired_variant": null,
+      "notes": "inconclusive: CI overlap between variant and reference for encounter.per_day_median [preliminary—seed count < 30]"
+    }
+  ],
+  "baseline_row": {
+    "variant_name": "baseline",
+    "hypothesis": null,
+    "primary_metric": "encounter.per_day_median",
+    "primary_effect_size": 1585.5,
+    "primary_effect_ci": [
+      1030.225,
+      2140.7749999999996
+    ],
+    "baseline_reference": 1585.5,
+    "evidence_alignment": "inconclusive",
+    "mirror_delta": null,
+    "paired_variant": null,
+    "notes": "baseline reference; evidence alignment not computed"
+  }
+}

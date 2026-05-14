@@ -1,0 +1,108 @@
+{
+  "variant_name": "catalyst_seeding",
+  "variant_metadata": {
+    "name": "catalyst_seeding",
+    "hypothesis": "H_structure",
+    "theoretical_lineage": "Granovetter 弱关系 + Burt 结构洞：社区缺少 bridging 个体，种入少量 connector 人格可涌现更多弱连接。",
+    "success_criterion": "Intervention 期间 encounter 网络密度 / clustering 上升；bridging agents 自发出现；弱关系（未来 social-graph 测）增量显著。Evidence consistent with H_structure.",
+    "failure_criterion": "Connector 种子对 encounter 网络无显著影响（度分布 / 聚类系数不变）；或仅 connector 自己受益。Not consistent with H_structure.",
+    "chain_position": "social-downstream",
+    "is_mirror": false,
+    "paired_variant": null,
+    "reproducibility_lock": {
+      "seed_pool": [
+        42,
+        43
+      ],
+      "model_version": "real_llm:unknown",
+      "prompt_template_hash": "653dd79e09237a9f853213769aa8f95784bc101070c40a2bd38a7386a86d94f2",
+      "LANE_COVE_PROFILE_hash": "71b4ea04d57a4b9d7ead12e874b0f79fdc3473e66b7e9cea504bfb097d3c4ced",
+      "variants_loaded": {
+        "catalyst_seeding": "0a28479499c5519bf50cc203d628535f0a0066952c528f1a616bde17a52ef2ec"
+      },
+      "code_commit": "62f15d4a81b2eae3d1dfa8a36171d2ad308b34a4",
+      "phase_config": {
+        "baseline_days": "4",
+        "intervention_days": ",",
+        "post_days": "6"
+      }
+    }
+  },
+  "seed_count": 2,
+  "seeds": [
+    42,
+    43
+  ],
+  "per_metric_stats": {
+    "encounter.total": {
+      "median": 29959.0,
+      "iqr_lo": 26646.0,
+      "iqr_hi": 33272.0,
+      "ci95_lo": 23664.3,
+      "ci95_hi": 36253.7
+    },
+    "encounter.per_day_median": {
+      "median": 1481.75,
+      "iqr_lo": 1309.625,
+      "iqr_hi": 1653.875,
+      "ci95_lo": 1154.7125,
+      "ci95_hi": 1808.7875
+    },
+    "encounter.per_day_max": {
+      "median": 4151.0,
+      "iqr_lo": 3740.0,
+      "iqr_hi": 4562.0,
+      "ci95_lo": 3370.1,
+      "ci95_hi": 4931.9
+    },
+    "encounter.diversity_pairs_total": {
+      "median": 23784.5,
+      "iqr_lo": 21546.75,
+      "iqr_hi": 26022.25,
+      "ci95_lo": 19532.775,
+      "ci95_hi": 28036.225
+    },
+    "attention.phone_feed_proxy": {
+      "median": 0.0,
+      "iqr_lo": 0.0,
+      "iqr_hi": 0.0,
+      "ci95_lo": 0.0,
+      "ci95_hi": 0.0
+    }
+  },
+  "per_day_time_series": {
+    "encounter_count_per_day": [
+      1348.0,
+      1369.5,
+      1392.5,
+      3635.0,
+      4043.0,
+      1315.0,
+      1429.5,
+      1463.0,
+      1424.0,
+      1501.0,
+      3959.5,
+      4091.0,
+      1463.5,
+      1524.5
+    ],
+    "move_success_per_day": [
+      28800.0,
+      28800.0,
+      28800.0,
+      28800.0,
+      28800.0,
+      28800.0,
+      28800.0,
+      28800.0,
+      28800.0,
+      28800.0,
+      28800.0,
+      28800.0,
+      28800.0,
+      28800.0
+    ]
+  },
+  "degraded_preliminary_not_publishable": true
+}

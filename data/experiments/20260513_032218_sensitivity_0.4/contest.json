@@ -1,0 +1,65 @@
+{
+  "suite_name": "sensitivity_0.4",
+  "rows": [
+    {
+      "variant_name": "baseline",
+      "hypothesis": null,
+      "primary_metric": "encounter.per_day_median",
+      "primary_effect_size": 5753.0,
+      "primary_effect_ci": [
+        5753.0,
+        5753.0
+      ],
+      "baseline_reference": 5753.0,
+      "evidence_alignment": "inconclusive",
+      "mirror_delta": null,
+      "paired_variant": null,
+      "notes": "baseline reference; evidence alignment not computed"
+    },
+    {
+      "variant_name": "phone_friction",
+      "hypothesis": "H_pull",
+      "primary_metric": "encounter.per_day_median",
+      "primary_effect_size": 5647.0,
+      "primary_effect_ci": [
+        5647.0,
+        5647.0
+      ],
+      "baseline_reference": 5753.0,
+      "evidence_alignment": "not_consistent",
+      "mirror_delta": null,
+      "paired_variant": null,
+      "notes": "evidence not consistent with H_pull: primary metric trends opposite to expected direction [preliminary—seed count < 30]"
+    },
+    {
+      "variant_name": "global_distraction",
+      "hypothesis": "H_info",
+      "primary_metric": "trajectory_deviation_m",
+      "primary_effect_size": 1605.3299489765784,
+      "primary_effect_ci": [
+        1605.3299489765784,
+        1605.3299489765784
+      ],
+      "baseline_reference": null,
+      "evidence_alignment": "inconclusive",
+      "mirror_delta": null,
+      "paired_variant": "hyperlocal_push",
+      "notes": "inconclusive: CI overlap between variant and reference for trajectory_deviation_m [preliminary—seed count < 30]"
+    }
+  ],
+  "baseline_row": {
+    "variant_name": "baseline",
+    "hypothesis": null,
+    "primary_metric": "encounter.per_day_median",
+    "primary_effect_size": 5753.0,
+    "primary_effect_ci": [
+      5753.0,
+      5753.0
+    ],
+    "baseline_reference": 5753.0,
+    "evidence_alignment": "inconclusive",
+    "mirror_delta": null,
+    "paired_variant": null,
+    "notes": "baseline reference; evidence alignment not computed"
+  }
+}

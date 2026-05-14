@@ -1,0 +1,130 @@
+{
+  "variant_name": "hyperlocal_push",
+  "variant_metadata": {
+    "name": "hyperlocal_push",
+    "hypothesis": "H_info",
+    "theoretical_lineage": "Shannon 信息论 + Wu《Attention Merchants》：注意力稀缺假设——附近可被感知的信号不足，平台提供高质量 hyperlocal 内容可补足。",
+    "success_criterion": "target agents 的 trajectory 在 intervention 期间向 target_location 偏移（median delta > 100m）；encounter 密度上升。Evidence consistent with H_info.",
+    "failure_criterion": "target 与 control 之间无显著 delta（IQR 重叠）；或效果衰减在 3 天内。Not consistent with H_info.",
+    "chain_position": "algorithmic-input",
+    "is_mirror": false,
+    "paired_variant": null,
+    "target_location": "road_3810_seg_2",
+    "reproducibility_lock": {
+      "seed_pool": [
+        42,
+        43
+      ],
+      "model_version": "real_llm:unknown",
+      "prompt_template_hash": "653dd79e09237a9f853213769aa8f95784bc101070c40a2bd38a7386a86d94f2",
+      "LANE_COVE_PROFILE_hash": "71b4ea04d57a4b9d7ead12e874b0f79fdc3473e66b7e9cea504bfb097d3c4ced",
+      "variants_loaded": {
+        "hyperlocal_push": "2cec0b61c394d97e1e72a73df7f974b1f17e758629f6f7b57fed3286b00c0619"
+      },
+      "code_commit": "62f15d4a81b2eae3d1dfa8a36171d2ad308b34a4",
+      "phase_config": {
+        "baseline_days": "4",
+        "intervention_days": ",",
+        "post_days": "6"
+      }
+    }
+  },
+  "seed_count": 2,
+  "seeds": [
+    42,
+    43
+  ],
+  "per_metric_stats": {
+    "trajectory_deviation_m": {
+      "median": 198.1439465051937,
+      "iqr_lo": 178.25492957396082,
+      "iqr_hi": 218.03296343642654,
+      "ci95_lo": 160.35481433585124,
+      "ci95_hi": 235.93307867453615
+    },
+    "encounter.total": {
+      "median": 19897.0,
+      "iqr_lo": 18388.5,
+      "iqr_hi": 21405.5,
+      "ci95_lo": 17030.85,
+      "ci95_hi": 22763.15
+    },
+    "encounter.per_day_median": {
+      "median": 1151.25,
+      "iqr_lo": 1062.375,
+      "iqr_hi": 1240.125,
+      "ci95_lo": 982.3875,
+      "ci95_hi": 1320.1125
+    },
+    "encounter.per_day_max": {
+      "median": 3831.0,
+      "iqr_lo": 3363.5,
+      "iqr_hi": 4298.5,
+      "ci95_lo": 2942.75,
+      "ci95_hi": 4719.25
+    },
+    "encounter.diversity_pairs_total": {
+      "median": 16674.0,
+      "iqr_lo": 15704.0,
+      "iqr_hi": 17644.0,
+      "ci95_lo": 14831.0,
+      "ci95_hi": 18517.0
+    },
+    "feed.local_news.delivered": {
+      "median": 242.0,
+      "iqr_lo": 241.5,
+      "iqr_hi": 242.5,
+      "ci95_lo": 241.05,
+      "ci95_hi": 242.95
+    },
+    "feed.local_news.suppressed": {
+      "median": 58.0,
+      "iqr_lo": 57.5,
+      "iqr_hi": 58.5,
+      "ci95_lo": 57.05,
+      "ci95_hi": 58.95
+    },
+    "attention.phone_feed_proxy": {
+      "median": 0.008642857142857143,
+      "iqr_lo": 0.008625,
+      "iqr_hi": 0.008660714285714285,
+      "ci95_lo": 0.008608928571428573,
+      "ci95_hi": 0.008676785714285713
+    }
+  },
+  "per_day_time_series": {
+    "encounter_count_per_day": [
+      1387.5,
+      1339.0,
+      1379.5,
+      3831.0,
+      1986.5,
+      999.0,
+      932.5,
+      993.5,
+      1054.5,
+      1054.0,
+      1463.5,
+      1358.0,
+      965.0,
+      1153.5
+    ],
+    "move_success_per_day": [
+      28800.0,
+      28800.0,
+      28800.0,
+      28800.0,
+      28800.0,
+      28800.0,
+      28800.0,
+      28800.0,
+      28800.0,
+      28800.0,
+      28800.0,
+      28800.0,
+      28800.0,
+      28800.0
+    ]
+  },
+  "degraded_preliminary_not_publishable": true
+}

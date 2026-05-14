@@ -1,0 +1,101 @@
+{
+  "variant_name": "baseline",
+  "variant_metadata": {
+    "name": "baseline",
+    "reproducibility_lock": {
+      "seed_pool": [
+        42,
+        43
+      ],
+      "model_version": "real_llm:unknown",
+      "prompt_template_hash": "653dd79e09237a9f853213769aa8f95784bc101070c40a2bd38a7386a86d94f2",
+      "LANE_COVE_PROFILE_hash": "71b4ea04d57a4b9d7ead12e874b0f79fdc3473e66b7e9cea504bfb097d3c4ced",
+      "variants_loaded": {
+        "baseline": "8ba8496a2525ae171ffd104d632dede6ef418d9b95962a9d88e2fcdbc8d48d24"
+      },
+      "code_commit": "62f15d4a81b2eae3d1dfa8a36171d2ad308b34a4",
+      "phase_config": {
+        "baseline_days": "4",
+        "intervention_days": ",",
+        "post_days": "6"
+      }
+    }
+  },
+  "seed_count": 2,
+  "seeds": [
+    42,
+    43
+  ],
+  "per_metric_stats": {
+    "encounter.total": {
+      "median": 30040.5,
+      "iqr_lo": 26647.75,
+      "iqr_hi": 33433.25,
+      "ci95_lo": 23594.275,
+      "ci95_hi": 36486.725
+    },
+    "encounter.per_day_median": {
+      "median": 1450.75,
+      "iqr_lo": 1269.625,
+      "iqr_hi": 1631.875,
+      "ci95_lo": 1106.6125,
+      "ci95_hi": 1794.8874999999998
+    },
+    "encounter.per_day_max": {
+      "median": 4209.0,
+      "iqr_lo": 3787.5,
+      "iqr_hi": 4630.5,
+      "ci95_lo": 3408.15,
+      "ci95_hi": 5009.85
+    },
+    "encounter.diversity_pairs_total": {
+      "median": 23861.5,
+      "iqr_lo": 21586.75,
+      "iqr_hi": 26136.25,
+      "ci95_lo": 19539.475,
+      "ci95_hi": 28183.525
+    },
+    "attention.phone_feed_proxy": {
+      "median": 0.0,
+      "iqr_lo": 0.0,
+      "iqr_hi": 0.0,
+      "ci95_lo": 0.0,
+      "ci95_hi": 0.0
+    }
+  },
+  "per_day_time_series": {
+    "encounter_count_per_day": [
+      1387.5,
+      1339.0,
+      1379.5,
+      3831.0,
+      4209.0,
+      1237.5,
+      1392.0,
+      1476.5,
+      1522.0,
+      1402.5,
+      4004.0,
+      3930.5,
+      1513.5,
+      1416.0
+    ],
+    "move_success_per_day": [
+      28800.0,
+      28800.0,
+      28800.0,
+      28800.0,
+      28800.0,
+      28800.0,
+      28800.0,
+      28800.0,
+      28800.0,
+      28800.0,
+      28800.0,
+      28800.0,
+      28800.0,
+      28800.0
+    ]
+  },
+  "degraded_preliminary_not_publishable": true
+}

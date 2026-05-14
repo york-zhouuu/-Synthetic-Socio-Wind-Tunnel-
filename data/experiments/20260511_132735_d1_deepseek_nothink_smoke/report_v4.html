@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Synthetic Socio Wind Tunnel — Evidence Report v4</title>
+<style>
+* { box-sizing: border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC",
+               "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  max-width: 1100px; margin: 0 auto; padding: 60px 40px;
+  line-height: 1.7; color: #1f1f1f; background: #fbfaf6;
+}
+h1 { font-size: 32px; margin: 0 0 8px; }
+h2 { font-size: 22px; margin: 60px 0 20px; padding-bottom: 8px;
+     border-bottom: 2px solid #1f1f1f; }
+h3 { font-size: 18px; margin: 28px 0 10px; }
+.subtitle { color: #888; font-size: 14px; letter-spacing: 0.1em;
+            text-transform: uppercase; margin-bottom: 30px; }
+table { border-collapse: collapse; width: 100%; margin: 16px 0; font-size: 14px; }
+th, td { padding: 10px 14px; border-bottom: 1px solid #e5e2d6; text-align: left; }
+th { background: #f4f1e8; font-weight: 600; }
+tr:nth-child(even) td { background: #fff; }
+.metric-key { font-family: ui-monospace, "SF Mono", monospace; font-size: 13px;
+              color: #555; }
+.bar { display: inline-block; height: 16px; background: #c8553d; border-radius: 2px;
+       vertical-align: middle; margin-right: 8px; min-width: 2px; }
+.bar.baseline { background: #888; }
+.bar.hp { background: #c8553d; }
+.bar.gd { background: #fd7e14; }
+.bar.pf { background: #198754; }
+.note { background: #fff4cc; padding: 12px 18px; border-left: 4px solid #c8553d;
+        margin: 16px 0; font-size: 14px; }
+.metadata { background: #fff; border: 1px solid #e5e2d6; border-radius: 6px;
+            padding: 16px 20px; font-size: 13px; font-family: ui-monospace, monospace; }
+.success { color: #1e7e34; }
+.warn { color: #c8553d; }
+</style>
+</head>
+<body>
+<p class="subtitle">Synthetic Socio Wind Tunnel · Evidence Report v4</p><h1>Lane Cove publishable run · 真实数据答卷</h1><p>套件路径：<span class='metric-key'>data/experiments/20260511_132735_d1_deepseek_nothink_smoke</span></p><h2>① 可复现指纹</h2><div class="metadata"><div><strong>provider:</strong> deepseek</div><div><strong>model_version:</strong> deepseek:v4-pro+v4-flash</div><div><strong>code_commit:</strong> 7a62a8ebf321a1b4a25d756149af1ebf23a70a4d</div><div><strong>seed_pool:</strong> 42</div><div><strong>phase_config:</strong> {"baseline_days": 4, "intervention_days": 6, "post_days": 4}</div><div><strong>LANE_COVE_PROFILE_hash:</strong> 71b4ea04d57a4b9d7ead12e874b0f79fdc3473e66b7e9cea504bfb097d3c4ced</div></div><h2>② 4 variant 主要指标对比</h2><table><thead><tr><th>variant</th><th>encounter total (median)</th><th>encounter per_day_median</th><th>weak ties</th><th>traj_dev_m (protag)</th><th>traj_dev_m_all</th><th>replan</th><th>no_op</th></tr></thead><tbody>
+<tr><td><strong>baseline</strong></td><td><span class="bar baseline" style="width:186px;"></span>1195331</td><td>84160</td><td>513</td><td>0.0</td><td>0.0</td><td>0</td><td>0</td></tr>
+<tr><td><strong>global_distraction</strong></td><td><span class="bar gd" style="width:175px;"></span>1126258</td><td>78961</td><td>584</td><td>232.0</td><td>187.9</td><td>44</td><td>0</td></tr>
+<tr><td><strong>hyperlocal_push</strong></td><td><span class="bar hp" style="width:184px;"></span>1181146</td><td>83660</td><td>507</td><td>187.9</td><td>139.2</td><td>64</td><td>0</td></tr>
+<tr><td><strong>phone_friction</strong></td><td><span class="bar pf" style="width:200px;"></span>1280302</td><td>87182</td><td>593</td><td>0.0</td><td>0.0</td><td>143</td><td>0</td></tr>
+</tbody></table><h2>③ 真 LLM 成本</h2><p>本次跑 <strong>$5.04</strong>（provider=deepseek）。</p><h2>④ 解读说明</h2><div class="note"><strong>注意</strong>：本报告基于 round-1 + round-2 + A1 + B 全套修复后的数据。之前 14-day suite 里出现的 "hp encounter -6.8% 反向" 是 measurement bug (B9 encounter 漏算 stationary co-presence) 制造的，已修。trajectory_deviation_m 现在是 protag-only median；trajectory_deviation_m_all 是 sanity 对照（all-agent median，受 90% scripted agent 主导，仅供诊断 spillover 用）。</div><h2>⑤ 各 variant per-seed detail</h2><h3>variant_baseline</h3><p>n_seeds = 1; replan_no_op_count median = 0 (0 = stub 工作正常 / 真 LLM 没 fallback)</p><h3>variant_global_distraction</h3><p>n_seeds = 1; replan_no_op_count median = 0 (0 = stub 工作正常 / 真 LLM 没 fallback)</p><h3>variant_hyperlocal_push</h3><p>n_seeds = 1; replan_no_op_count median = 0 (0 = stub 工作正常 / 真 LLM 没 fallback)</p><h3>variant_phone_friction</h3><p>n_seeds = 1; replan_no_op_count median = 0 (0 = stub 工作正常 / 真 LLM 没 fallback)</p></body></html>

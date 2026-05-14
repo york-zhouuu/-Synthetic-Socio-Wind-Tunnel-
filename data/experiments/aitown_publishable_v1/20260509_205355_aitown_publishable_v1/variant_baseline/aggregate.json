@@ -1,0 +1,103 @@
+{
+  "variant_name": "baseline",
+  "variant_metadata": {
+    "name": "baseline",
+    "reproducibility_lock": {
+      "seed_pool": [
+        42,
+        43,
+        44
+      ],
+      "model_version": "stub:v1",
+      "prompt_template_hash": "stub:baseline",
+      "LANE_COVE_PROFILE_hash": "71b4ea04d57a4b9d7ead12e874b0f79fdc3473e66b7e9cea504bfb097d3c4ced",
+      "variants_loaded": {
+        "baseline": "8ba8496a2525ae171ffd104d632dede6ef418d9b95962a9d88e2fcdbc8d48d24"
+      },
+      "code_commit": "66794d725b52fc971a6f5ecbbbd425f7d0ca0841",
+      "phase_config": {
+        "baseline_days": "4",
+        "intervention_days": ",",
+        "post_days": "6"
+      }
+    }
+  },
+  "seed_count": 3,
+  "seeds": [
+    42,
+    43,
+    44
+  ],
+  "per_metric_stats": {
+    "encounter.total": {
+      "median": 27372.0,
+      "iqr_lo": 23177.5,
+      "iqr_hi": 31244.5,
+      "ci95_lo": 19402.45,
+      "ci95_hi": 34729.75
+    },
+    "encounter.per_day_median": {
+      "median": 1314.0,
+      "iqr_lo": 1115.0,
+      "iqr_hi": 1503.0,
+      "ci95_lo": 935.9,
+      "ci95_hi": 1673.1
+    },
+    "encounter.per_day_max": {
+      "median": 4044.0,
+      "iqr_lo": 3494.5,
+      "iqr_hi": 4474.0,
+      "ci95_lo": 2999.95,
+      "ci95_hi": 4861.0
+    },
+    "encounter.diversity_pairs_total": {
+      "median": 22348.0,
+      "iqr_lo": 19292.0,
+      "iqr_hi": 24728.5,
+      "ci95_lo": 16541.6,
+      "ci95_hi": 26870.95
+    },
+    "attention.phone_feed_proxy": {
+      "median": 0.0,
+      "iqr_lo": 0.0,
+      "iqr_hi": 0.0,
+      "ci95_lo": 0.0,
+      "ci95_hi": 0.0
+    }
+  },
+  "per_day_time_series": {
+    "encounter_count_per_day": [
+      1350.0,
+      1210.0,
+      1225.0,
+      4044.0,
+      3324.0,
+      1039.0,
+      1457.0,
+      1264.0,
+      1211.0,
+      1433.0,
+      3502.0,
+      3823.0,
+      1278.0,
+      1212.0
+    ],
+    "move_success_per_day": [
+      28800.0,
+      28800.0,
+      28800.0,
+      28800.0,
+      28800.0,
+      28800.0,
+      28796.0,
+      28800.0,
+      28800.0,
+      28800.0,
+      28800.0,
+      28800.0,
+      28800.0,
+      28800.0
+    ]
+  },
+  "degraded_preliminary_not_publishable": true
+}
