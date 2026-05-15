@@ -103,11 +103,13 @@ python tools/run_variant_suite.py --suite-dir <run> --resume ...
 - [x] CLAUDE.md "关键不变量" 加 run-resilience 段
 - [x] README "Development Status" 加 run-resilience 行
 - [x] `docs/agent_system/15-run-resilience.md` 用户向白话指南
-- [ ] D3 publishable run 实跑（待 D2 完成 + 用户启动）
+- [ ] D2 续跑或 D3 fresh（待用户启动；D2 当前悬停于 5-15 20:42，baseline 15-seed 已 aggregate，hp 3/15，gd/pf 未启动）
 
 ## 下一步
 
-1. 等 D2（Mac A 上跑的）完成或 abandon
+1. 决定 D2 续跑（baseline 已完成 15 seed + aggregate；hp/gd/pf 缺）vs 启 D3 fresh
+   —— D2 dir：`data/experiments/20260511_172808_d2_deepseek_publishable/`
+   —— 续跑用 `--suite-dir <D2_dir> --resume` 走新基建路径
 2. 在新机器上跑 `tools/preflight_full_smoke.py --provider deepseek` 一次完整
 3. 跑 D3 publishable（1000 agent × 14 day × 15 seed × DeepSeek），观察 keepalive=0
    的实际开销是否如预期 ~10-20%

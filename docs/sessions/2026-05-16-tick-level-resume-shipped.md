@@ -84,7 +84,7 @@ python tools/audit_run_health.py data/experiments/<run>/
 
 ## 已 defer 的任务
 
-- D3 publishable run 实跑（待 D2 完成 + 用户启动）
+- D2 续跑或 D3 fresh（待用户启动；D2 当前悬停于 5-15 20:42，baseline 15-seed 已 aggregate，hp 3/15，gd/pf 未启动）
 - 真 DeepSeek snapshot disk budget 实测（要等 publishable scale 跑出来）
 
 ## 验证清单
@@ -104,7 +104,9 @@ python tools/audit_run_health.py data/experiments/<run>/
 ## 下一步
 
 1. `openspec archive tick-level-resume`
-2. 等 D2 完成（Mac A 上跑的 run-resilience 之前的 DeepSeek run）
+2. 决定 D2 续跑 vs D3 fresh —— D2 dir：
+   `data/experiments/20260511_172808_d2_deepseek_publishable/`，
+   状态：baseline 15 seed 完成；hp 3/15；gd/pf 未启动
 3. 启动 D3：
    - `tools/preflight_full_smoke.py --provider deepseek`（run-resilience gate）
    - `run_variant_suite.py --agents 1000 --num-days 14 --seeds 15` 开启
