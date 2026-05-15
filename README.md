@@ -9,6 +9,21 @@
 - **[`docs/四个对照组.html`](docs/四个对照组.html)** — 4 个对照实验各自在干啥、为什么 4 个不是 1 个
 - **[`docs/项目状态.md`](docs/项目状态.md)** — 内部 status board：当前阶段、待办、时间线
 
+🚨 **从新机器接管 (2026-05-15)**:
+1. clone 完先读 **[`docs/HANDOFF_2026_05_15.md`](docs/HANDOFF_2026_05_15.md)** —— 当前 D1' 状态 / 3 个续跑选项 / 必须应用的 Gemini 修复
+2. 事故根因复盘: **[`docs/sessions/2026-05-15-d1-gemini-incident.md`](docs/sessions/2026-05-15-d1-gemini-incident.md)**
+3. **API key 没传到 GitHub** (`.env` 永远 gitignored),需要手动通过 AirDrop / Notes / 1Password 等私密方式从旧机拷过来。`.env.example` 列了需要哪几个变量
+
+## Setup (新机器首次)
+
+```bash
+git clone git@github.com-york:york-zhouuu/-Synthetic-Socio-Wind-Tunnel-.git
+cd Synthetic-Socio-Wind-Tunnel
+pip install -e ".[full]"
+cp .env.example .env   # 然后填 GEMINI_API_KEY / DEEPSEEK_API_KEYS 等
+python3 -m pytest tests/ -q  # 应 1350+ passed,确认环境 OK
+```
+
 ---
 
 ## Project Status (2026-05-12)
