@@ -16,7 +16,7 @@ from __future__ import annotations
 
 import random
 from datetime import datetime
-from typing import TYPE_CHECKING, Iterable, Mapping
+from typing import TYPE_CHECKING, Any, Iterable, Mapping
 
 from synthetic_socio_wind_tunnel.attention.models import (
     DigitalProfile,
@@ -110,6 +110,87 @@ class AttentionService:
         # B5 fix: per-agent per-day notification count for fatigue computation.
         # Resets at on_day_start (via reset_daily_counters).
         self._notifications_today: dict[str, int] = {}
+
+    # ---- Snapshot (tick-level-resume 2026-05-16) ----
+
+    def to_snapshot_state(self) -> dict[str, Any]:
+        """Serialize all mutable per-agent attention state.
+
+        Ledger reference NOT serialized — caller reattaches. Notification
+        history lives on Ledger (already covered by Ledger.to_snapshot_state).
+        Only AttentionService-private state is dumped here.
+        """
+        from synthetic_socio_wind_tunnel.run_resilience.state_snapshot import (
+            _rng_state_to_json,
+        )
+
+        return {
+            "profiles": {
+                aid: p.model_dump(mode="json") for aid, p in self._profiles.items()
+            },
+            "feed_index": {
+                fid: fi.model_dump(mode="json") for fid, fi in self._feed_index.items()
+            },
+            "feed_bias_suppression": self._feed_bias_suppression,
+            "delivery_log": [
+                rec.model_dump(mode="json") for rec in self._delivery_log
+            ],
+            "consumed": {
+                aid: sorted(ids) for aid, ids in self._consumed.items()
+            },
+            "phone_attention": dict(self._phone_attention),
+            "phone_attention_baseline": dict(self._phone_attention_baseline),
+            "personality_openness": dict(self._personality_openness),
+            "notifications_today": dict(self._notifications_today),
+            "rng_state": _rng_state_to_json(self._rng.getstate()),
+        }
+
+    def from_snapshot_state(self, state: dict[str, Any]) -> None:
+        """Replace state from snapshot. Existing state discarded."""
+        from synthetic_socio_wind_tunnel.attention.models import (
+            DigitalProfile, FeedDeliveryRecord, FeedItem,
+        )
+        from synthetic_socio_wind_tunnel.run_resilience.state_snapshot import (
+            _rng_state_from_json,
+        )
+
+        if not isinstance(state, dict):
+            raise ValueError(
+                f"AttentionService.from_snapshot_state expects dict, "
+                f"got {type(state).__name__}",
+            )
+
+        self._profiles = {
+            aid: DigitalProfile.model_validate(p)
+            for aid, p in (state.get("profiles") or {}).items()
+        }
+        self._feed_index = {
+            fid: FeedItem.model_validate(fi)
+            for fid, fi in (state.get("feed_index") or {}).items()
+        }
+        self._feed_bias_suppression = float(
+            state.get("feed_bias_suppression", self._feed_bias_suppression),
+        )
+        self._delivery_log = [
+            FeedDeliveryRecord.model_validate(rec)
+            for rec in (state.get("delivery_log") or [])
+        ]
+        self._consumed = {
+            aid: set(ids) for aid, ids in (state.get("consumed") or {}).items()
+        }
+        self._phone_attention = dict(state.get("phone_attention") or {})
+        self._phone_attention_baseline = dict(
+            state.get("phone_attention_baseline") or {},
+        )
+        self._personality_openness = dict(state.get("personality_openness") or {})
+        self._notifications_today = dict(state.get("notifications_today") or {})
+
+        rng_state = state.get("rng_state")
+        if rng_state is not None:
+            try:
+                self._rng.setstate(_rng_state_from_json(rng_state))
+            except Exception:  # noqa: BLE001
+                pass
 
     # ---- Profile bookkeeping ----
 

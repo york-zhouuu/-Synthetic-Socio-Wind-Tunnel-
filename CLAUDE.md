@@ -11,6 +11,38 @@ This file provides guidance to Claude Code when working with this repository.
 
 任何对外文档/报告引用这两个数字时务必用 1000 / 1000m。
 
+## 关键不变量（tick-level-resume 2026-05-16）
+
+- **任何长跑（publishable）SHALL 启用 snapshot + WAL**——默认
+  `RESILIENCE_SNAPSHOT_EVERY_TICKS=24`（hourly）+ `RESILIENCE_WAL_ENABLED=true`；
+  最坏中断损失 ≤ `every_ticks × tick_minutes` simulated time（~2h）
+- **新增子系统 mutable state 字段时必须 update `to_snapshot_state` /
+  `from_snapshot_state`** —— 否则 resume 静默漏字段、跑出错误结果。round-trip
+  测试是验证门
+- **`--resume-strategy=auto` 默认**——snapshot 优先 fallback partial；
+  `snapshot-only` 用于严格 resume；`partial-only` 走 run-resilience 旧路径；
+  `none` 强制重头
+- **`audit_run_health.py` 多了 `suspected_stuck`**——WAL mtime > 30× 期望
+  tick 时长 → 标 deadlock；与 close_wait / 静默 log 一起判定 overall
+- 入门指南：`docs/agent_system/16-tick-level-resume.md`
+
+## 关键不变量（run-resilience 2026-05-15）
+
+- **publishable run (1000 agent × 14 day) SHALL 先过 preflight gate**——
+  `tools/preflight_full_smoke.py` 1000 agent × 1 day × 4 variant × 1 seed
+  必须返回 0 才进入正式 publishable；`--skip-preflight` 在 publishable
+  模式下被忽略（D1' 教训：scale-only bug 只在 1000 agent 才出现）
+- **所有 real-provider tier client SHALL 用 `max_keepalive_connections=0`**——
+  Gemini / DeepSeek / Anthropic 三家的内部 httpx 都必须显式注入这个限制，
+  阻断 D1' CLOSE_WAIT 累积路径；任何长跑前用
+  `tools/audit_run_health.py` 巡检 process_state + log silence + CLOSE_WAIT
+- **任何长跑 worker SHALL 注册 `HotfixSignalHandler`**——`kill -USR1 <pid>`
+  优雅停机协议：跑完当前 tick → 写 per-day partial → 退出 0；改 RESILIENCE_*
+  环境变量后 `--resume` 续跑即新配置生效（不必改代码）
+- **MultiDayRunner SHALL 在 on_day_end 写 `seed_{N}_day{D}.partial.json`**——
+  最坏损失 ≤ 1 模拟天；整 variant 完成后 partial 由 `cleanup_partials` 清除
+- 入门指南：`docs/agent_system/15-run-resilience.md`
+
 ## 关键不变量（fix-population-uses-typed-locations 2026-05-12）
 
 - **agent.home_location SHALL 是 `building_type == "residential"` 的 building id**——

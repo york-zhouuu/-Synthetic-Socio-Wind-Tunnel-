@@ -66,6 +66,29 @@ class Ledger:
         data = LedgerData.model_validate(raw)
         return cls(data)
 
+    # ========== Snapshot (tick-level-resume 2026-05-16) ==========
+
+    def to_snapshot_state(self) -> dict[str, Any]:
+        """Serialize entire mutable Ledger state to a JSON-safe dict.
+
+        Ledger is a thin wrapper around `_data: LedgerData`; the full
+        snapshot is `_data.model_dump(mode="json")`. Returned dict is
+        JSON-serializable end-to-end (set → list via Pydantic conversion).
+        """
+        return self._data.model_dump(mode="json")
+
+    def from_snapshot_state(self, state: dict[str, Any]) -> None:
+        """Replace entire in-memory state from a snapshot dict.
+
+        Validates via `LedgerData.model_validate`. Existing `_data` is
+        discarded — this is full replacement, not merge.
+        """
+        if not isinstance(state, dict):
+            raise ValueError(
+                f"Ledger.from_snapshot_state expects dict, got {type(state).__name__}",
+            )
+        self._data = LedgerData.model_validate(state)
+
     # ========== Time & Environment ==========
 
     @property

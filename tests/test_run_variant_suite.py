@@ -61,7 +61,15 @@ class TestCLIMinimalSmoke:
         # add-per-tick-position-logging writes companion seed_*_positions.json;
         # filter those out when counting per-seed metric dumps.
         def _metric_seeds(d):
-            return [p for p in d.glob("seed_*.json") if "_positions" not in p.name]
+            # tick-level-resume adds seed_<N>_tick<T>.snapshot.json files
+            # alongside seed_<N>.json — filter them out for this counter.
+            return [
+                p for p in d.glob("seed_*.json")
+                if "_positions" not in p.name
+                and ".snapshot" not in p.name
+                and ".partial" not in p.name
+                and "_tick" not in p.name
+            ]
         assert len(_metric_seeds(baseline_dir)) == 2
         assert len(_metric_seeds(hp_dir)) == 2
         assert (baseline_dir / "aggregate.json").exists()

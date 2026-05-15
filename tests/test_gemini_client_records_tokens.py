@@ -44,11 +44,15 @@ def _make_response(text: str, prompt_tokens: int, completion_tokens: int):
 class TestGeminiUsageMetadata:
 
     def _patch_client(self, client, mock_response):
-        """Replace the underlying genai client with a mock that returns mock_response."""
+        """Replace the underlying genai client with a mock that returns mock_response.
+
+        run-resilience refactor: SDK client lives at _contexts[0].sdk_client.
+        """
         mock_aio = MagicMock()
         mock_aio.models.generate_content = AsyncMock(return_value=mock_response)
-        client._client = MagicMock()
-        client._client.aio = mock_aio
+        mock_sdk = MagicMock()
+        mock_sdk.aio = mock_aio
+        client._contexts[0].sdk_client = mock_sdk
 
     def test_records_tokens_from_usage_metadata(self):
         client = _GeminiTierClient(

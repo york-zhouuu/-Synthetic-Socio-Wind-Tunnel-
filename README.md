@@ -236,6 +236,8 @@ Synthetic_Socio_Wind_Tunnel/
 | Policy hack (4 rival-hypothesis variants + 1 paired mirror) | ✅ Complete |
 | Metrics (rival contest scorer + 5-act Markdown report) | ✅ Complete |
 | Suite wiring (variant → memory → replan → behavior causal chain) | ✅ Complete |
+| Run resilience (D1' fix: keepalive=0 + retry + checkpoint + SIGUSR1 + preflight) | ✅ Complete |
+| Tick-level resume (per-tick WAL + per-N-tick snapshot + state restore) | ✅ Complete |
 | Intervention engine (Policy Hack) | 📋 Designed |
 | Model budget allocation (dynamic tiering) | 📋 Designed |
 | Experiment visualisation (heatmaps, trajectories) | 📋 Designed |

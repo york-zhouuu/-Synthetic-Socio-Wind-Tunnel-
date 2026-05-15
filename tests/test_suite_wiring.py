@@ -161,6 +161,9 @@ class TestDumpFields:
         seed_files = [
             p for p in (suite_dirs[0] / "variant_hyperlocal_push").glob("seed_*.json")
             if "_positions" not in p.name
+            and ".snapshot" not in p.name
+            and ".partial" not in p.name
+            and "_tick" not in p.name
         ]
         assert len(seed_files) == 1
         data = json.loads(seed_files[0].read_text(encoding="utf-8"))

@@ -34,6 +34,7 @@ import random
 import sys
 import time
 from pathlib import Path
+from typing import Any
 
 # Auto-load <repo>/.env so --use-real-llm picks up GEMINI_API_KEY without
 # requiring shell export. Path-jiggling so the import works regardless of cwd.
@@ -133,6 +134,23 @@ def parse_args() -> argparse.Namespace:
                         "target variant_<X>/ subdir (load run_metrics from "
                         "disk instead). Skip whole variant if aggregate.json "
                         "exists. Use with --suite-dir.")
+    p.add_argument("--resume-from-day", type=int, default=None,
+                   help="run-resilience: force MultiDayRunner to start from "
+                        "this day_index, overriding partial-file auto-detect. "
+                        "Use 0 to force a fresh start.")
+    p.add_argument("--resume-strategy",
+                   choices=["auto", "snapshot-only", "partial-only", "none"],
+                   default="auto",
+                   help="tick-level-resume: how to pick up after a crash. "
+                        "auto=snapshot priority, partial fallback (recommended); "
+                        "snapshot-only=fail if no snapshot; "
+                        "partial-only=skip snapshots, run-resilience behavior; "
+                        "none=fresh start (overrides --resume).")
+    p.add_argument("--skip-preflight", action="store_true",
+                   help="Skip the 1000-agent × 1-day preflight smoke gate. "
+                        "Publishable mode (--agents 1000 --num-days 14) "
+                        "IGNORES this flag and always runs preflight (the "
+                        "D1' scale-only-bug lesson).")
     p.add_argument("--workers", type=int, default=1,
                    help="Process-level parallelism: split variants across N "
                         "worker subprocesses, each running ALL seeds for one "
@@ -140,6 +158,28 @@ def parse_args() -> argparse.Namespace:
                         "process aggregates at the end. Default 1 (serial). "
                         "Pick min(workers, len(variants)).")
     return p.parse_args()
+
+
+def _update_pids_json(suite_dir: Path, variant: str, pid: int) -> None:
+    """Append `pid` for `variant` into `<suite_dir>/pids.json`.
+
+    Schema: `{"workers": [<pid>, ...], "by_variant": {"<name>": <pid>}}`.
+    Consumed by `tools/audit_run_health.py` to discover in-progress
+    workers without needing pid headers in each worker_*.log.
+
+    Idempotent on re-runs of the same variant (last write wins).
+    """
+    path = suite_dir / "pids.json"
+    data: dict = {"workers": [], "by_variant": {}}
+    if path.exists():
+        try:
+            data = json.loads(path.read_text())
+        except (ValueError, OSError):
+            data = {"workers": [], "by_variant": {}}
+    by_var = data.setdefault("by_variant", {})
+    by_var[variant] = pid
+    data["workers"] = sorted(set(by_var.values()))
+    path.write_text(json.dumps(data, ensure_ascii=False, indent=2))
 
 
 def _parse_phase_days_to_dict(phase_days: str) -> dict[str, int]:
@@ -485,6 +525,10 @@ def run_seed_with_metrics(
     use_aitown: bool = False,
     aitown_provider: str = "gemini",
     num_protagonists: int = 10,
+    output_dir: Path | None = None,
+    resume_from: int = 0,
+    install_hotfix_handler: bool = False,
+    restore_from: Any = None,
 ) -> tuple[MultiDayResult, RunMetrics, dict]:
     """单个 seed 的 metrics-enabled run；返回 (result, run_metrics, variant_metadata).
 
@@ -742,11 +786,39 @@ def run_seed_with_metrics(
             )
         orchestrator.register_on_simulation_end(_print_invite_stats)
 
+    # run-resilience: write per-day partial JSON next to seed_<N>.json so
+    # SIGKILL / SIGUSR1 / crash mid-run loses ≤ 1 simulation day.
+    # `provider_name` is recorded in partial metadata so resume can verify
+    # provider consistency.
+    if use_aitown:
+        _provider_name = aitown_provider
+    elif use_real_llm:
+        _provider_name = "anthropic"
+    else:
+        _provider_name = "stub"
+
     runner = MultiDayRunner(
         orchestrator=orchestrator,
         seed=seed,
         mode=mode,  # type: ignore[arg-type]
+        output_dir=output_dir,
+        resume_from=resume_from,
+        provider_name=_provider_name,
+        # tick-level-resume (2026-05-16)
+        attention_service=attention_service,
+        restore_from=restore_from,
     )
+
+    # run-resilience: register SIGUSR1 graceful-stop handler if caller asked
+    # for it. Caller (main loop) sets install_hotfix_handler=True; tests pass
+    # False to avoid touching global signal state.
+    _hotfix_installed = False
+    if install_hotfix_handler:
+        from synthetic_socio_wind_tunnel.run_resilience import HotfixSignalHandler
+        _hotfix = HotfixSignalHandler()
+        _hotfix.install(runner)
+        _hotfix_installed = True
+
     if adapter is not None:
         adapter.attach_to(runner)
 
@@ -908,6 +980,44 @@ def main() -> int:
           f"seeds={args.seeds} × days={args.num_days} | mode={args.mode}")
     print(f"[suite] output → {suite_dir}")
 
+    # run-resilience: publishable preflight gate.
+    # Definition of "publishable mode" for this gate: agents == 1000
+    # AND num_days == 14 (matches CLAUDE.md canon). When triggered:
+    # always invoke tools/preflight_full_smoke.py; --skip-preflight is
+    # IGNORED with a stderr warning (the D1' scale-only-bug lesson).
+    # Skipped when we are already inside a worker subprocess (suite_dir
+    # explicitly passed by parent + --workers==1) to avoid recursion.
+    _is_publishable = args.agents == 1000 and args.num_days == 14
+    _is_worker_child = args.suite_dir is not None and args.workers == 1
+    if _is_publishable and not _is_worker_child:
+        if args.skip_preflight:
+            print(
+                "[suite] WARN: publishable mode (--agents 1000 --num-days 14) "
+                "IGNORES --skip-preflight; running preflight regardless",
+                file=sys.stderr,
+            )
+        import subprocess as _sp
+        repo_root = Path(__file__).resolve().parents[1]
+        pre_cmd = [
+            sys.executable, str(repo_root / "tools" / "preflight_full_smoke.py"),
+        ]
+        if args.use_aitown:
+            pre_cmd.extend(["--provider", args.aitown_provider])
+        else:
+            pre_cmd.extend(["--provider", "stub"])
+        print(f"[suite] running preflight: {' '.join(pre_cmd)}")
+        pre_rc = _sp.call(pre_cmd)
+        if pre_rc != 0:
+            print(
+                f"[suite] PREFLIGHT FAILED (rc={pre_rc}); refusing to start "
+                f"publishable run. Investigate with "
+                f"tools/audit_run_health.py before retrying.",
+                file=sys.stderr,
+            )
+            return pre_rc
+    elif not _is_publishable and args.skip_preflight:
+        print("[suite] --skip-preflight noted (non-publishable mode; preflight was not going to run anyway)")
+
     t0 = time.perf_counter()
     aggregates: dict[str, SuiteAggregate] = {}
 
@@ -947,7 +1057,20 @@ def main() -> int:
                 cmd += ["--use-aitown",
                         "--aitown-provider", args.aitown_provider]
             with open(worker_log, "w", encoding="utf-8") as lf:
-                proc = _sp.run(cmd, stdout=lf, stderr=_sp.STDOUT)
+                # run-resilience: write `pid <child>` header so
+                # audit_run_health.py can discover this worker mid-run.
+                # We write the header BEFORE Popen; the child's stdout is
+                # appended after.
+                proc = _sp.Popen(cmd, stdout=lf, stderr=_sp.STDOUT)
+                # Stamp pid into the log so audit_run_health.py's
+                # _discover_pid (regex `pid \d+` in first 4 KB) finds it.
+                # Use a small pids.json companion as the canonical channel
+                # (race-free vs. interleaving with child's stdout).
+                try:
+                    _update_pids_json(suite_dir, variant_name, proc.pid)
+                except OSError:
+                    pass
+                proc.wait()
             return variant_name, proc.returncode, str(worker_log)
 
         with _TPE(max_workers=n_workers) as pool:
@@ -1017,6 +1140,85 @@ def main() -> int:
                 if args.num_protagonists is not None
                 else max(1, args.agents // 10)
             )
+
+            # tick-level-resume + run-resilience: 4-strategy resume detection.
+            #
+            #   none         → fresh start (effective_resume_from=0, restore_from=None)
+            #   snapshot-only→ require snapshot; fail-fast if missing
+            #   partial-only → ignore snapshots, use per-day partial only
+            #   auto         → snapshot priority, partial fallback (default)
+            #
+            # --resume-from-day overrides effective_resume_from regardless of strategy.
+            effective_resume_from = 0
+            restore_from_snap = None
+            strategy = args.resume_strategy
+            do_resume = args.resume or strategy != "none"
+
+            if strategy == "none":
+                do_resume = False
+            elif strategy == "auto" and do_resume:
+                # Try snapshot first
+                from synthetic_socio_wind_tunnel.run_resilience.state_snapshot import (
+                    SimulationCheckpoint, find_latest_snapshot,
+                )
+                snap_path = find_latest_snapshot(variant_dir, seed=seed)
+                if snap_path is not None:
+                    try:
+                        restore_from_snap = SimulationCheckpoint.read(snap_path)
+                        print(
+                            f"  seed={seed} [snapshot found at {snap_path.name}, "
+                            f"restoring tick_global={restore_from_snap.tick_index} "
+                            f"day={restore_from_snap.day_index}]",
+                        )
+                    except Exception as exc:  # noqa: BLE001
+                        print(
+                            f"  [resume] snapshot load failed: {exc}; "
+                            f"falling back to per-day partial", file=sys.stderr,
+                        )
+
+            if strategy == "snapshot-only" and do_resume:
+                from synthetic_socio_wind_tunnel.run_resilience.state_snapshot import (
+                    SimulationCheckpoint, find_latest_snapshot,
+                )
+                snap_path = find_latest_snapshot(variant_dir, seed=seed)
+                if snap_path is None:
+                    print(
+                        f"  [resume] strategy=snapshot-only but no snapshot found "
+                        f"for seed={seed} in {variant_dir}; refusing to proceed",
+                        file=sys.stderr,
+                    )
+                    return 2
+                restore_from_snap = SimulationCheckpoint.read(snap_path)
+
+            # Fallback to per-day partial (or strategy=partial-only): use
+            # effective_resume_from when restore_from_snap is still None.
+            if restore_from_snap is None and do_resume and strategy != "snapshot-only":
+                from synthetic_socio_wind_tunnel.run_resilience import (
+                    DayCheckpointWriter,
+                )
+                _ckpt = DayCheckpointWriter()
+                latest = _ckpt.find_latest_partial(
+                    output_dir=variant_dir, seed=seed,
+                )
+                if latest is not None:
+                    try:
+                        payload = _ckpt.read_partial(latest)
+                        effective_resume_from = int(payload["day_index"]) + 1
+                        print(
+                            f"  seed={seed} [partial found at {latest.name}, "
+                            f"resuming from day {effective_resume_from}]",
+                        )
+                    except Exception as exc:  # noqa: BLE001
+                        print(
+                            f"  [resume] partial load failed: {exc}; "
+                            f"starting from day 0", file=sys.stderr,
+                        )
+
+            # CLI override always wins
+            if args.resume_from_day is not None:
+                effective_resume_from = args.resume_from_day
+                restore_from_snap = None  # explicit override → don't restore state
+
             result, run_metrics, captured_variant_metadata = run_seed_with_metrics(
                 seed=seed, n_agents=args.agents, start_date=start_date,
                 num_days=args.num_days, mode=args.mode,
@@ -1025,6 +1227,10 @@ def main() -> int:
                 use_aitown=args.use_aitown,
                 aitown_provider=args.aitown_provider,
                 num_protagonists=n_protag,
+                output_dir=variant_dir,
+                resume_from=effective_resume_from,
+                install_hotfix_handler=True,
+                restore_from=restore_from_snap,
             )
             t_e = time.perf_counter()
 
@@ -1049,6 +1255,20 @@ def main() -> int:
             print(f"  seed={seed} wall={t_e - t_s:.1f}s "
                   f"encs={result.total_encounters} pos_changes={pos_changes} "
                   f"→ {seed_file.name}")
+
+            # run-resilience: cleanup partial files now that seed_<N>.json
+            # has landed (the final artifact is the source of truth).
+            try:
+                from synthetic_socio_wind_tunnel.run_resilience import (
+                    DayCheckpointWriter,
+                )
+                DayCheckpointWriter().cleanup_partials(
+                    output_dir=variant_dir, seed=seed,
+                )
+            except Exception as exc:  # noqa: BLE001
+                print(
+                    f"  [warn] partial cleanup failed: {exc}", file=sys.stderr,
+                )
 
         # aggregate — 用真实跑出来的 variant_metadata（factory 已填 target_location 等）
         aggregate = build_suite_aggregate(runs, variant_metadata=captured_variant_metadata)

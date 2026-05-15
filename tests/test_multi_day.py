@@ -278,3 +278,181 @@ class TestSerialization:
         s = json.dumps(dump, ensure_ascii=False)
         assert "per_day_summaries" in s
         assert "2026-04-22" in s  # ISO date
+
+
+# ============================================================================
+# run-resilience: per-day checkpoint + resume_from + graceful-stop
+# ============================================================================
+
+class TestCheckpoint:
+    def test_per_day_partial_written(self, tmp_path):
+        agent = _agent("alpha")
+        orch, _ledger = _make_orch(agent, start_date=date(2026, 4, 22))
+        runner = MultiDayRunner(
+            orchestrator=orch, seed=42,
+            output_dir=tmp_path, provider_name="stub",
+        )
+        runner.run_multi_day(start_date=date(2026, 4, 22), num_days=3)
+        for d in range(3):
+            assert (tmp_path / f"seed_42_day{d}.partial.json").exists()
+
+    def test_no_partial_when_output_dir_none(self, tmp_path):
+        """向后兼容：output_dir=None 时不应有任何写盘。"""
+        agent = _agent("alpha")
+        orch, _ledger = _make_orch(agent, start_date=date(2026, 4, 22))
+        runner = MultiDayRunner(orchestrator=orch, seed=0)
+        # 故意先在 tmp_path 放个无关 file 来验证 isolation
+        runner.run_multi_day(start_date=date(2026, 4, 22), num_days=2)
+        assert list(tmp_path.glob("*.partial.json")) == []
+
+    def test_partial_contains_required_fields(self, tmp_path):
+        agent = _agent("alpha")
+        orch, _ledger = _make_orch(agent, start_date=date(2026, 4, 22))
+        runner = MultiDayRunner(
+            orchestrator=orch, seed=7,
+            output_dir=tmp_path, provider_name="gemini",
+        )
+        runner.run_multi_day(start_date=date(2026, 4, 22), num_days=1)
+        import json
+        data = json.loads((tmp_path / "seed_7_day0.partial.json").read_text())
+        assert data["seed"] == 7
+        assert data["day_index"] == 0
+        assert data["provider"] == "gemini"
+        assert data["schema_version"] == "1"
+        assert "run_metrics" in data
+        assert "ledger_snapshot" in data
+
+    def test_partial_write_failure_does_not_stop_run(self, tmp_path, caplog):
+        """Mock CheckpointWriter to raise on day 1; run should still reach day 2."""
+        from synthetic_socio_wind_tunnel.run_resilience import DayCheckpointWriter
+
+        class BrokenWriter(DayCheckpointWriter):
+            def __init__(self):
+                super().__init__()
+                self.calls = 0
+            def write_partial(self, **kw):
+                self.calls += 1
+                if self.calls == 2:
+                    raise OSError("disk full simulated")
+                return super().write_partial(**kw)
+
+        broken = BrokenWriter()
+        agent = _agent("alpha")
+        orch, _ledger = _make_orch(agent, start_date=date(2026, 4, 22))
+        runner = MultiDayRunner(
+            orchestrator=orch, seed=0,
+            output_dir=tmp_path, checkpoint_writer=broken,
+            provider_name="stub",
+        )
+        import logging
+        with caplog.at_level(logging.WARNING):
+            result = runner.run_multi_day(
+                start_date=date(2026, 4, 22), num_days=3,
+            )
+        # All 3 days should still complete
+        assert len(result.per_day_summaries) == 3
+        # Warning logged for day 1
+        assert any("write_partial failed" in r.message for r in caplog.records)
+
+
+class TestResumeFrom:
+    def test_resume_from_5_yields_9_day_summaries(self):
+        agent = _agent("alpha")
+        orch, _ledger = _make_orch(agent, start_date=date(2026, 4, 22))
+        runner = MultiDayRunner(orchestrator=orch, seed=0, resume_from=5)
+        result = runner.run_multi_day(
+            start_date=date(2026, 4, 22), num_days=14,
+        )
+        assert len(result.per_day_summaries) == 9
+        assert result.per_day_summaries[0].day_index == 5
+        assert result.per_day_summaries[-1].day_index == 13
+
+    def test_resume_from_zero_unchanged_behavior(self):
+        agent = _agent("alpha")
+        orch, _ledger = _make_orch(agent, start_date=date(2026, 4, 22))
+        runner = MultiDayRunner(orchestrator=orch, seed=0, resume_from=0)
+        result = runner.run_multi_day(
+            start_date=date(2026, 4, 22), num_days=3,
+        )
+        assert len(result.per_day_summaries) == 3
+        assert result.per_day_summaries[0].day_index == 0
+
+    def test_resume_from_exceeds_num_days_raises(self):
+        agent = _agent("alpha")
+        orch, _ledger = _make_orch(agent, start_date=date(2026, 4, 22))
+        runner = MultiDayRunner(orchestrator=orch, seed=0, resume_from=20)
+        with pytest.raises(ValueError) as exc:
+            runner.run_multi_day(
+                start_date=date(2026, 4, 22), num_days=14,
+            )
+        assert "20" in str(exc.value)
+        assert "14" in str(exc.value)
+
+    def test_resume_from_negative_raises_in_init(self):
+        agent = _agent("alpha")
+        orch, _ledger = _make_orch(agent, start_date=date(2026, 4, 22))
+        with pytest.raises(ValueError):
+            MultiDayRunner(orchestrator=orch, seed=0, resume_from=-1)
+
+
+class TestGracefulStop:
+    def test_graceful_stop_truncates_run(self, tmp_path):
+        """Setting _graceful_stop_requested mid-run aborts current day and
+        returns truncated MultiDayResult."""
+        agent = _agent("alpha")
+        orch, _ledger = _make_orch(agent, start_date=date(2026, 4, 22))
+        runner = MultiDayRunner(
+            orchestrator=orch, seed=0,
+            output_dir=tmp_path, provider_name="stub",
+        )
+
+        # Trip graceful_stop after day 1's tick 5 — register an on_tick_end
+        # hook that flips the flag once the day_index goes to 1.
+        tick_count = {"n": 0}
+
+        def trip(tick_result):
+            tick_count["n"] += 1
+            if tick_result.day_index == 1 and tick_count["n"] > 290:
+                runner._graceful_stop_requested = True
+
+        orch.register_on_tick_end(trip)
+        result = runner.run_multi_day(
+            start_date=date(2026, 4, 22), num_days=14,
+        )
+        # day 0 fully ran (288 ticks), day 1 partially aborted
+        assert len(result.per_day_summaries) == 1
+        assert result.per_day_summaries[0].day_index == 0
+        # graceful_stop metadata exposed
+        assert result.metadata["graceful_stop"] is True
+
+    def test_graceful_stop_writes_partial_of_last_complete_day(self, tmp_path):
+        agent = _agent("alpha")
+        orch, _ledger = _make_orch(agent, start_date=date(2026, 4, 22))
+        runner = MultiDayRunner(
+            orchestrator=orch, seed=99,
+            output_dir=tmp_path, provider_name="stub",
+        )
+        # Trip on first tick of day 2 (so days 0,1 complete)
+        def trip(tick_result):
+            if tick_result.day_index == 2:
+                runner._graceful_stop_requested = True
+        orch.register_on_tick_end(trip)
+        result = runner.run_multi_day(
+            start_date=date(2026, 4, 22), num_days=5,
+        )
+        # Days 0 and 1 should have partial files; day 2+ should not
+        assert (tmp_path / "seed_99_day0.partial.json").exists()
+        assert (tmp_path / "seed_99_day1.partial.json").exists()
+        assert not (tmp_path / "seed_99_day2.partial.json").exists()
+        assert len(result.per_day_summaries) == 2
+
+    def test_unbroken_run_unaffected_by_flag(self):
+        """If flag never goes True, behavior is identical to pre-resilience."""
+        agent = _agent("alpha")
+        orch, _ledger = _make_orch(agent, start_date=date(2026, 4, 22))
+        runner = MultiDayRunner(orchestrator=orch, seed=0)
+        result = runner.run_multi_day(
+            start_date=date(2026, 4, 22), num_days=3,
+        )
+        assert len(result.per_day_summaries) == 3
+        assert result.metadata["graceful_stop"] is False

@@ -10,8 +10,12 @@ from synthetic_socio_wind_tunnel.fitness.audits.phase1_baseline import (
 )
 from synthetic_socio_wind_tunnel.fitness.audits.phase2_gaps import audit_phase2_gaps
 from synthetic_socio_wind_tunnel.fitness.audits.profile import audit_profile_distribution
+from synthetic_socio_wind_tunnel.fitness.audits.run_resilience import audit_run_resilience
 from synthetic_socio_wind_tunnel.fitness.audits.scale import audit_scale_baseline
 from synthetic_socio_wind_tunnel.fitness.audits.site import audit_site_fitness
+from synthetic_socio_wind_tunnel.fitness.audits.tick_level_resume import (
+    audit_tick_level_resume,
+)
 
 __all__ = [
     "audit_cost_baseline",
@@ -22,6 +26,8 @@ __all__ = [
     "audit_phase1_baseline",
     "audit_phase2_gaps",
     "audit_profile_distribution",
+    "audit_run_resilience",
     "audit_scale_baseline",
     "audit_site_fitness",
+    "audit_tick_level_resume",
 ]

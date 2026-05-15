@@ -47,9 +47,11 @@ class TestDeepSeekModelMap:
 class TestDeepSeekTierClient:
 
     def _patch_client(self, c, mock_response):
+        # run-resilience refactor: client lives at _contexts[0].sdk_client
         mock_create = AsyncMock(return_value=mock_response)
-        c._client = MagicMock()
-        c._client.chat.completions.create = mock_create
+        mock_sdk = MagicMock()
+        mock_sdk.chat.completions.create = mock_create
+        c._contexts[0].sdk_client = mock_sdk
 
     def test_records_token_usage(self):
         c = _DeepSeekTierClient(
@@ -107,8 +109,9 @@ class TestDeepSeekTierClient:
             captured.update(kwargs)
             return _make_response("ok", 5, 5)
 
-        c._client = MagicMock()
-        c._client.chat.completions.create = fake_create
+        mock_sdk = MagicMock()
+        mock_sdk.chat.completions.create = fake_create
+        c._contexts[0].sdk_client = mock_sdk
 
         asyncio.run(c.generate("p", model="claude-sonnet-4-6"))
         assert captured["model"] == "deepseek-v4-pro"

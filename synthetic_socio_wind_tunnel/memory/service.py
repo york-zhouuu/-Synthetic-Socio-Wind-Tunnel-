@@ -15,7 +15,7 @@ from __future__ import annotations
 import asyncio
 import random
 from datetime import datetime
-from typing import TYPE_CHECKING, Mapping
+from typing import TYPE_CHECKING, Any, Mapping
 
 from synthetic_socio_wind_tunnel.memory.carryover import CarryoverContext
 from synthetic_socio_wind_tunnel.memory.embedding import EmbeddingProvider, NullEmbedding
@@ -141,6 +141,89 @@ class MemoryService:
         self._embeddings_cache = embeddings_cache
         self._protagonist_ids: set[str] = set(protagonist_ids)
         self._last_reflection_time: dict[str, datetime] = {}
+
+    # ---- Snapshot (tick-level-resume 2026-05-16) ----
+
+    def to_snapshot_state(self) -> dict[str, Any]:
+        """Serialize all mutable per-agent state.
+
+        MemoryStore: only events list serialized (4 reverse indices are
+        derived and rebuilt on restore via `append`). Other fields:
+        per-agent replan counters, consumed feed_item_ids, event_counter,
+        last_day_index, last_reflection_time, rng state.
+
+        Service references (atlas / social_graph / conversation /
+        attention_service) are NOT serialized — caller reattaches.
+        """
+        from dataclasses import asdict
+        from synthetic_socio_wind_tunnel.run_resilience.state_snapshot import (
+            _rng_state_to_json,
+        )
+
+        agent_events: dict[str, list[dict[str, Any]]] = {}
+        for aid, store in self._stores.items():
+            agent_events[aid] = [_event_to_json(ev) for ev in store.all()]
+
+        return {
+            "agent_events": agent_events,
+            "consumed_feed_item_ids": {
+                aid: sorted(ids) for aid, ids in self._consumed_feed_item_ids.items()
+            },
+            "event_counter": self._event_counter,
+            "replan_count_today": dict(self._replan_count_today),
+            "replan_no_op_count_today": dict(self._replan_no_op_count_today),
+            "last_day_index": self._last_day_index,
+            "last_reflection_time": {
+                aid: t.isoformat() for aid, t in self._last_reflection_time.items()
+            },
+            "rng_state": _rng_state_to_json(self._rng.getstate()),
+            "noticing_seed": self._noticing_seed,
+        }
+
+    def from_snapshot_state(self, state: dict[str, Any]) -> None:
+        """Replace per-agent state from snapshot. Existing state discarded."""
+        from synthetic_socio_wind_tunnel.memory.models import MemoryEvent
+        from synthetic_socio_wind_tunnel.run_resilience.state_snapshot import (
+            _rng_state_from_json,
+        )
+
+        if not isinstance(state, dict):
+            raise ValueError(
+                f"MemoryService.from_snapshot_state expects dict, "
+                f"got {type(state).__name__}",
+            )
+
+        self._stores = {}
+        for aid, events in (state.get("agent_events") or {}).items():
+            store = MemoryStore()
+            for ev_data in events:
+                store.append(_event_from_json(ev_data))
+            self._stores[aid] = store
+
+        self._consumed_feed_item_ids = {
+            aid: set(ids) for aid, ids in (state.get("consumed_feed_item_ids") or {}).items()
+        }
+        self._event_counter = int(state.get("event_counter", 0))
+        self._replan_count_today = dict(state.get("replan_count_today") or {})
+        self._replan_no_op_count_today = dict(
+            state.get("replan_no_op_count_today") or {},
+        )
+        self._last_day_index = int(state.get("last_day_index", -1))
+
+        self._last_reflection_time = {}
+        for aid, iso in (state.get("last_reflection_time") or {}).items():
+            try:
+                self._last_reflection_time[aid] = datetime.fromisoformat(iso)
+            except (TypeError, ValueError):
+                pass
+
+        rng_state = state.get("rng_state")
+        if rng_state is not None:
+            try:
+                self._rng.setstate(_rng_state_from_json(rng_state))
+            except Exception:  # noqa: BLE001
+                pass
+        self._noticing_seed = int(state.get("noticing_seed", self._noticing_seed))
 
     def _store_for(self, agent_id: str) -> MemoryStore:
         if agent_id not in self._stores:
@@ -858,3 +941,51 @@ class MemoryService:
             lines.append(f"- [{e.simulated_time.strftime('%H:%M')}] {e.content}")
         lines.append("\n只输出概要文字，不要列表。")
         return "\n".join(lines)
+
+
+# ---- MemoryEvent serialization helpers (tick-level-resume 2026-05-16) ----
+# MemoryEvent is a frozen dataclass (not Pydantic) — explicit serialization
+# handles datetime ISO format + tuple → list (and back) so the JSON-roundtrip
+# preserves types correctly.
+
+def _event_to_json(ev) -> dict[str, Any]:
+    """frozen MemoryEvent → JSON-safe dict."""
+    from dataclasses import fields
+    out: dict[str, Any] = {}
+    for f in fields(ev):
+        v = getattr(ev, f.name)
+        if isinstance(v, datetime):
+            out[f.name] = v.isoformat()
+        elif isinstance(v, tuple):
+            out[f.name] = list(v)
+        else:
+            out[f.name] = v
+    return out
+
+
+def _event_from_json(data: dict[str, Any]):
+    """dict → MemoryEvent (with datetime / tuple coercion)."""
+    from synthetic_socio_wind_tunnel.memory.models import MemoryEvent
+    from dataclasses import fields as _fields
+
+    kwargs: dict[str, Any] = {}
+    for f in _fields(MemoryEvent):
+        if f.name not in data:
+            continue
+        v = data[f.name]
+        if v is None:
+            kwargs[f.name] = None
+            continue
+        # Best-effort type coercion based on the field's annotation
+        # (we keep it simple — known cases: datetime ISO str, list → tuple)
+        if f.name in ("simulated_time", "last_access") and isinstance(v, str):
+            try:
+                kwargs[f.name] = datetime.fromisoformat(v)
+            except ValueError:
+                kwargs[f.name] = v
+        elif f.name in ("participants", "tags", "embedding", "related_memory_ids") \
+                and isinstance(v, list):
+            kwargs[f.name] = tuple(v)
+        else:
+            kwargs[f.name] = v
+    return MemoryEvent(**kwargs)

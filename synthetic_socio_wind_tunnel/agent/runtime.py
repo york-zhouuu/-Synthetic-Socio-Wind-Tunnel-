@@ -179,6 +179,160 @@ class AgentRuntime:
                 hash(("invite", self.profile.agent_id)) & 0xFFFFFFFF
             )
 
+    # ---- Snapshot (tick-level-resume 2026-05-16) ----
+
+    def to_snapshot_state(self) -> dict:
+        """Serialize all mutable runtime state to a JSON-safe dict.
+
+        Excludes: `profile` (immutable identity, reconstructed from atlas),
+        service references (`attention_service` / `memory_service` /
+        `dialogue_service` / `operation_pool` / `social_graph` — reattached
+        on resume by caller), and `_tick_inputs` (in-flight LLM results;
+        abandoned per design D6).
+
+        Includes: plan / current_location / movement / mood / ai-town
+        per-agent state / hint feeds / per-agent RNG state.
+        """
+        from synthetic_socio_wind_tunnel.run_resilience.state_snapshot import (
+            _rng_state_to_json,
+        )
+        rng_state: list | None = None
+        if self._invite_rng is not None:
+            rng_state = _rng_state_to_json(self._invite_rng.getstate())
+
+        plan_dump: dict | None = None
+        if self.plan is not None:
+            plan_dump = self.plan.model_dump(mode="json") if hasattr(
+                self.plan, "model_dump",
+            ) else None
+
+        pending_op = None
+        if self.pending_operation is not None and hasattr(
+            self.pending_operation, "model_dump",
+        ):
+            pending_op = self.pending_operation.model_dump(mode="json")
+
+        return {
+            "agent_id": self.profile.agent_id,
+            "current_location": self.current_location,
+            "plan": plan_dump,
+            "movement": {
+                "queue": list(self._movement_queue),
+                "moving": self._moving,
+                "in_flight_route_remaining": [
+                    s.model_dump(mode="json") if hasattr(s, "model_dump") else s
+                    for s in self._in_flight_route_remaining
+                ],
+                "in_flight_target": self._in_flight_target,
+            },
+            "ai_town": {
+                "pending_operation": pending_op,
+                "current_dialogue_id": self.current_dialogue_id,
+                "to_remember": self.to_remember,
+                "last_dialogue_ended_tick": self.last_dialogue_ended_tick,
+                "last_op_kind": self.last_op_kind,
+                "use_aitown_decision_tree": self.use_aitown_decision_tree,
+                "invite_accept_probability": self.invite_accept_probability,
+                "op_id_counter": self._op_id_counter,
+            },
+            "hints": {
+                "nearby_hint": list(self.nearby_hint),
+                "candidate_destinations_hint": list(self.candidate_destinations_hint),
+                "recent_memory_hint": list(self.recent_memory_hint),
+            },
+            "enable_replan_log": self.enable_replan_log,
+            "invite_rng_state": rng_state,
+        }
+
+    def from_snapshot_state(self, state: dict) -> None:
+        """Restore mutable runtime state from a snapshot dict.
+
+        Existing in-memory state is replaced (not merged). Service
+        references (attention_service, memory_service, etc.) are NOT
+        touched — caller reattaches them. `_tick_inputs` is cleared
+        (in-flight ops abandoned per design D6).
+        """
+        from synthetic_socio_wind_tunnel.run_resilience.state_snapshot import (
+            _rng_state_from_json,
+        )
+        if not isinstance(state, dict):
+            raise ValueError(
+                f"AgentRuntime.from_snapshot_state expects dict, "
+                f"got {type(state).__name__}",
+            )
+        sid = state.get("agent_id")
+        if sid is not None and sid != self.profile.agent_id:
+            raise ValueError(
+                f"AgentRuntime.from_snapshot_state: agent_id mismatch "
+                f"(snapshot={sid!r}, profile={self.profile.agent_id!r})",
+            )
+        self.current_location = state.get("current_location", "") or self.profile.home_location
+        # Plan
+        plan_dump = state.get("plan")
+        if plan_dump is None:
+            self.plan = None
+        else:
+            self.plan = DailyPlan.model_validate(plan_dump)
+
+        # Movement
+        mv = state.get("movement", {}) or {}
+        self._movement_queue = list(mv.get("queue", []) or [])
+        self._moving = bool(mv.get("moving", False))
+        self._in_flight_route_remaining = list(
+            mv.get("in_flight_route_remaining", []) or []
+        )
+        self._in_flight_target = mv.get("in_flight_target")
+
+        # ai-town
+        at = state.get("ai_town", {}) or {}
+        # pending_operation: rehydrate to PendingOp if SDK type is available
+        pending = at.get("pending_operation")
+        if pending is None:
+            self.pending_operation = None
+        else:
+            try:
+                from synthetic_socio_wind_tunnel.agent.operations.models import (
+                    PendingOp,
+                )
+                self.pending_operation = PendingOp.model_validate(pending)
+            except Exception:
+                # If model can't be rehydrated (SDK type drift), abandon —
+                # agent will re-trigger via normal path
+                self.pending_operation = None
+        self.current_dialogue_id = at.get("current_dialogue_id")
+        self.to_remember = at.get("to_remember")
+        self.last_dialogue_ended_tick = at.get("last_dialogue_ended_tick")
+        self.last_op_kind = at.get("last_op_kind")
+        self.use_aitown_decision_tree = bool(at.get("use_aitown_decision_tree", False))
+        self.invite_accept_probability = float(at.get("invite_accept_probability", 0.8))
+        self._op_id_counter = int(at.get("op_id_counter", 0))
+
+        # Hints
+        h = state.get("hints", {}) or {}
+        self.nearby_hint = list(h.get("nearby_hint", []) or [])
+        self.candidate_destinations_hint = list(h.get("candidate_destinations_hint", []) or [])
+        self.recent_memory_hint = list(h.get("recent_memory_hint", []) or [])
+
+        # Misc
+        self.enable_replan_log = bool(state.get("enable_replan_log", False))
+
+        # Per-agent invite RNG state
+        rng_state = state.get("invite_rng_state")
+        if rng_state is not None:
+            if self._invite_rng is None:
+                self._invite_rng = random.Random()
+            try:
+                self._invite_rng.setstate(_rng_state_from_json(rng_state))
+            except Exception:
+                # Drop snapshot RNG state silently — re-seed from agent_id
+                self._invite_rng = random.Random(
+                    hash(("invite", self.profile.agent_id)) & 0xFFFFFFFF,
+                )
+
+        # Drop in-flight LLM results (D6 abandon-and-retry)
+        self._tick_inputs = []
+        self._pending_action = None
+
     # --- 移动 ---
 
     @property

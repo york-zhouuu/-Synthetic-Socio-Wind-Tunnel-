@@ -160,6 +160,19 @@ from synthetic_socio_wind_tunnel.perception.models import (
     ContainerSnapshot,
     ClueSnapshot,
 )
+from synthetic_socio_wind_tunnel.run_resilience import (
+    AllKeysOpenError,
+    DayCheckpointWriter,
+    HealthAudit,
+    HealthAuditReport,
+    HotfixSignalHandler,
+    IncompatibleCheckpointError,
+    PerKeyCircuitBreaker,
+    RetryPolicy,
+    SimulationCheckpoint,
+    SnapshotPolicy,
+    WorkerSnapshot,
+)
 
 __version__ = "0.9.0"
 __all__ = [
@@ -300,4 +313,17 @@ __all__ = [
     "SimulationErrorCode",
     "EventType",
     "WorldEvent",
+    # Run Resilience (run-resilience, D1' 2026-05-15 fix)
+    "AllKeysOpenError",
+    "DayCheckpointWriter",
+    "HealthAudit",
+    "HealthAuditReport",
+    "HotfixSignalHandler",
+    "IncompatibleCheckpointError",
+    "PerKeyCircuitBreaker",
+    "RetryPolicy",
+    "WorkerSnapshot",
+    # Tick-Level Resume (tick-level-resume, 2026-05-16)
+    "SimulationCheckpoint",
+    "SnapshotPolicy",
 ]

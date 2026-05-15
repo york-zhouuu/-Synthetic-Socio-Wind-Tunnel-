@@ -14,9 +14,7 @@ orchestrator 之上加一层"按天推进 + 每日 memory carryover + plan 重�
 
 模块：`synthetic_socio_wind_tunnel/orchestrator/multi_day.py`
 引入自：`multi-day-simulation`
-
 ## Requirements
-
 ### Requirement: MultiDayRunner 主入口
 
 `MultiDayRunner` SHALL 是驱动 N 日 simulation 的主类，位于
@@ -38,7 +36,6 @@ orchestrator 之上加一层"按天推进 + 每日 memory carryover + plan 重�
 - **WHEN** 仅传 `orchestrator` 与 `seed`，不传 memory/planner
 - **THEN** `MultiDayRunner` SHALL 仍能构造；多日 run 会跑但**不做** memory
   carryover 或 plan 重生成（适用于不需要 memory 的对照实验）
-
 
 ### Requirement: run_multi_day 主方法
 
@@ -68,7 +65,6 @@ on_day_start: Callable | None = None, on_day_end: Callable | None = None)
   on_tick_start/end × 288）→ memory_service.run_daily_summary（若有）→
   on_day_end
 
-
 ### Requirement: MultiDayResult 数据结构
 
 `MultiDayResult` SHALL 为 frozen Pydantic 模型，至少包含：
@@ -93,7 +89,6 @@ MultiDayResult SHALL 提供 classmethod `combine(results: list[MultiDayResult])
 - **THEN** 返回 `MultiDayAggregate` SHALL 包含 per-day / per-variant 的
   median / IQR / 95% CI 统计字段
 
-
 ### Requirement: 两档运行模式
 
 `MultiDayRunner` SHALL 支持两档预设模式，对应 `experimental-design` spec：
@@ -109,7 +104,6 @@ MultiDayResult SHALL 提供 classmethod `combine(results: list[MultiDayResult])
 #### Scenario: publishable mode 无限制
 - **WHEN** `MultiDayRunner(mode="publishable").run_multi_day(num_days=14)`
 - **THEN** SHALL 正常运行 14 天
-
 
 ### Requirement: CLI 入口
 
@@ -133,7 +127,6 @@ change）；本 change 仅提供 `--variant` 参数 stub 接受 variant 名字�
 - **THEN** 命令 SHALL 产出 2 个 per-seed JSON 文件 + 1 个 aggregate JSON；
   退出码 0
 
-
 ### Requirement: 性能约束
 
 多日 run 性能 SHALL 满足：
@@ -144,7 +137,6 @@ change）；本 change 仅提供 `--variant` 参数 stub 接受 variant 名字�
 #### Scenario: 14 天 100 agent 性能测试
 - **WHEN** `tests/test_multi_day.py::test_14_day_100_agent_performance` 运行
 - **THEN** wall time SHALL < 30 秒；超时 pytest fail
-
 
 ### Requirement: 向后兼容
 
@@ -160,7 +152,6 @@ change）；本 change 仅提供 `--variant` 参数 stub 接受 variant 名字�
 - **WHEN** 运行 `pytest tests/test_orchestrator.py`
 - **THEN** 所有已存在测试 SHALL 100% 通过（零回归）
 
-
 ### Requirement: 审计翻绿
 
 `synthetic_socio_wind_tunnel.orchestrator.multi_day` 模块 SHALL importable；
@@ -169,3 +160,194 @@ change）；本 change 仅提供 `--variant` 参数 stub 接受 variant 名字�
 #### Scenario: multi-day-run 审计
 - **WHEN** 运行 `make fitness-audit`
 - **THEN** `phase2-gaps.multi-day-run` AuditResult 的 `status` SHALL 为 `pass`
+
+### Requirement: MultiDayRunner SHALL 在 on_day_end 写 per-day checkpoint
+
+`MultiDayRunner.run_multi_day` SHALL 在每个 day 的 `on_day_end` hook 触发
+**之前**（hook 链顺序：内部 checkpoint 写盘 → 调用方注入的 on_day_end
+callback）通过 `DayCheckpointWriter.write_partial(...)` 把当日完成的状态
+落盘到 `<output_dir>/seed_{seed}_day{day_index}.partial.json`。
+
+写盘失败（I/O error / 磁盘满 / 权限问题）SHALL log warning 但不中断当前 run；
+该 day 的损失会在下一次 `run_multi_day` 调用的 `--resume` 路径上从前一个
+成功 partial 恢复。
+
+`MultiDayRunner.__init__` SHALL 新增可选参数：
+
+- `output_dir: Path | None = None`：partial 文件写盘根目录；为 None 时
+  禁用 checkpoint（向后兼容 dev mode）
+- `checkpoint_writer: DayCheckpointWriter | None = None`：可注入自定义 writer
+  做测试/mock；为 None 时构造默认 `DayCheckpointWriter()`
+
+整 variant 的最终 `seed_{seed}.json` + `aggregate.json` 落地之后，调用方
+（`run_variant_suite.py` / `run_multi_day_experiment.py`）SHALL 调用
+`DayCheckpointWriter.cleanup_partials(output_dir, seed)` 清理该 seed 的所有
+partial 文件。
+
+#### Scenario: 14 天 run 写出 14 个 partial（按天累加）
+- **WHEN** `MultiDayRunner(orchestrator=o, seed=42, output_dir=<dir>).
+  run_multi_day(start_date=date(2026,4,22), num_days=14)` 完成
+- **THEN** `<dir>/seed_42_day0.partial.json` 到 `seed_42_day13.partial.json`
+  SHALL 各自存在；每个 partial 的 `day_index` 字段 SHALL 等于文件名中的数字
+
+#### Scenario: 写盘失败时 run 继续
+- **WHEN** 模拟 `DayCheckpointWriter.write_partial` 在 day 5 抛 `OSError`
+- **THEN** `run_multi_day` SHALL 不抛、继续跑到 day 13；日志 SHALL 含 day 5
+  写盘失败的 warning；day 6-13 的 partial SHALL 正常写
+
+#### Scenario: 无 output_dir 时禁用 checkpoint
+- **WHEN** `MultiDayRunner(output_dir=None)` 构造、跑 3 天
+- **THEN** SHALL 不写任何 partial 文件；行为与 multi-day-simulation 归档时
+  一致；现有 dev mode 测试 SHALL 0 回归
+
+### Requirement: MultiDayRunner SHALL 支持 resume_from 起点构造
+
+`MultiDayRunner.__init__` SHALL 新增可选参数 `resume_from: int = 0`：
+
+- `resume_from > 0` 时，`run_multi_day(start_date, num_days)` SHALL 把
+  effective num_days 算作 `num_days - resume_from`，且第一个 day 的
+  `day_index` 从 `resume_from` 开始（而非 0）
+- 调用方负责在调 `run_multi_day` 之前把 partial 内容（RunMetrics 部分快照
+  / ledger 状态 / memory）通过 `Orchestrator` + `MemoryService` 的标准
+  load 路径还原到当前 in-memory 状态
+- `resume_from > num_days` SHALL raise `ValueError`（请求恢复到超过总
+  天数的位置）
+
+#### Scenario: resume_from=5 跑 14 天，从 day 5 开始
+- **WHEN** 构造 `MultiDayRunner(seed=42, resume_from=5)`、调
+  `run_multi_day(start_date=date(2026,4,22), num_days=14)`
+- **THEN** orchestrator.run() SHALL 被调用 9 次（day 5 到 day 13）；
+  per_day_summaries 长度 SHALL == 9；第一个 DayRunSummary 的 day_index
+  SHALL == 5
+
+#### Scenario: resume_from=0 行为不变（向后兼容）
+- **WHEN** 构造 `MultiDayRunner(seed=42, resume_from=0)` 或不传该参数
+- **THEN** run_multi_day 行为 SHALL 与 multi-day-simulation 归档时完全一致；
+  per_day_summaries[0].day_index == 0
+
+#### Scenario: resume_from > num_days 抛
+- **WHEN** 构造 `MultiDayRunner(resume_from=20)` 后调 `run_multi_day(num_days=14)`
+- **THEN** SHALL raise `ValueError`，含 "resume_from (20) exceeds num_days (14)"
+
+### Requirement: MultiDayRunner SHALL 在主循环每 tick 后检查 graceful-stop flag
+
+`MultiDayRunner` SHALL 暴露公共 attribute `_graceful_stop_requested: bool`
+（初始 False），供外部 `HotfixSignalHandler` 写入。
+
+主循环 SHALL 在每个 tick 结束（每天 288 tick 中的任意一次）后检查
+`_graceful_stop_requested`；若为 True SHALL：
+
+1. 不再启动下一个 tick
+2. 通过 `DayCheckpointWriter.write_partial(...)` 写一个**反映当前完成 tick
+   数**的 partial（`day_index = <已完成的最近完整 day>`；当前 in-progress
+   day 的部分 tick 数据**不**写入 partial——避免 partial 内部一致性问题）
+3. 返回截断的 `MultiDayResult`（per_day_summaries 长度 = 已完成的 day 数）
+
+主循环 SHALL 不主动调 `sys.exit`——退出由调用方（如 `HotfixSignalHandler.
+install` 注册的额外 callback）决定。
+
+#### Scenario: 中途 graceful-stop 写 partial 后返回
+- **WHEN** 14 天 run 跑到 day 5 的 tick 100；外部把
+  `runner._graceful_stop_requested = True`
+- **THEN** runner SHALL 不启动 tick 101；写
+  `seed_{seed}_day4.partial.json`（day 5 未完成，partial 只到 day 4）；
+  返回的 MultiDayResult.per_day_summaries 长度 SHALL == 5（day 0 到 day 4）
+
+#### Scenario: 未被打断的 run 不受 flag 影响
+- **WHEN** 14 天 run 全程 `_graceful_stop_requested` 保持 False
+- **THEN** 完整 14 天跑完；行为与 multi-day-simulation 归档时一致
+
+### Requirement: MultiDayRunner SHALL 支持 snapshot/wal/restore_from 构造参数
+
+`MultiDayRunner.__init__` SHALL 新增以下可选参数：
+
+- `snapshot_every_ticks: int = 24` — per-N-tick snapshot 频率；0 时禁用
+- `wal_enabled: bool = True` — per-tick WAL 写盘开关
+- `restore_from: SimulationCheckpoint | None = None` — 调用方传入恢复点
+- `snapshot_policy: SnapshotPolicy | None = None` — 完整 policy 注入；
+  非 None 时优先于上面 3 个独立参数
+
+`restore_from` 与 `resume_from: int` 并存：`restore_from` 非 None 时
+**优先**使用（且忽略 `resume_from`）；`restore_from` 为 None 时按
+`resume_from` 行为（run-resilience 既有路径）。
+
+snapshot 文件写盘到 `output_dir`（既有参数，run-resilience 已要求；
+本 change 复用同一目录、不引入新目录参数）。`output_dir` 为 None 时
+SHALL 跳过 snapshot 写盘（向后兼容 dev mode）。
+
+#### Scenario: 默认参数与既有调用方零回归
+- **WHEN** 旧调用 `MultiDayRunner(orchestrator=o, seed=42)` 无任何新参数
+- **THEN** runner SHALL 构造成功；`snapshot_every_ticks` 默认 24、
+  `wal_enabled` True；既有 multi-day-run / run-resilience 测试 SHALL 0 回归
+
+#### Scenario: snapshot_every_ticks=0 禁用快照
+- **WHEN** `MultiDayRunner(snapshot_every_ticks=0, output_dir=<dir>)` 跑 3 day
+- **THEN** `<dir>` 目录中 SHALL 不存在 `seed_*_tick*.snapshot.json`；
+  既有 per-day partial（run-resilience）SHALL 仍正常落
+
+#### Scenario: restore_from 优先 resume_from
+- **WHEN** 同时传 `restore_from=<snap at day=5,tick=100>` + `resume_from=10`
+- **THEN** runner SHALL 调 `snap.restore_into(...)` 然后从 day=5,tick=101
+  起步；resume_from=10 SHALL 被忽略并 log warning
+
+### Requirement: MultiDayRunner SHALL 在每 tick 末写 WAL + 视频率写 snapshot
+
+`run_multi_day` 主循环 SHALL 在每 tick `on_tick_end` 之后、graceful-stop
+检查之前执行：
+
+1. 若 `wal_enabled=True` 且 `output_dir is not None`：append 一行到
+   `<output_dir>/seed_{seed}.wal.jsonl`（schema 见 tick-level-resume spec）
+2. 若 `snapshot_every_ticks > 0` 且 `tick_index_global %
+   snapshot_every_ticks == 0`：构造 SimulationCheckpoint → `write_atomic`
+   到 `<output_dir>/seed_{seed}_tick{T_global}.snapshot.json` → 调
+   `_prune_snapshots(keep=K)` 删旧
+3. 若 `_graceful_stop_requested`：在 break 之前强写一个 snapshot（不论
+   N 整数倍），然后 break
+
+`tick_index_global` 跨 day 累加：`day_index * ticks_per_day + tick_index`。
+
+写盘失败（WAL 或 snapshot）SHALL log warning 但不中断 run——损失止于
+下一次成功的 snapshot 写盘。
+
+#### Scenario: 1 day × snapshot_every_ticks=24 → 滚动保留 ≤ K
+- **WHEN** 跑 1 day（288 tick）、N=24、K=2、output_dir 提供
+- **THEN** day 结束时 `<dir>` SHALL 含 ≤ K=2 个 snapshot 文件；最后留下
+  的 tick_index_global SHALL 是 288 的最近 K 个 24 整数倍（i.e., 264 + 288，
+  或仅 288 视 boundary 情况）
+
+#### Scenario: WAL 行计数 == tick 数
+- **WHEN** 跑 14 day × 288 tick、wal_enabled=True
+- **THEN** `seed_{seed}.wal.jsonl` 行数 SHALL == 4032；最后一行 tick_index
+  == 4031、day_index == 13
+
+#### Scenario: graceful-stop 触发 final snapshot
+- **WHEN** N=24，跑到 tick_index_global=100 时设
+  `_graceful_stop_requested=True`
+- **THEN** `<dir>/seed_{seed}_tick100.snapshot.json` SHALL 存在（即使 100
+  不是 24 整数倍）；主循环 SHALL break；返回的 MultiDayResult
+  per_day_summaries 长度 < num_days
+
+### Requirement: MultiDayRunner SHALL 在构造时按 restore_from 还原 state
+
+若 `restore_from is not None`，`run_multi_day` 主循环启动时 SHALL：
+
+1. 调 `restore_from.restore_into(orchestrator=self._orchestrator,
+   ledger=<orch ledger>, agents=<orch agents>, memory_service=
+   self._memory_service, attention_service=<wherever it lives>)`
+2. 主循环起步的 `(day_index, tick_index)` SHALL 是
+   `(restore_from.day_index, restore_from.tick_index + 1)`
+3. 若 `restore_from.day_index >= num_days` SHALL raise `ValueError`
+
+`pending_ops_meta` 不还原；in-flight LLM ops 全部 abandon，相关 agent
+在下一 tick 通过正常 op 触发路径自然重做。
+
+#### Scenario: restore + 继续跑 14 天
+- **WHEN** 构造 snap at (day=7, tick=100)、新 runner.run_multi_day(num_days=14)
+- **THEN** restore_into SHALL 被调用；首个 day_index SHALL == 7、首个
+  tick_index_global SHALL == 7*288+101 = 2117；之后跑完到 tick_index_global
+  = 14*288-1 = 4031
+
+#### Scenario: restore_from 超出 num_days 抛
+- **WHEN** snap.day_index=20、runner.run_multi_day(num_days=14)
+- **THEN** SHALL raise `ValueError` 含 "exceeds num_days"
+

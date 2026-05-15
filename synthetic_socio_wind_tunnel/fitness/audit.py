@@ -20,8 +20,10 @@ from synthetic_socio_wind_tunnel.fitness.audits import (
     audit_phase1_baseline,
     audit_phase2_gaps,
     audit_profile_distribution,
+    audit_run_resilience,
     audit_scale_baseline,
     audit_site_fitness,
+    audit_tick_level_resume,
 )
 from synthetic_socio_wind_tunnel.fitness.report import (
     AuditResult,
@@ -72,6 +74,10 @@ def run_audit(
         results.append(audit_phase1_baseline())
     if _wanted("phase2-gaps"):
         results.append(audit_phase2_gaps())
+    if _wanted("run-resilience"):
+        results.append(audit_run_resilience())
+    if _wanted("tick-level-resume"):
+        results.append(audit_tick_level_resume())
     # Integration audits (require the corresponding capability to exist).
     if _wanted("e1-digital-lure"):
         results.append(audit_e1_digital_lure(atlas))
