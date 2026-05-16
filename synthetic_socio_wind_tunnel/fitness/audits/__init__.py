@@ -13,6 +13,9 @@ from synthetic_socio_wind_tunnel.fitness.audits.profile import audit_profile_dis
 from synthetic_socio_wind_tunnel.fitness.audits.run_resilience import audit_run_resilience
 from synthetic_socio_wind_tunnel.fitness.audits.scale import audit_scale_baseline
 from synthetic_socio_wind_tunnel.fitness.audits.site import audit_site_fitness
+from synthetic_socio_wind_tunnel.fitness.audits.setup_content_cache import (
+    audit_setup_content_cache,
+)
 from synthetic_socio_wind_tunnel.fitness.audits.tick_level_resume import (
     audit_tick_level_resume,
 )
@@ -28,6 +31,7 @@ __all__ = [
     "audit_profile_distribution",
     "audit_run_resilience",
     "audit_scale_baseline",
+    "audit_setup_content_cache",
     "audit_site_fitness",
     "audit_tick_level_resume",
 ]

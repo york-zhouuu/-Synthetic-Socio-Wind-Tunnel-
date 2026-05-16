@@ -11,6 +11,21 @@ This file provides guidance to Claude Code when working with this repository.
 
 任何对外文档/报告引用这两个数字时务必用 1000 / 1000m。
 
+## 关键不变量（setup-content-cache 2026-05-16）
+
+- publishable run（β=30 seed scale）SHALL 先跑 `tools/prewarm_setup_content.py`
+  让 per-seed 缓存 (`data/setup_content_cache/seed_<N>.json`) 落地——不能直接
+  起 suite 然后让 setup phase 在线生成 500 protag × 2（life_history +
+  identity_text）的 LLM call 突发，D2 attempt 3 (2026-05-16) 因此爆出
+  0/500 life_history success
+- `data/setup_content_cache/` 不进 git——每台机器独立 prewarm
+- schema_version 升级（`_CURRENT_SCHEMA_VERSION` 在 `setup_cache.py`）SHALL
+  重新跑 prewarm，旧 cache 自动 invalidate
+- `tools/run_variant_suite.py` SHALL 通过 `_load_or_generate_setup_content`
+  优先读 cache（HIT 路径 0 LLM call）；worker log 里 `[setup_cache] HIT for
+  seed=N` 表示走的是 cache
+- 详见 `docs/agent_system/17-setup-content-cache.md`
+
 ## 关键不变量（tick-level-resume 2026-05-16）
 
 - **任何长跑（publishable）SHALL 启用 snapshot + WAL**——默认

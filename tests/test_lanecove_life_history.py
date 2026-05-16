@@ -79,12 +79,13 @@ class TestGenerate:
             _profile("scripted_a", protag=False),
         ]
         llm = _StubLLM()
-        result = asyncio.run(generate_life_history_for_protagonists(
+        result, failed = asyncio.run(generate_life_history_for_protagonists(
             profiles, llm_client=llm, n_records_per_protag=10,
         ))
         assert "emma" in result
         assert "linda" in result
         assert "scripted_a" not in result
+        assert failed == []
         # 10 records each
         assert len(result["emma"]) == 10
         assert len(result["linda"]) == 10
@@ -94,7 +95,7 @@ class TestGenerate:
     def test_record_fields_populated(self):
         profiles = [_profile("emma", protag=True)]
         llm = _StubLLM()
-        result = asyncio.run(generate_life_history_for_protagonists(
+        result, _ = asyncio.run(generate_life_history_for_protagonists(
             profiles, llm_client=llm,
         ))
         for rec in result["emma"]:
@@ -128,18 +129,37 @@ class TestGenerate:
             async def generate(self, prompt, **kw):
                 raise RuntimeError("LLM down")
         profiles = [_profile("emma", protag=True)]
-        result = asyncio.run(generate_life_history_for_protagonists(
+        result, failed = asyncio.run(generate_life_history_for_protagonists(
             profiles, llm_client=_BoomLLM(),
+            fallback_to_template=False, max_retries=0,
         ))
         assert result == {"emma": []}
+        assert failed == ["emma"]
 
     def test_unparseable_json_returns_empty(self):
         profiles = [_profile("emma", protag=True)]
         llm = _StubLLM(responses="not json at all")
-        result = asyncio.run(generate_life_history_for_protagonists(
+        result, failed = asyncio.run(generate_life_history_for_protagonists(
             profiles, llm_client=llm,
+            fallback_to_template=False, max_retries=0,
         ))
         assert result == {"emma": []}
+        assert failed == ["emma"]
+
+    def test_llm_failure_falls_back_to_template(self):
+        class _BoomLLM:
+            async def generate(self, prompt, **kw):
+                raise RuntimeError("LLM down")
+        profiles = [_profile("emma", protag=True)]
+        result, failed = asyncio.run(generate_life_history_for_protagonists(
+            profiles, llm_client=_BoomLLM(),
+            fallback_to_template=True, max_retries=0,
+        ))
+        # With fallback_to_template=True, emma still gets template records
+        assert "emma" in result
+        assert len(result["emma"]) > 0
+        assert all("fallback_template" in r.tags for r in result["emma"])
+        assert failed == ["emma"]
 
     def test_markdown_fenced_json_stripped(self):
         profiles = [_profile("emma", protag=True)]
@@ -149,7 +169,7 @@ class TestGenerate:
             "importance": 0.6, "tags": [],
         }) + ']\n```'
         llm = _StubLLM(responses=fenced)
-        result = asyncio.run(generate_life_history_for_protagonists(
+        result, _ = asyncio.run(generate_life_history_for_protagonists(
             profiles, llm_client=llm,
         ))
         assert len(result["emma"]) == 1
@@ -249,7 +269,7 @@ class TestE2EIntegration:
         profiles = sample_population(small, seed=42, num_protagonists=2)
         # Generate via stub LLM
         llm = _StubLLM()
-        result = asyncio.run(generate_life_history_for_protagonists(
+        result, _ = asyncio.run(generate_life_history_for_protagonists(
             profiles, llm_client=llm,
         ))
 
@@ -278,7 +298,7 @@ class TestE2EIntegration:
         ])
         profiles = [_profile("emma", protag=True)]
         llm = _StubLLM(responses=bad_response)
-        result = asyncio.run(generate_life_history_for_protagonists(
+        result, _ = asyncio.run(generate_life_history_for_protagonists(
             profiles, llm_client=llm,
         ))
         # Only the 2 valid records survive

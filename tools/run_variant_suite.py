@@ -247,10 +247,17 @@ async def _load_or_generate_life_history(
         f"need LLM generation",
         file=sys.stderr,
     )
-    newly_generated = await generate_life_history_for_protagonists(
+    newly_generated, failed_protag = await generate_life_history_for_protagonists(
         missing_profiles, llm_client=llm_client, archetypes=archetypes,
         n_records_per_protag=n_records_per_protag, batch_size=batch_size,
     )
+    if failed_protag:
+        print(
+            f"[life_history_cache] WARN — {len(failed_protag)} protag fell back "
+            f"to template (LLM exhausted retries): {failed_protag[:5]}"
+            f"{'...' if len(failed_protag) > 5 else ''}",
+            file=sys.stderr,
+        )
 
     # Merge + persist atomically
     merged = {**cached, **newly_generated}
@@ -296,6 +303,159 @@ async def _load_or_generate_life_history(
 
     # Return only the requested protag (filter out any historical extras)
     return {aid: merged[aid] for aid in protag_ids if aid in merged}
+
+
+async def _load_or_generate_setup_content(
+    *,
+    seed: int,
+    profiles,
+    llm_client,
+    archetypes,
+    n_records_per_protag: int = 20,
+    batch_size: int = 4,
+    tier: str = "sonnet",
+    prompt_version: str = "v2",
+):
+    """setup-content-cache 2026-05-16: per-seed combined life_history +
+    identity_text cache.
+
+    Cache HIT (both present and complete for the given protag set):
+      → returns `(life_history_records, identity_text)` with **zero LLM calls**
+
+    Cache MISS / partial / schema invalidated:
+      → falls back to in-suite generation, writes the new cache
+
+    Returns:
+      `(life_history: dict[agent_id → list[LifeHistoryRecord]],
+        identity_text: dict[agent_id → str],
+        cache_hit: bool)`
+    """
+    from datetime import UTC, datetime as _dt
+    from synthetic_socio_wind_tunnel.data_loader import (
+        generate_identity_text_for_protagonists,
+        generate_life_history_for_protagonists,
+        is_cache_complete,
+        load_setup_cache,
+        save_setup_cache,
+    )
+    from synthetic_socio_wind_tunnel.data_loader.lanecove import (
+        LifeHistoryRecord,
+    )
+    from synthetic_socio_wind_tunnel.data_loader.setup_cache import (
+        SimulationContentCache,
+    )
+
+    cache = load_setup_cache(seed)
+    if cache is not None and is_cache_complete(cache, profiles):
+        # HIT — reconstruct LifeHistoryRecord objects from raw dicts
+        history_records: dict[str, list[LifeHistoryRecord]] = {}
+        for aid, recs in cache.life_history.items():
+            history_records[aid] = [
+                LifeHistoryRecord(
+                    record_id=r["record_id"],
+                    agent_id=r["agent_id"],
+                    title=r["title"],
+                    content=r["content"],
+                    years_ago=float(r["years_ago"]),
+                    location_hint=r.get("location_hint"),
+                    importance=float(r["importance"]),
+                    tags=tuple(r.get("tags", ())),
+                )
+                for r in recs
+            ]
+        identity_text = dict(cache.identity_text)
+        # Filter to current protag set
+        protag_ids = {p.agent_id for p in profiles if p.is_protagonist}
+        history_records = {
+            aid: recs for aid, recs in history_records.items()
+            if aid in protag_ids
+        }
+        identity_text = {
+            aid: txt for aid, txt in identity_text.items()
+            if aid in protag_ids
+        }
+        print(
+            f"[setup_cache] HIT for seed={seed} — {len(history_records)} "
+            f"life_history + {len(identity_text)} identity_text "
+            f"(zero LLM)",
+            file=sys.stderr,
+        )
+        return history_records, identity_text, True
+
+    # MISS — generate online, write cache
+    print(
+        f"[setup_cache] MISS for seed={seed} — generating "
+        f"(this should not happen in publishable; run prewarm first)",
+        file=sys.stderr,
+    )
+
+    history_records, life_failed = await generate_life_history_for_protagonists(
+        profiles,
+        llm_client=llm_client,
+        archetypes=archetypes,
+        n_records_per_protag=n_records_per_protag,
+        batch_size=batch_size,
+        prompt_version=prompt_version,
+        max_retries=2,
+        fallback_to_template=True,
+    )
+    identity_text, identity_failed = await generate_identity_text_for_protagonists(
+        profiles,
+        llm_client=llm_client,
+        archetypes=archetypes,
+        life_history_by_agent=history_records,
+        batch_size=batch_size,
+        prompt_version="v1",
+        max_retries=2,
+    )
+    failed_union = sorted(set(life_failed) | set(identity_failed))
+
+    # Persist
+    try:
+        life_history_json = {
+            aid: [
+                {
+                    "record_id": r.record_id,
+                    "agent_id": r.agent_id,
+                    "title": r.title,
+                    "content": r.content,
+                    "years_ago": r.years_ago,
+                    "location_hint": r.location_hint,
+                    "importance": r.importance,
+                    "tags": list(r.tags),
+                }
+                for r in recs
+            ]
+            for aid, recs in history_records.items()
+        }
+        new_cache = SimulationContentCache(
+            seed=seed,
+            generated_at=_dt.now(UTC).replace(tzinfo=None),
+            generator={
+                "tier": tier,
+                "n_records_per_protag": n_records_per_protag,
+                "prompt_version": prompt_version,
+                "concurrency": batch_size,
+                "via": "run_variant_suite_fallback",
+            },
+            life_history=life_history_json,
+            identity_text=identity_text,
+            failed_protag=failed_union,
+        )
+        save_setup_cache(seed, new_cache)
+        print(
+            f"[setup_cache] wrote seed={seed} after MISS "
+            f"({len(failed_union)} fallback)",
+            file=sys.stderr,
+        )
+    except Exception as exc:  # noqa: BLE001
+        print(
+            f"[setup_cache] WARN — failed to persist after MISS: {exc!r} "
+            f"(content still used for this run)",
+            file=sys.stderr,
+        )
+
+    return history_records, identity_text, False
 
 
 def _update_pids_json(suite_dir: Path, variant: str, pid: int) -> None:
@@ -474,18 +634,26 @@ def _setup_aitown_stack(
         print(f"[aitown] shared_memories injection failed: {exc!r}", file=sys.stderr)
         shared_total = 0
 
-    # 4b. life_history — LLM batch for protag (uses haiku tier)
+    # 4b. life_history + identity_text — setup-content-cache 2026-05-16
+    # Single call to _load_or_generate_setup_content: cache HIT = zero LLM,
+    # cache MISS = inline generation + persist. Identity text from cache
+    # also overwrites profile.identity_text so downstream conversation
+    # prompts get the cached persona.
     history_total = 0
+    setup_cache_hit = False
     try:
-        life_llm = tier_clients.get("haiku") or next(iter(tier_clients.values()))
-        history_records = _aio.run(
-            _load_or_generate_life_history(
+        setup_llm = tier_clients.get("sonnet") or tier_clients.get("haiku") \
+            or next(iter(tier_clients.values()))
+        history_records, identity_text_map, setup_cache_hit = _aio.run(
+            _load_or_generate_setup_content(
                 seed=seed,
                 profiles=profiles,
-                llm_client=life_llm,
+                llm_client=setup_llm,
                 archetypes=archs,
-                n_records_per_protag=10,
-                batch_size=5,
+                n_records_per_protag=20,
+                batch_size=4,
+                tier="sonnet",
+                prompt_version="v2",
             )
         )
         for agent_id, recs in history_records.items():
@@ -494,9 +662,19 @@ def _setup_aitown_stack(
                 memory_service=memory_service,
                 sim_start_time=sim_start_time,
             )
+        # Inject cached identity_text into profile (and runtime mirror).
+        # AgentProfile is mutable BaseModel — direct attribute set is fine.
+        identity_injected = 0
+        for rt in runtimes:
+            cached_id = identity_text_map.get(rt.profile.agent_id)
+            if cached_id and not rt.profile.identity_text:
+                rt.profile.identity_text = cached_id
+                identity_injected += 1
         print(
             f"[aitown] life_history: {history_total} events across "
-            f"{len(history_records)} protag",
+            f"{len(history_records)} protag "
+            f"(setup_cache={'HIT' if setup_cache_hit else 'MISS'}, "
+            f"identity_text injected={identity_injected})",
             file=sys.stderr,
         )
     except Exception as exc:

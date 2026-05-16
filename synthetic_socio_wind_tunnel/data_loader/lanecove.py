@@ -242,6 +242,9 @@ __all__ = [
     "inject_shared_memories_for_protagonists",
     "generate_life_history_for_protagonists",
     "inject_life_history",
+    # setup-content-cache (2026-05-16)
+    "generate_identity_text_for_protagonists",
+    "NEIGHBORHOOD_LANDMARKS",
 ]
 
 
@@ -547,7 +550,30 @@ def _load_life_history_templates_for_archetype(arch_id: str) -> list[str]:
         return []
 
 
-_DEFAULT_LIFE_HISTORY_PROMPT_TEMPLATE = """\
+# Lane Cove neighborhood landmarks — injected into prompt v2 for grounded stories.
+# These are real, recognizable places. LLM SHALL mention specific ones (not just "Lane Cove").
+NEIGHBORHOOD_LANDMARKS: tuple[str, ...] = (
+    "Lane Cove Plaza",
+    "Longueville Road",
+    "Epping Road",
+    "Pacific Highway",
+    "Mowbray Road",
+    "Greenwich",
+    "Stringybark Creek",
+    "Lane Cove West Public School",
+    "Lane Cove North",
+    "Lane Cove Tunnel",
+    "Burns Bay Road",
+    "Lane Cove Country Club",
+    "Canopy Park",
+    "Gallery Lane Cove",
+    "St Leonards (commute destination)",
+    "Chatswood (commute destination)",
+    "Crows Nest Metro (under construction)",
+)
+
+
+_LIFE_HISTORY_PROMPT_V1 = """\
 你是 Lane Cove (Sydney NSW 2066) 城市模拟的人物背景作者。请为下面这位 \
 agent 写 {n_records} 条第一人称的过去经历（life history backstory），让 \
 ta 在 day 0 走进模拟时已经有"我经历过的事"可以聊。
@@ -594,16 +620,98 @@ weekend={weekend_outing}
 """
 
 
+_LIFE_HISTORY_PROMPT_V2 = """\
+你是 Lane Cove (Sydney NSW 2066) 城市模拟的人物背景作者。请为下面这位 \
+agent 写 {n_records} 条第一人称的过去经历（life history backstory），让 \
+ta 在 day 0 走进模拟时已经有"我经历过的事"可以聊。
+
+=== Agent ===
+- 姓名：{name}
+- 年龄：{age}
+- 职业：{occupation}
+- **居住地（home）**：{home_location}
+- 身份描述：{identity_text}
+- 今天的计划：{plan_text}
+- archetype: {archetype_label}（{archetype_id}）
+- LifePattern:
+  - 常去 cafe：{preferred_cafe}
+  - 偏好公园 / 散步处：{preferred_leisure_park}
+  - 周末外出地：{weekend_outing}
+
+=== Lane Cove 真实地标参考（用具体名称，不要泛化"Lane Cove"）===
+{neighborhood_landmarks}
+
+=== Life-event anchors (Lane Cove-grounded; vary on these) ===
+{life_event_anchors}
+
+=== 输出要求 ===
+**只输出 JSON**，no prose, no markdown fence。Schema:
+[
+  {{
+    "title": "短中文 label，≤15 字",
+    "content": "1-3 句中文第一人称叙述（'我'开头），描述具体场景 / 感受 / 后续",
+    "years_ago": <float 0.5-15.0>,
+    "location_hint": "**SHALL 非空** — 具体 Lane Cove 地点名（必选自上面 landmarks 或 home_location 周边）",
+    "importance": <float 0-1>,
+    "tags": ["self-explanatory tag", ...]
+  }},
+  ...
+]
+
+=== 内容指南（v2 强化） ===
+- 总共 {n_records} 条，跨度 0.5-15 年（agent 年龄 < 25 时跨度 < age-15）
+- **每条 SHALL 提及具体地标 + 具体时间**（年份 / 季节 / 节日，如"2021 封城"、
+  "上个春天"、"刚到 Lane Cove 那个冬天"）
+- 至少 5 类不同：搬家 / 工作 / 关系（邻居 / 家人 / 友谊）/ 本地地点首次去 /
+  小事故 / 与 Lane Cove 大事件（封城 / Crows Nest Metro / Galuwa）的个人交集
+- importance 分层：3-4 条 high (0.75+, 改变 trajectory 的事件) /
+  8-10 条 mid (0.4-0.6, 日常但记得清楚) / 6-8 条 low (0.2-0.3, 模糊背景)
+- **真实质感**：具体地名 + 具体年份 / 季节 + 具体人物或邻居（"那个总在 Plaza
+  早晨遛狗的老 Mrs. Chen"）。避免泛化（"我有过一段难忘的经历"）
+- 与 archetype 一致：通勤白领的 backstory 别全是 council 议程；
+  退休志愿者的 backstory 别都是 CBD 加班
+- **优先变奏 Life-event anchors 中的事件**（如有），加入具体年份 / 名字 / 细节
+- 多样性要求：本人 {n_records} 条 title SHALL 至少 60% 不重复（避免所有条目都是
+  "搬来 Lane Cove 那天"这种）
+"""
+
+
+_LIFE_HISTORY_PROMPT_TEMPLATES: dict[str, str] = {
+    "v1": _LIFE_HISTORY_PROMPT_V1,
+    "v2": _LIFE_HISTORY_PROMPT_V2,
+}
+
+# Backward-compat alias (existing callers / tests reference this name)
+_DEFAULT_LIFE_HISTORY_PROMPT_TEMPLATE = _LIFE_HISTORY_PROMPT_V2
+
+
 async def _generate_life_history_for_one(
     profile,
     *,
     llm_client,
     archetype: ArchetypeRecord | None,
-    n_records: int = 10,
+    n_records: int = 20,
     model: str = "",
+    prompt_version: str = "v2",
+    max_retries: int = 2,
 ) -> list[LifeHistoryRecord]:
-    """Single-agent LLM call. Returns list of LifeHistoryRecord. Failures
-    return [] (caller decides whether to retry / fallback)."""
+    """Single-agent LLM call. Returns list of LifeHistoryRecord.
+
+    setup-content-cache (2026-05-16) refinements:
+    - n_records default 10 → 20
+    - prompt_version "v2" default (with NEIGHBORHOOD_LANDMARKS + home_location
+      + explicit time-and-landmark mention requirement)
+    - max_retries=2: JSON parse failures retry up to N times with 0.5s
+      backoff. Total attempts = 1 + max_retries. After exhausting, returns
+      empty list — caller (`generate_life_history_for_protagonists`) then
+      falls back to a template.
+
+    Failures still return [] for caller-side fallback."""
+    if prompt_version not in _LIFE_HISTORY_PROMPT_TEMPLATES:
+        raise ValueError(
+            f"Unknown prompt_version: {prompt_version!r}. "
+            f"Available: {list(_LIFE_HISTORY_PROMPT_TEMPLATES)}",
+        )
 
     arch_label = archetype.label if archetype else "general resident"
     arch_id = archetype.archetype_id if archetype else "none"
@@ -612,16 +720,17 @@ async def _generate_life_history_for_one(
     preferred_park = (lp.preferred_leisure_park if lp else None) or "(无)"
     weekend = (lp.weekend_outing_destination if lp else None) or "(无)"
 
-    # B2: Lane Cove-grounded life-event anchors per archetype. LLM varies
-    # on these instead of free-form invention.
+    # B2: Lane Cove-grounded life-event anchors per archetype.
     anchors = _load_life_history_templates_for_archetype(arch_id)
     anchor_block = (
         "\n".join(f"  - {a}" for a in anchors)
         if anchors
         else "(无 archetype 模板锚点；自由生成)"
     )
+    # v2-specific block (ignored by v1 template)
+    landmarks_block = "\n".join(f"  - {lm}" for lm in NEIGHBORHOOD_LANDMARKS)
 
-    prompt = _DEFAULT_LIFE_HISTORY_PROMPT_TEMPLATE.format(
+    prompt = _LIFE_HISTORY_PROMPT_TEMPLATES[prompt_version].format(
         n_records=n_records,
         name=profile.name,
         age=profile.age,
@@ -633,62 +742,78 @@ async def _generate_life_history_for_one(
         preferred_cafe=preferred_cafe,
         preferred_leisure_park=preferred_park,
         weekend_outing=weekend,
+        home_location=getattr(profile, "home_location", "(unknown)"),
+        neighborhood_landmarks=landmarks_block,
         life_event_anchors=anchor_block,
     )
 
-    try:
-        raw = await llm_client.generate(prompt, model=model)
-    except Exception as exc:
-        logger.warning(
-            "life_history LLM call failed for %s: %r; returning []",
-            profile.agent_id, exc,
-        )
-        return []
-
-    text = (raw or "").strip()
-    if text.startswith("```"):
-        text = text.strip("`")
-        if text.lower().startswith("json"):
-            text = text.split("\n", 1)[1] if "\n" in text else ""
-    try:
-        items = json.loads(text)
-    except (json.JSONDecodeError, ValueError):
-        logger.warning(
-            "life_history LLM returned unparseable JSON for %s; raw=%r",
-            profile.agent_id, text[:200],
-        )
-        return []
-    if not isinstance(items, list):
-        return []
-
-    out: list[LifeHistoryRecord] = []
-    for i, item in enumerate(items):
-        if not isinstance(item, dict):
-            continue
+    for attempt in range(max_retries + 1):
         try:
-            rec = LifeHistoryRecord(
-                record_id=f"lh_{profile.agent_id}_{i:02d}",
-                agent_id=profile.agent_id,
-                title=str(item.get("title", "")).strip()[:50],
-                content=str(item.get("content", "")).strip(),
-                years_ago=max(0.1, min(50.0, float(item.get("years_ago", 1.0)))),
-                location_hint=(
-                    str(item["location_hint"]).strip()
-                    if item.get("location_hint") else None
-                ),
-                importance=max(0.0, min(1.0, float(item.get("importance", 0.5)))),
-                tags=tuple(str(t) for t in item.get("tags", [])[:5]),
-            )
-        except (KeyError, TypeError, ValueError) as exc:
+            raw = await llm_client.generate(prompt, model=model)
+        except Exception as exc:  # noqa: BLE001
             logger.warning(
-                "life_history item %d malformed for %s: %r",
-                i, profile.agent_id, exc,
+                "life_history LLM call failed for %s (attempt %d/%d): %r",
+                profile.agent_id, attempt + 1, max_retries + 1, exc,
             )
-            continue
-        if not rec.content:
-            continue
-        out.append(rec)
-    return out
+            if attempt < max_retries:
+                await _asyncio.sleep(0.5)
+                continue
+            return []
+
+        text = (raw or "").strip()
+        if text.startswith("```"):
+            text = text.strip("`")
+            if text.lower().startswith("json"):
+                text = text.split("\n", 1)[1] if "\n" in text else ""
+        try:
+            items = json.loads(text)
+        except (json.JSONDecodeError, ValueError):
+            logger.warning(
+                "life_history LLM returned unparseable JSON for %s "
+                "(attempt %d/%d); raw=%r",
+                profile.agent_id, attempt + 1, max_retries + 1, text[:200],
+            )
+            if attempt < max_retries:
+                await _asyncio.sleep(0.5)
+                continue
+            return []
+        if not isinstance(items, list):
+            if attempt < max_retries:
+                await _asyncio.sleep(0.5)
+                continue
+            return []
+
+        out: list[LifeHistoryRecord] = []
+        for i, item in enumerate(items):
+            if not isinstance(item, dict):
+                continue
+            try:
+                rec = LifeHistoryRecord(
+                    record_id=f"lh_{profile.agent_id}_{i:02d}",
+                    agent_id=profile.agent_id,
+                    title=str(item.get("title", "")).strip()[:50],
+                    content=str(item.get("content", "")).strip(),
+                    years_ago=max(0.1, min(50.0, float(item.get("years_ago", 1.0)))),
+                    location_hint=(
+                        str(item["location_hint"]).strip()
+                        if item.get("location_hint") else None
+                    ),
+                    importance=max(0.0, min(1.0, float(item.get("importance", 0.5)))),
+                    tags=tuple(str(t) for t in item.get("tags", [])[:5]),
+                )
+            except (KeyError, TypeError, ValueError) as exc:
+                logger.warning(
+                    "life_history item %d malformed for %s: %r",
+                    i, profile.agent_id, exc,
+                )
+                continue
+            if not rec.content:
+                continue
+            out.append(rec)
+        return out
+
+    # Unreachable (loop returns or breaks)
+    return []
 
 
 async def generate_life_history_for_protagonists(
@@ -696,18 +821,32 @@ async def generate_life_history_for_protagonists(
     *,
     llm_client,
     archetypes: list[ArchetypeRecord] | None = None,
-    n_records_per_protag: int = 10,
+    n_records_per_protag: int = 20,
     batch_size: int = 5,
     model: str = "",
-) -> dict[str, list[LifeHistoryRecord]]:
+    prompt_version: str = "v2",
+    max_retries: int = 2,
+    fallback_to_template: bool = True,
+) -> tuple[dict[str, list[LifeHistoryRecord]], list[str]]:
     """Concurrently LLM-generate life-history records for every protagonist.
 
-    Returns {agent_id: list[LifeHistoryRecord]}. Non-protagonists are
-    skipped (return value omits their agent_id).
+    Returns `(records_by_agent_id, failed_protag_ids)`:
+    - `records_by_agent_id`: agent_id → list[LifeHistoryRecord]; non-protag
+      omitted; protag who exhausted retries get fallback template records
+      (or empty list if `fallback_to_template=False`)
+    - `failed_protag_ids`: agent_ids that fell back / produced empty (audit)
+
+    setup-content-cache (2026-05-16) defaults:
+    - n_records_per_protag: 10 → 20
+    - prompt_version="v2", max_retries=2
+    - fallback_to_template=True: returns template-based records for failed
+      protag instead of empty list, so downstream `inject_life_history`
+      never has a 0-event agent
     """
     archetypes = archetypes or []
     indices = [i for i, p in enumerate(profiles) if p.is_protagonist]
     out: dict[str, list[LifeHistoryRecord]] = {}
+    failed: list[str] = []
     for batch_start in range(0, len(indices), batch_size):
         batch_idx = indices[batch_start:batch_start + batch_size]
         batch_profiles = [profiles[i] for i in batch_idx]
@@ -719,12 +858,246 @@ async def generate_life_history_for_protagonists(
             _generate_life_history_for_one(
                 p, llm_client=llm_client, archetype=arch,
                 n_records=n_records_per_protag, model=model,
+                prompt_version=prompt_version, max_retries=max_retries,
             )
             for p, arch in zip(batch_profiles, batch_archetypes)
         ])
-        for p, recs in zip(batch_profiles, results):
+        for p, arch, recs in zip(batch_profiles, batch_archetypes, results):
+            if not recs:
+                failed.append(p.agent_id)
+                if fallback_to_template:
+                    recs = _fallback_template_life_history(p, arch, n=n_records_per_protag)
             out[p.agent_id] = recs
+    return out, failed
+
+
+def _fallback_template_life_history(
+    profile,
+    archetype: ArchetypeRecord | None,
+    *,
+    n: int = 20,
+) -> list[LifeHistoryRecord]:
+    """Fallback when all LLM attempts fail. Uses archetype templates +
+    profile fields to synthesize bare-bones records (no LLM)."""
+    arch_id = archetype.archetype_id if archetype else "none"
+    anchors = _load_life_history_templates_for_archetype(arch_id)
+    if not anchors:
+        anchors = [
+            f"我搬来 Lane Cove 那年",
+            f"在 Plaza 第一次买咖啡",
+            f"邻居打招呼的那个早晨",
+            f"周末去公园散步",
+            f"通勤路上的小插曲",
+        ]
+    out: list[LifeHistoryRecord] = []
+    for i in range(min(n, len(anchors) * 3)):
+        anchor = anchors[i % len(anchors)]
+        out.append(LifeHistoryRecord(
+            record_id=f"lh_{profile.agent_id}_{i:02d}",
+            agent_id=profile.agent_id,
+            title=anchor[:50],
+            content=f"我（{profile.name}, {profile.age} 岁）回忆: {anchor}。",
+            years_ago=max(0.5, min(15.0, 0.5 + (i % 10))),
+            location_hint="Lane Cove Plaza",
+            importance=0.4,
+            tags=("fallback_template",),
+        ))
     return out
+
+
+# ---------------------------------------------------------------------------
+# identity_text — setup-content-cache (2026-05-16)
+# ---------------------------------------------------------------------------
+
+_IDENTITY_TEXT_PROMPT_V1 = """\
+你为 Lane Cove (Sydney NSW 2066) 城市模拟中的一位虚构居民写一段约 150-200 字
+的第一人称自我介绍（identity_text），让 ta 用平实自然的中文口吻介绍自己。
+
+=== Agent 基本 ===
+- 姓名：{name}
+- 年龄：{age}
+- 职业：{occupation}
+- 家庭：{household}
+- 居住：{home_location}
+- archetype: {archetype_label}（{archetype_id}）
+
+=== Lane Cove 真实地标参考 ===
+{neighborhood_landmarks}
+
+=== Life history snippets（已生成的传记片段，用 1-2 条作 anchor） ===
+{life_history_snippets}
+
+=== 输出要求 ===
+- **只输出纯文本**，no JSON, no markdown
+- 单段 150-200 字第一人称中文（"我是 ..., XX 岁, 住在 ..."）
+- 提及具体地标 + 当前生活节奏 + 兴趣 / 性格 / 偏好
+- 自然口语化，不像简历那样列点
+- 与 archetype 风格一致
+"""
+
+_IDENTITY_TEXT_PROMPT_TEMPLATES: dict[str, str] = {
+    "v1": _IDENTITY_TEXT_PROMPT_V1,
+}
+
+
+async def _generate_identity_text_for_one(
+    profile,
+    *,
+    llm_client,
+    archetype: ArchetypeRecord | None,
+    life_history_snippets: list[str] | None = None,
+    model: str = "",
+    prompt_version: str = "v1",
+    max_retries: int = 2,
+    max_chars: int = 500,
+) -> str:
+    """Single-agent identity_text generation. Returns ~150-200 字 first-person
+    Chinese self-introduction.
+
+    Failures (after retries) fall back to a hand-rolled template string;
+    never returns empty."""
+    if prompt_version not in _IDENTITY_TEXT_PROMPT_TEMPLATES:
+        raise ValueError(
+            f"Unknown identity_text prompt_version: {prompt_version!r}",
+        )
+
+    arch_label = archetype.label if archetype else "general resident"
+    arch_id = archetype.archetype_id if archetype else "none"
+    landmarks_block = "\n".join(f"  - {lm}" for lm in NEIGHBORHOOD_LANDMARKS)
+
+    snippets = life_history_snippets or []
+    snippets_block = (
+        "\n".join(f"  - {s[:80]}" for s in snippets[:3])
+        if snippets else "(无)"
+    )
+
+    prompt = _IDENTITY_TEXT_PROMPT_TEMPLATES[prompt_version].format(
+        name=profile.name,
+        age=profile.age,
+        occupation=profile.occupation,
+        household=getattr(profile, "household", "(unknown)"),
+        home_location=getattr(profile, "home_location", "(unknown)"),
+        archetype_label=arch_label,
+        archetype_id=arch_id,
+        neighborhood_landmarks=landmarks_block,
+        life_history_snippets=snippets_block,
+    )
+
+    for attempt in range(max_retries + 1):
+        try:
+            raw = await llm_client.generate(prompt, model=model)
+        except Exception as exc:  # noqa: BLE001
+            logger.warning(
+                "identity_text LLM call failed for %s (attempt %d/%d): %r",
+                profile.agent_id, attempt + 1, max_retries + 1, exc,
+            )
+            if attempt < max_retries:
+                await _asyncio.sleep(0.5)
+                continue
+            return _fallback_identity_text(profile)
+
+        text = (raw or "").strip()
+        # Strip markdown wrappers if present
+        if text.startswith("```"):
+            text = text.strip("`")
+            # In case of "```text" or "```\n..." headers
+            if "\n" in text:
+                first_line, rest = text.split("\n", 1)
+                if len(first_line) < 20 and not any(c in first_line for c in "我你他她"):
+                    text = rest.strip()
+
+        if not text:
+            if attempt < max_retries:
+                await _asyncio.sleep(0.5)
+                continue
+            return _fallback_identity_text(profile)
+
+        # Truncate if overlong
+        if len(text) > max_chars:
+            logger.warning(
+                "identity_text truncated for %s (was %d chars → %d)",
+                profile.agent_id, len(text), max_chars,
+            )
+            text = text[:max_chars]
+
+        return text
+
+    return _fallback_identity_text(profile)
+
+
+def _fallback_identity_text(profile) -> str:
+    """Template-based identity_text when all LLM attempts fail."""
+    name = getattr(profile, "name", "(无名)")
+    age = getattr(profile, "age", "?")
+    occupation = getattr(profile, "occupation", "居民")
+    home = getattr(profile, "home_location", "Lane Cove")
+    return (
+        f"我是 {name}，{age} 岁，{occupation}，住在 {home}。"
+        f"我平时在 Lane Cove 一带活动，周末偶尔去 Plaza 或公园走走。"
+    )
+
+
+async def generate_identity_text_for_protagonists(
+    profiles: list,
+    *,
+    llm_client,
+    archetypes: list[ArchetypeRecord] | None = None,
+    life_history_by_agent: dict[str, list[LifeHistoryRecord]] | None = None,
+    batch_size: int = 5,
+    model: str = "",
+    prompt_version: str = "v1",
+    max_retries: int = 2,
+    max_chars: int = 500,
+) -> tuple[dict[str, str], list[str]]:
+    """Concurrent identity_text generation for all protag.
+
+    Returns `(identity_by_agent_id, failed_protag_ids)`. Failed protag
+    always have a fallback template string (never empty)."""
+    archetypes = archetypes or []
+    life_history_by_agent = life_history_by_agent or {}
+    indices = [i for i, p in enumerate(profiles) if p.is_protagonist]
+    out: dict[str, str] = {}
+    failed: list[str] = []
+
+    for batch_start in range(0, len(indices), batch_size):
+        batch_idx = indices[batch_start:batch_start + batch_size]
+        batch_profiles = [profiles[i] for i in batch_idx]
+        batch_archetypes = [
+            match_archetype(p, archetypes) if archetypes else None
+            for p in batch_profiles
+        ]
+        batch_snippets = [
+            [rec.content for rec in life_history_by_agent.get(p.agent_id, [])[:5]]
+            for p in batch_profiles
+        ]
+
+        results = await _asyncio.gather(*[
+            _generate_identity_text_for_one(
+                p, llm_client=llm_client, archetype=arch,
+                life_history_snippets=snips, model=model,
+                prompt_version=prompt_version, max_retries=max_retries,
+                max_chars=max_chars,
+            )
+            for p, arch, snips in zip(
+                batch_profiles, batch_archetypes, batch_snippets,
+            )
+        ], return_exceptions=True)
+
+        for p, result in zip(batch_profiles, results):
+            if isinstance(result, Exception):
+                logger.warning(
+                    "identity_text outer fail for %s: %r", p.agent_id, result,
+                )
+                failed.append(p.agent_id)
+                out[p.agent_id] = _fallback_identity_text(p)
+            else:
+                # Check if fallback was used by content sniffing
+                fallback_marker = "周末偶尔去 Plaza 或公园走走"
+                if fallback_marker in result and len(result) < 100:
+                    failed.append(p.agent_id)
+                out[p.agent_id] = result
+
+    return out, failed
 
 
 def inject_life_history(

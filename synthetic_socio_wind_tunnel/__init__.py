@@ -173,6 +173,12 @@ from synthetic_socio_wind_tunnel.run_resilience import (
     SnapshotPolicy,
     WorkerSnapshot,
 )
+from synthetic_socio_wind_tunnel.data_loader import (
+    SimulationContentCache,
+    is_cache_complete,
+    load_setup_cache,
+    save_setup_cache,
+)
 
 __version__ = "0.9.0"
 __all__ = [
@@ -326,4 +332,9 @@ __all__ = [
     # Tick-Level Resume (tick-level-resume, 2026-05-16)
     "SimulationCheckpoint",
     "SnapshotPolicy",
+    # Setup Content Cache (setup-content-cache, 2026-05-16)
+    "SimulationContentCache",
+    "load_setup_cache",
+    "save_setup_cache",
+    "is_cache_complete",
 ]

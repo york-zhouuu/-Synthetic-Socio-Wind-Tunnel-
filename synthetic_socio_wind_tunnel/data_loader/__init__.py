@@ -12,6 +12,7 @@ from in their first dialogues / do_something prompts.
 """
 
 from synthetic_socio_wind_tunnel.data_loader.lanecove import (
+    NEIGHBORHOOD_LANDMARKS,
     ArchetypeRecord,
     ConversationTopicRecord,
     LifeHistoryRecord,
@@ -19,6 +20,7 @@ from synthetic_socio_wind_tunnel.data_loader.lanecove import (
     SharedMemoryRecord,
     SocialPriorRule,
     compute_social_priors_for_population,
+    generate_identity_text_for_protagonists,
     generate_life_history_for_protagonists,
     inject_life_history,
     inject_shared_memories_for_protagonists,
@@ -28,6 +30,12 @@ from synthetic_socio_wind_tunnel.data_loader.lanecove import (
     load_shared_memories,
     load_social_prior_rules,
     match_archetype,
+)
+from synthetic_socio_wind_tunnel.data_loader.setup_cache import (
+    SimulationContentCache,
+    is_cache_complete,
+    load_setup_cache,
+    save_setup_cache,
 )
 
 __all__ = [
@@ -46,5 +54,12 @@ __all__ = [
     "inject_shared_memories_into_agent",
     "inject_shared_memories_for_protagonists",
     "generate_life_history_for_protagonists",
+    "generate_identity_text_for_protagonists",
+    "NEIGHBORHOOD_LANDMARKS",
     "inject_life_history",
+    # setup-content-cache (2026-05-16)
+    "SimulationContentCache",
+    "load_setup_cache",
+    "save_setup_cache",
+    "is_cache_complete",
 ]

@@ -22,6 +22,7 @@ from synthetic_socio_wind_tunnel.fitness.audits import (
     audit_profile_distribution,
     audit_run_resilience,
     audit_scale_baseline,
+    audit_setup_content_cache,
     audit_site_fitness,
     audit_tick_level_resume,
 )
@@ -78,6 +79,8 @@ def run_audit(
         results.append(audit_run_resilience())
     if _wanted("tick-level-resume"):
         results.append(audit_tick_level_resume())
+    if _wanted("setup-content-cache"):
+        results.append(audit_setup_content_cache())
     # Integration audits (require the corresponding capability to exist).
     if _wanted("e1-digital-lure"):
         results.append(audit_e1_digital_lure(atlas))
