@@ -160,6 +160,144 @@ def parse_args() -> argparse.Namespace:
     return p.parse_args()
 
 
+_LIFE_HISTORY_CACHE_DIR = Path(__file__).resolve().parents[1] / "data" / "life_history_cache"
+
+
+async def _load_or_generate_life_history(
+    *,
+    seed: int,
+    profiles,
+    llm_client,
+    archetypes,
+    n_records_per_protag: int = 10,
+    batch_size: int = 5,
+):
+    """LLM cost-saver: per-seed life_history cache keyed by agent_id.
+
+    First time seed N is sampled, generates 500 protag life_histories via LLM
+    and dumps to `data/life_history_cache/seed_<N>.json`. Subsequent calls for
+    the same seed load from disk — zero LLM cost.
+
+    Cache contract:
+    - Key: agent_id (e.g. "a_42_0042")
+    - Value: list[LifeHistoryRecord-as-dict]
+    - Invalidation: only by deleting the cache file (deterministic + idempotent)
+
+    If cache exists but partial coverage (some protag missing), only the
+    missing ones are LLM-generated and merged into cache.
+    """
+    from synthetic_socio_wind_tunnel.data_loader.lanecove import (
+        LifeHistoryRecord,
+        generate_life_history_for_protagonists,
+    )
+
+    cache_file = _LIFE_HISTORY_CACHE_DIR / f"seed_{seed}.json"
+    _LIFE_HISTORY_CACHE_DIR.mkdir(parents=True, exist_ok=True)
+
+    # Load existing cache
+    cached: dict[str, list[LifeHistoryRecord]] = {}
+    if cache_file.exists():
+        try:
+            with open(cache_file, "r", encoding="utf-8") as f:
+                raw = json.load(f)
+            for aid, recs in raw.items():
+                cached[aid] = [
+                    LifeHistoryRecord(
+                        record_id=r["record_id"],
+                        agent_id=r["agent_id"],
+                        title=r["title"],
+                        content=r["content"],
+                        years_ago=float(r["years_ago"]),
+                        location_hint=r.get("location_hint"),
+                        importance=float(r["importance"]),
+                        tags=tuple(r.get("tags", ())),
+                    )
+                    for r in recs
+                ]
+            print(
+                f"[life_history_cache] loaded {len(cached)} protag from {cache_file.name}",
+                file=sys.stderr,
+            )
+        except Exception as exc:  # noqa: BLE001
+            print(
+                f"[life_history_cache] failed to load {cache_file.name}: {exc!r} "
+                f"— regenerating from scratch",
+                file=sys.stderr,
+            )
+            cached = {}
+
+    # Figure out which protag we still need
+    protag_ids = {p.agent_id for p in profiles if p.is_protagonist}
+    missing_ids = protag_ids - set(cached.keys())
+
+    if not missing_ids:
+        print(
+            f"[life_history_cache] HIT — all {len(protag_ids)} protag served from cache, "
+            f"skipping LLM generation",
+            file=sys.stderr,
+        )
+        # Filter to only protag that exist in this profile set (in case cache
+        # has stale extras)
+        return {aid: cached[aid] for aid in protag_ids}
+
+    # Generate the missing ones
+    missing_profiles = [p for p in profiles if p.agent_id in missing_ids]
+    print(
+        f"[life_history_cache] MISS — {len(missing_ids)}/{len(protag_ids)} protag "
+        f"need LLM generation",
+        file=sys.stderr,
+    )
+    newly_generated = await generate_life_history_for_protagonists(
+        missing_profiles, llm_client=llm_client, archetypes=archetypes,
+        n_records_per_protag=n_records_per_protag, batch_size=batch_size,
+    )
+
+    # Merge + persist atomically
+    merged = {**cached, **newly_generated}
+    tmp = cache_file.with_suffix(cache_file.suffix + ".tmp")
+    try:
+        with open(tmp, "w", encoding="utf-8") as f:
+            json.dump(
+                {
+                    aid: [
+                        {
+                            "record_id": r.record_id,
+                            "agent_id": r.agent_id,
+                            "title": r.title,
+                            "content": r.content,
+                            "years_ago": r.years_ago,
+                            "location_hint": r.location_hint,
+                            "importance": r.importance,
+                            "tags": list(r.tags),
+                        }
+                        for r in recs
+                    ]
+                    for aid, recs in merged.items()
+                },
+                f, ensure_ascii=False, indent=2,
+            )
+            f.flush()
+        import os as _os
+        _os.replace(tmp, cache_file)
+        print(
+            f"[life_history_cache] persisted {len(merged)} protag → {cache_file.name}",
+            file=sys.stderr,
+        )
+    except Exception as exc:  # noqa: BLE001
+        print(
+            f"[life_history_cache] WARN — failed to persist cache: {exc!r} "
+            f"(LLM result still used for current run)",
+            file=sys.stderr,
+        )
+        try:
+            tmp.unlink(missing_ok=True)
+        except Exception:
+            pass
+
+    # Return only the requested protag (filter out any historical extras)
+    return {aid: merged[aid] for aid in protag_ids if aid in merged}
+
+
 def _update_pids_json(suite_dir: Path, variant: str, pid: int) -> None:
     """Append `pid` for `variant` into `<suite_dir>/pids.json`.
 
@@ -341,9 +479,13 @@ def _setup_aitown_stack(
     try:
         life_llm = tier_clients.get("haiku") or next(iter(tier_clients.values()))
         history_records = _aio.run(
-            generate_life_history_for_protagonists(
-                profiles, llm_client=life_llm, archetypes=archs,
-                n_records_per_protag=10, batch_size=5,
+            _load_or_generate_life_history(
+                seed=seed,
+                profiles=profiles,
+                llm_client=life_llm,
+                archetypes=archs,
+                n_records_per_protag=10,
+                batch_size=5,
             )
         )
         for agent_id, recs in history_records.items():
