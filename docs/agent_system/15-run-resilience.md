@@ -6,8 +6,9 @@
 
 ## 是什么
 
-publishable run 是 1000 agent × 14 day × 4 variant × 30 seed 的长跑，
-单机预估 60-80 小时墙钟时间。这种长跑要面对的现实是：
+publishable run 是 1000 agent × 14 day × 4 variant × **10 seed** 的长跑
+（β rigor 2026-05-17 由 30 务实下调到 10），单机预估 20-30 小时墙钟时间。
+这种长跑要面对的现实是：
 
 - **LLM provider 的连接会偶尔被服务端切断**（idle timeout / 负载均衡轮换）。
   如果客户端的连接池没把"死连接"踢出去，新请求会一直拿到死 slot，整个

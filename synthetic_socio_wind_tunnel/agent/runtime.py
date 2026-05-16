@@ -278,9 +278,17 @@ class AgentRuntime:
         mv = state.get("movement", {}) or {}
         self._movement_queue = list(mv.get("queue", []) or [])
         self._moving = bool(mv.get("moving", False))
-        self._in_flight_route_remaining = list(
-            mv.get("in_flight_route_remaining", []) or []
-        )
+        # Rehydrate NavigationStep dataclass — to_snapshot_state dumped these
+        # to dict, but downstream (orchestrator.service:523) does
+        # nav_step.to_location which needs the dataclass back. Without this,
+        # any resumed run with mid-walk agents crashes with AttributeError.
+        # See D2 attempt 3 (2026-05-16) worker crash on .to_location.
+        from synthetic_socio_wind_tunnel.engine.navigation import NavigationStep
+        raw_route = mv.get("in_flight_route_remaining", []) or []
+        self._in_flight_route_remaining = [
+            NavigationStep(**s) if isinstance(s, dict) else s
+            for s in raw_route
+        ]
         self._in_flight_target = mv.get("in_flight_target")
 
         # ai-town

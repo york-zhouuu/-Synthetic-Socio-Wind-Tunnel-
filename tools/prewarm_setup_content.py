@@ -12,11 +12,11 @@ no concurrent-burst pattern.
 
 ## Usage
 
-    # Default: seeds 42-56, concurrency 4, sonnet tier
+    # Default: seeds 42-51 (β=10), concurrency 4, sonnet tier
     python tools/prewarm_setup_content.py
 
     # Explicit range
-    python tools/prewarm_setup_content.py --seeds 42-56
+    python tools/prewarm_setup_content.py --seeds 42-51
 
     # CSV
     python tools/prewarm_setup_content.py --seeds 42,43,44
@@ -42,6 +42,13 @@ import sys
 import time
 from datetime import UTC, datetime
 from pathlib import Path
+
+# Auto-load <repo>/.env so DEEPSEEK_API_KEY(S) / GEMINI_API_KEY come from
+# the canonical .env file without needing a shell export. Same convention
+# as tools/run_variant_suite.py.
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from _env import load_dotenv as _load_dotenv  # noqa: E402
+_load_dotenv()
 
 logger = logging.getLogger("prewarm_setup_content")
 
@@ -72,8 +79,10 @@ def _build_parser() -> argparse.ArgumentParser:
         description="Offline prewarm of per-seed setup cache (life_history + identity_text).",
     )
     p.add_argument(
-        "--seeds", default="42-56",
-        help="Seed range '42-56' (inclusive) or CSV '42,43,44'. Default: 42-56",
+        "--seeds", default="42-51",
+        help="Seed range '42-51' (inclusive) or CSV '42,43,44'. Default: 42-51 "
+             "(β=10 publishable; downgraded from β=30 on 2026-05-17 per "
+             "openspec/specs/experimental-design/spec.md)",
     )
     p.add_argument(
         "--concurrency", type=int, default=4,

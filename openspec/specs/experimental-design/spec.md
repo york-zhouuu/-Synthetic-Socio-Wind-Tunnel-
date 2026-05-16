@@ -4,7 +4,7 @@
 
 `experimental-design` capability 冻结本项目在**实验方法论**层面的规格：
 实验结构（Rival Hypothesis 而非 method testing）、协议时长（14-day
-Baseline/Intervention/Post）、publishable 严谨度（β 级：30 seed + CI）、
+Baseline/Intervention/Post）、publishable 严谨度（β 级：10 seed + CI）、
 研究姿态（探索性 + Hybrid 伦理）、mirror experiment 义务（dual-use 显式化）、
 以及报告叙事结构（Diagnosis-Cure-Outcome-Interpretation + Act 1-5）。
 
@@ -65,12 +65,17 @@ hypothesis、对应理论传统、以及 "cure 生效 / 不生效" 对应的弱�
 
 ### Requirement: Publishable effect sizes SHALL use β rigor (cross-seed + CI)
 
-任何声明 "in-sim effect size" 的 publishable 数值 SHALL 由**至少 30 个不同
+任何声明 "in-sim effect size" 的 publishable 数值 SHALL 由**至少 10 个不同
 seed** 的 run 聚合而成，并以 **median + IQR [25, 75] 或 95% CI** 报告。
+
+> **历史注**：原 spec 要求 β=30；2026-05-17 务实下调到 β=10。背景：1000 agent
+> × 14 day × 4 variant × 30 seed 在 DeepSeek deepseek-v4-pro 上的 wall time +
+> API cost 远超本毕设时间预算；β=10 仍能给出 95% CI 估计，CI 宽度约比 β=30
+> 大 1.7 倍——研究者在报告中显式标注 CI 宽度即可。
 
 #### Scenario: 单 run 数字不得作 publishable claim
 - **WHEN** 报告或展示中出现一个 numerical effect size
-- **THEN** 该数字 SHALL 伴随 seed count ≥ 30 的证据；否则 MUST 显式标注
+- **THEN** 该数字 SHALL 伴随 seed count ≥ 10 的证据；否则 MUST 显式标注
   "preliminary, single-run, not publishable"
 
 #### Scenario: 分布报告使用 median + IQR 而非 mean + SD
@@ -79,8 +84,8 @@ seed** 的 run 聚合而成，并以 **median + IQR [25, 75] 或 95% CI** 报告
   Shapiro-Wilk 或类似正态性检验说明为何 Gaussian 假设合理
 
 #### Scenario: Seed 不够时 report 降级
-- **WHEN** seed 数 < 30 但研究者仍希望引用数字
-- **THEN** 报告 SHALL 以 "preliminary" section 呈现，并列出为何未达 30
+- **WHEN** seed 数 < 10 但研究者仍希望引用数字
+- **THEN** 报告 SHALL 以 "preliminary" section 呈现，并列出为何未达 10
   seed 的原因
 
 
@@ -126,7 +131,7 @@ experiment，以同等 β 严谨度交付，显式证明干预工具的 dual-use
 
 #### Scenario: Mirror 运行与正向同等严谨度
 - **WHEN** paired mirror 运行
-- **THEN** 它 SHALL 使用同样 30 seeds × 14 days 协议；结果 SHALL 与正向
+- **THEN** 它 SHALL 使用同样 10 seeds × 14 days 协议；结果 SHALL 与正向
   variant 并列展示，不得降级为 appendix
 
 #### Scenario: 其它 mirror scenarios 文档化

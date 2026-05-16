@@ -7,13 +7,13 @@ This file provides guidance to Claude Code when working with this repository.
 - **agent 数量：1000**（不是 100；100 是 smoke 配置）
 - **hyperlocal 推送半径：1000 米**（不是 500m）
 - 14 天协议：4 baseline + 6 intervention + 4 post
-- β rigor：30 seed for publishable
+- β rigor：**10 seed for publishable**（2026-05-17 由 30 降到 10 — 成本/时间务实考虑；旧文档里的 "30 seed" / "β=30" 已是过时表述）
 
 任何对外文档/报告引用这两个数字时务必用 1000 / 1000m。
 
 ## 关键不变量（setup-content-cache 2026-05-16）
 
-- publishable run（β=30 seed scale）SHALL 先跑 `tools/prewarm_setup_content.py`
+- publishable run（β=10 seed scale）SHALL 先跑 `tools/prewarm_setup_content.py`
   让 per-seed 缓存 (`data/setup_content_cache/seed_<N>.json`) 落地——不能直接
   起 suite 然后让 setup phase 在线生成 500 protag × 2（life_history +
   identity_text）的 LLM call 突发，D2 attempt 3 (2026-05-16) 因此爆出

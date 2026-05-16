@@ -54,7 +54,7 @@ class TestArgparse:
     def test_defaults(self):
         parser = _build_parser()
         args = parser.parse_args([])
-        assert args.seeds == "42-56"
+        assert args.seeds == "42-51"  # β=10 publishable (2026-05-17)
         assert args.concurrency == 4
         assert args.tier == "sonnet"
         assert args.provider == "deepseek"

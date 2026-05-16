@@ -75,7 +75,7 @@ test_skip_preflight_warned_in_publishable_mode`——subprocess 跑 preflight
 
 | seed 数 | wall time | API cost | fallback% | 备注 |
 |---|---|---|---|---|
-| 15 (42-56) | TBD | TBD | TBD | publishable 默认范围 |
+| 10 (42-51) | TBD | TBD | TBD | publishable 默认范围（2026-05-17 β rigor 由 30 → 10） |
 
 ### 数据质量 spot check（TBD）
 
@@ -107,7 +107,7 @@ python tools/run_variant_suite.py --mode publishable --use-aitown ...
 
 ## 后续
 
-- 启动 D2 attempt 4（baseline / hp_push / gd / pf 4 个 variant × 15 seed）
+- 启动 D2 attempt 4（baseline / hp_push / gd / pf 4 个 variant × 10 seed）
   应见 setup phase ~5x 加速 + worker log 全是 cache HIT 行
 - 监控 `audit_run_health.py`：与之前一样
 - schema_version 演化策略：未来 spec 升级走 `"2"` / `"3"` invalidate path

@@ -90,7 +90,7 @@ change 有 Phase 1 实测缺口锚点，本门禁保证 change 在 thesis 链条
   实验是**诊断 contest**，不是 method testing
 - **14-Day Protocol**：Baseline 4d + Intervention 6d + Post 4d；习惯形成
   + decay 同时可测
-- **β 严谨度**：30 seed × median+IQR/CI；单 run 数字仅限 preliminary
+- **β 严谨度**：**10 seed × median+IQR/CI**（2026-05-17 由 30 降到 10——成本/时间务实考虑）；单 run 数字仅限 preliminary
 - **Hybrid 伦理 + 4+1 Mirror**：A + A'（Global Distraction）等级交付；
   其它 3 条 mirror 文档化不实现
 - **Diagnosis-Cure-Outcome-Interpretation 报告**：五幕结构 + 每 variant

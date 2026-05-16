@@ -86,10 +86,17 @@ DEEPSEEK_MODELS: dict[Tier, str] = {
 
 # Per-tier max_tokens hints. Smaller for nano so prompt + completion stays
 # tight when scoring importance.
+#
+# 2026-05-17 (setup-content-cache D1 prewarm bug): sonnet bumped 1024 →
+# 393216 (= 384K, DeepSeek v4 family documented output cap per user-cited
+# API docs). The original 1024 default caused 38% of life_history JSON
+# responses to truncate mid-record (20 records × ~300-char Chinese
+# narratives easily exceed 1024 tokens). max_tokens is a ceiling, not a
+# target — real responses stay well under it; this just removes the bug.
 DEFAULT_MAX_TOKENS: dict[Tier, int] = {
-    "sonnet": 1024,
-    "haiku": 512,
-    "nano": 32,
+    "sonnet": 393216,  # 384K — DeepSeek v4 max output
+    "haiku": 32768,    # 32K headroom for reflection / summary
+    "nano": 256,       # importance score short by design
 }
 
 
@@ -108,7 +115,12 @@ class HttpxPoolConfig:
     max_connections: int = 600
     max_keepalive_connections: int = 0
     connect_timeout: float = 10.0
-    read_timeout: float = 45.0
+    # read_timeout 2026-05-17: 45s → 300s. At 384K max_tokens with rich
+    # Chinese narrative prompts (life_history × 20 records), DeepSeek
+    # v4-pro takes 30-90s to finish a single response; the previous 45s
+    # ceiling caused 100% APITimeoutError in smoke. 300s = 5min absorbs
+    # any reasonable response while still bounding hung connections.
+    read_timeout: float = 300.0
     write_timeout: float = 10.0
     pool_timeout: float = 30.0
 
