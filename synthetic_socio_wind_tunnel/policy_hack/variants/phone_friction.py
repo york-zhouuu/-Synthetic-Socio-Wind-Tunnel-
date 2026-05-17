@@ -66,12 +66,39 @@ class PhoneFrictionVariant(Variant):
 
     nudge_content_templates: tuple[str, ...] = Field(
         default=(
+            # — 原 4 条 (温柔 / 通用) —
             "今天注意力被屏幕拽走了——出去走走？",
             "放下手机，看看附近的人。",
             "屏幕之外，街角咖啡店今天有什么？",
             "短暂离线一会儿，看看你的小区。",
+            # — 早晨 / 通勤时段 (含 Lane Cove 真实地标) —
+            "Plaza 的咖啡今早 8 点开了门，你上次和邻居打招呼是什么时候？",
+            "Burns Bay Road 那段坡道，今天 Stringybark Creek 边的桉树看起来不一样。",
+            "Pacific Highway 的车流声里，附近 200 米也有邻居在听同样的声音。",
+            # — 午间 / 反问 (引导性提问) —
+            "你今天已经解锁手机几十次了——要不去 Longueville Road 走几十步看看？",
+            "Mowbray Road 那家面包店今天的可颂还热着——比刷一小时短视频值得。",
+            "Lane Cove West Public School 的孩子快放学了，街角的人比 Instagram 真实。",
+            # — 下午 / 直接观察 —
+            "Canopy Park 的鞦韆下午没人——也许你的孩子或邻居家小孩在等。",
+            "Greenwich 那一段街上有 7 棵蓝花楹——这周它们开了几朵？",
+            "Longueville Road 周三下午菜市场，看看本地番茄能不能跟你打个招呼。",
+            # — 黄昏 / 感官细节 —
+            "今晚 6 点，Burns Bay Road 太阳落在 Stringybark Creek 那头。",
+            "Stringybark Creek 桥下水声今天大一点——你的耳机能让它进来吗？",
+            "下次电梯里别低头——也许你认识那张面孔。",
+            # — 周末 / 反思与替换 —
+            "Canopy Park 周末早上 10 点最热闹，去看看你认识谁。",
+            "屏幕里没有真正的对话——Plaza 长椅上有。",
+            "屏幕亮 5 小时不如 Plaza 站 5 分钟，街角邻居会注意到你。",
         ),
-        description="Friction nudge 文案模板池；每日 seed-bound 选 1 条。",
+        description=(
+            "Friction nudge 文案模板池；每日 seed-bound 选 1 条。19 条覆盖 "
+            "早/午/下午/黄昏/周末时段 × 温柔/直接/反问/观察风格 × Lane Cove "
+            "真实地标（Plaza / Burns Bay Road / Stringybark Creek / "
+            "Longueville Road / Canopy Park / Greenwich / Pacific Highway / "
+            "Mowbray Road / Lane Cove West Public School）。"
+        ),
     )
     nudge_target_ratio: float = Field(
         default=1.0, ge=0.1, le=1.0,
