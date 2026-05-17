@@ -567,6 +567,7 @@ def sample_population(
     generate_identity: bool = False,
     llm_client: "LLMClient | None" = None,
     identity_model: str = "",
+    protag_llm_variation: bool = True,
 ) -> list[AgentProfile]:
     """
     按画像采样出一个 AgentProfile 列表。
@@ -582,13 +583,20 @@ def sample_population(
         home_locations: DEPRECATED; legacy single-pool of location ids used
             for home_location. Pass `pools=LocationPools(...)` instead. Emits
             DeprecationWarning when used.
-        generate_identity: ai-town port — when True, calls `llm_client` for each
-            protagonist to fill `identity_text` (~3-sentence persona) and
-            `plan_text` (~1-sentence today's goal). Failures fall back to
-            deterministic stubs; never raises. Sync wrapper around an async
-            asyncio.gather batch.
-        llm_client: required when `generate_identity=True`.
+        generate_identity: ai-town port — when True, fills `identity_text`
+            (~3-sentence persona) and `plan_text` (~1-sentence today's goal)
+            via two stages:
+              1. archetype template fill (deterministic, no LLM)
+              2. LLM variation for protagonists only (controlled by
+                 `protag_llm_variation`)
+        llm_client: required when `generate_identity=True` AND
+            `protag_llm_variation=True`.
         identity_model: optional model override passed to llm_client.generate.
+        protag_llm_variation: when False, sample_population SHALL skip the
+            500-protag haiku LLM burst (stage 2) and rely solely on the
+            archetype template fill. Use when setup-content-cache is expected
+            to overwrite identity_text on HIT path. Saves ~$0.5/seed of
+            wasted haiku calls and ~5 min of startup wall time.
 
     Returns:
         长度为 profile.size 的 AgentProfile 列表
@@ -825,16 +833,21 @@ def sample_population(
             profiles = _fill_archetype_identities(profiles, archetypes, rng)
 
         # Protagonists additionally get LLM variation on their archetype.
-        if llm_client is None:
-            raise ValueError(
-                "sample_population: generate_identity=True requires llm_client"
+        # Skipped when caller sets protag_llm_variation=False — typically
+        # because setup-content-cache will provide a higher-quality
+        # sonnet-tier identity_text downstream.
+        if protag_llm_variation:
+            if llm_client is None:
+                raise ValueError(
+                    "sample_population: generate_identity=True with "
+                    "protag_llm_variation=True requires llm_client"
+                )
+            profiles = asyncio.run(
+                generate_identities_for_protagonists(
+                    profiles, llm_client=llm_client, model=identity_model,
+                    archetypes=archetypes,
+                )
             )
-        profiles = asyncio.run(
-            generate_identities_for_protagonists(
-                profiles, llm_client=llm_client, model=identity_model,
-                archetypes=archetypes,
-            )
-        )
 
     return profiles
 

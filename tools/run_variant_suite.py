@@ -971,10 +971,12 @@ def run_seed_with_metrics(
         "size": n_agents,
     })
     if use_aitown:
-        # Build a shared LLM client for identity generation (and later ai-town ops)
+        # Build tier_clients now (needed downstream for OperationPool +
+        # _load_or_generate_setup_content's MISS fallback). identity_llm
+        # is no longer needed for sample_population (skipping LLM variation —
+        # cache overwrites; see protag_llm_variation=False below).
         from tools.tier_llm_factory import build_tier_clients
         tier_clients = build_tier_clients(provider=aitown_provider)
-        identity_llm = tier_clients.get("haiku") or next(iter(tier_clients.values()))
         profiles = sample_population(
             profile_template,
             seed=seed,
@@ -982,7 +984,14 @@ def run_seed_with_metrics(
             atlas=atlas,
             num_protagonists=num_protagonists,
             generate_identity=True,
-            llm_client=identity_llm,
+            llm_client=None,
+            # 2026-05-17 fix: skip the 500-protag haiku identity burst.
+            # setup-content-cache provides higher-quality sonnet-tier
+            # identity_text that ALWAYS overwrites profile.identity_text
+            # on the cache HIT path; on MISS, _load_or_generate_setup_content
+            # generates inline at sonnet tier. Either way, the haiku
+            # variation step here was pure waste (~$0.5/seed × 10 = $5).
+            protag_llm_variation=False,
         )
     else:
         tier_clients = None
