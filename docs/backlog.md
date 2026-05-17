@@ -36,6 +36,40 @@ size 偏弱时考虑——届时 push 内容个体化是首要 amplification lev
 
 ---
 
+## 1.5. 用 Doubao Seed Lite 替换 Gemini 3.1 Flash Lite（generate_message 路由）
+
+**记录时间**：2026-05-17
+
+**背景**：D2 attempt-4 把 `generate_message` (~69% ops/day) 从 DeepSeek
+sonnet 路由到 Gemini 3.1 Flash Lite 提速。Gemini 跑得动但 D1' Gemini
+connection-pool 不稳定的教训还在心里，多备一个 fast/cheap provider 做
+backup 永远是对的。
+
+**新加 provider**：Volces / 火山引擎 Doubao
+- Endpoint：`https://ark.cn-beijing.volces.com/api/v3/responses`
+- 默认模型：`doubao-seed-2-0-lite-260428`（字节跳动 fast 模型）
+- API key：`.env` 里的 `VOLCES_ARK_API_KEY`（2026-05-17 设置）
+- API 风格：Volces Ark "responses" 接口，input 数组 `{role, content=[{type, text|image_url}]}`
+  支持多模态——**与 OpenAI chat-completions 不同**，需要新的 tier-client adapter
+
+**何时考虑**：
+- Gemini 不稳定 / 撞 quota → 切到 Doubao
+- 跑超大 run（β=30+）想分散到 3 个 provider 提高总并发
+- 想试 multimodal feature（agent "看见"图片 push）
+
+**实施工作量**：~半天
+- 在 `tools/tier_llm_factory.py` 加 `_VolcesTierClient` 类（mirror
+  `_GeminiTierClient` / `_DeepSeekTierClient` 结构）
+- 处理 Ark 的 `input` 数组格式 vs OpenAI `messages` 格式
+- 加 `VOLCES_MODELS` dict + provider="volces" 入 `build_tier_clients`
+- 在 run_variant_suite 切 generate_message tier 到 "volces" key 测一遍
+
+**优先级**：低。当前 Gemini Flash Lite 工作正常；只在出问题时启用。
+
+**Owner**：未指定。
+
+---
+
 ## 2. ReAct-style LLM 决策架构（替换 hint pre-fill）
 
 **记录时间**：2026-05-17
