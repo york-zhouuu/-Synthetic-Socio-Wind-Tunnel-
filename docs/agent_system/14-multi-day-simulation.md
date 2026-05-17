@@ -59,17 +59,17 @@ python3 tools/run_multi_day_experiment.py \
     --variant baseline
 ```
 
-### 14 天 publishable（100 agents × 10 seed，耗时约 5 分钟）
+### 14 天 publishable（100 agents × 4 seed，耗时约 2 分钟）
 
 ```bash
 python3 tools/run_multi_day_experiment.py \
     --start-date 2026-04-22 --num-days 14 \
-    --agents 100 --seeds 10 \
+    --agents 100 --seeds 4 \
     --mode publishable --variant baseline
 ```
 
-> β rigor 由原 30 seed 下调到 10 (2026-05-17，详见
-> `openspec/specs/experimental-design/spec.md`)
+> β rigor 由原 30 seed → 10 (2026-05-17) → 4 (2026-05-18)，详见
+> `openspec/specs/experimental-design/spec.md`
 
 输出：
 - `data/runs/<timestamp>_<variant>/seed_<N>.json`（每 seed 一份）

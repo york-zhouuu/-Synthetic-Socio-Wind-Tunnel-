@@ -63,7 +63,7 @@ reflection 没有内容，对话没有人设。15 个 seed × 500 protag = 7500 
 ### 一次性预热（每台新机器 / schema 升级后跑一次）
 
 ```bash
-# 默认 seeds 42-51（β=10 publishable 范围）
+# 默认 seeds 42-45（β=4 publishable 范围）
 python tools/prewarm_setup_content.py
 
 # 估时 45-90 分钟，估价 $3-10（DeepSeek sonnet tier）

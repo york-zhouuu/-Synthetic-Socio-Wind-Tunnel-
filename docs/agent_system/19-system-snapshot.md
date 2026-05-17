@@ -82,7 +82,7 @@ TickMetricsRecorder.on_tick_end          AgentRuntime.step(tick_ctx)
                          │
                          ▼
                     RunMetrics
-                         │ × 10 seeds
+                         │ × 4 seeds
                          ▼
                     SuiteAggregate
                          │ × 6 variants

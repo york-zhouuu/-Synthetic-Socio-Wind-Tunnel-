@@ -105,21 +105,23 @@ LLM 会按其训练数据里的统计相关性输出回答。这意味着：
 
 ### β rigor（统计置信度）
 
-- `experimental-design` spec 把 publishable 的 β rigor 写成了 **≥ 10 seed**
-  （2026-05-17 由原 30 务实下调）
-- **当前 D2 计划跑 10 seed**，CI 宽度比 30 seed 大约宽 **1.7 倍**
+- `experimental-design` spec 把 publishable 的 β rigor 写成了 **≥ 4 seed**
+  （30 → 10 (2026-05-17) → 4 (2026-05-18) 务实下调，受单机内存 + Doubao
+  单 key 限制）
+- **当前 D2 跑 4 seed**，CI 宽度比 30 seed 大约宽 **2.7 倍**
 - 后果：
-  - hp vs baseline 的 effect size 能看到方向是否显著，但<strong>精确量化</strong>不到 ±5%
-  - 跨变体比较（hp vs pf）的差异需要更宽 CI
+  - hp vs baseline 的 effect size 只能看方向是否显著，**精确量化无意义**
+  - 跨变体比较（hp vs pf）的差异需要更宽 CI；只有 effect size 显著大于
+    CI 宽度的差异可以引用
 
 ### 不能声称的事
 
 - ❌ "hp 让 encounter density 提高了 7.1%"
-- ✅ 应改成："hp 在 10-seed × 14-day × 1000-agent Lane Cove 模拟下，median encounter delta = +7.1%（95% CI [+a%, +b%]，n=10）"
+- ✅ 应改成："hp 在 4-seed × 14-day × 1000-agent Lane Cove 模拟下，median encounter delta = +7.1%（95% CI [+a%, +b%]，n=4，preliminary β=4）"
 
 ### 还应该做但没做的
 
-- ⚠️ 30 seed run 未跑（已下调到 β=10 作为新基准 — 详见 `experimental-design` spec）
+- ⚠️ 30 seed run 未跑（已下调到 β=4 作为新基准 — 详见 `experimental-design` spec）
 - ⚠️ 不同 LLM provider 的 cross-validation 未跑（只跑了 Gemini + DeepSeek 各一遍 smoke）
 - ⚠️ 不同 random seed pool 的 sensitivity analysis 未跑
 
@@ -199,7 +201,7 @@ agent 的"决定"由 LLM（v4-pro / Gemini Flash）生成的 JSON 输出驱动�
 1. **Synthetic ≠ real**：第一段强调（§一）
 2. **Model bias 未完整 audit**：stereotype audit 协议存在但未真跑（§二）
 3. **Single-city external validity 局限**：Lane Cove 特异性（§三）
-4. **10 seed β rigor**：spec 务实下调到 10（2026-05-17），CI 宽度声明（§四）
+4. **4 seed β rigor**：spec 务实下调到 4（30 → 10 → 4，截至 2026-05-18），CI 宽度声明（§四）
 5. **LLM 决策不可解释**：相关性 ≠ 因果（§五）
 6. **DeepSeek/Gemini 数据流披露**：第三方 API 风险（§七）
 7. **本研究不直接给政策建议**：方法学贡献 vs 实证发现的区分（§六）

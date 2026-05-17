@@ -204,14 +204,14 @@ trajectory_deviation_m 计算 SHALL：
   iqr_hi, ci95_lo, ci95_hi}）
 - `per_day_time_series: dict[str, tuple[float, ...]]`（per-day median）
 
-#### Scenario: 10 seed 聚合（β-publishable 标准）
-- **WHEN** 10 个 RunMetrics 传入 `SuiteAggregate.from_run_metrics`
-- **THEN** `seed_count` SHALL == 10；`per_metric_stats` 每 metric 的
+#### Scenario: 4 seed 聚合（β-publishable 标准）
+- **WHEN** 4 个 RunMetrics 传入 `SuiteAggregate.from_run_metrics`
+- **THEN** `seed_count` SHALL == 4；`per_metric_stats` 每 metric 的
   dict 含 5 键（median / iqr_lo / iqr_hi / ci95_lo / ci95_hi）
-  > β rigor 在 2026-05-17 由 30 务实下调到 10（详见
-  > `openspec/specs/experimental-design/spec.md`）
+  > β rigor 在 2026-05-17 由 30 务实下调到 10；2026-05-18 再降到 4
+  > （详见 `openspec/specs/experimental-design/spec.md`）
 
-#### Scenario: 不足 10 seed 时 report degraded
+#### Scenario: 不足 4 seed 时 report degraded
 - **WHEN** 5 个 RunMetrics 传入
 - **THEN** aggregate SHALL 仍可构造；但产出的 SuiteAggregate.metadata 字段
   SHALL 含 `"degraded_preliminary_not_publishable": true` 标记
@@ -254,7 +254,7 @@ trajectory_deviation_m 计算 SHALL：
 MUST NOT 包含 "proved / falsified / confirmed / refuted" 关键词。
 
 #### Scenario: baseline + 4 variant 的 contest
-- **WHEN** 传入 5 个 SuiteAggregate（baseline + 4 variant），每个 10 seed
+- **WHEN** 传入 5 个 SuiteAggregate（baseline + 4 variant），每个 4 seed
 - **THEN** ContestReport SHALL 有 5 行；每行含必填字段；baseline 行
   hypothesis 为 None
 
@@ -306,7 +306,7 @@ MUST NOT 包含 "proved / falsified / confirmed / refuted" 关键词。
 ```
 --variants baseline,hyperlocal_push,global_distraction,phone_friction,
            shared_anchor,catalyst_seeding
---seeds 10
+--seeds 4
 --num-days 14
 --agents 1000
 --mode publishable
