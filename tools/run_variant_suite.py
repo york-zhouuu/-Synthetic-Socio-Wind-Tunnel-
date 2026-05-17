@@ -826,81 +826,28 @@ def _setup_aitown_stack(
 
     orchestrator.register_on_tick_end_async(_process_ops_hook)
 
-    # 7. Pre-tick hint population (D2 attempt-4 fix, 2026-05-17):
-    #    AgentRuntime.{recent_memory_hint, nearby_hint, candidate_destinations_hint}
-    #    are read by _schedule_do_something_op and _schedule_generate_message_op
-    #    when building LLM prompts, but the fields were declared without any
-    #    write path. Result: every do_something / generate_message LLM call
-    #    saw empty recent_memories=[], nearby_agents=[], candidate_destinations=[]
-    #    — making LLM decisions context-free and invite_dialogue actions
-    #    impossible. This hook populates all three before agent.step() runs.
-    from synthetic_socio_wind_tunnel.memory.models import MemoryQuery
-
-    # Stable candidate destinations: poi_pool is fixed per run. Pre-compute
-    # once outside the hook to avoid repeating per tick × 500 protag.
+    # 7. Wire lazy hint dependencies onto each runtime (D2 attempt-4 fix,
+    #    2026-05-17). AgentRuntime.{recent_memory_hint, nearby_hint,
+    #    candidate_destinations_hint} are read by _schedule_do_something_op
+    #    and _schedule_generate_message_op when building LLM prompts, but
+    #    had no writer in the original code. We now populate them lazily
+    #    inside AgentRuntime._refresh_prompt_hints — called by both
+    #    schedule_* methods right before they build args. That requires
+    #    three dependency refs to be on the runtime up-front:
+    #      - poi_destinations_static: STATIC across run (set ONCE here)
+    #      - runtimes_index: agent_id → AgentRuntime map (shared dict)
+    #      - social_graph_ref: for familiar/stranger flag in nearby_hint
+    #    Only ~10-20% of protag schedule do_something per tick, so lazy is
+    #    ~5x cheaper than a per-tick on_tick_start sweep across all 500.
     _poi_destinations_static: tuple[str, ...] = tuple(
         getattr(pools, "poi_pool", ()) or ()
     )[:10]
+    for rt in runtimes:
+        rt.poi_destinations_static = _poi_destinations_static
+        rt.runtimes_index = agents_by_id
+        rt.social_graph_ref = social_graph
 
-    def _refresh_hints_hook(tick_ctx) -> None:  # noqa: ANN001
-        # Build location → [agent_id] index for fast nearby lookup
-        loc_index: dict[str, list[str]] = {}
-        for rt in runtimes:
-            loc = rt.current_location
-            if loc:
-                loc_index.setdefault(loc, []).append(rt.profile.agent_id)
-
-        for rt in runtimes:
-            if not rt.profile.is_protagonist:
-                continue
-
-            # (a) recent_memory_hint — top-5 by recency × importance
-            try:
-                results = memory_service.retrieve(
-                    rt.profile.agent_id,
-                    MemoryQuery(reference_time=tick_ctx.simulated_time),
-                    top_k=5,
-                )
-                rt.recent_memory_hint = [
-                    m.content for m in results if m.content
-                ]
-            except Exception:
-                rt.recent_memory_hint = []
-
-            # (b) nearby_hint — agents in same location (cap 5; exclude self)
-            try:
-                same_loc_ids = loc_index.get(rt.current_location or "", [])
-                others = [aid for aid in same_loc_ids
-                          if aid != rt.profile.agent_id][:5]
-                familiar_set: set[str] = set()
-                if social_graph is not None:
-                    try:
-                        familiar_set = social_graph.familiar_with(
-                            rt.profile.agent_id,
-                        )
-                    except Exception:
-                        familiar_set = set()
-                # do_something expects dict-like items with name/agent_id/is_familiar
-                nearby_items: list[dict] = []
-                for aid in others:
-                    other_rt = agents_by_id.get(aid)
-                    name = (other_rt.profile.name
-                            if other_rt is not None else aid)
-                    nearby_items.append({
-                        "agent_id": aid,
-                        "name": name,
-                        "is_familiar": aid in familiar_set,
-                    })
-                rt.nearby_hint = nearby_items
-            except Exception:
-                rt.nearby_hint = []
-
-            # (c) candidate_destinations_hint — static slice of poi_pool
-            rt.candidate_destinations_hint = list(_poi_destinations_static)
-
-    orchestrator.register_on_tick_start(_refresh_hints_hook)
-
-    print("[aitown] wired (+ hint refresh hook)", file=sys.stderr)
+    print("[aitown] wired (lazy hint refs attached)", file=sys.stderr)
 
     return {
         "dialogue_service": dialogue_service,

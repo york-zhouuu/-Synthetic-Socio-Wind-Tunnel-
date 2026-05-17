@@ -9,7 +9,7 @@ from __future__ import annotations
 import random
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from .intent import Intent, MoveIntent, WaitIntent
 from .planner import DailyPlan, PlanStep
@@ -152,9 +152,26 @@ class AgentRuntime:
 
     # Hint feed that orchestrator may set between ticks; used when
     # building op args for `do_something`. Kept simple (mutable lists).
+    # 2026-05-17: populated lazily by `_refresh_prompt_hints` right before
+    # an op is scheduled, NOT at on_tick_start anymore — saves ~5x work
+    # since only ~10-20% of protag actually invoke do_something per tick.
     nearby_hint: list[dict] = field(default_factory=list)
     candidate_destinations_hint: list[str] = field(default_factory=list)
     recent_memory_hint: list[str] = field(default_factory=list)
+
+    # Lazy-hint dependencies — set ONCE by suite-wiring (run_variant_suite
+    # _setup_aitown_stack). Used by `_refresh_prompt_hints` to compute the
+    # 3 hint fields above on-demand at op-scheduling time.
+    #   poi_destinations_static — static slice of pools.poi_pool (set once,
+    #     candidate_destinations doesn't change during a run)
+    #   runtimes_index — agent_id → AgentRuntime map for cross-runtime
+    #     lookup (used by nearby_hint to find agents at the same location)
+    #   social_graph_ref — SocialGraphService for familiar/stranger flag
+    # All None for legacy / test paths; _refresh_prompt_hints handles None
+    # gracefully (leaves hints empty rather than raising).
+    poi_destinations_static: tuple[str, ...] | None = None
+    runtimes_index: "dict[str, AgentRuntime] | None" = None  # type: ignore[name-defined]
+    social_graph_ref: Any | None = None
 
     # Buffer holding the most-recent do_something action that step()
     # decided to execute this tick. step() returns the corresponding
@@ -756,9 +773,81 @@ class AgentRuntime:
         self.set_pending_op(op)
         return True
 
+    def _refresh_prompt_hints(self, tick_ctx: "TickContext") -> None:
+        """Lazily populate the 3 prompt-hint fields right before scheduling
+        an op. Only runs for protag that are actually about to invoke
+        do_something / generate_message (~10-20% per tick), instead of
+        all 500 protag every tick. Tolerant of missing deps — leaves
+        a hint empty rather than raising.
+
+        Frequencies (matching the actual mutation rate of each):
+        - candidate_destinations_hint: STATIC across run; only set the
+          first time (poi_destinations_static doesn't change)
+        - nearby_hint: per call (agents may have moved since last call)
+        - recent_memory_hint: per call (MemoryStore mutates with push,
+          dialogue, reflection events)
+        """
+        # 1. recent_memory_hint — top-5 by relevance × importance × recency
+        if self.memory_service is not None:
+            try:
+                from synthetic_socio_wind_tunnel.memory.models import MemoryQuery
+                results = self.memory_service.retrieve(
+                    self.profile.agent_id,
+                    MemoryQuery(reference_time=tick_ctx.simulated_time),
+                    top_k=5,
+                )
+                self.recent_memory_hint = [
+                    m.content for m in results if m.content
+                ]
+            except Exception:
+                self.recent_memory_hint = []
+
+        # 2. nearby_hint — agents at the same current_location (cap 5)
+        if self.runtimes_index is not None:
+            try:
+                here = self.current_location
+                others_ids: list[str] = []
+                for aid, other_rt in self.runtimes_index.items():
+                    if aid == self.profile.agent_id:
+                        continue
+                    if other_rt.current_location == here:
+                        others_ids.append(aid)
+                    if len(others_ids) >= 5:
+                        break
+                familiar_set: set[str] = set()
+                if self.social_graph_ref is not None:
+                    try:
+                        familiar_set = self.social_graph_ref.familiar_with(
+                            self.profile.agent_id,
+                        )
+                    except Exception:
+                        familiar_set = set()
+                self.nearby_hint = [
+                    {
+                        "agent_id": aid,
+                        "name": (self.runtimes_index[aid].profile.name
+                                 if aid in self.runtimes_index else aid),
+                        "is_familiar": aid in familiar_set,
+                    }
+                    for aid in others_ids
+                ]
+            except Exception:
+                self.nearby_hint = []
+
+        # 3. candidate_destinations_hint — STATIC; only initialize once.
+        # poi_destinations_static is set by suite-wiring at AItown setup
+        # and doesn't change for the lifetime of the run.
+        if (not self.candidate_destinations_hint
+                and self.poi_destinations_static):
+            self.candidate_destinations_hint = list(self.poi_destinations_static)
+
     def _schedule_do_something_op(self, tick_ctx: "TickContext") -> bool:
         """Build args for do_something and schedule via OperationPool."""
         from synthetic_socio_wind_tunnel.agent.operations.models import PendingOp
+
+        # Lazy hint refresh — only fires for protag actually scheduling an
+        # op this tick, not all 500 protag at on_tick_start (~5x cheaper).
+        self._refresh_prompt_hints(tick_ctx)
 
         tick = tick_ctx.tick_index
         op = PendingOp(
@@ -796,6 +885,11 @@ class AgentRuntime:
         - else: "start" if dialogue has no messages else "continue"
         """
         from synthetic_socio_wind_tunnel.agent.operations.models import PendingOp
+
+        # Lazy hint refresh — generate_message uses recent_memory_hint for
+        # "relevant_memories" in the prompt; ensure it's fresh before
+        # scheduling. nearby / destinations also refreshed (cheap).
+        self._refresh_prompt_hints(tick_ctx)
 
         speaker_id = self.profile.agent_id
         other_id = dialogue.other_participant(speaker_id)
