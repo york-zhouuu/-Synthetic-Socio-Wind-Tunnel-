@@ -30,6 +30,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import random
 import sys
 import time
@@ -597,6 +598,31 @@ def _setup_aitown_stack(
     memory_service._retriever = MemoryRetriever(mode="aitown")
 
     # 1. OperationPool
+    # 2026-05-17 speed optimization: route generate_message off DeepSeek
+    # sonnet (v4-pro, slow + expensive) onto Gemini 3.1 Flash Lite. The
+    # dialogue-line generation is ~69% of ops/day in this aitown setup
+    # (3175/4628 in preflight). Splitting it onto a separate provider's
+    # quota avoids competing with do_something (kept on DeepSeek sonnet)
+    # and uses Gemini Flash Lite's fast/cheap generation. Fallback to
+    # deepseek-haiku if Gemini build fails.
+    from tools.tier_llm_factory import build_tier_clients as _build_tc
+    try:
+        gemini_tier_clients = _build_tc(provider="gemini")
+        tier_clients["gemini_flash"] = gemini_tier_clients["haiku"]
+        _gen_msg_tier = "gemini_flash"
+        print(
+            "[aitown] generate_message routed to Gemini 3.1 Flash Lite "
+            "(off DeepSeek sonnet queue)",
+            file=sys.stderr,
+        )
+    except Exception as exc:  # noqa: BLE001
+        print(
+            f"[aitown] WARN: Gemini Flash Lite unavailable ({exc!r}); "
+            f"falling back to deepseek haiku for generate_message",
+            file=sys.stderr,
+        )
+        _gen_msg_tier = "haiku"
+
     pool = OperationPool(
         handlers={
             "do_something": handle_do_something,
@@ -604,6 +630,13 @@ def _setup_aitown_stack(
             "remember_conversation": handle_remember_conversation,
         },
         llm_clients=tier_clients,
+        tier_for_kind={
+            "do_something": "sonnet",        # DeepSeek v4-pro — decision quality
+            "generate_message": _gen_msg_tier,  # Gemini Flash Lite (or haiku fallback)
+            "remember_conversation": "haiku",  # DeepSeek v4-flash — short summary
+            "reflect": "haiku",
+            "score_importance": "nano",
+        },
     )
 
     # 2. DialogueService — single instance per seed run
@@ -1347,11 +1380,28 @@ def main() -> int:
     # explicitly passed by parent + --workers==1) to avoid recursion.
     _is_publishable = args.agents == 1000 and args.num_days == 14
     _is_worker_child = args.suite_dir is not None and args.workers == 1
-    if _is_publishable and not _is_worker_child:
+    # 2026-05-17 escape hatch: when relaunching D2 after we've already
+    # successfully passed preflight earlier today on identical code state,
+    # the 2-hour publishable preflight is pure waste. Set
+    # RESILIENCE_TRUST_LAST_PREFLIGHT=1 to skip it. Use ONLY when you
+    # know the code hasn't materially changed since last green preflight.
+    _trust_preflight = os.environ.get(
+        "RESILIENCE_TRUST_LAST_PREFLIGHT", ""
+    ).strip().lower() in ("1", "true", "yes")
+    if _is_publishable and not _is_worker_child and _trust_preflight:
+        print(
+            "[suite] RESILIENCE_TRUST_LAST_PREFLIGHT=1 — skipping publishable "
+            "preflight (caller asserts last green preflight is still valid). "
+            "If code has changed since, abort with Ctrl-C and unset the env.",
+            file=sys.stderr,
+        )
+    if _is_publishable and not _is_worker_child and not _trust_preflight:
         if args.skip_preflight:
             print(
                 "[suite] WARN: publishable mode (--agents 1000 --num-days 14) "
-                "IGNORES --skip-preflight; running preflight regardless",
+                "IGNORES --skip-preflight; running preflight regardless. "
+                "(Use RESILIENCE_TRUST_LAST_PREFLIGHT=1 if you've already "
+                "passed preflight on this code today.)",
                 file=sys.stderr,
             )
         import subprocess as _sp
