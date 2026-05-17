@@ -100,6 +100,12 @@ def parse_args() -> argparse.Namespace:
                    default=",".join(_KNOWN_VARIANTS),
                    help=f"comma-separated; choices: {','.join(_KNOWN_VARIANTS)}")
     p.add_argument("--seeds", type=int, default=30)
+    p.add_argument("--seed-start", type=int, default=42,
+                   help="Base seed value. Suite uses range(seed_start, "
+                        "seed_start + seeds). Default 42 preserves the "
+                        "historical 42..N convention. Use a different base "
+                        "to run parallel sub-suites that don't collide on "
+                        "the same seed_N.json files.")
     p.add_argument("--num-days", type=int, default=14)
     p.add_argument("--agents", type=int, default=100)
     p.add_argument("--num-protagonists", type=int, default=None,
@@ -1465,6 +1471,7 @@ def main() -> int:
                 sys.executable, "tools/run_variant_suite.py",
                 "--variants", variant_name,
                 "--seeds", str(args.seeds),
+                "--seed-start", str(args.seed_start),  # inherit base seed
                 "--num-days", str(args.num_days),
                 "--agents", str(args.agents),
                 "--mode", args.mode,
@@ -1543,7 +1550,7 @@ def main() -> int:
 
         captured_variant_metadata: dict = {"name": variant_name}
         for i in range(args.seeds):
-            seed = 42 + i
+            seed = args.seed_start + i
             seed_file_resume = variant_dir / f"seed_{seed}.json"
             # Resume: if seed file exists, load run_metrics back from disk
             # rather than re-running the (expensive) seed.
