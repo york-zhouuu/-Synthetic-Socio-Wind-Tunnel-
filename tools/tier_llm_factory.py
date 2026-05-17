@@ -49,7 +49,7 @@ logger = logging.getLogger(__name__)
 
 
 Tier = Literal["sonnet", "haiku", "nano"]
-Provider = Literal["anthropic", "gemini", "deepseek", "stub"]
+Provider = Literal["anthropic", "gemini", "deepseek", "volces", "stub"]
 
 
 # Default model per tier. Override via env or build_tier_clients(models=...).
@@ -81,6 +81,18 @@ DEEPSEEK_MODELS: dict[Tier, str] = {
     "sonnet": "deepseek-v4-pro",
     "haiku": "deepseek-v4-flash",
     "nano": "deepseek-v4-flash",
+}
+
+# Volces / 火山引擎 Doubao Ark — added 2026-05-17 as alternative
+# generate_message provider (replacing Gemini 3.1 Flash Lite). Ark
+# exposes an OpenAI-compatible /api/v3/chat/completions endpoint, so
+# we reuse `_DeepSeekTierClient` with base_url override + extra_body={}
+# (Volces doesn't accept DeepSeek's `thinking` extras).
+VOLCES_BASE_URL: str = "https://ark.cn-beijing.volces.com/api/v3"
+VOLCES_MODELS: dict[Tier, str] = {
+    "sonnet": "doubao-seed-2-0-lite-260428",  # default model from user spec
+    "haiku": "doubao-seed-2-0-lite-260428",
+    "nano": "doubao-seed-2-0-lite-260428",
 }
 
 
@@ -565,6 +577,7 @@ class _DeepSeekTierClient:
         pool_config: HttpxPoolConfig | None = None,
         recycle_after_calls: int = 1000,
         circuit_breaker_factory: Callable[[], PerKeyCircuitBreaker] | None = None,
+        extra_body: dict[str, Any] | None = None,
     ) -> None:
         try:
             from openai import AsyncOpenAI  # type: ignore[import-not-found]
@@ -620,6 +633,14 @@ class _DeepSeekTierClient:
         self._key_idx = 0
         # B6 contract
         self._last_usage: dict[str, int] | None = None
+        # 2026-05-17: extra_body parameterized for non-DeepSeek providers
+        # (e.g., Volces Doubao) that share the OpenAI-compatible chat
+        # completions API but don't accept DeepSeek's `thinking` extras.
+        # Default keeps DeepSeek's chain-of-thought-disable behavior.
+        self._extra_body: dict[str, Any] = (
+            extra_body if extra_body is not None
+            else {"thinking": {"type": "disabled"}, "enable_thinking": False}
+        )
 
     async def generate(
         self, prompt: str, *, model: str = "", **_: Any,
@@ -634,15 +655,14 @@ class _DeepSeekTierClient:
             # `thinking={"type": "disabled"}` cuts latency from 7.7s → 1.7s
             # on v4-pro; `enable_thinking=False` is the suspenders+belt
             # variant covering different DeepSeek model versions.
-            return await ctx.sdk_client.chat.completions.create(
+            kwargs: dict[str, Any] = dict(
                 model=used_model,
                 max_tokens=self._max_tokens,
                 messages=[{"role": "user", "content": prompt}],
-                extra_body={
-                    "thinking": {"type": "disabled"},
-                    "enable_thinking": False,
-                },
             )
+            if self._extra_body:
+                kwargs["extra_body"] = self._extra_body
+            return await ctx.sdk_client.chat.completions.create(**kwargs)
 
         try:
             response = await _run_with_retry(
@@ -943,6 +963,32 @@ def build_tier_clients(
                 pool_config=eff_pool,
                 recycle_after_calls=eff_recycle,
                 circuit_breaker_factory=circuit_breaker_factory,
+            )
+            for tier in ("sonnet", "haiku", "nano")
+        }
+    if provider == "volces":
+        # Volces / Doubao Ark — OpenAI-compatible chat completions at
+        # /api/v3/chat/completions. Reuses _DeepSeekTierClient with
+        # base_url override + extra_body={} (Volces doesn't accept the
+        # DeepSeek `thinking` extras). 2026-05-17.
+        volces_model_map = {**VOLCES_MODELS, **(models or {})}
+        eff_key = api_key or os.environ.get("VOLCES_ARK_API_KEY")
+        if not eff_key:
+            logger.warning(
+                "tier_llm_factory: provider=volces but no VOLCES_ARK_API_KEY "
+                "in env; SDK will fail at first call",
+            )
+        return {
+            tier: _DeepSeekTierClient(
+                tier=tier, model=volces_model_map[tier],
+                max_tokens=tokens_map[tier],
+                api_key=eff_key,
+                base_url=VOLCES_BASE_URL,
+                retry_policy=eff_policy,
+                pool_config=eff_pool,
+                recycle_after_calls=eff_recycle,
+                circuit_breaker_factory=circuit_breaker_factory,
+                extra_body={},  # Volces doesn't support DeepSeek's `thinking`
             )
             for tier in ("sonnet", "haiku", "nano")
         }

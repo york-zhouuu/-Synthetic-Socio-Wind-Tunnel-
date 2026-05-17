@@ -599,29 +599,47 @@ def _setup_aitown_stack(
 
     # 1. OperationPool
     # 2026-05-17 speed optimization: route generate_message off DeepSeek
-    # sonnet (v4-pro, slow + expensive) onto Gemini 3.1 Flash Lite. The
+    # sonnet (v4-pro, slow + expensive) onto Volces Doubao Seed Lite. The
     # dialogue-line generation is ~69% of ops/day in this aitown setup
-    # (3175/4628 in preflight). Splitting it onto a separate provider's
-    # quota avoids competing with do_something (kept on DeepSeek sonnet)
-    # and uses Gemini Flash Lite's fast/cheap generation. Fallback to
-    # deepseek-haiku if Gemini build fails.
+    # (3175/4628 in preflight). Splitting it onto Volces' independent quota
+    # avoids competing with do_something (kept on DeepSeek sonnet) and uses
+    # Doubao's fast/cheap generation. Fallback chain:
+    #   1st: Volces Doubao Seed Lite (preferred, user-added 2026-05-17)
+    #   2nd: Gemini 3.1 Flash Lite (if Volces auth/build fails)
+    #   3rd: deepseek-haiku (if both above fail)
     from tools.tier_llm_factory import build_tier_clients as _build_tc
+    _gen_msg_tier = None
     try:
-        gemini_tier_clients = _build_tc(provider="gemini")
-        tier_clients["gemini_flash"] = gemini_tier_clients["haiku"]
-        _gen_msg_tier = "gemini_flash"
+        volces_tier_clients = _build_tc(provider="volces")
+        tier_clients["doubao_flash"] = volces_tier_clients["haiku"]
+        _gen_msg_tier = "doubao_flash"
         print(
-            "[aitown] generate_message routed to Gemini 3.1 Flash Lite "
+            "[aitown] generate_message routed to Volces Doubao Seed Lite "
             "(off DeepSeek sonnet queue)",
             file=sys.stderr,
         )
     except Exception as exc:  # noqa: BLE001
         print(
-            f"[aitown] WARN: Gemini Flash Lite unavailable ({exc!r}); "
-            f"falling back to deepseek haiku for generate_message",
+            f"[aitown] WARN: Volces Doubao unavailable ({exc!r}); "
+            f"trying Gemini Flash Lite",
             file=sys.stderr,
         )
-        _gen_msg_tier = "haiku"
+        try:
+            gemini_tier_clients = _build_tc(provider="gemini")
+            tier_clients["gemini_flash"] = gemini_tier_clients["haiku"]
+            _gen_msg_tier = "gemini_flash"
+            print(
+                "[aitown] generate_message routed to Gemini 3.1 Flash Lite "
+                "(Volces fallback)",
+                file=sys.stderr,
+            )
+        except Exception as exc2:  # noqa: BLE001
+            print(
+                f"[aitown] WARN: Gemini Flash Lite also unavailable ({exc2!r}); "
+                f"falling back to deepseek haiku for generate_message",
+                file=sys.stderr,
+            )
+            _gen_msg_tier = "haiku"
 
     pool = OperationPool(
         handlers={
