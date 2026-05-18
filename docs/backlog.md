@@ -375,6 +375,79 @@ day 0-9（原始 worker 跑的部分）的 per_day_summaries / 累积 metric 全
 
 ---
 
+## 1.12 DialogueService 持久化 — 答辩 narrative 输出必需
+
+**记录时间**：2026-05-18
+
+**背景**：D2 attempt 4 narrative 数据调查发现两个串联问题：
+
+**问题 A**（已修，commit 8941383）：MultiDayRunner 没传 memory_service →
+snapshot 的 memory_store_state 永远是空 → 所有 MemoryEvent 包括
+kind="conversation" 的对话摘要丢失。**仅影响 resume 跨界的数据保留**。
+一行修。
+
+**问题 B**（本条 backlog）：**DialogueService 完全没有持久化机制**。
+即使 A 修了，conversation 的"summary"留下来了，但 Dialogue 对象本身和
+DialogueMessage 列表（即真正的"对话原文"）仍只活在 Python 进程内存，
+worker 退出就消失。
+
+```python
+# 当前 DialogueService 内部状态:
+#   _dialogues: dict[str, Dialogue]
+#     每个 Dialogue 包含 messages: list[DialogueMessage]
+#       每条 DialogueMessage 有 speaker_id / content / tick
+#
+# 持久化: 没有 to_snapshot_state / from_snapshot_state
+#         没有任何 .json 写盘
+# 后果: 答辩 narrative panel "李建平跟王伟说..." 这种引用没法做
+```
+
+**修法**：
+
+### A. 加 DialogueService.to_snapshot_state() / from_snapshot_state()
+- 序列化 _dialogues dict 到 JSON
+- DialogueMessage 是 @dataclass 容易序列化
+- restore 时重建 Dialogue 对象
+- 工作量：~1 hr
+
+### B. 集成进 SimulationCheckpoint
+- 在 state_snapshot.py 加 `dialogue_service_state: dict`
+- 在 multi_day.py:599 处的 SimulationCheckpoint() 构造里加：
+  ```python
+  dialogue_service_state=(
+      dialogue_service.to_snapshot_state()
+      if dialogue_service is not None else {}
+  ),
+  ```
+- restore_into 路径加 dialogue_service.from_snapshot_state(...)
+- 需要把 dialogue_service 传到 MultiDayRunner（跟 memory_service 同模式）
+- 工作量：~1 hr
+
+### C. 单测
+- 类似 tick-level-resume 的 round-trip test:
+  序列化 → JSON → 反序列化 → 等价
+- 工作量：~1 hr
+
+### D. fitness audit probe
+- 加到 audit_tick_level_resume.py 检查 DialogueService 有
+  to/from_snapshot_state
+- 工作量：~30 min
+
+**总估工**：~3-4 hr
+
+**优先级**：高
+- 用户答辩 narrative 是 D2 attempt 4 之外的明确产出物
+- 没有这个，narrative panel "agent 之间的故事" 无法写
+- 必须在下次 publishable run 之前完成
+
+**实施约束**：
+- 不影响今天 D2 跑（imports 已冻结）
+- 但 D2 跑完后立刻做，下次 publishable 跑就能拿到完整 dialogue 内容
+
+**Owner**：未指定。
+
+---
+
 ## 2. ReAct-style LLM 决策架构（替换 hint pre-fill）
 
 **记录时间**：2026-05-17
