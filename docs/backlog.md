@@ -316,6 +316,65 @@ timeout)` wrapper，无 timeout 不允许调。可以是装饰器或 mixin。
 
 ---
 
+## 1.11 `--resume` 不保留 run_metrics（设计漏洞）
+
+**记录时间**：2026-05-18
+
+**背景**：D2 attempt 4 跑下来 baseline seed 42 / 43 完成后发现，
+`seed_42.json` final file **只覆盖 resume 之后那段天数**，
+day 0-9（原始 worker 跑的部分）的 per_day_summaries / 累积 metric 全
+丢失。
+
+**问题原因**：
+- tick-level-resume capability 设计时 snapshot 只覆盖 mutable state
+  （Ledger / AgentRuntime / MemoryService / AttentionService）
+- `run_metrics`（per_day_summaries / TickMetricsRecorder accumulated
+  state）NOT included in snapshot
+- Resume 后 MultiDayRunner 用 fresh empty TickMetricsRecorder 开始累积
+- 原始 worker 已写的 day_X.partial.json 也没被 merge
+- 最终 seed_X.json 只反映 resume worker 跑的天数
+
+**影响**：
+- D2 attempt 4 所有被 kill+resume 过的 seed 的最终 metric 都是
+  partial（4 个完整 + 8 个 partial = 8 个 seed × 4 variant 里有 8 个
+  partial 数据）
+- 必须从 WAL 后处理才能拿到 full 14-day metric
+- WAL 数据完整（per-tick 写），所以"can be recovered"
+
+**修法选项**：
+
+### 方案 A：snapshot 把 run_metrics 也带上（推荐）
+- 改 `SimulationCheckpoint` 加 `run_metrics_state: dict` 字段
+- TickMetricsRecorder 加 `to_snapshot_state()` / `from_snapshot_state()`
+- Resume 时把累积的 per_day_summaries 灌回 recorder
+- 工作量：~2-3 hr
+- 风险：低（既有的 snapshot round-trip 测试模式可复用）
+
+### 方案 B：终态 aggregation 从 WAL 重建
+- 写 `tools/aggregate_d2_from_wal.py` 后处理脚本
+- 遍历 worker_*.log + wal.jsonl + final seed_X.json
+- 用 WAL 的 per-tick 数据重建 per_day_summaries / trajectory_deviation /
+  encounter density 等
+- 工作量：~半天
+- 风险：WAL 缺少某些字段（如 trajectory_deviation_m 计算需要 agent
+  position 而 WAL 只记 encounter_count），可能要再从 snapshot / position
+  data 补
+- 当前 D2 必须走这条路（A 改完了对当前数据无影响）
+
+### 方案 C：禁止 mid-run resume on metric-sensitive run
+- 跑 publishable 时强制 worker 跑到底不 kill
+- 限制：内存压力大 / day-end deadlock 时没法干预
+
+**推荐做 A**（下次 publishable run 之前），同时本次 D2 走 B 抢救数据。
+
+**优先级**：高。
+- 下次 publishable 必踩
+- A 工作量小（半天），ROI 极高
+
+**Owner**：未指定。
+
+---
+
 ## 2. ReAct-style LLM 决策架构（替换 hint pre-fill）
 
 **记录时间**：2026-05-17
