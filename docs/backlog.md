@@ -518,6 +518,122 @@ fallback-budget 是下一个 publishable run **之前** SHALL 做完，不能
 
 ---
 
+## 1.14 单 worker 多核并行化 — 解 Python GIL 单线程瓶颈
+
+**记录时间**：2026-05-19
+
+**背景**：D2 attempt 5 (2026-05-19) 跑下来发现，**单进程单线程**是真正
+的瓶颈。具体观察：
+
+- 机器：15 core Apple Silicon, 48 GB RAM
+- 跑 4 workers (hp/pf × seed42/43)
+- 单 worker CPU：99% (hp, CPU-bound) / 53-55% (pf, LLM-network-bound)
+- **机器整体 CPU：70% IDLE** —— 11 个核空闲
+- Load average：4.55 = 大概 4 核在跑
+
+结果：每个 worker 大概用 1 核（asyncio 单线程 + Python GIL）；tick 速度
+30-50s/tick；14 天 publishable 单 worker 要跑 8-15 小时。**机器有 11 个
+核完全没用上**。
+
+具体瓶颈点（推测，需 profile 确认）：
+- `OrchestratorService.tick()` 里 1000 agent × 1000 agent encounter
+  detection = 0.5M 对每 tick = O(N²) Python 循环
+- `MemoryService.retrieve(top_k)` 每个 do_something 触发，按 importance
+  × relevance × recency 排序
+- Pydantic 模型 serialize（每 tick 各种 Event/Result）
+- WAL JSON 写盘（小，可忽略）
+
+**理想方向**：让单 worker 用上多核。两条思路：
+
+### 思路 A：算法 + 数据结构优化（中等改动，最大 ROI）
+
+- **Encounter detection 用空间索引**：1000 agents × O(N²) → O(N log N)
+  或 O(K) per agent。R-tree (rtree pkg) / kd-tree (scipy.spatial.cKDTree)
+  根据 agent.position 建索引；每 tick 只查 within-radius pairs (10-50m)。
+  实测可能 100x 提速。
+- **Memory retrieval 用向量近邻**：embedding 缓存 + scipy.spatial /
+  HNSW (hnswlib)。可能 5-10x。
+
+工作量：1-2 周。风险中等（要保持 encounter 语义不变，单测 + e2e 对比）。
+
+### 思路 B：进程级并行（hot path 卸到 ProcessPoolExecutor）
+
+asyncio 主进程不动，但 hot path 卸到子进程池：
+
+```python
+# 现在：
+async def tick():
+    encounters = compute_encounters(agents)  # 单线程 O(N²)
+    ...
+
+# 改：
+async def tick():
+    loop = asyncio.get_event_loop()
+    encounters = await loop.run_in_executor(
+        process_pool,
+        compute_encounters_pure_data,  # 必须 pickle-able
+        agent_positions_snapshot,
+    )
+```
+
+注意：必须 `ProcessPoolExecutor`（不是 ThreadPoolExecutor），因为线程
+被 GIL 卡。子进程之间数据传输（pickle agent positions × 1000）每 tick
+1-5 ms 开销，可接受。
+
+工作量：3-5 天。风险：state 必须能 cheap-pickle；agent runtime 不能
+in-place mutate（已经分离了大部分）。
+
+### 思路 C：Numpy/Numba JIT 编译 hot path（最少代码改动）
+
+把 encounter detection 改成 numpy 向量操作 + numba `@jit`：
+
+```python
+@numba.jit(nopython=True, parallel=True)
+def find_encounter_pairs(positions: np.ndarray, location_ids: np.ndarray,
+                         radius: float) -> np.ndarray:
+    # numba 释放 GIL + 自动多核 SIMD
+    ...
+```
+
+工作量：~1-2 天（要把 encounter 抽成纯函数）。风险：numba 对 dict /
+str 不友好，可能要数据结构转换。
+
+### 思路 D：Cython 编译 Python hot path
+
+最重的改动，最大确定性的 speedup（2-5x）。工作量 1-2 周。
+
+**推荐顺序**：思路 A 先（算法层最大收益）→ 思路 B 补（process pool
+卸 hot path 多核）→ 思路 C 兜底（如果 A+B 不够 + numba 能接更细的优化）。
+
+## 影响估计（假设 A + B 完成）
+
+- 单 worker tick 时间：35s → 5-10s（5-7x 提速）
+- 单 seed 14-day publishable run：12 hr → 2-3 hr
+- 机器内存：单 worker 5 GB → 子进程池另加 ~500 MB
+- 总跑 β=4 publishable (4 seed × 4 variant = 16 worker)：原本需要 16 hr
+  × 多 batch（48 hr）→ 8 hr 一次跑完
+
+**优先级**：高 — 长期 ROI 巨大。**但不紧急**：当前 D2 attempt 5 跑得动，
+等下次 publishable 排期前的间歇做。
+
+**触发条件**：
+1. D2 attempt 5 跑完 + 分析完，回过头有 1-2 周空窗时；OR
+2. 决定上 D3 (β≥10) 之类大规模实验，必须提速；OR
+3. 答辩后整理代码阶段。
+
+**估工**：
+- 思路 A（空间索引）：2-3 天 + 单测
+- 思路 B（process pool）：3-5 天 + e2e
+- 总：~1 周 + 0.5 周对比测试
+
+**Owner**：未指定。
+
+**关联**：
+- [[backlog 1.7]] 多 worker 内存优化 — 内存压力解决思路，与本条互补
+- [[backlog 1.8]] baseline-prefix-share — wall time 优化的另一条路
+
+---
+
 ## 2. ReAct-style LLM 决策架构（替换 hint pre-fill）
 
 **记录时间**：2026-05-17
