@@ -963,18 +963,28 @@ class MemoryService:
 # handles datetime ISO format + tuple → list (and back) so the JSON-roundtrip
 # preserves types correctly.
 
+# capability 1.14-quick-B (2026-05-19): cache field names. py-spy showed
+# dataclasses.fields() introspection was 15% of total CPU during snapshot
+# write — called per-event × 1000 agents × hundreds of events. Compute once
+# at module import; field name list is identical for every MemoryEvent.
+_MEMORY_EVENT_FIELD_NAMES: tuple[str, ...] | None = None
+
+
 def _event_to_json(ev) -> dict[str, Any]:
     """frozen MemoryEvent → JSON-safe dict."""
-    from dataclasses import fields
+    global _MEMORY_EVENT_FIELD_NAMES
+    if _MEMORY_EVENT_FIELD_NAMES is None:
+        from dataclasses import fields
+        _MEMORY_EVENT_FIELD_NAMES = tuple(f.name for f in fields(ev))
     out: dict[str, Any] = {}
-    for f in fields(ev):
-        v = getattr(ev, f.name)
+    for name in _MEMORY_EVENT_FIELD_NAMES:
+        v = getattr(ev, name)
         if isinstance(v, datetime):
-            out[f.name] = v.isoformat()
+            out[name] = v.isoformat()
         elif isinstance(v, tuple):
-            out[f.name] = list(v)
+            out[name] = list(v)
         else:
-            out[f.name] = v
+            out[name] = v
     return out
 
 

@@ -40,12 +40,21 @@ class Atlas:
     Atlas is immutable after construction. Thread-safe (no mutable state).
     """
 
-    __slots__ = ("_region", "_connection_graph")
+    __slots__ = ("_region", "_connection_graph", "_room_index")
 
     def __init__(self, region: Region):
         """Initialize with a Region. Use from_json() for file loading."""
         self._region = region
         self._connection_graph = self._build_graph()
+        # capability 1.14-quick-A (2026-05-19): cache room_id → Building.
+        # Without this, get_room / get_building_for_room / get_location /
+        # get_center all O(N_buildings) per call. py-spy profile shows
+        # get_location accounting for 17% of total CPU in publishable run.
+        # Build once at construction: ~5K buildings × ~3 rooms = ~50ms.
+        self._room_index: dict[str, Building] = {}
+        for building in region.buildings.values():
+            for room_id in building.rooms:
+                self._room_index[room_id] = building
 
     @classmethod
     def from_json(cls, path: str | Path) -> "Atlas":
@@ -82,23 +91,39 @@ class Atlas:
         return self._region.buildings.get(building_id)
 
     def get_room(self, room_id: str) -> Room | None:
-        """Get room by ID (searches all buildings)."""
-        for building in self._region.buildings.values():
-            if room_id in building.rooms:
-                return building.rooms[room_id]
-        return None
+        """Get room by ID. O(1) via _room_index cache."""
+        building = self._room_index.get(room_id)
+        return building.rooms[room_id] if building else None
 
     def get_outdoor_area(self, area_id: str) -> OutdoorArea | None:
         """Get outdoor area by ID."""
         return self._region.outdoor_areas.get(area_id)
 
     def get_location(self, location_id: str) -> Building | Room | OutdoorArea | None:
-        """Get any location type by ID."""
-        return self._region.get_location(location_id)
+        """Get any location type by ID. O(1) via _room_index cache."""
+        r = self._region
+        if location_id in r.buildings:
+            return r.buildings[location_id]
+        if location_id in r.outdoor_areas:
+            return r.outdoor_areas[location_id]
+        building = self._room_index.get(location_id)
+        if building:
+            return building.rooms[location_id]
+        return None
 
     def get_center(self, location_id: str) -> Coord | None:
-        """Get center coordinate of a location."""
-        return self._region.get_location_center(location_id)
+        """Get center coordinate of a location. O(1) via _room_index cache."""
+        r = self._region
+        b = r.buildings.get(location_id)
+        if b is not None:
+            return b.center
+        oa = r.outdoor_areas.get(location_id)
+        if oa is not None:
+            return oa.center
+        building = self._room_index.get(location_id)
+        if building is not None:
+            return building.rooms[location_id].center
+        return None
 
     def list_buildings(self) -> list[str]:
         """List all building IDs."""
@@ -114,11 +139,8 @@ class Atlas:
         return list(building.rooms.keys()) if building else []
 
     def get_building_for_room(self, room_id: str) -> Building | None:
-        """Find which building contains a room."""
-        for building in self._region.buildings.values():
-            if room_id in building.rooms:
-                return building
-        return None
+        """Find which building contains a room. O(1) via _room_index cache."""
+        return self._room_index.get(room_id)
 
     # ========== Type-based Queries (按类型查询) ==========
 

@@ -219,6 +219,10 @@ class NavigationService:
             )
 
         # A* 搜索
+        # capability 1.14-quick-F (2026-05-19): precompute to_center once.
+        # py-spy showed _heuristic was 20% of total CPU — half of that was
+        # recomputing get_center(to_location) on every neighbor edge.
+        to_center = self._atlas.get_center(to_location)
         # Priority queue: (cost, counter, location, path)
         open_set: list[tuple[float, int, str, list[tuple[str, str, float, str | None, str]]]] = [
             (0, 0, from_location, [])
@@ -261,8 +265,12 @@ class NavigationService:
                 new_cost = cost + edge_cost
                 new_path = path + [(current, neighbor, dist, door_id, action)]
 
-                # 启发式: 到目标的估计距离
-                h = self._heuristic(neighbor, to_location)
+                # 启发式: 到目标的估计距离（to_center 在 while 外预算）
+                nbr_center = self._atlas.get_center(neighbor)
+                if nbr_center is not None and to_center is not None:
+                    h = nbr_center.distance_to(to_center)
+                else:
+                    h = 0.0
 
                 counter += 1
                 heapq.heappush(open_set, (new_cost + h, counter, neighbor, new_path))
