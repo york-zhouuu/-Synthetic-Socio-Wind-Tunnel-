@@ -865,19 +865,41 @@ def _setup_aitown_stack(
             pass
 
         # Fire daily reflection for every protag on the last tick of each day.
+        # 2026-05-18 hotfix: wrap each maybe_reflect call in asyncio.wait_for
+        # with a 60s timeout. The reflection path makes LLM calls that aren't
+        # protected by OperationPool's 120s wait_for, so a hung httpx
+        # connection mid-SSL could deadlock the entire worker indefinitely.
+        # D2 attempt 4 hit this exact bug: seed42 hp + seed43 baseline both
+        # hung at day-end ticks 1727 and 2879 respectively, no recovery for
+        # 40+ min. 60s per protag means worst-case day-end takes 60s × 500
+        # protag = 50 min serially — but most return in 5-15s; the cap just
+        # bounds the pathological case.
+        import asyncio as _asyncio_local
         within_day_tick = tick_result.tick_index % ticks_per_day
         if within_day_tick == last_tick_of_day:
             for rt in runtimes:
                 if not rt.profile.is_protagonist:
                     continue
                 try:
-                    await memory_service.maybe_reflect(
-                        rt.profile.agent_id,
-                        rt.profile.name,
-                        current_tick=tick_result.tick_index,
-                        simulated_time=tick_result.simulated_time,
-                        day_index=tick_result.day_index,
-                        force_for_day_end=True,
+                    await _asyncio_local.wait_for(
+                        memory_service.maybe_reflect(
+                            rt.profile.agent_id,
+                            rt.profile.name,
+                            current_tick=tick_result.tick_index,
+                            simulated_time=tick_result.simulated_time,
+                            day_index=tick_result.day_index,
+                            force_for_day_end=True,
+                        ),
+                        timeout=60.0,
+                    )
+                except _asyncio_local.TimeoutError:
+                    # Reflection timed out — log and move on; the agent
+                    # doesn't get a reflection for this day. Better than
+                    # deadlocking the worker.
+                    print(
+                        f"[aitown] reflect TIMEOUT (60s) for "
+                        f"{rt.profile.agent_id}; skipping",
+                        file=sys.stderr,
                     )
                 except Exception:
                     pass
