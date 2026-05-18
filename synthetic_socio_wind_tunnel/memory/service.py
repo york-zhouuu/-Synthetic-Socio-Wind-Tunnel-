@@ -900,13 +900,28 @@ class MemoryService:
             date_str = str(today_events[0].simulated_time.date())
             prompt = self._build_summary_prompt(agent, today_events)
             try:
-                raw = await llm_client.generate(
-                    prompt, model=agent.profile.base_model
+                # capability 1.9 follow-up (2026-05-19): D2 attempt 5
+                # caught seed42 pf hanging here at day-11 end — the
+                # underlying httpx timeout failed (half-open TCP to
+                # DeepSeek). asyncio.wait_for is the only reliable
+                # bound. 60s matches reflection (same scale: per-agent
+                # one LLM call producing summary text).
+                raw = await asyncio.wait_for(
+                    llm_client.generate(
+                        prompt, model=agent.profile.base_model
+                    ),
+                    timeout=60.0,
                 )
                 summary = DailySummary(
                     agent_id=agent_id,
                     date=date_str,
                     summary_text=raw.strip(),
+                )
+            except asyncio.TimeoutError:
+                summary = DailySummary(
+                    agent_id=agent_id,
+                    date=date_str,
+                    summary_text="(daily summary timed out)",
                 )
             except Exception:
                 summary = DailySummary(
