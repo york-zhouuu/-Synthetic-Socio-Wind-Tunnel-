@@ -39,7 +39,14 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-_CURRENT_SCHEMA_VERSION = "1"
+_CURRENT_SCHEMA_VERSION = "3"
+# v3 (2026-05-19, capability 1.12): adds dialogue_service_state so agent
+#   dialogue content + DialogueMessage history survives kill+resume.
+# v2 (2026-05-19, capability 1.11): adds tick_metrics_recorder_state so
+#   resume preserves accumulated per_day_summaries / encounter / dwell
+#   counters across kill+resume cycles.
+# v1 snapshots are rejected — re-run from tick 0 or use
+#   tools/aggregate_d2_from_wal.py to rebuild from WAL.
 
 
 # ---------------------------------------------------------------------------
@@ -184,6 +191,14 @@ class SimulationCheckpoint(BaseModel):
     """agent_id → 该 agent 的 to_snapshot_state() 输出。"""
     memory_store_state: dict[str, Any] = Field(default_factory=dict)
     attention_service_state: dict[str, Any] = Field(default_factory=dict)
+    tick_metrics_recorder_state: dict[str, Any] = Field(default_factory=dict)
+    """Accumulated per-day buckets — preserved across kill+resume so the
+    final seed_X.json reflects ALL days run, not just the last cycle.
+    Added 2026-05-19 (capability 1.11)."""
+    dialogue_service_state: dict[str, Any] = Field(default_factory=dict)
+    """Bilateral dialogues + DialogueMessage history. Without this the
+    "agent 之间的故事" narrative output is lost on resume.
+    Added 2026-05-19 (capability 1.12)."""
     rng_state: dict[str, list[Any]] = Field(default_factory=dict)
 
     pending_ops_meta: dict[str, Any] = Field(default_factory=dict)
@@ -259,6 +274,8 @@ class SimulationCheckpoint(BaseModel):
         agents: Mapping[str, "AgentRuntime"] | None = None,
         memory_service: "MemoryService | None" = None,
         attention_service: "AttentionService | None" = None,
+        tick_metrics_recorder: Any = None,
+        dialogue_service: Any = None,
         named_rngs: Mapping[str, _random.Random] | None = None,
     ) -> None:
         """把 snapshot 完整还原到 in-memory 对象。
@@ -293,6 +310,18 @@ class SimulationCheckpoint(BaseModel):
         # 4. Attention
         if attention_service is not None and self.attention_service_state:
             attention_service.from_snapshot_state(self.attention_service_state)
+
+        # 4b. TickMetricsRecorder — preserves accumulated per-day buckets
+        # across resume cycles (capability 1.11)
+        if tick_metrics_recorder is not None and self.tick_metrics_recorder_state:
+            tick_metrics_recorder.from_snapshot_state(
+                self.tick_metrics_recorder_state,
+            )
+
+        # 4c. DialogueService — preserves dialogue + message history
+        # for narrative output (capability 1.12)
+        if dialogue_service is not None and self.dialogue_service_state:
+            dialogue_service.from_snapshot_state(self.dialogue_service_state)
 
         # 5. RNGs (caller-provided mapping; cf. capture_rng)
         if named_rngs is not None and self.rng_state:

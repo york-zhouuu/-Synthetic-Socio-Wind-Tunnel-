@@ -28,6 +28,7 @@ context or temporal framing.
 
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 from datetime import datetime
@@ -158,11 +159,31 @@ class ReflectionService:
         prompt = _build_reflection_prompt(
             agent_name=agent_name, memories=window,
         )
+        # capability 1.13 (2026-05-19): wire LLMHealthTracker; propagate
+        # AllKeysOpenError as structural failure.
+        from synthetic_socio_wind_tunnel.run_resilience.circuit_breaker import (
+            AllKeysOpenError,
+        )
+        from synthetic_socio_wind_tunnel.run_resilience.llm_health import get_tracker
+        tracker = get_tracker()
         try:
-            raw = await self._llm_client.generate(prompt, model=self._model)
+            # capability 1.9 (2026-05-19): hard timeout
+            raw = await asyncio.wait_for(
+                self._llm_client.generate(prompt, model=self._model),
+                timeout=60.0,
+            )
+        except AllKeysOpenError:
+            tracker.record_all_keys_open()
+            raise
+        except asyncio.TimeoutError:
+            logger.warning("reflect timed out (>60s) for %s", agent_id)
+            tracker.record_fallback()
+            return []
         except Exception as exc:
             logger.warning("reflect failed (LLM error) for %s: %s", agent_id, exc)
+            tracker.record_fallback()
             return []
+        tracker.record_success()
         try:
             insights = self._parse_insights(raw)
         except Exception as exc:

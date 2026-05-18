@@ -209,6 +209,8 @@ class MultiDayRunner:
         "_orchestrator",
         "_memory_service",
         "_attention_service",
+        "_tick_metrics_recorder",
+        "_dialogue_service",
         "_planner",
         "_llm_client",
         "_seed",
@@ -230,6 +232,8 @@ class MultiDayRunner:
         orchestrator: "Orchestrator",
         memory_service: "MemoryService | None" = None,
         attention_service: Any = None,
+        tick_metrics_recorder: Any = None,
+        dialogue_service: Any = None,
         planner: "Planner | None" = None,
         llm_client: "LLMClient | None" = None,
         seed: int = 0,
@@ -263,6 +267,8 @@ class MultiDayRunner:
         self._orchestrator = orchestrator
         self._memory_service = memory_service
         self._attention_service = attention_service
+        self._tick_metrics_recorder = tick_metrics_recorder
+        self._dialogue_service = dialogue_service
         self._planner = planner
         self._llm_client = llm_client
         self._seed = seed
@@ -335,6 +341,8 @@ class MultiDayRunner:
                 agents=agents_by_id,
                 memory_service=self._memory_service,
                 attention_service=self._attention_service,
+                tick_metrics_recorder=self._tick_metrics_recorder,
+                dialogue_service=self._dialogue_service,
             )
             # restore_from 优先于 resume_from；继续从 (snap.day_index, snap.tick_index+1)
             if self._resume_from > 0:
@@ -547,6 +555,15 @@ class MultiDayRunner:
                         keep=policy.keep_last_k,
                     )
 
+            # Capability 1.13 (2026-05-19): check rolling fallback-rate
+            # budget. Raises FallbackBudgetExceeded after N consecutive
+            # ticks over threshold — caught at run_multi_day level to
+            # write partial + propagate non-zero exit.
+            from synthetic_socio_wind_tunnel.run_resilience.llm_health import (
+                get_tracker,
+            )
+            get_tracker().check_budget()
+
             # WAL append (after snapshot so the WAL row points at the new file)
             if self._wal_writer is not None:
                 try:
@@ -618,6 +635,14 @@ class MultiDayRunner:
                     self._attention_service.to_snapshot_state()
                     if self._attention_service is not None else {}
                 ),
+                tick_metrics_recorder_state=(
+                    self._tick_metrics_recorder.to_snapshot_state()
+                    if self._tick_metrics_recorder is not None else {}
+                ),
+                dialogue_service_state=(
+                    self._dialogue_service.to_snapshot_state()
+                    if self._dialogue_service is not None else {}
+                ),
                 rng_state={},  # Caller-injected RNGs not tracked here; future work
                 pending_ops_meta={},
                 provider=self._provider_name,
@@ -672,6 +697,14 @@ class MultiDayRunner:
                 attention_service_state=(
                     self._attention_service.to_snapshot_state()
                     if self._attention_service is not None else {}
+                ),
+                tick_metrics_recorder_state=(
+                    self._tick_metrics_recorder.to_snapshot_state()
+                    if self._tick_metrics_recorder is not None else {}
+                ),
+                dialogue_service_state=(
+                    self._dialogue_service.to_snapshot_state()
+                    if self._dialogue_service is not None else {}
                 ),
                 rng_state={},
                 pending_ops_meta={},

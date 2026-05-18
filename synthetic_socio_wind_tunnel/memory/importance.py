@@ -59,11 +59,32 @@ class ImportanceScorer:
         if not event.content:
             return self._default_on_failure
         prompt = _PROMPT_TEMPLATE.format(content=event.content)
+        # capability 1.13 (2026-05-19): wire LLMHealthTracker; let
+        # AllKeysOpenError propagate (structural, not per-call hiccup).
+        from synthetic_socio_wind_tunnel.run_resilience.circuit_breaker import (
+            AllKeysOpenError,
+        )
+        from synthetic_socio_wind_tunnel.run_resilience.llm_health import get_tracker
+        tracker = get_tracker()
         try:
-            raw = await self._llm_client.generate(prompt, model=self._model)
+            # capability 1.9 (2026-05-19): hard timeout — httpx-level
+            # timeout can fail under SSL handshake / half-open pool.
+            raw = await asyncio.wait_for(
+                self._llm_client.generate(prompt, model=self._model),
+                timeout=30.0,
+            )
+        except AllKeysOpenError:
+            tracker.record_all_keys_open()
+            raise
+        except asyncio.TimeoutError:
+            logger.warning("importance scoring timed out (>30s)")
+            tracker.record_fallback()
+            return self._default_on_failure
         except Exception as exc:  # pragma: no cover (defensive)
             logger.warning("importance scoring failed (LLM error): %s", exc)
+            tracker.record_fallback()
             return self._default_on_failure
+        tracker.record_success()
         return self._parse(raw)
 
     async def score_batch(

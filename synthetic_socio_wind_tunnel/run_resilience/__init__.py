@@ -26,6 +26,12 @@ from synthetic_socio_wind_tunnel.run_resilience.health import (
     WorkerSnapshot,
 )
 from synthetic_socio_wind_tunnel.run_resilience.hotfix import HotfixSignalHandler
+from synthetic_socio_wind_tunnel.run_resilience.llm_health import (
+    FallbackBudgetExceeded,
+    LLMHealthTracker,
+    get_tracker,
+    reset_tracker_for_tests,
+)
 from synthetic_socio_wind_tunnel.run_resilience.retry import RetryPolicy
 from synthetic_socio_wind_tunnel.run_resilience.state_snapshot import (
     SimulationCheckpoint,
@@ -44,10 +50,12 @@ __all__ = [
     "AllKeysOpenError",
     "DayCheckpointWriter",
     "DefaultSystemProbe",
+    "FallbackBudgetExceeded",
     "HealthAudit",
     "HealthAuditReport",
     "HotfixSignalHandler",
     "IncompatibleCheckpointError",
+    "LLMHealthTracker",
     "PerKeyCircuitBreaker",
     "RetryPolicy",
     "SimulationCheckpoint",
@@ -56,8 +64,10 @@ __all__ = [
     "WorkerSnapshot",
     "capture_rng",
     "find_latest_snapshot",
+    "get_tracker",
     "prune_snapshots",
     "read_last_wal_line",
+    "reset_tracker_for_tests",
     "restore_rng",
     "snapshot_path",
     "wal_path",

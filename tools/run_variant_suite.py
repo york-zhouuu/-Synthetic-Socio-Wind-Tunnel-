@@ -1247,6 +1247,14 @@ def run_seed_with_metrics(
         # tick-level-resume (2026-05-16)
         attention_service=attention_service,
         restore_from=restore_from,
+        # capability 1.11 (2026-05-19): preserve per-day metric buckets
+        # across kill+resume so seed_X.json reflects ALL days run.
+        tick_metrics_recorder=recorder,
+        # capability 1.12 (2026-05-19): preserve dialogue + DialogueMessage
+        # content across kill+resume. Without this, agent narrative output
+        # ("agent 之间的故事") is lost. Only present when ai-town stack
+        # is wired (smoke/non-aitown runs don't have a DialogueService).
+        dialogue_service=aitown_stats.get("dialogue_service") if use_aitown else None,
     )
 
     # run-resilience: register SIGUSR1 graceful-stop handler if caller asked

@@ -168,6 +168,47 @@ class TickMetricsRecorder:
             bucket.location_dwell[loc] += 1
             bucket.end_of_day_locations[agent_id] = loc
 
+    # ---- per-run snapshot/restore (1.11 — resume preserves run_metrics) ----
+
+    def to_snapshot_state(self) -> dict[str, Any]:
+        """Serialize accumulated _DayBucket state for cross-resume continuity.
+
+        Note: sets (distinct_pairs) become lists of [a, b] pairs; dicts stay.
+        """
+        out: dict[str, Any] = {"current_day": self._current_day, "buckets": {}}
+        for day, b in self._buckets.items():
+            out["buckets"][str(day)] = {
+                "encounter_count_total": b.encounter_count_total,
+                "distinct_pairs": [list(p) for p in b.distinct_pairs],
+                "move_success": b.move_success,
+                "move_fail": b.move_fail,
+                "location_dwell": dict(b.location_dwell),
+                "end_of_day_locations": dict(b.end_of_day_locations),
+            }
+        return out
+
+    def from_snapshot_state(self, state: dict[str, Any]) -> None:
+        """Restore _DayBucket state from a prior to_snapshot_state() output.
+
+        Idempotent: clears existing buckets first, then rehydrates.
+        """
+        self._buckets.clear()
+        self._current_day = int(state.get("current_day", -1))
+        for day_str, b_state in (state.get("buckets") or {}).items():
+            day = int(day_str)
+            bucket = _DayBucket(day)
+            bucket.encounter_count_total = int(b_state.get("encounter_count_total", 0))
+            bucket.distinct_pairs = {
+                tuple(p) for p in (b_state.get("distinct_pairs") or [])
+            }
+            bucket.move_success = int(b_state.get("move_success", 0))
+            bucket.move_fail = int(b_state.get("move_fail", 0))
+            bucket.location_dwell = defaultdict(int)
+            for loc, n in (b_state.get("location_dwell") or {}).items():
+                bucket.location_dwell[loc] = int(n)
+            bucket.end_of_day_locations = dict(b_state.get("end_of_day_locations") or {})
+            self._buckets[day] = bucket
+
     # ---- snapshot / aggregate ----
 
     def snapshot(self) -> list[DayMetricsSummary]:

@@ -749,7 +749,22 @@ async def _generate_life_history_for_one(
 
     for attempt in range(max_retries + 1):
         try:
-            raw = await llm_client.generate(prompt, model=model)
+            # capability 1.9 (2026-05-19): hard timeout (300s — sonnet
+            # tier, 20-record JSON, can legitimately take 60-180s; cap
+            # higher than other call sites).
+            raw = await _asyncio.wait_for(
+                llm_client.generate(prompt, model=model),
+                timeout=300.0,
+            )
+        except _asyncio.TimeoutError:
+            logger.warning(
+                "life_history timed out (>300s) for %s (attempt %d/%d)",
+                profile.agent_id, attempt + 1, max_retries + 1,
+            )
+            if attempt < max_retries:
+                await _asyncio.sleep(0.5)
+                continue
+            return []
         except Exception as exc:  # noqa: BLE001
             logger.warning(
                 "life_history LLM call failed for %s (attempt %d/%d): %r",
@@ -985,7 +1000,20 @@ async def _generate_identity_text_for_one(
 
     for attempt in range(max_retries + 1):
         try:
-            raw = await llm_client.generate(prompt, model=model)
+            # capability 1.9 (2026-05-19): hard timeout
+            raw = await _asyncio.wait_for(
+                llm_client.generate(prompt, model=model),
+                timeout=120.0,
+            )
+        except _asyncio.TimeoutError:
+            logger.warning(
+                "identity_text timed out (>120s) for %s (attempt %d/%d)",
+                profile.agent_id, attempt + 1, max_retries + 1,
+            )
+            if attempt < max_retries:
+                await _asyncio.sleep(0.5)
+                continue
+            return _fallback_identity_text(profile)
         except Exception as exc:  # noqa: BLE001
             logger.warning(
                 "identity_text LLM call failed for %s (attempt %d/%d): %r",

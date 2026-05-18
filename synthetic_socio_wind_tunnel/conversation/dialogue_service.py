@@ -526,6 +526,114 @@ class DialogueService:
             i += 1
         return f"{base}_{i}"
 
+    # ---- capability 1.12 (2026-05-19): snapshot persistence ----
+    #
+    # D2 attempt 4 lost ALL dialogue content because DialogueService had
+    # no persistence — Dialogue objects + DialogueMessage lists lived in
+    # process heap and died on kill+resume. Without this, agent narrative
+    # output ("agent 之间的故事") can't be reconstructed.
+
+    def to_snapshot_state(self) -> dict:
+        """Serialize all dialogue + member + cooldown state for resume.
+
+        Returns dict suitable for json.dumps. _rng is dumped via getstate()
+        so dialogue stochasticity is reproducible across resume.
+        """
+        dialogues_out = {}
+        for did, d in self._dialogues.items():
+            dialogues_out[did] = {
+                "dialogue_id": d.dialogue_id,
+                "initiator_id": d.initiator_id,
+                "invitee_id": d.invitee_id,
+                "target_location_id": d.target_location_id,
+                "started_tick": d.started_tick,
+                "last_message_tick": d.last_message_tick,
+                "started_at": d.started_at.isoformat() if d.started_at else None,
+                "member_status": dict(d.member_status),
+                "messages": [
+                    {
+                        "message_id": m.message_id,
+                        "speaker_id": m.speaker_id,
+                        "content": m.content,
+                        "tick": m.tick,
+                    }
+                    for m in d.messages
+                ],
+                "ended_tick": d.ended_tick,
+                "end_reason": d.end_reason,
+            }
+        return {
+            "dialogues": dialogues_out,
+            "active_by_agent": dict(self._active_by_agent),
+            "last_ended_at": {
+                f"{a}|{b}": dt.isoformat()
+                for (a, b), dt in self._last_ended_at.items()
+            },
+            "bridged": list(self._bridged),
+            "message_counter": self._message_counter,
+            # _rng.getstate() returns (version, (i1, i2, ...), gauss_next)
+            # — keep as-is, json will serialize the tuple as list.
+            "rng_state": self._rng.getstate(),
+        }
+
+    def from_snapshot_state(self, state: dict) -> None:
+        """Restore from a prior to_snapshot_state() output.
+
+        Idempotent: existing in-memory state is cleared first.
+        """
+        self._dialogues = {}
+        for did, dd in (state.get("dialogues") or {}).items():
+            started_at_str = dd.get("started_at")
+            started_at = (
+                datetime.fromisoformat(started_at_str)
+                if started_at_str else None
+            )
+            messages = [
+                DialogueMessage(
+                    message_id=m["message_id"],
+                    speaker_id=m["speaker_id"],
+                    content=m["content"],
+                    tick=m["tick"],
+                )
+                for m in (dd.get("messages") or [])
+            ]
+            d = Dialogue(
+                dialogue_id=dd["dialogue_id"],
+                initiator_id=dd["initiator_id"],
+                invitee_id=dd["invitee_id"],
+                target_location_id=dd["target_location_id"],
+                started_tick=dd["started_tick"],
+                last_message_tick=dd["last_message_tick"],
+                started_at=started_at,
+                member_status=dict(dd.get("member_status") or {}),
+                messages=messages,
+                ended_tick=dd.get("ended_tick"),
+                end_reason=dd.get("end_reason"),
+            )
+            self._dialogues[did] = d
+        self._active_by_agent = dict(state.get("active_by_agent") or {})
+        self._last_ended_at = {}
+        for k, v in (state.get("last_ended_at") or {}).items():
+            a, _, b = k.partition("|")
+            self._last_ended_at[(a, b)] = datetime.fromisoformat(v)
+        self._bridged = set(state.get("bridged") or [])
+        self._message_counter = int(state.get("message_counter", 0))
+        rng_state = state.get("rng_state")
+        if rng_state is not None:
+            # json round-trip turns tuple → list at the top level and inside.
+            # random.setstate requires (version: int, internal_state: tuple,
+            # gauss_next: float | None). Coerce list → tuple.
+            try:
+                version, internal, gauss = rng_state
+                self._rng.setstate(
+                    (int(version), tuple(internal), gauss),
+                )
+            except Exception:
+                logger.warning(
+                    "DialogueService.from_snapshot_state: rng_state malformed, "
+                    "keeping current rng",
+                )
+
 
 
 __all__ = [

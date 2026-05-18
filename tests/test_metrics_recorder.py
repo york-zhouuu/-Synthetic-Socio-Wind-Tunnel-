@@ -121,3 +121,60 @@ class TestRecorderBasic:
         rec.on_tick_end(_tick(0, 0))
         # does not crash
         assert rec.snapshot()[0].day_index == 0
+
+
+class TestRecorderSnapshotRoundtrip:
+    """Capability 1.11 — resume preserves run_metrics across cycles."""
+
+    def test_empty_recorder_state(self):
+        ledger = _ledger_with([("a1", "loc")])
+        rec = TickMetricsRecorder(ledger=ledger)
+        state = rec.to_snapshot_state()
+        assert state == {"current_day": -1, "buckets": {}}
+
+    def test_roundtrip_preserves_counters(self):
+        ledger = _ledger_with([("a", "loc"), ("b", "loc")])
+        rec1 = TickMetricsRecorder(ledger=ledger)
+        rec1.on_tick_end(_tick(0, 0, encounters=(
+            EncounterCandidate(tick=0, agent_a="a", agent_b="b", shared_locations=("loc",)),
+        )))
+        rec1.on_tick_end(_tick(0, 1, encounters=(
+            EncounterCandidate(tick=1, agent_a="a", agent_b="b", shared_locations=("loc",)),
+        )))
+        rec1.on_tick_end(_tick(1, 0))
+        state = rec1.to_snapshot_state()
+
+        rec2 = TickMetricsRecorder(ledger=ledger)
+        rec2.from_snapshot_state(state)
+        snap1 = rec1.snapshot()
+        snap2 = rec2.snapshot()
+        assert [d.day_index for d in snap1] == [d.day_index for d in snap2]
+        assert snap1[0].encounter_count_total == snap2[0].encounter_count_total
+        assert snap1[0].distinct_encounter_pairs == snap2[0].distinct_encounter_pairs
+
+    def test_restore_clears_existing_buckets(self):
+        """from_snapshot_state SHALL clear before restoring (idempotent)."""
+        ledger = _ledger_with([("a", "loc")])
+        rec = TickMetricsRecorder(ledger=ledger)
+        rec.on_tick_end(_tick(0, 0))
+        rec.on_tick_end(_tick(0, 1))
+        state = rec.to_snapshot_state()
+
+        # Mutate, then restore
+        rec.on_tick_end(_tick(5, 0))
+        assert len(rec.snapshot()) == 2
+        rec.from_snapshot_state(state)
+        assert len(rec.snapshot()) == 1  # day 5 is gone
+        assert rec.snapshot()[0].day_index == 0
+
+    def test_distinct_pairs_set_survives_roundtrip(self):
+        ledger = _ledger_with([("a", "l"), ("b", "l"), ("c", "l")])
+        rec1 = TickMetricsRecorder(ledger=ledger)
+        rec1.on_tick_end(_tick(0, 0, encounters=(
+            EncounterCandidate(tick=0, agent_a="a", agent_b="b", shared_locations=("l",)),
+            EncounterCandidate(tick=0, agent_a="b", agent_b="c", shared_locations=("l",)),
+            EncounterCandidate(tick=0, agent_a="a", agent_b="b", shared_locations=("l",)),  # dup
+        )))
+        rec2 = TickMetricsRecorder(ledger=ledger)
+        rec2.from_snapshot_state(rec1.to_snapshot_state())
+        assert rec2.snapshot()[0].distinct_encounter_pairs == 2

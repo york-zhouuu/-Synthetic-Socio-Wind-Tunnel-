@@ -165,15 +165,28 @@ async def handle_do_something(
 
     Failures fall back deterministically — never raises.
     """
+    # Capability 1.13 (2026-05-19): wire LLMHealthTracker for budget enforcement.
+    from synthetic_socio_wind_tunnel.run_resilience.circuit_breaker import (
+        AllKeysOpenError,
+    )
+    from synthetic_socio_wind_tunnel.run_resilience.llm_health import get_tracker
+
     args = op.args
     prompt = _build_do_something_prompt(args)
+    tracker = get_tracker()
     try:
         raw = await llm_client.generate(prompt, model=args.get("model", ""))
+    except AllKeysOpenError:
+        # Structural failure — record + re-raise. Per-call fallback would
+        # mask 8-keys-out-of-8 cooldown as healthy noise.
+        tracker.record_all_keys_open()
+        raise
     except Exception as exc:
         logger.warning(
             "do_something LLM failed for agent %s: %r — using fallback",
             op.agent_id, exc,
         )
+        tracker.record_fallback()
         action = _fallback_action(args)
         return OperationResult(
             op_id=op.op_id, agent_id=op.agent_id, kind=op.kind,
@@ -188,12 +201,14 @@ async def handle_do_something(
             "raw=%r — using fallback",
             op.agent_id, (raw or "")[:200],
         )
+        tracker.record_fallback()
         action = _fallback_action(args)
         return OperationResult(
             op_id=op.op_id, agent_id=op.agent_id, kind=op.kind,
             success=True,
             payload={**action, "fallback": True, "error": "parse_failed"},
         )
+    tracker.record_success()
     return OperationResult(
         op_id=op.op_id, agent_id=op.agent_id, kind=op.kind,
         success=True,

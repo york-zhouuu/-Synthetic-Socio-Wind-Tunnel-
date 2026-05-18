@@ -448,6 +448,76 @@ worker 退出就消失。
 
 ---
 
+## 1.13 fallback-rate budget + run_metrics 暴露（"沉默灾难"防护）
+
+**记录时间**：2026-05-19
+
+**背景**：D2 attempt 4 (2026-05-18) 出现"沉默灾难"——DeepSeek 余额耗尽
+触发 402 cascade，但 `do_something` / `reflect` / `importance` 三个
+handler 的设计是 **graceful fallback, never raises**：
+
+```python
+# synthetic_socio_wind_tunnel/agent/operations/handlers/do_something.py:166
+"""Failures fall back deterministically — never raises."""
+try:
+    raw = await llm_client.generate(prompt, ...)
+except Exception:
+    action = _fallback_action(args)  # → {"action":"wait"} 或第一个候选
+    return OperationResult(success=True, payload={**action, "fallback": True})
+```
+
+结果：4 个 worker 在 100% fallback 模式下"跑得很好"——
+- tick 推进、commit 成功、encounter 计数正常
+- 但每个 agent 决策都是模板 fallback，没有任何 LLM 真实决策
+- run 看似进度正常，实际产出"确定性 wait-everyone sim"垃圾数据
+- 4 小时没人发现，浪费机器 + Volces 钱
+
+**根因**：fallback **逐条** 是对的（单点 LLM 抖动不该杀 1000-agent run），
+但 **缺三层 safety net**：
+
+| 层 | 该做的 | 当前 |
+|---|---|---|
+| handler | per-call fallback | ✅ 已有 |
+| **aggregator** | **rolling window fallback-rate abort** | ❌ 没有 |
+| **run metrics** | **per-day fallback% 入账 + 在 contest.json 可见** | ❌ 没有 |
+| circuit-breaker | 全开时立即 raise，不被吞 | ❌ 被 `except Exception` 吞 |
+
+**理想方向**（~50 行改动）：
+
+1. **MultiDayRunner 聚合 fallback rate**——OperationResult.payload.fallback
+   字段已存在；on_tick_end 聚合：rolling 5 min 窗口
+2. **soft abort threshold**：rolling fallback-rate > 20% 持续 N 个 tick
+   → 写 partial → raise `FallbackBudgetExceeded` → 上层 SIGTERM 自身
+3. **每个 per_day_summary 加字段**：
+   ```python
+   {"day_index": 0, ..., "llm_fallback_pct": 2.3, "circuit_breaker_open_count": 0}
+   ```
+4. **contest.json + report.md 引用**：variant 总 fallback% 显著（>5%）
+   时标 warning，避免下次又"看起来跑完了"
+5. **AllKeysOpenError 不再被 fallback 吞**——专门 catch 这个 exception
+   raise 出去，因为 8 keys 全开是结构性故障不是单点抖动
+
+**为什么不立即做**：今天事件已经发生、损失已发生；先用
+`tools/audit_llm_health.py` 做**外部** monitor 弥补。代码内部的
+fallback-budget 是下一个 publishable run **之前** SHALL 做完，不能
+再让灾难无声跑 4 小时。
+
+**优先级**：高 — 下次 publishable 跑前必做。
+
+**触发条件**：当下次 publishable 跑（D2 attempt 5 或 D3）排期时立刻做。
+
+**估工**：~50 行代码 + 单测 + 集成测，约 2-3 小时。
+
+**Owner**：未指定。
+
+**关联事件记录**：
+- D2 attempt 4 的 16+ 小时"沉默 fallback" 损失（2026-05-18 → 19）
+- 用户原话："fallback 是什么设计，LLM没有响应应该直接报错，为什么继续跑下去了呢？？"
+- 给出的答辩："设计假设是少量 fallback 不影响结果，但根本没有给 fallback
+  一个上限——这是 bug"
+
+---
+
 ## 2. ReAct-style LLM 决策架构（替换 hint pre-fill）
 
 **记录时间**：2026-05-17

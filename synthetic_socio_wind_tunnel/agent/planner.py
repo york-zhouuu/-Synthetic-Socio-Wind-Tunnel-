@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 import xml.etree.ElementTree as ET
@@ -419,7 +420,19 @@ class Planner:
             carryover_section=_format_carryover_section(carryover),
         )
 
-        raw = await self._llm.generate(prompt, model=profile.base_model)
+        # capability 1.9 (2026-05-19): hard timeout (60s — daily plan is
+        # called once per agent per day; expensive but not latency-critical).
+        try:
+            raw = await asyncio.wait_for(
+                self._llm.generate(prompt, model=profile.base_model),
+                timeout=60.0,
+            )
+        except asyncio.TimeoutError:
+            logger.warning(
+                "generate_daily_plan timed out (>60s) for %s — empty plan",
+                profile.agent_id,
+            )
+            return DailyPlan(agent_id=profile.agent_id, date=date, steps=[])
         steps = _parse_xml_plan(raw)
         if not steps:
             # fallback：LLM 偶尔吐 JSON，保留旧 parser
@@ -527,7 +540,15 @@ class Planner:
         )
 
         try:
-            raw = await self._llm.generate(prompt, model=profile.base_model)
+            # capability 1.9 (2026-05-19): hard timeout (30s — replan is
+            # interactive, must not deadlock tick scheduling).
+            raw = await asyncio.wait_for(
+                self._llm.generate(prompt, model=profile.base_model),
+                timeout=30.0,
+            )
+        except asyncio.TimeoutError:
+            logger.warning("replan timed out (>30s) for %s", profile.agent_id)
+            return current_plan.model_copy(deep=True), False
         except Exception as exc:
             logger.warning("replan_failed: LLM error: %s", exc)
             return current_plan.model_copy(deep=True), False

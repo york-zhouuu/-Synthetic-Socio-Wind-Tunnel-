@@ -374,3 +374,104 @@ class TestMetrics:
         reasons = svc.counts_by_end_reason()
         assert reasons.get("leave") == 1
         assert reasons.get("max_messages") == 1
+
+
+# ---------------------------------------------------------------------------
+# Capability 1.12 (2026-05-19) — snapshot persistence
+# ---------------------------------------------------------------------------
+
+
+class TestSnapshotRoundtrip:
+    """Snapshot SHALL preserve dialogue + DialogueMessage content."""
+
+    def test_empty_state_roundtrip(self):
+        svc1 = DialogueService(seed=42)
+        state = svc1.to_snapshot_state()
+        svc2 = DialogueService(seed=99)
+        svc2.from_snapshot_state(state)
+        assert svc2.total_count() == 0
+
+    def test_active_dialogue_survives_roundtrip(self):
+        svc1 = DialogueService(seed=42)
+        d = svc1.schedule_invite("a", "b", "cafe", tick=10, simulated_time=_T0)
+        svc1.accept_invite(d.dialogue_id, "b")
+        svc1.advance_to_participating(d.dialogue_id, tick=11)
+        svc1.append_message(
+            d.dialogue_id, "a", "Hello!",
+            tick=12, simulated_time=_T0 + timedelta(minutes=5),
+        )
+        svc1.append_message(
+            d.dialogue_id, "b", "Hi there!",
+            tick=13, simulated_time=_T0 + timedelta(minutes=10),
+        )
+        state = svc1.to_snapshot_state()
+
+        svc2 = DialogueService(seed=99)
+        svc2.from_snapshot_state(state)
+        assert svc2.total_count() == 1
+        assert svc2.active_count() == 1
+        d_restored = svc2.get(d.dialogue_id)
+        assert d_restored is not None
+        assert d_restored.initiator_id == "a"
+        assert d_restored.invitee_id == "b"
+        assert d_restored.target_location_id == "cafe"
+        assert len(d_restored.messages) == 2
+        assert d_restored.messages[0].content == "Hello!"
+        assert d_restored.messages[1].speaker_id == "b"
+        assert svc2.active_for("a") is not None
+        assert svc2.active_for("b") is not None
+
+    def test_ended_dialogue_with_cooldown_survives(self):
+        svc1 = DialogueService(seed=42)
+        d = svc1.schedule_invite("a", "b", "cafe", tick=10, simulated_time=_T0)
+        svc1.accept_invite(d.dialogue_id, "b")
+        svc1.advance_to_participating(d.dialogue_id, tick=11)
+        svc1.leave(d.dialogue_id, "a", tick=20,
+                   simulated_time=_T0 + timedelta(minutes=50))
+        state = svc1.to_snapshot_state()
+
+        svc2 = DialogueService(seed=99)
+        svc2.from_snapshot_state(state)
+        assert svc2.ended_count() == 1
+        # cooldown SHALL still block re-invite after restore
+        with pytest.raises(DialogueCooldownError):
+            svc2.schedule_invite(
+                "a", "b", "cafe",
+                tick=21,
+                simulated_time=_T0 + timedelta(minutes=51),
+            )
+
+    def test_json_roundtrip_via_serialization(self):
+        """state dict SHALL survive json.dumps + json.loads
+        (verifies no non-JSON-serializable objects leak through)."""
+        import json
+        svc1 = DialogueService(seed=42)
+        d = svc1.schedule_invite("a", "b", "park", tick=5, simulated_time=_T0)
+        svc1.accept_invite(d.dialogue_id, "b")
+        svc1.advance_to_participating(d.dialogue_id, tick=6)
+        svc1.append_message(
+            d.dialogue_id, "a", "hi",
+            tick=7, simulated_time=_T0 + timedelta(minutes=10),
+        )
+        state = svc1.to_snapshot_state()
+
+        blob = json.dumps(state)
+        state2 = json.loads(blob)
+        svc2 = DialogueService(seed=99)
+        svc2.from_snapshot_state(state2)
+        assert svc2.total_count() == 1
+        assert svc2.get(d.dialogue_id).messages[0].content == "hi"
+
+    def test_rng_state_preserved(self):
+        """The RNG state SHALL be restored — so post-resume dialogue
+        stochasticity matches what would have happened in-place."""
+        import json
+        svc1 = DialogueService(seed=42)
+        for _ in range(5):
+            svc1._rng.random()
+        state = svc1.to_snapshot_state()
+        # Also verify json round-trip preserves rng (tuple → list → tuple).
+        state = json.loads(json.dumps(state))
+        svc2 = DialogueService(seed=99)
+        svc2.from_snapshot_state(state)
+        assert svc1._rng.random() == svc2._rng.random()

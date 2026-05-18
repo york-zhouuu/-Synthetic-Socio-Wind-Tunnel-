@@ -36,9 +36,12 @@ def _make(seed: int = 42, tick_index: int = 100, day_index: int = 0) -> Simulati
 
 class TestSimulationCheckpointFields:
 
-    def test_default_schema_version_is_1(self) -> None:
+    def test_default_schema_version_is_current(self) -> None:
+        # Bumped to "3" on 2026-05-19 (capability 1.12 — adds
+        # dialogue_service_state). v2 added tick_metrics_recorder_state.
+        # v1 snapshots are rejected.
         snap = _make()
-        assert snap.schema_version == "1"
+        assert snap.schema_version == "3"
 
     def test_required_fields_set(self) -> None:
         snap = _make(seed=42, tick_index=100, day_index=0)
@@ -99,7 +102,7 @@ class TestAtomicWrite:
         }))
         with pytest.raises(IncompatibleCheckpointError) as exc_info:
             SimulationCheckpoint.read(path)
-        assert exc_info.value.expected == "1"
+        assert exc_info.value.expected == "3"
         assert exc_info.value.found == "99"
 
 
