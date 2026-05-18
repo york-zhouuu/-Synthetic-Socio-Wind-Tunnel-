@@ -100,15 +100,32 @@ seed44 + seed45 两 suite 释放内存，β=2 跑完。
 - 估省：~2-3 GB
 - 工作量：~1 day（atlas 重做成 mmap-backed format）
 
-### B. MemoryStore 改为 SQLite/DuckDB-backed（高 ROI，较大工作量）
-- 当前所有 MemoryEvent 在 RAM 里。14 day × 500 protag × ~10 event/tick ×
-  288 tick = 14M events → 1-2 GB / worker
-- 改 backing store：写入 SQLite per seed，retrieve 时按需 read
-- 估省：~1-1.5 GB / worker × 16 = 16-24 GB
-- 工作量：3-5 day（MemoryService 接口不变，存储后端换）
-- 风险：retrieve 性能可能下降（但 SQLite 索引 + cache 通常 OK）
+### B. **Auto-restart on memory threshold**（**首选**，低风险）⭐
+- D2 attempt 4 验证：长跑 worker 内存里 ~70% 是"历史废纸"，restart 后从
+  snapshot 重新加载，紧凑度提升 5-10x（参考 16:56 那次 restart，全机
+  内存压力 138 GB → 23 GB 的现象）
+- 实施：worker 启动时启 watchdog 线程，监 self RSS。> 阈值（如 2.5 GB）
+  时触发 SIGUSR1 → HotfixSignalHandler → 写 snapshot → 优雅退出 →
+  coordinator / 外部 launcher 自动 `--resume`
+- 等价"运行时手动 GC"——把今天我们手动 kill + resume 的痛苦操作自动化
+- 估省：每 worker 永远不涨过 2.5 GB（实际峰值可能去到 3 GB）→ 全 worker
+  总 RAM 占用 ~50% off
+- 工作量：~2-3 hr
+- 风险：极低。HotfixSignalHandler / snapshot / resume 链路都已经在
+  run-resilience + tick-level-resume capability 里验证过
 
-### C. fork-based worker spawning（中 ROI，需要重构 launcher）
+### C. **Cold MemoryEvent prune**（中 ROI，中风险）
+- 每 sim 日结束时，遍历 MemoryStore，丢掉满足条件的 events：
+  - day_index < current_day - 3（4 天前的）
+  - kind != "life_history"（保留 pre-sim 重要回忆）
+  - kind != "reflection"（保留 daily summary）
+  - importance < 0.5（低重要性）
+- 保留：近 3 天 events、life_history、reflection、高 importance 关键时刻
+- 估省：每 worker 800 MB - 1.5 GB（大部分 routine event 被清）
+- 工作量：~1 day（实现 + 单测 + 验证不影响检索质量）
+- 风险：可能损失 long-range 历史检索；需要看 thesis 实验是否依赖
+
+### D. fork-based worker spawning（中 ROI，需要重构 launcher）
 - 当前用 subprocess 起 worker，无 page sharing
 - 改 `multiprocessing.fork` → child workers 自动 share parent 的 atlas
   / library page (COW)
@@ -116,22 +133,62 @@ seed44 + seed45 两 suite 释放内存，β=2 跑完。
 - 工作量：~2 day（run_variant_suite 重构）
 - 注意：macOS fork() 在 Apple Silicon 上有 Objective-C / GIL 限制
 
-### D. snapshot 保留策略：K=2 → K=1（小 ROI，极简单）
-- tick-level-resume 保留最近 2 个 snapshot
-- 改 K=1 节省 ~50 MB / worker × 16 = 800 MB（小但免费）
-- 工作量：30 min（改 `_SNAPSHOT_KEEP_K` 常量）
+### E. 紧凑 MemoryEvent 表示（小工作量，可叠加）
+- Pydantic BaseModel → `@dataclass(slots=True)` 替换
+- 每 event 省 ~50% 内存
+- 估省：500 MB - 1 GB / worker
+- 工作量：~半天（搜替换 + 接口测试）
+- 风险：丢 Pydantic validation，但 MemoryEvent 是内部数据结构，可接受
 
-### E. 去除运行时重复计算（小 ROI，简单）
-- 同 seed 的 `sample_population` 跨 worker 完全确定性 → 跨 suite 第一次跑完
-  缓存结果到磁盘，后续 worker 读
-- 同 atlas 的 `build_location_pools` 类似可缓存
-- 估省：~30 sec setup time / worker（不是内存收益，是时间）
-- 工作量：~1 day（加 cache + invalidation 逻辑）
+### F. 周期性 `gc.collect()` + `malloc_trim`（quick win）
+- Python heap 长跑后有 garbage cycles 不被自动回收
+- 每 N tick (e.g., 200) 显式 `gc.collect()`
+- macOS 还可以调 `malloc_zone_pressure_relief` 让 OS 收回
+- 估省：100-300 MB / worker（清 garbage）
+- 工作量：~1 hr
+- 风险：零
 
-**实施触发**：下次想跑 β ≥ 8 publishable 时优先做 A + B。当前 β=2-4 可接受。
+### G. snapshot 保留策略：K=2 → K=1（小 ROI，极简单）
+- 改 `_SNAPSHOT_KEEP_K` 常量
+- 实际是磁盘优化非内存优化，估省 ~200 MB 磁盘 / worker
+- 工作量：30 min
 
-**估工总额**：A+B+D 大约 5-7 day 落实，能在同一 48 GB 机器上把 worker
-上限从 16 拉到 ~40，β=10 publishable 单机可行。
+### H. 去除运行时重复计算（小 ROI，简单）
+- `sample_population` / `build_location_pools` 同 seed 同结果，可缓存
+- 估省：~30 sec setup time / worker（时间，非内存）
+- 工作量：~1 day
+
+---
+
+### ~~原 SQLite-backed MemoryStore 方案~~（已替换）
+
+最初方案是把 MemoryStore 换成 SQLite/DuckDB-backed。**已经被 B (auto-restart)
++ C (cold prune) 组合替代**，理由：
+
+- SQLite 方案工作量 3-5 day，需要重新设计 retrieve 接口，单测大量重写
+- B + C 组合只要 1-2 day，达成相似的"持续低内存占用"效果
+- B 风险极低（复用已有 HotfixSignalHandler）；SQLite 方案有 storage 后端
+  兼容性 / retrieve 性能等多个未知数
+- 长跑场景下 SQLite 写 IO 反而可能比 B 的"周期性 restart from snapshot"
+  更慢
+
+如果未来跑 β ≥ 30 publishable（半年级长跑）或想做永久持久化，再考虑
+SQLite。当前 β=4-10 不需要。
+
+---
+
+**实施触发**：下次想跑 β ≥ 6 publishable 时做 B + F + G（半天工作）。
+β ≥ 10 加 A + C（额外 2 day）。
+
+**推荐组合**（按 ROI 排序）：
+
+| 组合 | 工作量 | 内存收益 | 风险 |
+|---|---|---|---|
+| B (auto-restart) only | 2-3 hr | 每 worker 永封顶 2.5 GB | 极低 ⭐⭐⭐⭐⭐ |
+| B + F (auto-restart + gc) | 半天 | 同上 + GC 清 100-300 MB | 极低 ⭐⭐⭐⭐⭐ |
+| B + F + C (+ cold prune) | 1.5 day | 进一步降至 ~1 GB / worker | 中 ⭐⭐⭐⭐ |
+| B + F + C + A (+ mmap atlas) | 2.5 day | β=10 publishable 单机舒服 | 中 ⭐⭐⭐⭐ |
+| 全套 (含 D fork) | 5 day | β=15+ 可行 | 中-高 |
 
 **Owner**：未指定。
 
