@@ -137,6 +137,60 @@ seed44 + seed45 两 suite 释放内存，β=2 跑完。
 
 ---
 
+## 1.8 baseline-prefix-share：避免重复跑 baseline phase
+
+**记录时间**：2026-05-18
+
+**背景**：D2 attempt 4 跑下来发现，同 seed 下 4 个 variant 的 **Day 0-3
+（baseline phase）完全一样**——没 push，agent 行为只受 seed 决定，跟
+variant identity 无关。当前架构让 4 个 worker 独立跑了 4 遍同样的 Day 0-3。
+
+**浪费量化**：
+- 每 seed：3 个 intervention variant × 4 baseline day = 12 worker-day 重复
+- D2 attempt 4 (4 seed) = 48 worker-day 重复
+- 按 ~1 hr/worker-day 折算 = **~48 hr 冗余 wall**
+- 即总 wall ~22-30 hr 中有 25-30% 是重复
+
+**优化方案**：tick-level-resume 已经有 snapshot 基础，加 baseline-prefix-share：
+
+```
+新执行流程（per seed）：
+1. seed42 baseline 单独跑 day 0-3 → 写 day3_checkpoint.snapshot
+2. seed42 baseline 继续 day 4-13（作为 control）
+3. seed42 hp / gd / pf 各自从 day3_checkpoint 续，跑 day 4-13
+```
+
+收益估算：
+- 总 worker-day: 4 × 14 = 56 → 14 + 3 × 10 = 44 = 省 21%
+- D2 attempt 4 (4 seed × 4 variant) 总 wall: ~22-30 hr → ~17-23 hr
+- 节省 ~5-7 hr
+
+**实施关键点**：
+- snapshot 必须包含全部 mutable state（已有，tick-level-resume capability）
+- launcher 协调：baseline worker 先跑 day 0-3，写 checkpoint，其它 3 个
+  variant worker 等 checkpoint 就绪后并行启动（fork-style）
+- baseline 继续跑 day 4-13 的同时其它 3 个并行跑
+- 写 checkpoint 的 worker 需要 SIGUSR2 类似机制告知 launcher 就绪
+
+**实施成本**：~1-2 day
+- launcher 协调逻辑改：~50 行
+- baseline_snapshot_at_day=3 机制：~30 行
+- 单测：~100 行（验证 snapshot 内容、checkpoint 等价性、resume 后行为等于
+  原跑）
+- 风险：snapshot round-trip 已被 tick-level-resume 测过，但 4 个 variant
+  从同一 snapshot 同时启动是新场景
+
+**触发条件**：下次跑 β ≥ 4 publishable 之前先做。比纯内存优化（1.7）
+ROI 更高——直接 25% wall 减少，工作量更小。
+
+**对实验有效性影响**：理论上零影响——baseline phase 4 个 variant 本来就
+应该等价（只是同一段计算重复跑了 4 次）。snapshot round-trip 已验证
+state 等价性。
+
+**Owner**：未指定。
+
+---
+
 ## 2. ReAct-style LLM 决策架构（替换 hint pre-fill）
 
 **记录时间**：2026-05-17
