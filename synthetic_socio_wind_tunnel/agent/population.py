@@ -1116,8 +1116,21 @@ async def _fill_one_identity(
             pre_filled_identity=p.identity_text,  # may be from template fill
             pre_filled_plan=p.plan_text,
         )
-        raw = await llm_client.generate(prompt, model=model)
+        # capability 1.9 follow-up (2026-05-19): hard timeout. Setup-phase
+        # identity gen — runs at startup if setup_content_cache MISS.
+        raw = await asyncio.wait_for(
+            llm_client.generate(prompt, model=model),
+            timeout=120.0,
+        )
         return _parse_identity_response(raw, p)
+    except asyncio.TimeoutError:
+        logger.warning(
+            "identity LLM call timed out (>120s) for agent %s; using fallback",
+            p.agent_id,
+        )
+        if p.identity_text and p.plan_text:
+            return p.identity_text, p.plan_text
+        return _identity_fallback(p), _plan_fallback(p)
     except Exception as exc:
         logger.warning(
             "identity LLM call failed for agent %s: %r; using fallback",

@@ -127,14 +127,23 @@ def _scan_log(
     }
 
 
-def _classify(rec: dict, *, max_fb_rate: float) -> str:
-    """healthy | degraded | structural"""
+def _classify(rec: dict, *, max_fb_rate: float, min_activity: int) -> str:
+    """healthy | degraded | structural
+
+    min_activity: require fallback_lines + health_lines >= this before
+    flagging degraded. Matches the in-process LLMHealthTracker.min_samples
+    guard — a single startup hiccup (1 fallback line) shouldn't trigger
+    alarm on an otherwise silent (healthy) worker.
+    """
     if not rec.get("exists"):
         return "missing"
     if rec.get("error"):
         return "unknown"
     if rec.get("structural_errors", 0) > 0:
         return "structural"
+    activity = rec.get("fallback_lines", 0) + rec.get("health_lines", 0)
+    if activity < min_activity:
+        return "healthy"  # not enough data to flag — defer to next tick
     if rec.get("fb_rate", 0.0) > max_fb_rate:
         return "degraded"
     return "healthy"
@@ -204,6 +213,27 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="Suppress healthy entries (only show degraded / structural).",
     )
+    parser.add_argument(
+        "--max-age-sec",
+        type=float,
+        default=0.0,
+        help=(
+            "Skip logs with mtime older than this many seconds. Useful "
+            "to ignore stale historical logs that aren't being written "
+            "to in an active resume cycle. 0 (default) = no age filter."
+        ),
+    )
+    parser.add_argument(
+        "--min-activity",
+        type=int,
+        default=20,
+        help=(
+            "Require fallback_lines + health_lines >= this before flagging "
+            "as degraded. Matches LLMHealthTracker.min_samples — avoids "
+            "false alarm on startup hiccups in otherwise silent (healthy) "
+            "workers. Default 20."
+        ),
+    )
     args = parser.parse_args(argv)
 
     logs = _discover_logs(args)
@@ -218,7 +248,20 @@ def main(argv: list[str] | None = None) -> int:
             tail_lines=args.tail_lines,
             window_secs=args.window_secs,
         )
-        rec["status"] = _classify(rec, max_fb_rate=args.max_fb_rate)
+        # Age filter — stale logs (from prior killed runs) shouldn't drive
+        # current-run alarm. They're handled by audit_run_health, not this.
+        if (
+            args.max_age_sec > 0
+            and rec.get("exists")
+            and rec.get("log_age_sec", 0) > args.max_age_sec
+        ):
+            rec["status"] = "stale"
+        else:
+            rec["status"] = _classify(
+                rec,
+                max_fb_rate=args.max_fb_rate,
+                min_activity=args.min_activity,
+            )
         records.append(rec)
 
     # overall status
