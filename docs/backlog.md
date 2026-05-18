@@ -70,6 +70,73 @@ backup 永远是对的。
 
 ---
 
+## 1.7 多 worker 内存优化 + 去除运行时重复计算
+
+**记录时间**：2026-05-18
+
+**背景**：D2 attempt 4 (2026-05-18) 跑 4 seed × 4 variant = 16 worker
+publishable 时，48 GB 单机内存被 D2 完全吃满 → 41 GB swap + 26 GB
+compressor，Activity Monitor 显示 "Memory Used 138 GB"，workers 因 swap
+thrash 速度比预期慢 50%（22 hr → 30+ hr）。最终凌晨 03:00 kill 掉
+seed44 + seed45 两 suite 释放内存，β=2 跑完。
+
+**问题诊断**：
+- 每 worker 进程独立加载所有数据，**完全没共享**：
+  - Atlas (~100 MB) × 16 = 1.6 GB（同一份地图）
+  - shared_memories (~30 MB) × 16 = 480 MB
+  - archetype / conversation_topic / social_prior_rule (~10 MB) × 16 = 160 MB
+  - setup_content_cache 加载（per-seed 不同，但每 worker 读盘 + 解析独立）
+  - Python interpreter + libraries (~700 MB) × 16 = 11 GB
+- 每 worker 独立累积 MemoryStore (~1.5 GB peak after 14 day) × 16 = 24 GB
+  → MemoryEvent 全在 RAM，没有 paging-to-disk 机制
+- 每 worker 重复跑 `sample_population` / `build_location_pools` /
+  `compute_social_priors_for_population`（同 seed 同结果）
+
+**优化方向**（按 ROI 排序）：
+
+### A. 进程间共享只读数据（高 ROI, 中等工作量）
+- Atlas 用 `mmap` 持久化 → 16 worker 共享同一份 100 MB 而不是 1.6 GB
+- 同样适用于 shared_memories / archetype / setup_content_cache
+- 估省：~2-3 GB
+- 工作量：~1 day（atlas 重做成 mmap-backed format）
+
+### B. MemoryStore 改为 SQLite/DuckDB-backed（高 ROI，较大工作量）
+- 当前所有 MemoryEvent 在 RAM 里。14 day × 500 protag × ~10 event/tick ×
+  288 tick = 14M events → 1-2 GB / worker
+- 改 backing store：写入 SQLite per seed，retrieve 时按需 read
+- 估省：~1-1.5 GB / worker × 16 = 16-24 GB
+- 工作量：3-5 day（MemoryService 接口不变，存储后端换）
+- 风险：retrieve 性能可能下降（但 SQLite 索引 + cache 通常 OK）
+
+### C. fork-based worker spawning（中 ROI，需要重构 launcher）
+- 当前用 subprocess 起 worker，无 page sharing
+- 改 `multiprocessing.fork` → child workers 自动 share parent 的 atlas
+  / library page (COW)
+- 估省：~5-8 GB（library 共享）
+- 工作量：~2 day（run_variant_suite 重构）
+- 注意：macOS fork() 在 Apple Silicon 上有 Objective-C / GIL 限制
+
+### D. snapshot 保留策略：K=2 → K=1（小 ROI，极简单）
+- tick-level-resume 保留最近 2 个 snapshot
+- 改 K=1 节省 ~50 MB / worker × 16 = 800 MB（小但免费）
+- 工作量：30 min（改 `_SNAPSHOT_KEEP_K` 常量）
+
+### E. 去除运行时重复计算（小 ROI，简单）
+- 同 seed 的 `sample_population` 跨 worker 完全确定性 → 跨 suite 第一次跑完
+  缓存结果到磁盘，后续 worker 读
+- 同 atlas 的 `build_location_pools` 类似可缓存
+- 估省：~30 sec setup time / worker（不是内存收益，是时间）
+- 工作量：~1 day（加 cache + invalidation 逻辑）
+
+**实施触发**：下次想跑 β ≥ 8 publishable 时优先做 A + B。当前 β=2-4 可接受。
+
+**估工总额**：A+B+D 大约 5-7 day 落实，能在同一 48 GB 机器上把 worker
+上限从 16 拉到 ~40，β=10 publishable 单机可行。
+
+**Owner**：未指定。
+
+---
+
 ## 2. ReAct-style LLM 决策架构（替换 hint pre-fill）
 
 **记录时间**：2026-05-17
