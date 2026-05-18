@@ -191,6 +191,74 @@ state 等价性。
 
 ---
 
+## 1.9 所有直接 LLM call 加 asyncio.wait_for 硬超时兜底
+
+**记录时间**：2026-05-18
+
+**背景**：D2 attempt 4 (2026-05-18) hit day-end deadlock 6 次——多个
+worker 在同样的 day-end reflection 调用点 hang 死 40-80 min 没醒。已对
+`_process_ops_hook` 里 `maybe_reflect` 加了 60s `asyncio.wait_for` 硬超时
+（commit 2d262b6），但**还有多个相同模式的调用点没修**。
+
+**问题模式**：项目里存在两套独立的 LLM 调用路径：
+
+**模式 A（受保护）**：通过 OperationPool → 每个 handler 都被
+`asyncio.wait_for(handler(...), timeout=120s)` 包裹。
+- `do_something` ✅
+- `generate_message` ✅
+- `remember_conversation` ✅
+
+**模式 B（不受保护）**：直接 await llm_client.generate(...) 或类似——
+**没有 asyncio 层的硬超时**。只靠 httpx 的 read_timeout / pool_timeout
+等，但实测 httpx timeout 在 SSL handshake / pool 等待 / 半开连接等
+情况下会失效。
+
+**已知模式 B 调用点**（需要补 timeout）：
+
+1. ~~`tools/run_variant_suite.py:874` `_process_ops_hook` 的 `maybe_reflect`~~
+   → 已修（commit 2d262b6）
+2. `synthetic_socio_wind_tunnel/memory/reflection.py:reflect` 内部对
+   `llm_client.generate(prompt)` 的直接 await
+3. `synthetic_socio_wind_tunnel/memory/importance.py:score_importance`
+   对 LLM 的直接 await
+4. `synthetic_socio_wind_tunnel/agent/planner.py:replan` 的 LLM 调用
+5. `synthetic_socio_wind_tunnel/data_loader/lanecove.py` 里
+   `_generate_life_history_for_one` / `_generate_identity_text_for_one`
+   的 await（cache MISS 路径才走，HIT 不走 → 当前 D2 没踩，但理论上有
+   风险）
+6. `tools/prewarm_setup_content.py` 通过的同样路径
+
+**统一修法**：
+
+```python
+# 推荐模板
+import asyncio
+try:
+    result = await asyncio.wait_for(
+        llm_client.generate(prompt, ...),
+        timeout=60.0,  # 或基于 tier 调整
+    )
+except asyncio.TimeoutError:
+    logger.warning("LLM call timed out, using fallback")
+    result = fallback_value
+```
+
+**或者重构方向**（更彻底）：
+
+让所有 LLM 调用强制经过一个统一的 `bounded_llm_call(client, prompt,
+timeout)` wrapper，无 timeout 不允许调。可以是装饰器或 mixin。
+
+**优先级**：高。
+- 这次 D2 已经踩 6 次了，单次 cost ~40 min wall
+- 不修下次跑 publishable 同样要踩
+- 工作量小（~30 行代码 × 5 调用点 = ~150 行 + 单测）
+
+**估工**：半天到一天。
+
+**Owner**：未指定。
+
+---
+
 ## 2. ReAct-style LLM 决策架构（替换 hint pre-fill）
 
 **记录时间**：2026-05-17
