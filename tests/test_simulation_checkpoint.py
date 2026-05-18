@@ -105,6 +105,46 @@ class TestAtomicWrite:
         assert exc_info.value.expected == "3"
         assert exc_info.value.found == "99"
 
+    def test_read_v1_snapshot_upgrades_in_place(self, tmp_path: Path) -> None:
+        """v1 snapshot (pre-2026-05-19) missing tick_metrics_recorder_state
+        + dialogue_service_state SHALL load with empty defaults."""
+        path = tmp_path / "seed_42_tick100.snapshot.json"
+        path.write_text(json.dumps({
+            "schema_version": "1",
+            "seed": 42, "tick_index": 100, "day_index": 0,
+            "simulated_time": "2026-04-22T08:20:00",
+            "ledger_state": {}, "agent_runtime_states": {},
+            "memory_store_state": {}, "attention_service_state": {},
+            "rng_state": {}, "pending_ops_meta": {},
+            "provider": "stub", "created_at": "2026-04-22T08:20:00",
+        }))
+        snap = SimulationCheckpoint.read(path)
+        assert snap.schema_version == "3"  # upgraded in memory
+        assert snap.tick_metrics_recorder_state == {}
+        assert snap.dialogue_service_state == {}
+        assert snap.seed == 42
+
+    def test_read_v2_snapshot_upgrades_in_place(self, tmp_path: Path) -> None:
+        """v2 snapshot (between 1.11 and 1.12 commits) SHALL load with
+        dialogue_service_state defaulting to {}."""
+        path = tmp_path / "seed_42_tick100.snapshot.json"
+        path.write_text(json.dumps({
+            "schema_version": "2",
+            "seed": 42, "tick_index": 100, "day_index": 0,
+            "simulated_time": "2026-04-22T08:20:00",
+            "ledger_state": {}, "agent_runtime_states": {},
+            "memory_store_state": {}, "attention_service_state": {},
+            "tick_metrics_recorder_state": {"current_day": 5, "buckets": {}},
+            "rng_state": {}, "pending_ops_meta": {},
+            "provider": "stub", "created_at": "2026-04-22T08:20:00",
+        }))
+        snap = SimulationCheckpoint.read(path)
+        assert snap.schema_version == "3"
+        assert snap.dialogue_service_state == {}
+        assert snap.tick_metrics_recorder_state == {
+            "current_day": 5, "buckets": {},
+        }
+
 
 class TestSnapshotFileHelpers:
 

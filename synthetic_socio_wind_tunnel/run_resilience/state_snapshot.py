@@ -45,8 +45,13 @@ _CURRENT_SCHEMA_VERSION = "3"
 # v2 (2026-05-19, capability 1.11): adds tick_metrics_recorder_state so
 #   resume preserves accumulated per_day_summaries / encounter / dwell
 #   counters across kill+resume cycles.
-# v1 snapshots are rejected — re-run from tick 0 or use
-#   tools/aggregate_d2_from_wal.py to rebuild from WAL.
+# v1 (initial, 2026-05-16, capability tick-level-resume): base shape.
+#
+# Backwards compat: v1 and v2 snapshots SHALL be readable — missing fields
+# default to {} (empty per-day buckets / empty dialogue store). This means
+# resuming an old snapshot will start with no historical metrics + no
+# dialogue history (matching prior behavior, since those weren't captured).
+_READABLE_SCHEMA_VERSIONS = {"1", "2", "3"}
 
 
 # ---------------------------------------------------------------------------
@@ -252,16 +257,32 @@ class SimulationCheckpoint(BaseModel):
 
     @classmethod
     def read(cls, path: Path) -> SimulationCheckpoint:
-        """读 + schema 校验。不兼容版本 raise IncompatibleCheckpointError。"""
+        """读 + schema 校验。
+
+        v1, v2, v3 都可读（_READABLE_SCHEMA_VERSIONS）—— 旧 snapshot 缺
+        失的字段（tick_metrics_recorder_state / dialogue_service_state）
+        默认为 {}，Pydantic 接受 default_factory。
+
+        其它版本（未来不兼容变更 / 损坏文件）raise IncompatibleCheckpointError。
+        """
         with path.open("r", encoding="utf-8") as f:
             payload = json.load(f)
         found = str(payload.get("schema_version", ""))
-        if found != _CURRENT_SCHEMA_VERSION:
+        if found not in _READABLE_SCHEMA_VERSIONS:
             raise IncompatibleCheckpointError(
                 expected=_CURRENT_SCHEMA_VERSION,
                 found=found,
                 path=path,
             )
+        # If reading an older schema, upgrade in-place so model_validate
+        # gets a consistent v3-shaped payload. Pydantic would default
+        # missing fields anyway, but bumping schema_version normalizes
+        # what we hold in memory + what get re-written if this snapshot
+        # is rewritten.
+        if found != _CURRENT_SCHEMA_VERSION:
+            payload["schema_version"] = _CURRENT_SCHEMA_VERSION
+            payload.setdefault("tick_metrics_recorder_state", {})
+            payload.setdefault("dialogue_service_state", {})
         return cls.model_validate(payload)
 
     # ---- restore orchestration ----
