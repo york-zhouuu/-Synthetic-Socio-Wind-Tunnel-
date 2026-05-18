@@ -1236,6 +1236,9 @@ def run_seed_with_metrics(
 
     runner = MultiDayRunner(
         orchestrator=orchestrator,
+        memory_service=memory,  # ← 2026-05-19 hotfix: was missing, caused
+                                # snapshot.memory_store_state to be empty {}.
+                                # D2 attempt 4 dialogue/memory content lost.
         seed=seed,
         mode=mode,  # type: ignore[arg-type]
         output_dir=output_dir,
