@@ -171,6 +171,17 @@ class ContestRow(BaseModel):
     paired_variant: str | None = None
     notes: str = ""
 
+    # backlog 1.13 第二阶段 (2026-05-20): surface SuiteAggregate's
+    # high_fallback_warning per row in contest.json so downstream
+    # readers (humans, audits) don't miss "data may be fallback-template
+    # not real LLM" silently. Default False for backward compat.
+    high_fallback_warning: bool = False
+    """True iff SuiteAggregate.max_llm_fallback_pct > 5%. When set,
+    notes also includes a warning string for human readers."""
+    max_llm_fallback_pct: float = 0.0
+    """SuiteAggregate.max_llm_fallback_pct passthrough so contest.json
+    consumers can see the exact rate, not just the threshold flag."""
+
 
 class ContestReport(BaseModel):
     """跨 variant 的 rival hypothesis contest 汇总。"""

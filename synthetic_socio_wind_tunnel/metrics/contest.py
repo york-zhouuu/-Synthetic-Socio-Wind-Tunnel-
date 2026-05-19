@@ -201,6 +201,19 @@ def build_contest_report(
             if v_eff is not None and paired_eff is not None:
                 mirror_delta = v_eff - paired_eff
 
+        # backlog 1.13 第二阶段 (2026-05-20): if this variant's aggregate
+        # flagged a high LLM fallback rate, surface it on the row.
+        # Without this, contest.json readers + report.md author only see
+        # the metric numbers and can miss that the data is fallback-
+        # template (deterministic wait-everyone) not real LLM decisions.
+        _high_fb = bool(getattr(agg, "high_fallback_warning", False))
+        _max_fb = float(getattr(agg, "max_llm_fallback_pct", 0.0) or 0.0)
+        if _high_fb:
+            notes += (
+                f" [⚠️ high LLM fallback {_max_fb:.1%} — data may be "
+                f"fallback-template, not real LLM decisions]"
+            )
+
         _assert_no_forbidden(notes)
 
         row = ContestRow(
@@ -214,6 +227,8 @@ def build_contest_report(
             mirror_delta=mirror_delta,
             paired_variant=paired,
             notes=notes,
+            high_fallback_warning=_high_fb,
+            max_llm_fallback_pct=_max_fb,
         )
         rows.append(row)
         if variant_name == "baseline":

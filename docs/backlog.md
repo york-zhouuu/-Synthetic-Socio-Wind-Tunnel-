@@ -489,15 +489,25 @@ worker 退出就消失。
 
 ## 1.13 fallback-rate budget + run_metrics 暴露（"沉默灾难"防护）
 
-**状态**：⚠️ **部分已实施**。已落地：
+**状态**：✅ **完整落地**（2026-05-20 Part 2 收尾）。已落地：
 - `synthetic_socio_wind_tunnel/run_resilience/llm_health.py::LLMHealthTracker`
 - `AllKeysOpenError` 不再被吞（reflection / importance / planner 各 except 分支）
 - per-call `record_fallback` / `record_success` 收集
 - `FallbackBudgetExceeded` 阈值 raise
-
-未落地（下次 PR / A.3 计划）：
-- per_day_summary 加 `llm_fallback_pct` / `circuit_breaker_open_count` 字段
-- contest.json + report.md 高 fallback% 时标 warning（防"看起来跑完了"）
+- `DayRunSummary` 加 `llm_fallback_pct` / `llm_total_samples` /
+  `all_keys_open_count` 字段（per_day surface）
+- `RunMetrics.extensions` 加 `max_llm_fallback_pct` / `avg_llm_fallback_pct`
+  / `all_keys_open_total` (per-run roll-up via run_variant_suite)
+- `SuiteAggregate` 加 `max_llm_fallback_pct` / `avg_llm_fallback_pct` /
+  `high_fallback_warning` (cross-seed roll-up via aggregator)
+- **2026-05-20**: `ContestRow` 加 `high_fallback_warning` /
+  `max_llm_fallback_pct` 字段；`build_contest_report` propagate +
+  `notes` 拼接警告字串。`report.md` write_markdown 每个 variant
+  emit "**⚠️ high LLM fallback X% — data may be fallback-template**"
+  独立一行（与 `degraded_preliminary` 警告并列）。Regression tests:
+  `tests/test_llm_fallback_visibility.py::test_contest_row_propagates_high_fallback_warning`
+  / `test_report_md_emits_high_fallback_line` /
+  `test_contest_row_legacy_aggregate_no_warning`
 
 **记录时间**：2026-05-19
 

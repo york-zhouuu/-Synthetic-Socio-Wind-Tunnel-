@@ -117,6 +117,14 @@ def _variant_subsection(agg: SuiteAggregate, row: ContestRow | None) -> str:
         lines.append(f"- reviewer notes: {row.notes}")
     if agg.degraded_preliminary_not_publishable:
         lines.append("- **⚠️ preliminary — seed count < 30**")
+    # backlog 1.13 第二阶段 (2026-05-20): silent-disaster防护——
+    # 单独一行高 fallback% 警告，让 author 写 Interpretation 时不会
+    # 漏掉"这天的 LLM 是 fallback 模板，不是真决策"。
+    if agg.high_fallback_warning:
+        lines.append(
+            f"- **⚠️ high LLM fallback {agg.max_llm_fallback_pct:.1%} — "
+            f"data may be fallback-template, not real LLM decisions**"
+        )
 
     lines.extend([
         "",
