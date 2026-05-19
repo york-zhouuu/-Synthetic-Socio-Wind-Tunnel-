@@ -15,7 +15,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["pytest", "pytest-cov"]
+dev = ["pytest", "pytest-cov", "hypothesis", "mutmut"]
 llm = ["anthropic"]
 web = ["flask"]
 map-enrichment = ["overturemaps", "shapely"]
@@ -23,6 +23,13 @@ full = ["anthropic", "flask", "overturemaps", "shapely"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+
+[tool.mutmut]
+# Mutation testing baseline — focused on hot paths added by
+# harden-worker-resilience. Run: `python -m mutmut run`
+# See docs/testing-philosophy.md Section 11.3 for interpretation.
+paths_to_mutate = "synthetic_socio_wind_tunnel/conversation/dialogue_service.py"
+tests_dir = "tests/"
 
 [tool.setuptools.packages.find]
 where = ["."]
