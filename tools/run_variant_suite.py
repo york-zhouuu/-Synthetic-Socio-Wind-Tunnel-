@@ -1455,6 +1455,27 @@ def main() -> int:
     # explicitly passed by parent + --workers==1) to avoid recursion.
     _is_publishable = args.agents == 1000 and args.num_days == 14
     _is_worker_child = args.suite_dir is not None and args.workers == 1
+
+    # enforce-worker-rss-cap (2026-05-19): publishable mode SHALL cap
+    # per-worker RSS. 2026-05-19 D2 incident: single workers reached
+    # 16-37GB RSS sawtooth on a 48GB machine — one bloat from snapshot
+    # parsing pushed the kernel into swap and pages flushed. Hard cap
+    # at 10GB; combined with cold-prune encounter eviction + malloc
+    # pressure relief, this keeps workers well under jetsam pressure
+    # and lets resume_publishable.py auto-restart bloated workers
+    # via existing graceful_stop path.
+    #
+    # Override allowed via explicit env (tests, dev). Worker children
+    # inherit from parent, so we set it for both _is_worker_child and
+    # parent: any unset env -> 10000.
+    if _is_publishable and not os.environ.get("RSS_RESTART_MB"):
+        os.environ["RSS_RESTART_MB"] = "10000"
+        if not _is_worker_child:
+            print(
+                "[suite] publishable mode: defaulting RSS_RESTART_MB=10000 "
+                "(per-worker 10GB hard cap; override via env to opt out)",
+                file=sys.stderr,
+            )
     # 2026-05-17 escape hatch: when relaunching D2 after we've already
     # successfully passed preflight earlier today on identical code state,
     # the 2-hour publishable preflight is pure waste. Set

@@ -92,6 +92,53 @@ class MemoryStore:
     def _event_at(self, idx: int) -> "MemoryEvent":
         return self._events[idx]
 
+    # ---- cold prune (enforce-worker-rss-cap, 2026-05-19) ----
+
+    def evict_cold_encounter_events(self, before_tick: int) -> int:
+        """Remove encounter events older than `before_tick` (exclusive).
+
+        Only `kind == "encounter"` events are evicted; all other kinds
+        SHALL remain. Returns the number of events removed.
+
+        2026-05-19 publishable scale measurement: encounter events
+        are 93.5% of memory_store_state bytes (6.88M events at day10).
+        Other kinds are individually small (life_history 9k, action
+        530k, reflection/etc < 10k) and semantically critical, so
+        they are NOT touched here.
+
+        Reverse indices (`_by_actor` / `_by_location` / `_by_tag` /
+        `_by_kind`) SHALL be rebuilt from the surviving event list
+        so subsequent queries don't return stale or off-by-one
+        results.
+        """
+        if not self._events:
+            return 0
+        survivors: list["MemoryEvent"] = []
+        evicted_count = 0
+        for ev in self._events:
+            if ev.kind == "encounter" and ev.tick < before_tick:
+                evicted_count += 1
+                continue
+            survivors.append(ev)
+        if evicted_count == 0:
+            return 0
+
+        # Rebuild events list + all reverse indices from survivors.
+        self._events = survivors
+        self._by_actor = defaultdict(list)
+        self._by_location = defaultdict(list)
+        self._by_tag = defaultdict(list)
+        self._by_kind = defaultdict(list)
+        for idx, ev in enumerate(self._events):
+            if ev.actor_id:
+                self._by_actor[ev.actor_id].append(idx)
+            if ev.location_id:
+                self._by_location[ev.location_id].append(idx)
+            for tag in ev.tags:
+                self._by_tag[tag].append(idx)
+            self._by_kind[ev.kind].append(idx)
+        return evicted_count
+
     def replace(self, event_id: str, new_event: "MemoryEvent") -> bool:
         """
         替换 event（同 event_id）。用于 daily summary 回填 tags / importance。

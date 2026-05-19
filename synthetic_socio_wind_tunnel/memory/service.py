@@ -13,6 +13,7 @@ MemoryService — memory 能力的主入口。
 from __future__ import annotations
 
 import asyncio
+import os
 import random
 from datetime import datetime
 from typing import TYPE_CHECKING, Any, Mapping
@@ -334,6 +335,29 @@ class MemoryService:
         if store is None:
             return []
         return list(store.all())
+
+    # ---- cold prune (enforce-worker-rss-cap, 2026-05-19) ----
+
+    def evict_cold_encounter_events_across_agents(
+        self, before_tick: int,
+    ) -> int:
+        """Cross-agent cold-prune wrapper.
+
+        Iterates every agent's MemoryStore and calls
+        `evict_cold_encounter_events(before_tick)`. Returns total
+        evicted count across all stores.
+
+        Idempotent: same `before_tick` on a subsequent call yields 0.
+
+        Hooked by `MultiDayRunner.on_day_end` to keep `memory_store_state`
+        bounded at publishable scale (encounter events at day-10 reach
+        6.88M; rolling-evict to last `MEMORY_EVENT_EVICT_GRACE_DAYS=2`
+        cuts ~90% of memory_store size).
+        """
+        total = 0
+        for store in self._stores.values():
+            total += store.evict_cold_encounter_events(before_tick)
+        return total
 
     # ---- 跨日检索（multi-day-simulation 引入） ----
 
@@ -970,8 +994,12 @@ class MemoryService:
 _MEMORY_EVENT_FIELD_NAMES: tuple[str, ...] | None = None
 
 
-def _event_to_json(ev) -> dict[str, Any]:
-    """frozen MemoryEvent → JSON-safe dict."""
+def _event_to_json_legacy(ev) -> dict[str, Any]:
+    """frozen MemoryEvent → JSON-safe dict (legacy implementation).
+
+    Reference implementation kept for rollback (MEMORY_SNAPSHOT_USE_FAST=0)
+    and as oracle for the byte-equivalence corpus round-trip test.
+    """
     global _MEMORY_EVENT_FIELD_NAMES
     if _MEMORY_EVENT_FIELD_NAMES is None:
         from dataclasses import fields
@@ -986,6 +1014,69 @@ def _event_to_json(ev) -> dict[str, Any]:
         else:
             out[name] = v
     return out
+
+
+# accelerate-memory-snapshot-serialization (2026-05-19, py-spy showed 78%
+# CPU on _event_to_json line 985 / `out[name] = list(v)` during publishable
+# single-worker snapshot writes).
+#
+# Two fast paths implemented + benchmarked; the typed-dispatch variant
+# was selected. The typed variant:
+# 1. Uses `__dict__` direct read instead of getattr loop
+# 2. Skips per-field isinstance dispatch by knowing which fields are
+#    datetime/tuple ahead of time
+# 3. Builds dict literal in declared order (preserves key order)
+#
+# MemoryEvent field type inventory (must stay in sync with models.py):
+#   datetime fields: simulated_time, last_access (optional)
+#   tuple fields:    participants, tags, embedding (optional), related_memory_ids
+#   plain fields:    everything else
+def _event_to_json_fast(ev) -> dict[str, Any]:
+    """Typed-dispatch fast path. Maintains byte-equivalence with legacy.
+
+    SHALL produce a dict whose contents AND key order equal the legacy
+    output. If MemoryEvent gains/loses fields, this function MUST be
+    updated alongside the dataclass — otherwise the round-trip corpus
+    test will fail loudly.
+    """
+    # __dict__ on frozen dataclass gives the actual attribute dict (not
+    # a fresh copy in CPython 3.11+; near-zero cost).
+    d = ev.__dict__
+
+    # Build dict literal in declared field order so json.dumps emits
+    # bytes identical to legacy.
+    sim_time = d["simulated_time"]
+    last_access = d["last_access"]
+    embedding = d["embedding"]
+
+    return {
+        "event_id": d["event_id"],
+        "agent_id": d["agent_id"],
+        "tick": d["tick"],
+        "simulated_time": sim_time.isoformat(),
+        "kind": d["kind"],
+        "content": d["content"],
+        "actor_id": d["actor_id"],
+        "location_id": d["location_id"],
+        "day_index": d["day_index"],
+        "urgency": d["urgency"],
+        "importance": d["importance"],
+        "participants": list(d["participants"]),
+        "tags": list(d["tags"]),
+        "embedding": list(embedding) if embedding is not None else None,
+        "related_memory_ids": list(d["related_memory_ids"]),
+        "last_access": last_access.isoformat() if last_access is not None else None,
+    }
+
+
+def _event_to_json(ev) -> dict[str, Any]:
+    """Public entry point with env-switchable fast/legacy path.
+
+    `MEMORY_SNAPSHOT_USE_FAST=0` forces the legacy path; default uses fast.
+    """
+    if os.environ.get("MEMORY_SNAPSHOT_USE_FAST", "1") == "0":
+        return _event_to_json_legacy(ev)
+    return _event_to_json_fast(ev)
 
 
 def _event_from_json(data: dict[str, Any]):

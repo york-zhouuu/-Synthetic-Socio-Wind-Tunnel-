@@ -136,12 +136,15 @@ class TestBuildTierClientsDeepSeek:
         assert clients["nano"]._model == "deepseek-v4-flash"
 
     def test_deepseek_max_tokens_per_tier(self):
+        # 2026-05-17 setup-content-cache D1 fix: max_tokens bumped to
+        # match documented DeepSeek v4 caps (sonnet 384K, haiku 32K).
+        # Test was missed during that bump; updated 2026-05-19.
         clients = build_tier_clients(
             provider="deepseek", api_key="dummy-key",
         )
-        assert clients["sonnet"]._max_tokens == 1024
-        assert clients["haiku"]._max_tokens == 512
-        assert clients["nano"]._max_tokens == 32
+        assert clients["sonnet"]._max_tokens == 393216
+        assert clients["haiku"]._max_tokens == 32768
+        assert clients["nano"]._max_tokens == 256
 
     def test_deepseek_override_models(self):
         clients = build_tier_clients(

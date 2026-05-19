@@ -55,6 +55,62 @@ RunMode = Literal["dev", "publishable"]
 _DEV_MAX_DAYS = 3
 
 
+# enforce-worker-rss-cap (2026-05-19): malloc_zone_pressure_relief helper.
+#
+# `gc.collect()` only handles Python-level cycles; it does NOT hand
+# memory back to the OS. On macOS, pymalloc arenas and dylib-internal
+# allocators sit in DefaultMallocZone, which is ~89% fragmented at
+# publishable scale (6.1GB of 7.4GB unreclaimable by gc alone).
+#
+# `malloc_zone_pressure_relief(NULL, 0)` is Apple's hint to libmalloc
+# to return free pages to the kernel. Empirically it can reclaim
+# 2-4GB of fragmented arena pages after a `gc.collect()` cycle.
+#
+# Linux equivalent (TODO when project goes cross-platform):
+# `ctypes.CDLL("libc.so.6").malloc_trim(0)`.
+#
+# Failure semantics: SHALL NEVER crash the run. First failure logs a
+# WARNING and sets the module-level disable flag; subsequent calls
+# return silently. This matches the run-resilience invariant that
+# memory-hygiene helpers are best-effort.
+_pressure_relief_disabled: bool = False
+
+
+def _call_malloc_pressure_relief() -> None:
+    """Hint libmalloc to return free pages to the OS.
+
+    macOS: calls libc `malloc_zone_pressure_relief(NULL, 0)`.
+    Linux: TODO — `malloc_trim(0)`. Currently a silent no-op.
+    Other platforms: silent no-op.
+
+    Best-effort; failures fall back silently after one warning.
+    """
+    import sys
+
+    global _pressure_relief_disabled
+    if _pressure_relief_disabled:
+        return
+
+    try:
+        if sys.platform == "darwin":
+            import ctypes
+            libc = ctypes.CDLL("libc.dylib")
+            # void* malloc_zone_pressure_relief(malloc_zone_t *zone, size_t goal);
+            # NULL zone -> all zones; 0 goal -> default behavior
+            libc.malloc_zone_pressure_relief(None, 0)
+        else:
+            # Linux/Windows path not yet implemented; silent no-op
+            return
+    except Exception as exc:  # noqa: BLE001
+        _pressure_relief_disabled = True
+        logger.warning(
+            "[memory] malloc_zone_pressure_relief failed (%s); "
+            "disabling further calls this process. "
+            "gc.collect still runs but OS-level page reclaim is off.",
+            exc,
+        )
+
+
 @dataclass(frozen=True)
 class DayRunSummary:
     """单日 run 的聚合结构。"""
@@ -101,6 +157,12 @@ class DayRunSummary:
     tick_latency_ms_max: float = 0.0
     """per-tick wall-clock 最大值（毫秒），within this day。"""
 
+    # enforce-worker-rss-cap (2026-05-19): cold-prune encounter events
+    # at day_end to bound `memory_store_state` size. Default grace 2
+    # simulated days; env `MEMORY_EVENT_EVICT_GRACE_DAYS` overrides.
+    evicted_encounter_count: int = 0
+    """该 day_end 触发 cold-prune 删掉的 encounter event 数（across all agents）。"""
+
 
 @dataclass(frozen=True)
 class MultiDayResult:
@@ -137,6 +199,7 @@ class MultiDayResult:
                     "tick_latency_ms_p50": d.tick_latency_ms_p50,
                     "tick_latency_ms_p95": d.tick_latency_ms_p95,
                     "tick_latency_ms_max": d.tick_latency_ms_max,
+                    "evicted_encounter_count": d.evicted_encounter_count,
                     "daily_summary_batch": {
                         aid: {
                             "agent_id": s.agent_id,
@@ -543,6 +606,49 @@ class MultiDayRunner:
                             "at day_index=%d: %s", day_index, exc,
                         )
 
+                # enforce-worker-rss-cap (2026-05-19): cold-prune
+                # encounter events from memory_store. At publishable
+                # scale (1000 agent × 14 day) encounter events reach
+                # 6.88M and dominate `memory_store_state` size by 93.5%.
+                # Eviction keeps RSS bounded for the 10GB hard cap.
+                evicted_encounter_count = 0
+                if self._memory_service is not None:
+                    encounter_grace = int(
+                        os.environ.get("MEMORY_EVENT_EVICT_GRACE_DAYS", "2")
+                    )
+                    encounter_cutoff_tick = (
+                        max(0, day_index - encounter_grace) * ticks_per_day
+                    )
+                    if encounter_cutoff_tick > 0:
+                        try:
+                            evicted_encounter_count = (
+                                self._memory_service
+                                .evict_cold_encounter_events_across_agents(
+                                    before_tick=encounter_cutoff_tick,
+                                )
+                            )
+                            if evicted_encounter_count > 0:
+                                logger.info(
+                                    "[memory-evict] day=%d cutoff_tick=%d "
+                                    "evicted %d encounter events",
+                                    day_index, encounter_cutoff_tick,
+                                    evicted_encounter_count,
+                                )
+                        except Exception as exc:  # noqa: BLE001
+                            logger.warning(
+                                "evict_cold_encounter_events_across_agents "
+                                "failed at day_index=%d: %s",
+                                day_index, exc,
+                            )
+                # Patch the most-recent DayRunSummary with eviction count
+                # (per_day_summaries[-1] was just appended above)
+                if per_day:
+                    from dataclasses import replace as _dc_replace
+                    per_day[-1] = _dc_replace(
+                        per_day[-1],
+                        evicted_encounter_count=evicted_encounter_count,
+                    )
+
                 # on_day_end: 外部 hook 可读 batch 做 metrics 采集 / phase 转
                 if on_day_end is not None:
                     on_day_end(current_date, day_index, batch)
@@ -765,6 +871,11 @@ class MultiDayRunner:
 
             if gc_every > 0 and tick_global % gc_every == 0:
                 freed = gc.collect()
+                # enforce-worker-rss-cap: hand free pages back to the OS
+                # after cycle collection — gc.collect alone leaves
+                # pymalloc arenas pinned (89% fragmentation on macOS
+                # at publishable scale).
+                _call_malloc_pressure_relief()
                 rss_after = _self_rss_mb()
                 logger.info(
                     "[gc] tick_global=%d freed=%d cycles rss=%sMB",
