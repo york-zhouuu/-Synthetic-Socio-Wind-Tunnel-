@@ -394,22 +394,54 @@ def snapshot_path(output_dir: Path, *, seed: int, tick_index_global: int) -> Pat
 
 
 def find_latest_snapshot(output_dir: Path, *, seed: int) -> Path | None:
-    """枚举 output_dir 下该 seed 的 snapshot 文件，返回最大 tick 那个。"""
+    """枚举 output_dir 下该 seed 的 snapshot 文件，返回最权威那个。
+
+    2026-05-20 fix-find-latest-snapshot-tick-final: also consider
+    `seed_<N>_tick_final.snapshot.json` (graceful_stop's final state),
+    not just numeric `tick<N>` files. The pre-fix `int(stem)` raised
+    ValueError on `_final` and silently dropped the file, causing
+    auto-resume to pick stale periodic snapshots after a graceful_stop.
+
+    Selection rule:
+    1. If tick_final exists AND its mtime >= newest numeric's mtime →
+       return tick_final (graceful_stop final is authoritative).
+    2. Else if numeric exists → return highest-tick numeric.
+    3. Else if only tick_final exists → return it.
+    4. Else None.
+    """
     if not output_dir.exists():
         return None
     prefix = f"seed_{seed}_tick"
     suffix = ".snapshot.json"
-    candidates: list[tuple[int, Path]] = []
+    numeric: list[tuple[int, Path]] = []
+    tick_final_path: Path | None = None
     for p in output_dir.glob(f"{prefix}*{suffix}"):
         stem = p.name[len(prefix):-len(suffix)]
-        try:
-            candidates.append((int(stem), p))
-        except ValueError:
+        if stem == "_final":
+            tick_final_path = p
             continue
-    if not candidates:
-        return None
-    candidates.sort(key=lambda t: t[0])
-    return candidates[-1][1]
+        try:
+            numeric.append((int(stem), p))
+        except ValueError:
+            continue  # other non-numeric tick suffixes (defensive)
+
+    if numeric:
+        numeric.sort(key=lambda t: t[0])
+        latest_numeric = numeric[-1][1]
+        if tick_final_path is None:
+            return latest_numeric
+        # Both exist — pick by mtime
+        try:
+            final_mtime = tick_final_path.stat().st_mtime
+            numeric_mtime = latest_numeric.stat().st_mtime
+        except OSError:
+            return latest_numeric
+        return tick_final_path if final_mtime >= numeric_mtime else latest_numeric
+
+    # Only tick_final
+    if tick_final_path is not None:
+        return tick_final_path
+    return None
 
 
 def prune_snapshots(output_dir: Path, *, seed: int, keep: int) -> list[Path]:
