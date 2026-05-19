@@ -174,12 +174,38 @@ async def handle_do_something(
     args = op.args
     prompt = _build_do_something_prompt(args)
     tracker = get_tracker()
+
+    # wire-emit-llm-call (2026-05-20): handler-level fallback events go
+    # to llm.jsonl alongside tier-client success/exhausted events.
+    def _emit_fallback(exc_class: str) -> None:
+        try:
+            from synthetic_socio_wind_tunnel.observability import (
+                get_instrumentation,
+            )
+            get_instrumentation().emit_llm_call(
+                tier="sonnet",  # do_something is routed to sonnet
+                provider="unknown",  # caller can't easily detect tier_client provider
+                model="unknown",
+                kind="do_something",
+                agent_id=op.agent_id,
+                latency_ms=0,  # latency was inside the tier client emit
+                status="fallback",
+                attempt=0, max_attempts=3,
+                exc_class=exc_class,
+            )
+        except Exception:  # noqa: BLE001
+            pass
+
     try:
         raw = await llm_client.generate(prompt, model=args.get("model", ""))
     except AllKeysOpenError:
         # Structural failure — record + re-raise. Per-call fallback would
         # mask 8-keys-out-of-8 cooldown as healthy noise.
         tracker.record_all_keys_open()
+        _emit_fallback(
+            "synthetic_socio_wind_tunnel.run_resilience.circuit_breaker."
+            "AllKeysOpenError",
+        )
         raise
     except Exception as exc:
         logger.warning(
@@ -187,6 +213,7 @@ async def handle_do_something(
             op.agent_id, exc,
         )
         tracker.record_fallback()
+        _emit_fallback(f"{type(exc).__module__}.{type(exc).__name__}")
         action = _fallback_action(args)
         return OperationResult(
             op_id=op.op_id, agent_id=op.agent_id, kind=op.kind,
@@ -202,6 +229,7 @@ async def handle_do_something(
             op.agent_id, (raw or "")[:200],
         )
         tracker.record_fallback()
+        _emit_fallback("unparseable_response")
         action = _fallback_action(args)
         return OperationResult(
             op_id=op.op_id, agent_id=op.agent_id, kind=op.kind,

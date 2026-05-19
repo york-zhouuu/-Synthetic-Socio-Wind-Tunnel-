@@ -349,6 +349,35 @@ def _resilience_disabled() -> bool:
 
 
 # ---------------------------------------------------------------------------
+# wire-emit-llm-call (2026-05-20): per-call instrumentation helper.
+# tier client `generate()` methods call this on success / exhaustion path.
+# Failure isolation: never raises (per RuntimeInstrumentation contract).
+# ---------------------------------------------------------------------------
+
+
+def _emit_llm_call_safe(
+    *, tier: str, provider: str, model: str, latency_ms: int,
+    status: str, max_attempts: int,
+    exc_class: str | None = None, key_id: int | None = None,
+) -> None:
+    """Best-effort emit a single llm.jsonl record. Never raises."""
+    try:
+        from synthetic_socio_wind_tunnel.observability import (
+            get_instrumentation,
+        )
+        get_instrumentation().emit_llm_call(
+            tier=tier, provider=provider, model=model,
+            kind="unknown", agent_id=None,
+            latency_ms=latency_ms,
+            status=status,
+            attempt=0, max_attempts=max_attempts,
+            exc_class=exc_class, key_id=key_id,
+        )
+    except Exception:  # noqa: BLE001
+        pass
+
+
+# ---------------------------------------------------------------------------
 # stub client (unchanged — no resilience needed)
 # ---------------------------------------------------------------------------
 
@@ -362,9 +391,24 @@ class _StubTierClient:
 
     def __init__(self, tier: Tier) -> None:
         self._tier = tier
+        self._provider = "stub"
+        self._model = f"stub-{tier}"
         self.calls: list[tuple[str, str]] = []
 
     async def generate(self, prompt: str, *, model: str = "", **_: Any) -> str:
+        import time as _t_stub
+        _t0 = _t_stub.perf_counter()
+        try:
+            result = self._generate_inner(prompt)
+            return result
+        finally:
+            _emit_llm_call_safe(
+                tier=self._tier, provider=self._provider, model=self._model,
+                latency_ms=int((_t_stub.perf_counter() - _t0) * 1000),
+                status="success", max_attempts=1,
+            )
+
+    def _generate_inner(self, prompt: str) -> str:
         self.calls.append((self._tier, prompt))
         # Detect prompt shape and return a parseable canned response so
         # downstream parsers don't fall back. Order matters — match more
@@ -521,6 +565,8 @@ class _GeminiTierClient:
         # IGNORE external model parameter — handlers pass profile.base_model
         # (e.g. "claude-sonnet-4-6") which Gemini doesn't recognize → 404.
         used_model = self._model
+        import time as _t_gm
+        _t0 = _t_gm.perf_counter()
         # thinking_budget=0 — flash-preview defaults to thinking ON which
         # adds latency for ai-town ops. Force off.
         config = self._types.GenerateContentConfig(
@@ -542,9 +588,22 @@ class _GeminiTierClient:
                 operation=_do_call,
                 policy=self._retry_policy,
                 breaker=ctx.breaker,
+                tier=self._tier,
+                provider=getattr(self, "_provider", "gemini"),
+                key_id=idx,
             )
-        except BaseException:
+        except BaseException as exc:
             self._last_usage = None
+            _emit_llm_call_safe(
+                tier=self._tier,
+                provider=getattr(self, "_provider", "gemini"),
+                model=used_model,
+                latency_ms=int((_t_gm.perf_counter() - _t0) * 1000),
+                status="exhausted",
+                exc_class=f"{type(exc).__module__}.{type(exc).__name__}",
+                max_attempts=self._retry_policy.max_attempts,
+                key_id=idx,
+            )
             raise
 
         ctx.call_count += 1
@@ -563,6 +622,16 @@ class _GeminiTierClient:
                 self._last_usage = None
         except Exception:
             self._last_usage = None
+
+        _emit_llm_call_safe(
+            tier=self._tier,
+            provider=getattr(self, "_provider", "gemini"),
+            model=used_model,
+            latency_ms=int((_t_gm.perf_counter() - _t0) * 1000),
+            status="success",
+            max_attempts=self._retry_policy.max_attempts,
+            key_id=idx,
+        )
         return response.text or ""
 
 
@@ -683,6 +752,8 @@ class _DeepSeekTierClient:
         self, prompt: str, *, model: str = "", **_: Any,
     ) -> str:
         used_model = self._model
+        import time as _t_ds
+        _t0 = _t_ds.perf_counter()
 
         idx, ctx = _pick_open_aware(self._contexts, start_idx=self._key_idx)
         self._key_idx = (idx + 1) % len(self._contexts)
@@ -706,9 +777,22 @@ class _DeepSeekTierClient:
                 operation=_do_call,
                 policy=self._retry_policy,
                 breaker=ctx.breaker,
+                tier=self._tier,
+                provider=getattr(self, "_provider", "deepseek"),
+                key_id=idx,
             )
-        except BaseException:
+        except BaseException as exc:
             self._last_usage = None
+            _emit_llm_call_safe(
+                tier=self._tier,
+                provider=getattr(self, "_provider", "deepseek"),
+                model=used_model,
+                latency_ms=int((_t_ds.perf_counter() - _t0) * 1000),
+                status="exhausted",
+                exc_class=f"{type(exc).__module__}.{type(exc).__name__}",
+                max_attempts=self._retry_policy.max_attempts,
+                key_id=idx,
+            )
             raise
 
         ctx.call_count += 1
@@ -727,6 +811,16 @@ class _DeepSeekTierClient:
                 self._last_usage = None
         except Exception:
             self._last_usage = None
+
+        _emit_llm_call_safe(
+            tier=self._tier,
+            provider=getattr(self, "_provider", "deepseek"),
+            model=used_model,
+            latency_ms=int((_t_ds.perf_counter() - _t0) * 1000),
+            status="success",
+            max_attempts=self._retry_policy.max_attempts,
+            key_id=idx,
+        )
 
         if not response.choices:
             return ""
@@ -808,8 +902,21 @@ class _AnthropicTierClient:
         self, prompt: str, *, model: str = "", **_: Any,
     ) -> str:
         used_model = model or self._model
+        import time as _t_an
+        _t0 = _t_an.perf_counter()
         ctx = self._ctx
         if not ctx.breaker.should_allow():
+            _emit_llm_call_safe(
+                tier=self._tier,
+                provider=getattr(self, "_provider", "anthropic"),
+                model=used_model,
+                latency_ms=int((_t_an.perf_counter() - _t0) * 1000),
+                status="exhausted",
+                exc_class="synthetic_socio_wind_tunnel.run_resilience."
+                          "circuit_breaker.AllKeysOpenError",
+                max_attempts=self._retry_policy.max_attempts,
+                key_id=0,
+            )
             raise AllKeysOpenError(
                 n_keys=1,
                 next_available_at=ctx.breaker.next_available_at,
@@ -823,11 +930,27 @@ class _AnthropicTierClient:
                 messages=[{"role": "user", "content": prompt}],
             )
 
-        response = await _run_with_retry(
-            operation=_do_call,
-            policy=self._retry_policy,
-            breaker=ctx.breaker,
-        )
+        try:
+            response = await _run_with_retry(
+                operation=_do_call,
+                policy=self._retry_policy,
+                breaker=ctx.breaker,
+                tier=self._tier,
+                provider=getattr(self, "_provider", "anthropic"),
+                key_id=0,
+            )
+        except BaseException as exc:
+            _emit_llm_call_safe(
+                tier=self._tier,
+                provider=getattr(self, "_provider", "anthropic"),
+                model=used_model,
+                latency_ms=int((_t_an.perf_counter() - _t0) * 1000),
+                status="exhausted",
+                exc_class=f"{type(exc).__module__}.{type(exc).__name__}",
+                max_attempts=self._retry_policy.max_attempts,
+                key_id=0,
+            )
+            raise
         ctx.call_count += 1
         ctx.maybe_recycle(threshold=self._recycle_after_calls)
 
@@ -835,6 +958,16 @@ class _AnthropicTierClient:
         for block in response.content:
             if hasattr(block, "text"):
                 text_parts.append(block.text)
+
+        _emit_llm_call_safe(
+            tier=self._tier,
+            provider=getattr(self, "_provider", "anthropic"),
+            model=used_model,
+            latency_ms=int((_t_an.perf_counter() - _t0) * 1000),
+            status="success",
+            max_attempts=self._retry_policy.max_attempts,
+            key_id=0,
+        )
         return "".join(text_parts)
 
 
