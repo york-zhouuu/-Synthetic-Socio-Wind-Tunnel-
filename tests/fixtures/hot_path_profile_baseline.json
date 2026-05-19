@@ -1,0 +1,254 @@
+{
+  "metadata": {
+    "scale": "dev",
+    "agents": 100,
+    "num_days": 1,
+    "seed": 42,
+    "python_version": "3.11.15",
+    "captured_at": "2026-05-19T07:22:53",
+    "wall_clock_seconds": 9.42,
+    "cprofile_overhead_pct_estimate": 61.46
+  },
+  "top_n_functions": [
+    {
+      "rank": 1,
+      "qualname": "<builtin>:<built-in method builtins.exec>",
+      "cumulative_seconds": 9.3429,
+      "cumulative_pct": 100.0,
+      "call_count": 1,
+      "per_call_seconds": 9.342933
+    },
+    {
+      "rank": 2,
+      "qualname": "tools.smoke_experiment_demo:<module>",
+      "cumulative_seconds": 9.3429,
+      "cumulative_pct": 100.0,
+      "call_count": 1,
+      "per_call_seconds": 9.342911
+    },
+    {
+      "rank": 3,
+      "qualname": "tools.smoke_experiment_demo:main",
+      "cumulative_seconds": 9.0931,
+      "cumulative_pct": 97.33,
+      "call_count": 1,
+      "per_call_seconds": 9.09314
+    },
+    {
+      "rank": 4,
+      "qualname": "tools.smoke_experiment_demo:run_smoke",
+      "cumulative_seconds": 9.0019,
+      "cumulative_pct": 96.35,
+      "call_count": 1,
+      "per_call_seconds": 9.001945
+    },
+    {
+      "rank": 5,
+      "qualname": "synthetic_socio_wind_tunnel.orchestrator.service:run",
+      "cumulative_seconds": 8.4882,
+      "cumulative_pct": 90.85,
+      "call_count": 1,
+      "per_call_seconds": 8.488195
+    },
+    {
+      "rank": 6,
+      "qualname": "synthetic_socio_wind_tunnel.orchestrator.service:_fire",
+      "cumulative_seconds": 7.2412,
+      "cumulative_pct": 77.5,
+      "call_count": 578,
+      "per_call_seconds": 0.012528
+    },
+    {
+      "rank": 7,
+      "qualname": "tools.smoke_experiment_demo:on_tick_end",
+      "cumulative_seconds": 7.2392,
+      "cumulative_pct": 77.48,
+      "call_count": 288,
+      "per_call_seconds": 0.025136
+    },
+    {
+      "rank": 8,
+      "qualname": "synthetic_socio_wind_tunnel.memory.service:process_tick",
+      "cumulative_seconds": 7.2339,
+      "cumulative_pct": 77.43,
+      "call_count": 288,
+      "per_call_seconds": 0.025118
+    },
+    {
+      "rank": 9,
+      "qualname": "synthetic_socio_wind_tunnel.memory.service:events_at_tick",
+      "cumulative_seconds": 4.8925,
+      "cumulative_pct": 52.37,
+      "call_count": 28800,
+      "per_call_seconds": 0.00017
+    },
+    {
+      "rank": 10,
+      "qualname": "synthetic_socio_wind_tunnel.memory.service:<listcomp>",
+      "cumulative_seconds": 4.7334,
+      "cumulative_pct": 50.66,
+      "call_count": 28800,
+      "per_call_seconds": 0.000164
+    },
+    {
+      "rank": 11,
+      "qualname": "synthetic_socio_wind_tunnel.orchestrator.service:_run_tick",
+      "cumulative_seconds": 1.2382,
+      "cumulative_pct": 13.25,
+      "call_count": 288,
+      "per_call_seconds": 0.004299
+    },
+    {
+      "rank": 12,
+      "qualname": "synthetic_socio_wind_tunnel.memory.service:_is_encounter_noticed",
+      "cumulative_seconds": 0.9286,
+      "cumulative_pct": 9.94,
+      "call_count": 97604,
+      "per_call_seconds": 1e-05
+    },
+    {
+      "rank": 13,
+      "qualname": "synthetic_socio_wind_tunnel.attention.noticing:noticed_pair",
+      "cumulative_seconds": 0.7481,
+      "cumulative_pct": 8.01,
+      "call_count": 97604,
+      "per_call_seconds": 8e-06
+    },
+    {
+      "rank": 14,
+      "qualname": "stdlib:random:__init__",
+      "cumulative_seconds": 0.6057,
+      "cumulative_pct": 6.48,
+      "call_count": 97811,
+      "per_call_seconds": 6e-06
+    },
+    {
+      "rank": 15,
+      "qualname": "stdlib:random:seed",
+      "cumulative_seconds": 0.5831,
+      "cumulative_pct": 6.24,
+      "call_count": 97811,
+      "per_call_seconds": 6e-06
+    },
+    {
+      "rank": 16,
+      "qualname": "<builtin>:<function Random.seed at 0x1062868e0>",
+      "cumulative_seconds": 0.5003,
+      "cumulative_pct": 5.35,
+      "call_count": 97811,
+      "per_call_seconds": 5e-06
+    },
+    {
+      "rank": 17,
+      "qualname": "synthetic_socio_wind_tunnel.orchestrator.service:_detect_encounters",
+      "cumulative_seconds": 0.4325,
+      "cumulative_pct": 4.63,
+      "call_count": 288,
+      "per_call_seconds": 0.001502
+    },
+    {
+      "rank": 18,
+      "qualname": "synthetic_socio_wind_tunnel.orchestrator.service:_dispatch",
+      "cumulative_seconds": 0.4216,
+      "cumulative_pct": 4.51,
+      "call_count": 28800,
+      "per_call_seconds": 1.5e-05
+    },
+    {
+      "rank": 19,
+      "qualname": "synthetic_socio_wind_tunnel.memory.service:record",
+      "cumulative_seconds": 0.4186,
+      "cumulative_pct": 4.48,
+      "call_count": 224058,
+      "per_call_seconds": 2e-06
+    },
+    {
+      "rank": 20,
+      "qualname": "synthetic_socio_wind_tunnel.orchestrator.service:_dispatch_move",
+      "cumulative_seconds": 0.3941,
+      "cumulative_pct": 4.22,
+      "call_count": 335,
+      "per_call_seconds": 0.001176
+    },
+    {
+      "rank": 21,
+      "qualname": "synthetic_socio_wind_tunnel.engine.navigation:find_route",
+      "cumulative_seconds": 0.367,
+      "cumulative_pct": 3.93,
+      "call_count": 298,
+      "per_call_seconds": 0.001232
+    },
+    {
+      "rank": 22,
+      "qualname": "synthetic_socio_wind_tunnel.memory.store:append",
+      "cumulative_seconds": 0.3031,
+      "cumulative_pct": 3.24,
+      "call_count": 224058,
+      "per_call_seconds": 1e-06
+    },
+    {
+      "rank": 23,
+      "qualname": "synthetic_socio_wind_tunnel.atlas.service:get_center",
+      "cumulative_seconds": 0.2918,
+      "cumulative_pct": 3.12,
+      "call_count": 50261,
+      "per_call_seconds": 6e-06
+    },
+    {
+      "rank": 24,
+      "qualname": "synthetic_socio_wind_tunnel.cartography.lanecove:create_atlas_from_osm",
+      "cumulative_seconds": 0.2781,
+      "cumulative_pct": 2.98,
+      "call_count": 1,
+      "per_call_seconds": 0.27811
+    },
+    {
+      "rank": 25,
+      "qualname": "<frozen importlib:_find_and_load",
+      "cumulative_seconds": 0.2492,
+      "cumulative_pct": 2.67,
+      "call_count": 10,
+      "per_call_seconds": 0.024921
+    },
+    {
+      "rank": 26,
+      "qualname": "<frozen importlib:_find_and_load_unlocked",
+      "cumulative_seconds": 0.249,
+      "cumulative_pct": 2.67,
+      "call_count": 10,
+      "per_call_seconds": 0.024904
+    },
+    {
+      "rank": 27,
+      "qualname": "synthetic_socio_wind_tunnel.core.types:center",
+      "cumulative_seconds": 0.2485,
+      "cumulative_pct": 2.66,
+      "call_count": 50261,
+      "per_call_seconds": 5e-06
+    },
+    {
+      "rank": 28,
+      "qualname": "<frozen importlib:_load_unlocked",
+      "cumulative_seconds": 0.2482,
+      "cumulative_pct": 2.66,
+      "call_count": 11,
+      "per_call_seconds": 0.022562
+    },
+    {
+      "rank": 29,
+      "qualname": "<frozen importlib:exec_module",
+      "cumulative_seconds": 0.2479,
+      "cumulative_pct": 2.65,
+      "call_count": 11,
+      "per_call_seconds": 0.022535
+    },
+    {
+      "rank": 30,
+      "qualname": "<frozen importlib:_call_with_frames_removed",
+      "cumulative_seconds": 0.2466,
+      "cumulative_pct": 2.64,
+      "call_count": 20,
+      "per_call_seconds": 0.012331
+    }
+  ]
+}
