@@ -726,3 +726,72 @@ fix 成"在 schedule do_something / generate_message 时 lazily refresh"。
 **Owner**：未指定。
 
 ---
+
+## 1.15 正式 publishable run 前的自动化 preflight checklist
+
+**记录时间**：2026-05-20
+
+**背景**：2026-05-20 凌晨实测 publishable resume 暴露多个"应该提前发现
+但跑起来才发现"的盲点：
+- snapshot 反序列化 35GB 峰值不在任何优化覆盖范围（`prune-before-
+  snapshot-write` 已修，但当时还没意识到）
+- `_self_rss_mb` 用 ru_maxrss 而非当前 RSS 的 bug（spawn 后才发现）
+- 埋点桩点缺失（SETUP_START / SNAPSHOT_LOAD_START / TICK_LOOP_START
+  这几个 phase event 没实际 wire 到代码里，spec 写了但 impl 漏了）
+- 3 个观察通道（probe TSV / tail_memstat / summarize watch）需要手动
+  各开一次 nohup，容易漏
+
+每次 spawn 是真 LLM cost ($ + 时间)，少了任一个检查可能浪费整个 spawn
+窗口。需要一个**自动化 preflight script**，跑过且全绿才允许 spawn。
+
+**理想方向**：
+
+`tools/preflight_publishable_spawn.py <suite_dir> <seed> <variant>`：
+
+1. **静态检查**
+   - 当前 commit 是否在 main + clean
+   - 关键 env vars 已设（RSS_RESTART_MB, MEMORY_EVENT_EVICT_GRACE_DAYS,
+     SNAPSHOT_PRUNE_BEFORE_WRITE, INSTRUMENTATION_OUTPUT_DIR）
+   - `.venv/bin/python` 存在 + psutil 可 import
+2. **Cell state 检查**
+   - 跑 `audit_resume_strategies.py` 自动选 `--resume-strategy`
+   - 没残留 worker（grep PID + check WAL age）
+   - LaunchAgent 状态（registered 或 not，by intent）
+3. **资源 capacity 检查**
+   - 磁盘 free > 30GB
+   - swap_pressure 不在 high
+   - DeepSeek API 网络可达（HTTP HEAD ping）
+4. **埋点桩点检查**（关键，2026-05-20 教训）
+   - 跑一个 5-second `--mode=dev --num-days=1 --agents=10` smoke
+   - verify 这个 smoke 输出的 events.jsonl 含**所有 9 个 PHASE 事件**
+     按 spec 顺序：PROCESS_START → SETUP_START → SETUP_DONE →
+     [SNAPSHOT_LOAD_*] → TICK_LOOP_START → DAY_START → DAY_END → EXIT
+   - 任一缺失 → fail 退出，spawn 拒绝
+5. **观察通道一键开**
+   - 输出三条 `nohup ... &` 命令一次性 spawn 所有 watcher，return PID list
+   - 或直接 spawn 起来，让 user 复制 tail 路径
+6. **Spawn 命令生成**
+   - print 出完整 nohup spawn 命令（带所有 env vars），让 user 复制粘贴
+
+**优先级**：中。下次 publishable resume 前应该有。当前 CLAUDE.md
+"正式 publishable cell spawn 步骤"段是文档形式，但仍然手动，容易漏一步。
+
+**触发条件**：
+- 下次准备 spawn publishable cell 时（最迟）
+- 或：开始系统性多 cell 重跑时（每个 cell 都要 spawn，自动化收益翻倍）
+
+**估工**：1 天。
+- preflight_publishable_spawn.py 主脚本（已有 audit + summarize 工具可复用）
+- "smoke + verify all 9 phase events fire" 这条需要先修 instrumentation
+  桩点缺失（独立小 OpenSpec change，估 2-3 小时）
+- 端到端 + dry-run + actual spawn 测试
+
+**关联**：
+- [[runtime-instrumentation]] 2026-05-20 不变量段（要补 5 个未 wire 的
+  phase event：SETUP_START / SETUP_DONE / SNAPSHOT_LOAD_START /
+  SNAPSHOT_LOAD_DONE / TICK_LOOP_START / DAY_START / DAY_END）
+- [[audit_resume_strategies.py]] 2026-05-20 工具，preflight 复用之
+
+**Owner**：未指定。
+
+---

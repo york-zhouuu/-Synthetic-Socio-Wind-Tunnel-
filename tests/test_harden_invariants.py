@@ -131,15 +131,19 @@ def test_rss_threshold_triggers_graceful_stop() -> None:
         day_index = 0
         tick_index = 5  # tick_global = 5, matches RSS_CHECK_EVERY_N_TICKS=5
 
-    # _self_rss_mb() does lazy `import resource` — patch the resource
-    # module itself.
-    import resource as _resource
+    # 2026-05-20 comprehensive-runtime-instrumentation: _current_rss_mb
+    # reads psutil first (current RSS, not ru_maxrss peak). Mock psutil
+    # to return 200MB → over threshold → graceful_stop.
+    import psutil
 
-    class _RU:
-        ru_maxrss = 200 * 1024 * 1024  # darwin: bytes → 200 MB
+    class _MemInfo:
+        rss = 200 * 1024 * 1024  # 200 MB in bytes
 
-    with patch.object(_resource, "getrusage", return_value=_RU()), \
-         patch("sys.platform", "darwin"):
+    class _MockProcess:
+        def memory_info(self):
+            return _MemInfo()
+
+    with patch.object(psutil, "Process", return_value=_MockProcess()):
         hook(FakeTick())
 
     assert runner._graceful_stop_requested is True
@@ -195,8 +199,14 @@ def test_rss_off_by_default_does_not_set_graceful_stop() -> None:
 
     runner._orchestrator = FakeOrch()
 
-    # Both gc and rss off → method returns early, no hook registered
-    with patch.dict(os.environ, {"GC_EVERY_N_TICKS": "0", "RSS_RESTART_MB": "0"}, clear=False):
+    # All three (gc / rss / memstat) off → method returns early, no hook
+    # registered. wire-instrumentation-stubs 2026-05-20 added memstat
+    # as a third reason to register; this test now gates all three.
+    with patch.dict(os.environ, {
+        "GC_EVERY_N_TICKS": "0",
+        "RSS_RESTART_MB": "0",
+        "INSTRUMENTATION_SAMPLE_EVERY_N_TICKS": "0",
+    }, clear=False):
         runner._init_memory_management_hooks(ticks_per_day=10)
 
     assert fake_orch_hooks == []

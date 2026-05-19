@@ -990,6 +990,39 @@ def run_seed_with_metrics(
     ledger = Ledger()
     ledger.current_time = datetime.combine(start_date, datetime.min.time())
 
+    # wire-instrumentation-stubs (2026-05-20): SETUP_START phase emit.
+    # Captures atlas-load → pools → variant-build → aitown-wire as one
+    # bracket (the whole pre-run_multi_day setup phase).
+    #
+    # Default INSTRUMENTATION_OUTPUT_DIR to this cell's variant dir
+    # so JSONL files land next to snapshot/WAL (where users expect).
+    # Caller can override via env if they want elsewhere.
+    if output_dir is not None and not os.environ.get(
+        "INSTRUMENTATION_OUTPUT_DIR",
+    ):
+        os.environ["INSTRUMENTATION_OUTPUT_DIR"] = str(output_dir)
+    if not os.environ.get("INSTRUMENTATION_SEED"):
+        os.environ["INSTRUMENTATION_SEED"] = str(seed)
+
+    try:
+        from synthetic_socio_wind_tunnel.observability import (
+            get_instrumentation as _gi_setup,
+        )
+        from synthetic_socio_wind_tunnel.observability.instrumentation import (
+            _read_current_rss_mb as _rss_setup,
+        )
+        _setup_inst = _gi_setup()
+        _setup_rss_before, _ = _rss_setup()
+        _setup_inst.emit_event(
+            kind="PHASE", phase="SETUP_START",
+            seed=seed, variant=variant_name, agents=n_agents,
+        )
+    except Exception:  # noqa: BLE001
+        _setup_inst = None
+        _setup_rss_before = 0
+    import time as _t_setup
+    _setup_t0 = _t_setup.monotonic()
+
     # fix-population-uses-typed-locations + fix-realism-systemic-gaps: typed
     # pools (with PoolQuotas) replace single-pool outdoor-only destinations.
     # PoolQuotas guarantees food_drink / shop / leisure minimums and balances
@@ -1312,6 +1345,19 @@ def run_seed_with_metrics(
             rt.cancel_movement()
         if adapter is not None:
             adapter.on_day_start(current_date, day_index)
+
+    # wire-instrumentation-stubs: SETUP_DONE emit before tick loop starts
+    try:
+        if _setup_inst is not None:
+            _rss_after, _ = _rss_setup()
+            _setup_inst.emit_event(
+                kind="PHASE", phase="SETUP_DONE",
+                duration_sec=_t_setup.monotonic() - _setup_t0,
+                rss_before_mb=_setup_rss_before,
+                rss_after_mb=_rss_after,
+            )
+    except Exception:  # noqa: BLE001
+        pass
 
     result = runner.run_multi_day(
         start_date=start_date, num_days=num_days,

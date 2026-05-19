@@ -449,6 +449,37 @@ class MultiDayRunner:
                     f"restore_from.day_index ({snap.day_index}) exceeds "
                     f"num_days ({num_days})",
                 )
+            # wire-instrumentation-stubs: SNAPSHOT_LOAD_START/DONE桩点
+            try:
+                from synthetic_socio_wind_tunnel.observability import (
+                    get_instrumentation,
+                )
+                from synthetic_socio_wind_tunnel.observability.instrumentation import (
+                    _read_current_rss_mb,
+                )
+                _inst = get_instrumentation()
+                _rss_load_before, _ = _read_current_rss_mb()
+                _snap_path_str = (
+                    str(getattr(snap, "_source_path", ""))
+                    if hasattr(snap, "_source_path") else ""
+                )
+                _snap_size = 0
+                if _snap_path_str:
+                    try:
+                        _snap_size = os.path.getsize(_snap_path_str)
+                    except OSError:
+                        _snap_size = 0
+                _inst.emit_event(
+                    kind="PHASE", phase="SNAPSHOT_LOAD_START",
+                    snapshot_path=_snap_path_str,
+                    size_bytes=_snap_size,
+                )
+            except Exception:  # noqa: BLE001
+                _inst = None
+                _rss_load_before = 0
+
+            import time as _t_snap
+            _load_t0 = _t_snap.monotonic()
             snap.restore_into(
                 ledger=getattr(self._orchestrator, "_ledger", None),
                 agents=agents_by_id,
@@ -457,6 +488,18 @@ class MultiDayRunner:
                 tick_metrics_recorder=self._tick_metrics_recorder,
                 dialogue_service=self._dialogue_service,
             )
+            try:
+                if _inst is not None:
+                    _rss_load_after, _ = _read_current_rss_mb()
+                    _inst.emit_event(
+                        kind="PHASE", phase="SNAPSHOT_LOAD_DONE",
+                        duration_sec=_t_snap.monotonic() - _load_t0,
+                        rss_before_mb=_rss_load_before,
+                        rss_after_mb=_rss_load_after,
+                        delta_mb=_rss_load_after - _rss_load_before,
+                    )
+            except Exception:  # noqa: BLE001
+                pass
             # restore_from 优先于 resume_from；继续从 (snap.day_index, snap.tick_index+1)
             if self._resume_from > 0:
                 logger.warning(
@@ -493,9 +536,36 @@ class MultiDayRunner:
                 raise _GracefulStop()
 
         self._orchestrator.register_on_tick_end(_check_graceful)
+
+        # wire-instrumentation-stubs: TICK_LOOP_START before first day
+        try:
+            from synthetic_socio_wind_tunnel.observability import (
+                get_instrumentation,
+            )
+            get_instrumentation().emit_event(
+                kind="PHASE", phase="TICK_LOOP_START",
+                effective_start_day=effective_start_day,
+                num_days=num_days,
+            )
+        except Exception:  # noqa: BLE001
+            pass
+
         try:
             for day_index in range(effective_start_day, num_days):
                 current_date = start_date + timedelta(days=day_index)
+
+                # wire-instrumentation-stubs: DAY_START emit
+                try:
+                    from synthetic_socio_wind_tunnel.observability import (
+                        get_instrumentation as _gi,
+                    )
+                    _gi().emit_event(
+                        kind="PHASE", phase="DAY_START",
+                        day_index=day_index,
+                        sim_date=str(current_date),
+                    )
+                except Exception:  # noqa: BLE001
+                    pass
 
                 # on_day_start: 先让外部 hook 决定 phase / intervention on/off
                 if on_day_start is not None:
@@ -652,6 +722,20 @@ class MultiDayRunner:
                 # on_day_end: 外部 hook 可读 batch 做 metrics 采集 / phase 转
                 if on_day_end is not None:
                     on_day_end(current_date, day_index, batch)
+
+                # wire-instrumentation-stubs: DAY_END emit
+                try:
+                    from synthetic_socio_wind_tunnel.observability import (
+                        get_instrumentation as _gi_end,
+                    )
+                    _gi_end().emit_event(
+                        kind="PHASE", phase="DAY_END",
+                        day_index=day_index,
+                        sim_date=str(current_date),
+                        evicted_encounter_count=evicted_encounter_count,
+                    )
+                except Exception:  # noqa: BLE001
+                    pass
         finally:
             # tick-level-resume: graceful-stop 时落 final snapshot（无论 N 整数倍）
             if self._graceful_stop_requested:
@@ -844,9 +928,16 @@ class MultiDayRunner:
         gc_every = int(os.environ.get("GC_EVERY_N_TICKS", "200"))
         rss_threshold_mb = int(os.environ.get("RSS_RESTART_MB", "0"))
         rss_check_every = int(os.environ.get("RSS_CHECK_EVERY_N_TICKS", "50"))
+        # wire-instrumentation-stubs (2026-05-20): also enable hook
+        # registration when memstat sampling is on (was previously
+        # gated only on gc/RSS). Default 12 ticks matches the
+        # observability latency hook cadence.
+        memstat_every = int(os.environ.get(
+            "INSTRUMENTATION_SAMPLE_EVERY_N_TICKS", "12",
+        ))
 
-        if gc_every <= 0 and rss_threshold_mb <= 0:
-            return  # both disabled
+        if gc_every <= 0 and rss_threshold_mb <= 0 and memstat_every <= 0:
+            return  # all three disabled
 
         # 2026-05-20 comprehensive-runtime-instrumentation: fix critical
         # bug where `_self_rss_mb` used `resource.getrusage().ru_maxrss`
@@ -887,6 +978,45 @@ class MultiDayRunner:
             tick_global = day_idx * ticks_per_day + tick_idx
             if tick_global <= 0:
                 return
+
+            # wire-instrumentation-stubs (2026-05-20): periodic memstat
+            # sample at the documented cadence. Best-effort — failure
+            # SHALL NOT crash the worker.
+            if (
+                memstat_every > 0
+                and tick_global % memstat_every == 0
+            ):
+                try:
+                    from synthetic_socio_wind_tunnel.observability import (
+                        get_instrumentation,
+                    )
+                    try:
+                        from synthetic_socio_wind_tunnel.run_resilience.llm_health import (
+                            get_tracker as _get_tracker,
+                        )
+                        _tracker = _get_tracker()
+                    except Exception:  # noqa: BLE001
+                        _tracker = None
+                    _sim_iso = None
+                    _sim = getattr(tick_result, "simulated_time", None)
+                    if _sim is not None and hasattr(_sim, "isoformat"):
+                        try:
+                            _sim_iso = _sim.isoformat()
+                        except Exception:  # noqa: BLE001
+                            _sim_iso = None
+                    get_instrumentation().sample_metrics(
+                        tick_global=tick_global,
+                        day_index=day_idx,
+                        tick_in_day=tick_idx,
+                        memory_service=self._memory_service,
+                        dialogue_service=self._dialogue_service,
+                        llm_tracker=_tracker,
+                        sim_time_iso=_sim_iso,
+                    )
+                except Exception as exc:  # noqa: BLE001
+                    logger.debug(
+                        "[memstat] sample_metrics failed: %s", exc,
+                    )
 
             if gc_every > 0 and tick_global % gc_every == 0:
                 freed = gc.collect()

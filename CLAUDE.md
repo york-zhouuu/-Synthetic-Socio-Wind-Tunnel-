@@ -47,6 +47,77 @@ This file provides guidance to Claude Code when working with this repository.
 
 下次开 OpenSpec change 时考虑补 1-2 个。
 
+## 正式 publishable cell spawn 步骤 (2026-05-20)
+
+每次 spawn publishable worker 跑实 LLM 之前，**4 个观察通道全部开启**
+才算"开始观测"。监控不全 = 等于盲跑（2026-05-20 凌晨实测教训：
+缺埋点情况下 worker 死掉只能事后从日志推断）。
+
+### 1. Worker 主进程（detached）
+
+```bash
+SUITE=data/experiments/<run_dir>
+OUT=$SUITE/variant_<v>
+nohup env \
+  RESILIENCE_TRUST_LAST_PREFLIGHT=1 \
+  RESILIENCE_SNAPSHOT_EVERY_TICKS=12 \
+  RESILIENCE_WAL_ENABLED=true \
+  RSS_RESTART_MB=10000 \
+  GC_EVERY_N_TICKS=200 \
+  RSS_CHECK_EVERY_N_TICKS=50 \
+  MEMORY_EVENT_EVICT_GRACE_DAYS=2 \
+  SNAPSHOT_PRUNE_BEFORE_WRITE=1 \
+  INSTRUMENTATION_OUTPUT_DIR=$OUT \
+  INSTRUMENTATION_SEED=<N> \
+  INSTRUMENTATION_SAMPLE_EVERY_N_TICKS=12 \
+  LLM_SAMPLE_RATE=0.01 \
+  LLM_RECORD_ERRORS_ALL=true \
+  .venv/bin/python3 tools/run_variant_suite.py \
+    --variants <v> --seeds 1 --seed-start <N> \
+    --num-days 14 --agents 1000 --num-protagonists 500 \
+    --mode publishable --use-aitown --aitown-provider deepseek \
+    --workers 1 --suite-dir $SUITE \
+    --resume --resume-strategy auto \
+  >> $SUITE/worker_<v>.log 2>&1 &
+WORKER_PID=$!
+disown
+```
+
+### 2-4. 必须并行开 3 个观察通道
+
+| 用途 | 命令 | 输出 |
+|---|---|---|
+| **每 30s RSS / WAL / 文件大小 TSV**（轻量 bash probe）| `nohup bash <probe.sh> &` | `/tmp/swt-cell-probe-v2.tsv` |
+| **memstat.jsonl rolling stats**（worker 进入 tick loop 后才有数据）| `nohup python tools/tail_memstat.py $SUITE <v> <N> --every 60 &` | `/tmp/swt-tail-memstat.log` |
+| **整 cell Markdown 概要**（events.jsonl / llm.jsonl 汇总）| `nohup python tools/summarize_run_observability.py $SUITE <N> --variants <v> --watch 120 &` | `/tmp/swt-summarize.log` |
+
+`tail -f /tmp/swt-*.log` 实时看。
+
+### 5. 跑前清单（确认条件）
+
+- [ ] `audit_resume_strategies.py` 确认 cell state + 选对
+  `--resume-strategy`（特别注意 `INTERRUPTED_PARTIAL_MISSING` 必须
+  `snapshot-only`）
+- [ ] 无残留 worker（`ps aux | grep run_variant_suite`）
+- [ ] LaunchAgent 状态符合预期（`launchctl list | grep swt`）
+- [ ] 磁盘 > 30GB free（snapshot + JSONL 输出会占）
+- [ ] memory_pressure / swap 状态健康（spawn 时如果已经 swap heavy
+  就不要 spawn）
+
+### 6. 检查节点（cache window 间隔）
+
+每 5 min check 这 4 个数据源，看的是：
+1. probe TSV 里 RSS 趋势（应该有降）
+2. memstat.jsonl 是否开始写（tick loop 进入信号）
+3. events.jsonl 里 SNAPSHOT_WRITE event 的 `events_evicted_before_write`
+   字段（验证 prune 生效）
+4. log 里有没有 `[memory] RSS X > threshold` （cap trip 信号）
+
+异常：
+- WAL age 持续上涨且 log 不动 → stale / deadlock
+- RSS 单调上涨没下降趋势 → cold-prune 没生效
+- `all 8 keys open` 出现 → 网络层 cascade，检查 retry events
+
 ## 关键不变量 (snapshot-pre-write-prune 2026-05-20)
 
 2026-05-20 复盘发现："3 个 RAM 优化全在 tick loop 内触发，覆盖不到
