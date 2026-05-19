@@ -1367,6 +1367,24 @@ def run_seed_with_metrics(
         replan_no_op_by_day=list(replan_counter["no_op_by_day"]),
     )
 
+    # backlog 1.13 第二阶段: surface per-day LLM fallback% so aggregate
+    # can flag "silent disaster" variants.
+    if result.per_day_summaries:
+        max_fb = max(d.llm_fallback_pct for d in result.per_day_summaries)
+        avg_fb = sum(d.llm_fallback_pct for d in result.per_day_summaries) / len(
+            result.per_day_summaries,
+        )
+        aks_open_total = sum(d.all_keys_open_count for d in result.per_day_summaries)
+    else:
+        max_fb = 0.0
+        avg_fb = 0.0
+        aks_open_total = 0
+    run_metrics = run_metrics.with_extensions(
+        max_llm_fallback_pct=max_fb,
+        avg_llm_fallback_pct=avg_fb,
+        all_keys_open_total=aks_open_total,
+    )
+
     # publishable-finalize: stamp 7-field reproducibility lock
     from synthetic_socio_wind_tunnel.metrics.reproducibility import (
         compute_reproducibility_lock,

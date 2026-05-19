@@ -144,6 +144,16 @@ class SuiteAggregate(BaseModel):
     degraded_preliminary_not_publishable: bool = False
     """seed_count < 30 时为 True。"""
 
+    # backlog 1.13 第二阶段 (2026-05-19): "silent disaster" defense.
+    # 高 fallback% 的 variant 是 fallback-template data 不是真 LLM 决策，
+    # 必须在 aggregate 暴露否则下游"看似跑完了"漏检。
+    max_llm_fallback_pct: float = 0.0
+    """variant 内所有 seed × 所有 day 的最高 fallback rate；> 0.05 警告。"""
+    avg_llm_fallback_pct: float = 0.0
+    """variant 整体平均 fallback rate。"""
+    high_fallback_warning: bool = False
+    """max_llm_fallback_pct > 0.05 时为 True。aggregate 用，可读不一定阻断。"""
+
 
 class ContestRow(BaseModel):
     """Contest 表里的一行（single variant × single primary_effect_size）。"""

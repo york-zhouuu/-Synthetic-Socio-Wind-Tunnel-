@@ -68,6 +68,39 @@ class DayRunSummary:
     daily_summary_batch: dict[str, "DailySummary"] = field(default_factory=dict)
     """agent_id → DailySummary；若 memory_service 未挂入则为空。"""
 
+    # backlog 1.13 第二阶段 (2026-05-19): per-day LLM health visibility
+    # 防"沉默灾难"——high fallback% 的 day 在 contest / report 必须可见
+    # 否则下次又看似跑完了实则是 fallback 模板数据。
+    llm_fallback_pct: float = 0.0
+    """rolling fallback rate at day end, 0.0–1.0。LLMHealthTracker snapshot。"""
+    llm_total_samples: int = 0
+    """rolling window 内 sample count at day end，用于判断 fallback_pct 是否可信
+    （n < 50 时 fallback_pct 不稳定，downstream 看 warning 应一起读两个）。"""
+    all_keys_open_count: int = 0
+    """该 day end 时 LLMHealthTracker 累计的 AllKeysOpenError 次数。"""
+
+    # establish-observability-baselines (2026-05-19): runtime observability
+    # 字段——让 publishable run 自带 hot-path 时间序列；不再靠拍脑袋猜
+    # RSS / memory store growth / tick latency 分布。所有字段向后兼容
+    # default，旧 JSON 缺这些字段时仍可读。详见
+    # openspec/specs/runtime-observability/spec.md
+    rss_mb: float = 0.0
+    """psutil.Process().memory_info().rss / 1024 / 1024 at day_end。"""
+    vms_mb: float = 0.0
+    """psutil.Process().memory_info().vms / 1024 / 1024 at day_end。"""
+    memory_store_event_count: int = 0
+    """Σ len(store._events) across all agents at day_end。"""
+    dialogue_count: int = 0
+    """len(_dialogues) + len(_dialogue_summaries) at day_end。"""
+    gc_collections: tuple[int, int, int] = (0, 0, 0)
+    """gc.get_count() 三代 counts at day_end。"""
+    tick_latency_ms_p50: float = 0.0
+    """per-tick wall-clock 分布 p50（毫秒），within this day。"""
+    tick_latency_ms_p95: float = 0.0
+    """per-tick wall-clock 分布 p95（毫秒），within this day。"""
+    tick_latency_ms_max: float = 0.0
+    """per-tick wall-clock 最大值（毫秒），within this day。"""
+
 
 @dataclass(frozen=True)
 class MultiDayResult:
@@ -93,6 +126,17 @@ class MultiDayResult:
                     "commit_succeeded": d.commit_succeeded,
                     "commit_failed": d.commit_failed,
                     "encounter_count": d.encounter_count,
+                    "llm_fallback_pct": d.llm_fallback_pct,
+                    "llm_total_samples": d.llm_total_samples,
+                    "all_keys_open_count": d.all_keys_open_count,
+                    "rss_mb": d.rss_mb,
+                    "vms_mb": d.vms_mb,
+                    "memory_store_event_count": d.memory_store_event_count,
+                    "dialogue_count": d.dialogue_count,
+                    "gc_collections": list(d.gc_collections),
+                    "tick_latency_ms_p50": d.tick_latency_ms_p50,
+                    "tick_latency_ms_p95": d.tick_latency_ms_p95,
+                    "tick_latency_ms_max": d.tick_latency_ms_max,
                     "daily_summary_batch": {
                         aid: {
                             "agent_id": s.agent_id,
@@ -227,6 +271,9 @@ class MultiDayRunner:
         "_snapshot_policy",
         "_restore_from",
         "_wal_writer",
+        # establish-observability-baselines (2026-05-19): per-tick
+        # latency buffer, reset per day; consumed at day_end.
+        "_day_tick_latencies_ms",
     )
 
     def __init__(
@@ -368,6 +415,14 @@ class MultiDayRunner:
         # backlog 1.7 F + B: periodic gc.collect() + RSS-threshold auto-restart
         self._init_memory_management_hooks(ticks_per_day=ticks_per_day)
 
+        # establish-observability-baselines (2026-05-19): per-tick latency
+        # collector — each tick contributes its wall-clock ms to a buffer
+        # consumed at day_end for p50/p95/max stats. Skip if env
+        # OBSERVABILITY_DISABLE=1 (Layer 4 budget test control).
+        self._day_tick_latencies_ms: list[float] = []
+        if os.environ.get("OBSERVABILITY_DISABLE", "0") != "1":
+            self._init_observability_hooks()
+
         # 注册 graceful-stop 检查 hook：每 tick 末检查 flag，True 时抛
         # _GracefulStop 中断当天剩余 tick。
         def _check_graceful(tick_result: Any) -> None:  # noqa: ARG001
@@ -421,6 +476,26 @@ class MultiDayRunner:
                 total_ticks += day_summary.total_ticks
                 total_encounters += day_summary.total_encounters
 
+                # backlog 1.13 第二阶段: snapshot LLM health at day_end
+                # so downstream report can flag high-fallback days.
+                from synthetic_socio_wind_tunnel.run_resilience.llm_health import (
+                    get_tracker,
+                )
+                _tracker = get_tracker()
+                _fb_rate, _n_samples = _tracker.rolling_rate()
+                _aks_open = _tracker.all_keys_open_count()
+
+                # establish-observability-baselines (2026-05-19): runtime
+                # observability snapshot at day_end. Low overhead (~1 ms /
+                # day total). Failures fallback to defaults — see Layer 6
+                # fault injection tests.
+                _obs = self._collect_day_end_observability(
+                    agents_by_id=agents_by_id,
+                    day_tick_latencies_ms=getattr(
+                        self, "_day_tick_latencies_ms", [],
+                    ),
+                )
+
                 day_run = DayRunSummary(
                     day_index=day_index,
                     simulated_date=current_date,
@@ -429,7 +504,13 @@ class MultiDayRunner:
                     commit_failed=day_summary.total_commits_failed,
                     encounter_count=day_summary.total_encounters,
                     daily_summary_batch=batch,
+                    llm_fallback_pct=_fb_rate,
+                    llm_total_samples=_n_samples,
+                    all_keys_open_count=_aks_open,
+                    **_obs,
                 )
+                # Reset per-tick latency buffer for next day
+                self._day_tick_latencies_ms = []
                 per_day.append(day_run)
 
                 # Per-day checkpoint write — BEFORE on_day_end hook so external
@@ -708,6 +789,131 @@ class MultiDayRunner:
                     self._graceful_stop_requested = True
 
         self._orchestrator.register_on_tick_end(_on_tick_end_memory)
+
+    def _init_observability_hooks(self) -> None:
+        """establish-observability-baselines: register a per-tick hook
+        that records tick wall-clock latency into `_day_tick_latencies_ms`.
+
+        Samples every Nth tick (default 12, env
+        `OBSERVABILITY_LATENCY_SAMPLE_EVERY_N_TICKS`). 24 samples/day is
+        sufficient for p50/p95/max estimation while keeping overhead
+        < 5% at dev scale (per-tick sampling at 50 agent gave 37%
+        overhead — sample-every-N cuts it 12×).
+
+        Skipped entirely when env `OBSERVABILITY_DISABLE=1`.
+        """
+        import time as _t
+        sample_every_n = int(
+            os.environ.get("OBSERVABILITY_LATENCY_SAMPLE_EVERY_N_TICKS", "12"),
+        )
+        state = {"last": _t.perf_counter(), "tick_count": 0}
+
+        def _on_tick_end_latency(tick_result: Any) -> None:  # noqa: ARG001
+            state["tick_count"] += 1
+            if state["tick_count"] % sample_every_n != 0:
+                return
+            now = _t.perf_counter()
+            delta_ms = (now - state["last"]) * 1000.0 / sample_every_n
+            state["last"] = now
+            if len(self._day_tick_latencies_ms) < 100:
+                self._day_tick_latencies_ms.append(delta_ms)
+
+        self._orchestrator.register_on_tick_end(_on_tick_end_latency)
+
+    def _collect_day_end_observability(
+        self,
+        *,
+        agents_by_id: dict[str, "AgentRuntime"],
+        day_tick_latencies_ms: list[float],
+    ) -> dict[str, Any]:
+        """Snapshot runtime observability at day_end for DayRunSummary.
+
+        ALL failures fallback to safe defaults — never crash the run.
+        Each metric is wrapped independently so one failing metric
+        doesn't poison the others.
+
+        Spec: openspec/specs/runtime-observability/spec.md Requirement
+        "MultiDayRunner 必须在 day_end hook 内部 instrument".
+        """
+        out: dict[str, Any] = {
+            "rss_mb": 0.0,
+            "vms_mb": 0.0,
+            "memory_store_event_count": 0,
+            "dialogue_count": 0,
+            "gc_collections": (0, 0, 0),
+            "tick_latency_ms_p50": 0.0,
+            "tick_latency_ms_p95": 0.0,
+            "tick_latency_ms_max": 0.0,
+        }
+
+        # RSS / VMS via psutil
+        try:
+            import psutil  # late import: optional dev dep
+            proc = psutil.Process()
+            mem = proc.memory_info()
+            out["rss_mb"] = round(mem.rss / 1024 / 1024, 2)
+            out["vms_mb"] = round(mem.vms / 1024 / 1024, 2)
+        except Exception as exc:  # noqa: BLE001
+            logger.warning(
+                "[observability] psutil memory_info failed: %s "
+                "(fallback rss_mb=0, vms_mb=0)", exc,
+            )
+
+        # gc generation counts
+        try:
+            out["gc_collections"] = tuple(gc.get_count())  # type: ignore[arg-type]
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("[observability] gc.get_count failed: %s", exc)
+
+        # memory_store event count
+        try:
+            if self._memory_service is not None:
+                total = 0
+                stores = getattr(self._memory_service, "_stores", {}) or {}
+                for store in stores.values():
+                    events = getattr(store, "_events", None)
+                    if events is not None:
+                        total += len(events)
+                out["memory_store_event_count"] = total
+        except Exception as exc:  # noqa: BLE001
+            logger.warning(
+                "[observability] memory_store_event_count failed: %s", exc,
+            )
+
+        # dialogue count
+        try:
+            if self._dialogue_service is not None:
+                live = len(getattr(self._dialogue_service, "_dialogues", {}) or {})
+                summaries = len(
+                    getattr(self._dialogue_service, "_dialogue_summaries", {}) or {}
+                )
+                out["dialogue_count"] = live + summaries
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("[observability] dialogue_count failed: %s", exc)
+
+        # tick latency p50/p95/max
+        if day_tick_latencies_ms:
+            try:
+                import statistics
+                # statistics.quantiles needs n >= 2
+                sorted_lats = sorted(day_tick_latencies_ms)
+                n = len(sorted_lats)
+                if n >= 2:
+                    quants = statistics.quantiles(
+                        sorted_lats, n=100, method="inclusive",
+                    )
+                    out["tick_latency_ms_p50"] = round(quants[49], 3)
+                    out["tick_latency_ms_p95"] = round(quants[94], 3)
+                else:
+                    out["tick_latency_ms_p50"] = round(sorted_lats[0], 3)
+                    out["tick_latency_ms_p95"] = round(sorted_lats[0], 3)
+                out["tick_latency_ms_max"] = round(sorted_lats[-1], 3)
+            except Exception as exc:  # noqa: BLE001
+                logger.warning(
+                    "[observability] tick_latency quantiles failed: %s", exc,
+                )
+
+        return out
 
     def _write_snapshot(
         self,

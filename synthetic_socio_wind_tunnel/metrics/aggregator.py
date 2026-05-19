@@ -142,6 +142,15 @@ def build_suite_aggregate(
                                       for s in lock.get("seed_pool", [])})
         final_meta["reproducibility_lock"] = merged
 
+    # backlog 1.13 第二阶段: roll up LLM fallback% across seeds.
+    # max = the worst seed/day; if > 5% → warning so downstream report
+    # flags "data may be fallback-template, not real LLM decisions".
+    max_fbs = [r.extensions.get("max_llm_fallback_pct", 0.0) or 0.0 for r in runs]
+    avg_fbs = [r.extensions.get("avg_llm_fallback_pct", 0.0) or 0.0 for r in runs]
+    _max_fb = max(max_fbs) if max_fbs else 0.0
+    _avg_fb = sum(avg_fbs) / len(avg_fbs) if avg_fbs else 0.0
+    _high_warn = _max_fb > 0.05
+
     return SuiteAggregate(
         variant_name=variant_name,
         variant_metadata=final_meta,
@@ -150,6 +159,9 @@ def build_suite_aggregate(
         per_metric_stats=per_metric_stats,
         per_day_time_series=ts_medians,
         degraded_preliminary_not_publishable=(len(runs) < _PUBLISHABLE_MIN_SEEDS),
+        max_llm_fallback_pct=_max_fb,
+        avg_llm_fallback_pct=_avg_fb,
+        high_fallback_warning=_high_warn,
     )
 
 

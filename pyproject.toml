@@ -15,7 +15,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["pytest", "pytest-cov", "hypothesis", "mutmut"]
+dev = ["pytest", "pytest-cov", "hypothesis", "mutmut", "psutil"]
 llm = ["anthropic"]
 web = ["flask"]
 map-enrichment = ["overturemaps", "shapely"]
@@ -23,6 +23,9 @@ full = ["anthropic", "flask", "overturemaps", "shapely"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+markers = [
+    "slow: marks tests that take > 10s (deselect with '-m \"not slow\"'); typically e2e or profile harness",
+]
 
 [tool.mutmut]
 # Mutation testing baseline — focused on hot paths added by

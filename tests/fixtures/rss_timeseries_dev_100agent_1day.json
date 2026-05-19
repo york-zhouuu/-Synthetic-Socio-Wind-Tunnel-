@@ -1,0 +1,164 @@
+{
+  "metadata": {
+    "scale": "dev",
+    "agents": 100,
+    "num_days": 1,
+    "seed": 42,
+    "sample_every_n_ticks": 12,
+    "ticks_per_day": 288,
+    "captured_at": "2026-05-19T08:45:40",
+    "total_wall_seconds": 6.09
+  },
+  "samples": [
+    {
+      "tick_global": 0,
+      "rss_mb": 0.48,
+      "vms_mb": 407130.66,
+      "elapsed_seconds": 0.0
+    },
+    {
+      "tick_global": 12,
+      "rss_mb": 124.95,
+      "vms_mb": 431961.12,
+      "elapsed_seconds": 0.241
+    },
+    {
+      "tick_global": 24,
+      "rss_mb": 209.84,
+      "vms_mb": 432048.12,
+      "elapsed_seconds": 0.486
+    },
+    {
+      "tick_global": 36,
+      "rss_mb": 210.88,
+      "vms_mb": 432052.12,
+      "elapsed_seconds": 0.727
+    },
+    {
+      "tick_global": 48,
+      "rss_mb": 213.05,
+      "vms_mb": 432057.12,
+      "elapsed_seconds": 0.967
+    },
+    {
+      "tick_global": 60,
+      "rss_mb": 217.09,
+      "vms_mb": 432060.12,
+      "elapsed_seconds": 1.209
+    },
+    {
+      "tick_global": 72,
+      "rss_mb": 225.12,
+      "vms_mb": 432066.12,
+      "elapsed_seconds": 1.453
+    },
+    {
+      "tick_global": 84,
+      "rss_mb": 232.84,
+      "vms_mb": 432072.12,
+      "elapsed_seconds": 1.698
+    },
+    {
+      "tick_global": 96,
+      "rss_mb": 240.56,
+      "vms_mb": 432078.12,
+      "elapsed_seconds": 1.942
+    },
+    {
+      "tick_global": 108,
+      "rss_mb": 244.77,
+      "vms_mb": 432082.12,
+      "elapsed_seconds": 2.184
+    },
+    {
+      "tick_global": 120,
+      "rss_mb": 253.02,
+      "vms_mb": 432093.12,
+      "elapsed_seconds": 2.425
+    },
+    {
+      "tick_global": 132,
+      "rss_mb": 260.86,
+      "vms_mb": 432104.12,
+      "elapsed_seconds": 2.669
+    },
+    {
+      "tick_global": 144,
+      "rss_mb": 268.02,
+      "vms_mb": 432110.12,
+      "elapsed_seconds": 2.913
+    },
+    {
+      "tick_global": 156,
+      "rss_mb": 275.38,
+      "vms_mb": 432116.12,
+      "elapsed_seconds": 3.159
+    },
+    {
+      "tick_global": 168,
+      "rss_mb": 282.25,
+      "vms_mb": 432122.12,
+      "elapsed_seconds": 3.402
+    },
+    {
+      "tick_global": 180,
+      "rss_mb": 286.38,
+      "vms_mb": 432125.12,
+      "elapsed_seconds": 3.646
+    },
+    {
+      "tick_global": 192,
+      "rss_mb": 292.8,
+      "vms_mb": 432135.12,
+      "elapsed_seconds": 3.889
+    },
+    {
+      "tick_global": 204,
+      "rss_mb": 298.97,
+      "vms_mb": 432140.12,
+      "elapsed_seconds": 4.133
+    },
+    {
+      "tick_global": 216,
+      "rss_mb": 305.91,
+      "vms_mb": 432149.12,
+      "elapsed_seconds": 4.374
+    },
+    {
+      "tick_global": 228,
+      "rss_mb": 312.02,
+      "vms_mb": 432158.12,
+      "elapsed_seconds": 4.618
+    },
+    {
+      "tick_global": 240,
+      "rss_mb": 317.23,
+      "vms_mb": 432163.12,
+      "elapsed_seconds": 4.863
+    },
+    {
+      "tick_global": 252,
+      "rss_mb": 320.11,
+      "vms_mb": 432165.12,
+      "elapsed_seconds": 5.108
+    },
+    {
+      "tick_global": 264,
+      "rss_mb": 325.22,
+      "vms_mb": 432170.12,
+      "elapsed_seconds": 5.351
+    },
+    {
+      "tick_global": 276,
+      "rss_mb": 330.02,
+      "vms_mb": 432174.12,
+      "elapsed_seconds": 5.596
+    },
+    {
+      "tick_global": 288,
+      "rss_mb": 334.02,
+      "vms_mb": 432178.12,
+      "elapsed_seconds": 5.841
+    }
+  ]
+}

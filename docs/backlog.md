@@ -410,6 +410,12 @@ day 0-9（原始 worker 跑的部分）的 per_day_summaries / 累积 metric 全
 
 ## 1.12 DialogueService 持久化 — 答辩 narrative 输出必需
 
+**状态**：✅ 已实施（snapshot schema v3 加 `dialogue_service_state`；
+`DialogueService.to_snapshot_state` / `from_snapshot_state` + harden-worker-resilience
+的 `evict_old_dialogues` rolling cleanup 一起；round-trip test 在
+`tests/test_dialogue_service_eviction.py::test_snapshot_round_trip_preserves_summaries`
++ `tests/test_subsystem_snapshot.py`）。
+
 **记录时间**：2026-05-18
 
 **背景**：D2 attempt 4 narrative 数据调查发现两个串联问题：
@@ -482,6 +488,16 @@ worker 退出就消失。
 ---
 
 ## 1.13 fallback-rate budget + run_metrics 暴露（"沉默灾难"防护）
+
+**状态**：⚠️ **部分已实施**。已落地：
+- `synthetic_socio_wind_tunnel/run_resilience/llm_health.py::LLMHealthTracker`
+- `AllKeysOpenError` 不再被吞（reflection / importance / planner 各 except 分支）
+- per-call `record_fallback` / `record_success` 收集
+- `FallbackBudgetExceeded` 阈值 raise
+
+未落地（下次 PR / A.3 计划）：
+- per_day_summary 加 `llm_fallback_pct` / `circuit_breaker_open_count` 字段
+- contest.json + report.md 高 fallback% 时标 warning（防"看起来跑完了"）
 
 **记录时间**：2026-05-19
 

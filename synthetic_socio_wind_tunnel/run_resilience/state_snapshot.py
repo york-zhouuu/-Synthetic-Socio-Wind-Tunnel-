@@ -124,8 +124,13 @@ class SnapshotPolicy(BaseModel):
     """每 N global-tick 写一次 snapshot。0 = 禁用 snapshot（向后兼容
     run-resilience partial-only 行为）。"""
 
-    keep_last_k: int = Field(default=2, ge=1, le=100)
-    """滚动保留最近 K 个 snapshot；新 snapshot 落盘后清更早的。"""
+    keep_last_k: int = Field(default=1, ge=1, le=100)
+    """滚动保留最近 K 个 snapshot；新 snapshot 落盘后清更早的。
+
+    Default 1 (backlog 1.7 G, 2026-05-19): publishable snapshot 是 1.7-3.5 GB
+    每个；keep_last_k=2 = 每 cell 平均 5 GB 闲置磁盘。一份 snapshot 已经够
+    resume，多一份给"上次失败 fallback"在实践中价值低于磁盘成本。env
+    `RESILIENCE_SNAPSHOT_KEEP_LAST=2` 可恢复旧行为。"""
 
     wal_enabled: bool = True
     """per-tick WAL 写盘开关。"""

@@ -269,7 +269,10 @@ class TestSnapshotPolicy:
     def test_defaults(self) -> None:
         p = SnapshotPolicy()
         assert p.every_ticks == 24
-        assert p.keep_last_k == 2
+        # backlog 1.7 G (2026-05-19): bumped 2 → 1 to halve snapshot disk cost
+        # for publishable runs (1.7-3.5 GB / snapshot). Env
+        # RESILIENCE_SNAPSHOT_KEEP_LAST can override.
+        assert p.keep_last_k == 1
         assert p.wal_enabled is True
         assert p.wal_fsync_every_ticks == 1
 
