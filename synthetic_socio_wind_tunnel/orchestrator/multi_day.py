@@ -848,12 +848,27 @@ class MultiDayRunner:
         if gc_every <= 0 and rss_threshold_mb <= 0:
             return  # both disabled
 
-        # Resolve RSS reader lazily — psutil if available, else /proc fallback
-        # (on macOS resorts to `ps -p <pid> -o rss=` which is slow but works).
-        def _self_rss_mb() -> int | None:
+        # 2026-05-20 comprehensive-runtime-instrumentation: fix critical
+        # bug where `_self_rss_mb` used `resource.getrusage().ru_maxrss`
+        # (LIFETIME PEAK, not current). After a single 35GB snapshot
+        # deserialize, ru_maxrss stays at 35GB forever, making the RSS
+        # cap trip permanently. Now uses psutil current RSS first;
+        # ru_maxrss fallback only when psutil unavailable.
+        def _current_rss_mb() -> int | None:
+            try:
+                import psutil
+                return psutil.Process().memory_info().rss // (1024 * 1024)
+            except ImportError:
+                logger.warning(
+                    "[memory] psutil unavailable; RSS cap falling back "
+                    "to ru_maxrss (LIFETIME PEAK) — may misfire after "
+                    "one high-RSS event",
+                )
+            except (psutil.Error if "psutil" in dir() else Exception):
+                pass
+            # Fallback path
             try:
                 import resource
-                # macOS ru_maxrss is bytes; Linux is KB. Detect platform.
                 ru = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
                 import sys
                 if sys.platform == "darwin":
@@ -861,6 +876,10 @@ class MultiDayRunner:
                 return ru // 1024
             except (ImportError, OSError):
                 return None
+
+        # Backward-compat alias for any pre-fix call sites (none remain
+        # in this module but external monkey-patches might reference)
+        _self_rss_mb = _current_rss_mb
 
         def _on_tick_end_memory(tick_result: Any) -> None:
             day_idx = getattr(tick_result, "day_index", 0)

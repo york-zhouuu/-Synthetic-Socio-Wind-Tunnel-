@@ -275,6 +275,9 @@ async def _run_with_retry(
     operation: Callable[[], Awaitable[T]],
     policy: RetryPolicy,
     breaker: PerKeyCircuitBreaker,
+    tier: str = "unknown",
+    provider: str = "unknown",
+    key_id: int | None = None,
 ) -> T:
     """Run `operation()` under retry + breaker.
 
@@ -284,7 +287,22 @@ async def _run_with_retry(
       record_failure
     - exhausted: re-raise last exception, record_failure
     - success: record_success, return result
+
+    Emits one RETRY event per failed-but-retryable attempt to
+    instrumentation events.jsonl (comprehensive-runtime-instrumentation
+    2026-05-20). The RETRY event includes attempt#, exc_class, and
+    backoff_sec.
     """
+    import time as _time
+    op_start = _time.monotonic()
+    try:
+        from synthetic_socio_wind_tunnel.observability import (
+            get_instrumentation,
+        )
+        _instrumentation = get_instrumentation()
+    except Exception:  # noqa: BLE001
+        _instrumentation = None
+
     last_exc: BaseException | None = None
     for attempt in range(policy.max_attempts):
         try:
@@ -297,7 +315,26 @@ async def _run_with_retry(
             last_exc = exc
             if attempt + 1 >= policy.max_attempts:
                 break
-            await asyncio.sleep(policy.next_backoff(attempt))
+            backoff_sec = policy.next_backoff(attempt)
+            # Emit RETRY event before sleep
+            if _instrumentation is not None:
+                try:
+                    _instrumentation.emit_event(
+                        kind="RETRY",
+                        tier=tier, provider=provider, key_id=key_id,
+                        attempt=attempt,
+                        max_attempts=policy.max_attempts,
+                        exc_class=f"{type(exc).__module__}."
+                                  f"{type(exc).__name__}",
+                        exc_message=str(exc)[:200],
+                        backoff_sec=backoff_sec,
+                        elapsed_sec_since_op_start=(
+                            _time.monotonic() - op_start
+                        ),
+                    )
+                except Exception:  # noqa: BLE001
+                    pass
+            await asyncio.sleep(backoff_sec)
             continue
         else:
             breaker.record_success()

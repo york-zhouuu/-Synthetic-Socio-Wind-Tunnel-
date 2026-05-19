@@ -47,6 +47,43 @@ This file provides guidance to Claude Code when working with this repository.
 
 下次开 OpenSpec change 时考虑补 1-2 个。
 
+## 关键不变量 (runtime-instrumentation 2026-05-20)
+
+2026-05-20 凌晨实测 publishable resume 暴露 `_self_rss_mb()` 使用
+`ru_maxrss` (生命周期峰值) 而非当前 RSS 的 bug — worker 一次 snapshot
+反序列化 35GB 峰值后，RSS cap 永久 trip 形成重启死循环。同时所有埋点
+集中在 tick-loop 后期，覆盖不到 setup / snapshot load / LLM 路径 /
+eviction 实际效果。
+
+**修复已落地**（`comprehensive-runtime-instrumentation` 2026-05-20）：
+
+- `_self_rss_mb` → `_current_rss_mb`，**用 psutil.Process().memory_info().rss
+  当前 RSS**，`ru_maxrss` 仅作 fallback + warning
+- 新模块 `synthetic_socio_wind_tunnel/observability/instrumentation.py`
+  提供 `RuntimeInstrumentation` process singleton
+- 每 cell 写 **3 个独立 JSONL 文件**到 `INSTRUMENTATION_OUTPUT_DIR`：
+  - `seed_<N>.memstat.jsonl` — 每 N tick 一条 (memory / CPU /
+    gc / memory_store / dialogue / llm_health / handler timing)
+  - `seed_<N>.events.jsonl` — 离散事件 (PHASE / EVICT / RETRY /
+    SNAPSHOT_WRITE / EXIT) 100% 记录
+  - `seed_<N>.llm.jsonl` — per LLM call (success 默认 sample 1%，
+    error 100% 记)
+- **9 个 phase 边界**: PROCESS_START → SETUP_START/DONE →
+  SNAPSHOT_LOAD_START/DONE → TICK_LOOP_START → DAY_START/END → EXIT
+- 关键环境变量：
+  - `INSTRUMENTATION_DISABLE=1` → 完全关闭 (生产救火)
+  - `INSTRUMENTATION_OUTPUT_DIR` → JSONL 输出目录
+  - `INSTRUMENTATION_SAMPLE_EVERY_N_TICKS=12` (memstat 采样间隔)
+  - `LLM_SAMPLE_RATE=0.01` (LLM 成功调用采样率)
+  - `LLM_RECORD_ERRORS_ALL=true` (错误 100% 记录)
+
+测试盲点修复：之前 17 个 RSS cap test 全部 mock RSS 值测"机制"，
+新加的 `test_rss_mb_uses_psutil_current_not_ru_maxrss` 用真实 mmap
+500MB → close 验证 current RSS 必然 drop 而 peak 单调，**捕获实际
+ru_maxrss bug**。
+
+埋点 SHALL NEVER crash worker — 每个 emit/sample 都 try/except 兜底。
+
 ## 关键不变量 (harden-worker-resilience 2026-05-19)
 
 下面 3 条不变量（`monitor-as-control-plane` / `sigusr1-graceful-stop-corruption`

@@ -353,10 +353,49 @@ class MemoryService:
         bounded at publishable scale (encounter events at day-10 reach
         6.88M; rolling-evict to last `MEMORY_EVENT_EVICT_GRACE_DAYS=2`
         cuts ~90% of memory_store size).
+
+        Emits an EVICT event to instrumentation events.jsonl with
+        before/after sizes + RSS delta (comprehensive-runtime-
+        instrumentation 2026-05-20).
         """
+        import time as _t
+        # Best-effort: read total events before + RSS before
+        total_before = sum(len(s) for s in self._stores.values())
+        try:
+            from synthetic_socio_wind_tunnel.observability import (
+                get_instrumentation,
+            )
+            from synthetic_socio_wind_tunnel.observability.instrumentation import (
+                _read_current_rss_mb,
+            )
+            rss_before, _ = _read_current_rss_mb()
+            inst = get_instrumentation()
+        except Exception:  # noqa: BLE001
+            inst = None
+            rss_before = 0
+
+        t0 = _t.monotonic()
         total = 0
         for store in self._stores.values():
             total += store.evict_cold_encounter_events(before_tick)
+        duration_sec = _t.monotonic() - t0
+        total_after = sum(len(s) for s in self._stores.values())
+
+        if inst is not None:
+            try:
+                rss_after, _ = _read_current_rss_mb()
+                inst.emit_event(
+                    kind="EVICT",
+                    before_tick_cutoff=before_tick,
+                    events_evicted=total,
+                    memory_store_total_before=total_before,
+                    memory_store_total_after=total_after,
+                    duration_sec=duration_sec,
+                    rss_before_mb=rss_before,
+                    rss_after_mb=rss_after,
+                )
+            except Exception:  # noqa: BLE001
+                pass
         return total
 
     # ---- 跨日检索（multi-day-simulation 引入） ----
