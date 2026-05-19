@@ -1060,6 +1060,51 @@ class MultiDayRunner:
             SimulationCheckpoint, snapshot_path,
         )
 
+        # prune-before-snapshot-write (2026-05-20): cold-prune encounter
+        # events BEFORE serializing memory_store_state. snapshot file
+        # gets bounded by `grace_days` window, no longer carries 6M+
+        # historical encounter events (93.5% of 6GB file). Next resume
+        # peak RAM drops 30-35GB → 3-6GB.
+        evicted_before_write = 0
+        prune_enabled = os.environ.get(
+            "SNAPSHOT_PRUNE_BEFORE_WRITE", "true",
+        ).strip().lower() not in ("0", "false", "no")
+        if prune_enabled and self._memory_service is not None:
+            try:
+                grace_days = int(os.environ.get(
+                    "MEMORY_EVENT_EVICT_GRACE_DAYS", "2",
+                ))
+            except ValueError:
+                grace_days = 2
+            cutoff_tick = max(0, day_index - grace_days) * (
+                self._ticks_per_day
+                if hasattr(self, "_ticks_per_day")
+                else 288
+            )
+            if cutoff_tick > 0:
+                try:
+                    evicted_before_write = (
+                        self._memory_service
+                        .evict_cold_encounter_events_across_agents(
+                            before_tick=cutoff_tick,
+                        )
+                    )
+                    if evicted_before_write > 0:
+                        logger.info(
+                            "[snapshot] pre-write prune evicted %d "
+                            "encounter events (cutoff_tick=%d, "
+                            "day_index=%d, grace=%d)",
+                            evicted_before_write, cutoff_tick,
+                            day_index, grace_days,
+                        )
+                except Exception as exc:  # noqa: BLE001
+                    logger.warning(
+                        "[snapshot] pre-write evict failed at "
+                        "tick_global=%d: %s — snapshot will still "
+                        "write but may be larger than ideal",
+                        tick_index_global, exc,
+                    )
+
         ledger = getattr(self._orchestrator, "_ledger", None)
         agents = self._collect_agents()
 
@@ -1102,7 +1147,40 @@ class MultiDayRunner:
                 self._output_dir, seed=self._seed,
                 tick_index_global=tick_index_global,
             )
+            # comprehensive-runtime-instrumentation: capture RSS before
+            # write to compute peak during; prune-before-snapshot-write:
+            # thread evicted count into the event.
+            try:
+                from synthetic_socio_wind_tunnel.observability import (
+                    get_instrumentation,
+                )
+                from synthetic_socio_wind_tunnel.observability.instrumentation import (
+                    _read_current_rss_mb,
+                )
+                _rss_before, _ = _read_current_rss_mb()
+            except Exception:  # noqa: BLE001
+                get_instrumentation = None  # type: ignore[assignment]
+                _read_current_rss_mb = None  # type: ignore[assignment]
+                _rss_before = 0
+            import time as _t
+            _t0 = _t.monotonic()
+
             snap.write_atomic(path)
+
+            try:
+                if get_instrumentation is not None and _read_current_rss_mb is not None:
+                    _rss_after, _ = _read_current_rss_mb()
+                    get_instrumentation().emit_snapshot_write(
+                        tick_global=tick_index_global,
+                        path=str(path),
+                        duration_sec=_t.monotonic() - _t0,
+                        rss_before_mb=_rss_before,
+                        rss_peak_during_mb=max(_rss_before, _rss_after),
+                        rss_after_mb=_rss_after,
+                        events_evicted_before_write=evicted_before_write,
+                    )
+            except Exception:  # noqa: BLE001
+                pass
             return path
         except Exception as exc:  # noqa: BLE001
             logger.warning(

@@ -356,9 +356,14 @@ class RuntimeInstrumentation:
         self, *, tick_global: int, path: str,
         duration_sec: float,
         rss_before_mb: int, rss_peak_during_mb: int, rss_after_mb: int,
+        events_evicted_before_write: int = 0,
     ) -> None:
         """Emit SNAPSHOT_WRITE event with actual file size (read at
-        emit time, not trusted from caller)."""
+        emit time, not trusted from caller).
+
+        `events_evicted_before_write` reflects the count freed by
+        `prune-before-snapshot-write` immediately before write_atomic
+        (2026-05-20); 0 when disabled or before grace window."""
         try:
             size_bytes: int | None = None
             try:
@@ -372,6 +377,7 @@ class RuntimeInstrumentation:
                 rss_before_mb=rss_before_mb,
                 rss_peak_during_mb=rss_peak_during_mb,
                 rss_after_mb=rss_after_mb,
+                events_evicted_before_write=events_evicted_before_write,
             )
         except Exception as exc:  # noqa: BLE001
             logger.warning(

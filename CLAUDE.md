@@ -47,6 +47,37 @@ This file provides guidance to Claude Code when working with this repository.
 
 下次开 OpenSpec change 时考虑补 1-2 个。
 
+## 关键不变量 (snapshot-pre-write-prune 2026-05-20)
+
+2026-05-20 复盘发现："3 个 RAM 优化全在 tick loop 内触发，覆盖不到
+worker 启动期 snapshot 反序列化 35GB 峰值" — 这个峰值的根源是
+snapshot 文件本身太大（6GB）+ Python JSON 反序列化 5-10× 膨胀。
+
+snapshot 大的原因：`memory_store_state` 含 6M+ 个 encounter events
+（93.5% of bytes），其中 99% 是 day < (current-2) 的冷数据。这些 events
+按 cold-prune grace 本来就该被 evict，**只是 evict 只在 day_end 触发，
+没在 snapshot write 之前触发**。
+
+**修复已落地**（`prune-before-snapshot-write` 2026-05-20）：
+
+- `MultiDayRunner._write_snapshot` 在 `SimulationCheckpoint.write_atomic()`
+  **前**调用 `evict_cold_encounter_events_across_agents(before_tick=
+  max(0, day_index - grace) * ticks_per_day)`，与 day_end eviction 共享
+  既有 `MEMORY_EVENT_EVICT_GRACE_DAYS=2` 配置
+- 早期 day（day_index < grace）时 cutoff <= 0 自动跳过
+- evict 失败 SHALL log warning 但 SHALL NOT 阻塞 snapshot write
+- env `SNAPSHOT_PRUNE_BEFORE_WRITE=0` 可一键关闭（诊断 / 旧格式回放）
+- SNAPSHOT_WRITE event 新增 `events_evicted_before_write` 字段反映本次
+  prune 释放的事件数，便于 post-mortem 直接看到优化效果
+
+**实测效果**（50 agent × 3 day dev smoke, grace=0）:
+- snapshot ON: 17.6 MB
+- snapshot OFF: 25.2 MB
+- 30% size reduction + 22% wall time reduction
+
+至 publishable 1000 agent × 14 day 规模，预计 6GB → 600MB（90% reduction），
+下次 resume 反序列化峰值 35GB → 3-6GB，**远低于 10GB RSS cap**。
+
 ## 关键不变量 (runtime-instrumentation 2026-05-20)
 
 2026-05-20 凌晨实测 publishable resume 暴露 `_self_rss_mb()` 使用
