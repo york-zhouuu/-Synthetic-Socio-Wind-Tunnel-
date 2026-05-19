@@ -60,16 +60,13 @@ class TestCLIMinimalSmoke:
         assert hp_dir.is_dir()
         # add-per-tick-position-logging writes companion seed_*_positions.json;
         # filter those out when counting per-seed metric dumps.
+        # persist-per-day-summaries-across-resumes (2026-05-20) adds
+        # `seed_<N>_day<D>.summary.json` files. Use regex to match
+        # ONLY canonical `seed_<digits>.json` results.
+        import re as _re
+        _RE = _re.compile(r"^seed_\d+\.json$")
         def _metric_seeds(d):
-            # tick-level-resume adds seed_<N>_tick<T>.snapshot.json files
-            # alongside seed_<N>.json — filter them out for this counter.
-            return [
-                p for p in d.glob("seed_*.json")
-                if "_positions" not in p.name
-                and ".snapshot" not in p.name
-                and ".partial" not in p.name
-                and "_tick" not in p.name
-            ]
+            return [p for p in d.glob("seed_*.json") if _RE.match(p.name)]
         assert len(_metric_seeds(baseline_dir)) == 2
         assert len(_metric_seeds(hp_dir)) == 2
         assert (baseline_dir / "aggregate.json").exists()

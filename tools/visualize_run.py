@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -28,6 +29,10 @@ from matplotlib.patches import Polygon as MplPolygon
 
 from synthetic_socio_wind_tunnel.cartography.lanecove import create_atlas_from_osm
 
+# persist-per-day-summaries-across-resumes (2026-05-20): canonical
+# seed_<N>.json regex — excludes day/tick/positions/partial aux files.
+_REAL_SEED_RE = re.compile(r"^seed_\d+\.json$")
+
 
 def load_variant_activation(variant_dir: Path) -> tuple[dict[str, float], int]:
     """
@@ -36,7 +41,10 @@ def load_variant_activation(variant_dir: Path) -> tuple[dict[str, float], int]:
     """
     activation: dict[str, float] = {}
     n_seeds = 0
-    for seed_file in sorted(variant_dir.glob("seed_*.json")):
+    for seed_file in sorted(
+        p for p in variant_dir.glob("seed_*.json")
+        if _REAL_SEED_RE.match(p.name)
+    ):
         try:
             data = json.loads(seed_file.read_text(encoding="utf-8"))
             sa = data.get("run_metrics", {}).get("space_activation", {})

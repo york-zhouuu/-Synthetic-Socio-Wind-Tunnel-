@@ -307,6 +307,86 @@ def _series_stats(series: list[int] | list[float]) -> dict[str, float]:
     }
 
 
+# ---- persist-per-day-summaries-across-resumes (2026-05-20) helpers ----
+#
+# Free functions (module-level) so subprocess tests + future audit
+# scripts can import without instantiating MultiDayRunner.
+
+
+def _day_run_summary_to_dict(d: DayRunSummary) -> dict[str, Any]:
+    """Serialize a single DayRunSummary to the same schema
+    `MultiDayResult.model_dump` uses for per_day_summaries entries.
+
+    Persisted as `seed_<N>_day<D>.summary.json`; read back at resume
+    via `_day_run_summary_from_dict`.
+    """
+    return {
+        "day_index": d.day_index,
+        "simulated_date": d.simulated_date.isoformat(),
+        "tick_count": d.tick_count,
+        "commit_succeeded": d.commit_succeeded,
+        "commit_failed": d.commit_failed,
+        "encounter_count": d.encounter_count,
+        "llm_fallback_pct": d.llm_fallback_pct,
+        "llm_total_samples": d.llm_total_samples,
+        "all_keys_open_count": d.all_keys_open_count,
+        "rss_mb": d.rss_mb,
+        "vms_mb": d.vms_mb,
+        "memory_store_event_count": d.memory_store_event_count,
+        "dialogue_count": d.dialogue_count,
+        "gc_collections": list(d.gc_collections),
+        "tick_latency_ms_p50": d.tick_latency_ms_p50,
+        "tick_latency_ms_p95": d.tick_latency_ms_p95,
+        "tick_latency_ms_max": d.tick_latency_ms_max,
+        "evicted_encounter_count": d.evicted_encounter_count,
+        "daily_summary_batch": {
+            aid: {
+                "agent_id": s.agent_id,
+                "date": s.date,
+                "summary_text": s.summary_text,
+            }
+            for aid, s in d.daily_summary_batch.items()
+        },
+    }
+
+
+def _day_run_summary_from_dict(raw: dict[str, Any]) -> DayRunSummary:
+    """Reconstruct DayRunSummary from a persisted dict (lossy on
+    DailySummary.event_tags/event_importance — those are not stored in
+    the model_dump schema, but downstream consumers only read the 3
+    DailySummary fields kept here)."""
+    from synthetic_socio_wind_tunnel.memory.models import DailySummary
+    batch = {
+        aid: DailySummary(
+            agent_id=s["agent_id"],
+            date=s["date"],
+            summary_text=s["summary_text"],
+        )
+        for aid, s in raw.get("daily_summary_batch", {}).items()
+    }
+    return DayRunSummary(
+        day_index=int(raw["day_index"]),
+        simulated_date=date.fromisoformat(raw["simulated_date"]),
+        tick_count=int(raw["tick_count"]),
+        commit_succeeded=int(raw["commit_succeeded"]),
+        commit_failed=int(raw["commit_failed"]),
+        encounter_count=int(raw["encounter_count"]),
+        daily_summary_batch=batch,
+        llm_fallback_pct=float(raw.get("llm_fallback_pct", 0.0)),
+        llm_total_samples=int(raw.get("llm_total_samples", 0)),
+        all_keys_open_count=int(raw.get("all_keys_open_count", 0)),
+        rss_mb=float(raw.get("rss_mb", 0.0)),
+        vms_mb=float(raw.get("vms_mb", 0.0)),
+        memory_store_event_count=int(raw.get("memory_store_event_count", 0)),
+        dialogue_count=int(raw.get("dialogue_count", 0)),
+        gc_collections=tuple(raw.get("gc_collections", (0, 0, 0))),  # type: ignore[arg-type]
+        tick_latency_ms_p50=float(raw.get("tick_latency_ms_p50", 0.0)),
+        tick_latency_ms_p95=float(raw.get("tick_latency_ms_p95", 0.0)),
+        tick_latency_ms_max=float(raw.get("tick_latency_ms_max", 0.0)),
+        evicted_encounter_count=int(raw.get("evicted_encounter_count", 0)),
+    )
+
+
 class MultiDayRunner:
     """驱动 N 日 simulation 的主类。
 
@@ -514,6 +594,47 @@ class MultiDayRunner:
                 snap.day_index, snap.tick_index,
             )
 
+        # persist-per-day-summaries-across-resumes (2026-05-20): hydrate
+        # `per_day` from disk-resident `seed_<N>_day<D>.summary.json`
+        # files written by prior spawns. Filter strictly to
+        # `day_index < effective_start_day` so the day loop never
+        # double-appends a day. Closes the thesis-blocking bug where
+        # 14-day publishable cells finished via multiple resumes had
+        # only the last spawn's days in seed_N.json.
+        if self._output_dir is not None and self._checkpoint_writer is not None:
+            try:
+                _raw_summaries = self._checkpoint_writer.load_day_summaries(
+                    output_dir=self._output_dir, seed=self._seed,
+                )
+            except Exception as exc:  # noqa: BLE001
+                logger.warning(
+                    "[bug-F] load_day_summaries failed (seed=%d): %s",
+                    self._seed, exc,
+                )
+                _raw_summaries = []
+            for _raw in _raw_summaries:
+                _di = _raw.get("day_index", -1)
+                if not isinstance(_di, int) or _di < 0 or _di >= effective_start_day:
+                    continue
+                try:
+                    _hyd = _day_run_summary_from_dict(_raw)
+                except (KeyError, ValueError, TypeError) as exc:
+                    logger.warning(
+                        "[bug-F] skipping malformed day_summary "
+                        "day_index=%s: %s", _di, exc,
+                    )
+                    continue
+                per_day.append(_hyd)
+                total_ticks += _hyd.tick_count
+                total_encounters += _hyd.encounter_count
+            if per_day:
+                logger.info(
+                    "[bug-F] hydrated %d prior-spawn day summaries "
+                    "(day_indices=%s); resuming from day_index=%d",
+                    len(per_day), [d.day_index for d in per_day],
+                    effective_start_day,
+                )
+
         # tick-level-resume: 初始化 WAL writer 与 snapshot 写盘 hook
         ticks_per_day = getattr(self._orchestrator, "_ticks_per_day", 288)
         self._init_wal_and_snapshot_hooks(ticks_per_day=ticks_per_day)
@@ -656,19 +777,23 @@ class MultiDayRunner:
                 )
 
                 # harden-worker-resilience: DialogueService rolling
-                # cleanup. Demote dialogues that ended ≥ 2 simulated
+                # cleanup. Demote dialogues that started ≥ 2 simulated
                 # days ago to compact summaries (drops messages list)
                 # so 14-day workers don't bleed 100-500 MB.
+                # fix-dialogue-eviction-tick-semantic (2026-05-20):
+                # changed from `before_tick = cutoff_tick * 288` (global)
+                # to `before_day_index = max(0, day - grace)`. Previous
+                # version compared ev.ended_tick (per-day) against global
+                # cutoff → always True → all ended dialogues evicted
+                # immediately, no grace.
                 if self._dialogue_service is not None:
                     grace_days = int(
                         os.environ.get("DIALOGUE_EVICT_GRACE_DAYS", "2")
                     )
-                    cutoff_tick = (
-                        max(0, day_index - grace_days) * ticks_per_day
-                    )
+                    before_day_index = max(0, day_index - grace_days)
                     try:
                         self._dialogue_service.evict_old_dialogues(
-                            before_tick=cutoff_tick,
+                            before_day_index=before_day_index,
                         )
                     except Exception as exc:  # noqa: BLE001
                         logger.warning(
@@ -722,6 +847,29 @@ class MultiDayRunner:
                         per_day[-1],
                         evicted_encounter_count=evicted_encounter_count,
                     )
+
+                # persist-per-day-summaries-across-resumes (2026-05-20):
+                # write this day's enriched summary to disk so the next
+                # resume hydrates it instead of dropping it on the floor.
+                # Independent of partial / snapshot — survives
+                # cleanup_partials on cell completion.
+                if (
+                    self._output_dir is not None
+                    and self._checkpoint_writer is not None
+                    and per_day
+                ):
+                    try:
+                        self._checkpoint_writer.write_day_summary(
+                            day_index=day_index,
+                            summary_dict=_day_run_summary_to_dict(per_day[-1]),
+                            output_dir=self._output_dir,
+                            seed=self._seed,
+                        )
+                    except OSError as exc:
+                        logger.warning(
+                            "[bug-F] write_day_summary failed for "
+                            "day_index=%d: %s", day_index, exc,
+                        )
 
                 # on_day_end: 外部 hook 可读 batch 做 metrics 采集 / phase 转
                 if on_day_end is not None:

@@ -35,7 +35,12 @@ def _inject_dialogue(
     svc: DialogueService, dialogue_id: str, started: int,
     ended: int | None, n_messages: int = 0,
 ) -> None:
-    """Inject a synthetic dialogue. ended=None → in-progress."""
+    """Inject a synthetic dialogue. ended=None → in-progress.
+
+    2026-05-20 fix-dialogue-eviction-tick-semantic: eviction now keys
+    on `started_day_index`. Derive it from `started` (treating as global
+    tick) so property tests' integer ticks map cleanly to days.
+    """
     d = Dialogue(
         dialogue_id=dialogue_id,
         initiator_id=f"a_{dialogue_id}",
@@ -44,6 +49,7 @@ def _inject_dialogue(
         started_tick=started,
         last_message_tick=started + (n_messages or 0),
         started_at=datetime(2026, 4, 22),
+        started_day_index=started // 288 if started >= 0 else 0,
         member_status={f"a_{dialogue_id}": "ended", f"b_{dialogue_id}": "ended"},
         messages=[
             DialogueMessage(
@@ -103,7 +109,7 @@ def test_property_evict_never_touches_in_progress(dialogues, cutoff):
         if ended is None:
             in_progress_ids.add(did)
 
-    svc.evict_old_dialogues(before_tick=cutoff)
+    svc.evict_old_dialogues(before_day_index=(cutoff // 288))
 
     for did in in_progress_ids:
         assert did in svc._dialogues, (
@@ -112,25 +118,32 @@ def test_property_evict_never_touches_in_progress(dialogues, cutoff):
         assert did not in svc._dialogue_summaries
 
 
-@given(dialogues=mixed_dialogues, cutoff=st.integers(min_value=-100, max_value=20_000))
+@given(dialogues=mixed_dialogues, cutoff_day=st.integers(min_value=-5, max_value=70))
 @settings(max_examples=200, deadline=None)
-def test_property_evict_only_takes_dialogues_below_cutoff(dialogues, cutoff):
+def test_property_evict_only_takes_dialogues_below_cutoff(dialogues, cutoff_day):
     """INVARIANT: evict moves a dialogue to summary IFF
-    (ended_tick is not None AND ended_tick < cutoff)."""
+    (ended_tick is not None AND started_day_index < cutoff_day)."""
     svc = DialogueService(seed=42)
     for did, started, ended, n_msg in dialogues:
         _inject_dialogue(svc, did, started, ended, n_msg)
 
-    snapshot_before = {did: svc._dialogues[did].ended_tick for did in svc._dialogues}
-    svc.evict_old_dialogues(before_tick=cutoff)
+    snapshot_before = {
+        did: (
+            svc._dialogues[did].ended_tick,
+            svc._dialogues[did].started_day_index,
+        )
+        for did in svc._dialogues
+    }
+    svc.evict_old_dialogues(before_day_index=cutoff_day)
 
-    for did, ended_tick in snapshot_before.items():
+    for did, (ended_tick, started_day) in snapshot_before.items():
         was_evicted = did in svc._dialogue_summaries
         should_evict = (
-            ended_tick is not None and ended_tick < cutoff and cutoff > 0
+            ended_tick is not None and started_day < cutoff_day and cutoff_day > 0
         )
         assert was_evicted == should_evict, (
-            f"{did!r} (ended_tick={ended_tick}, cutoff={cutoff}) "
+            f"{did!r} (ended_tick={ended_tick}, "
+            f"started_day={started_day}, cutoff_day={cutoff_day}) "
             f"was_evicted={was_evicted} should_evict={should_evict}"
         )
 
@@ -144,13 +157,13 @@ def test_property_evict_is_idempotent(dialogues, cutoff):
     for did, started, ended, n_msg in dialogues:
         _inject_dialogue(svc, did, started, ended, n_msg)
 
-    first = svc.evict_old_dialogues(before_tick=cutoff)
+    first = svc.evict_old_dialogues(before_day_index=(cutoff // 288))
     state_after_first = (
         set(svc._dialogues.keys()),
         set(svc._dialogue_summaries.keys()),
     )
 
-    second = svc.evict_old_dialogues(before_tick=cutoff)
+    second = svc.evict_old_dialogues(before_day_index=(cutoff // 288))
     state_after_second = (
         set(svc._dialogues.keys()),
         set(svc._dialogue_summaries.keys()),
@@ -181,7 +194,7 @@ def test_property_evict_monotone_in_cutoff(dialogues, cutoffs):
     cutoffs_sorted = sorted(cutoffs)
     seen_evicted: set[str] = set()
     for c in cutoffs_sorted:
-        svc.evict_old_dialogues(before_tick=c)
+        svc.evict_old_dialogues(before_day_index=(c // 288))
         currently_evicted = set(svc._dialogue_summaries.keys())
         # all previously-seen-evicted must still be in summaries
         assert seen_evicted.issubset(currently_evicted), (
@@ -203,7 +216,7 @@ def test_property_retrieve_summary_total_conservation(dialogues, cutoff):
         _inject_dialogue(svc, did, started, ended, n_msg)
         input_ids.append(did)
 
-    svc.evict_old_dialogues(before_tick=cutoff)
+    svc.evict_old_dialogues(before_day_index=(cutoff // 288))
 
     for did in input_ids:
         s = svc.retrieve_summary(did)

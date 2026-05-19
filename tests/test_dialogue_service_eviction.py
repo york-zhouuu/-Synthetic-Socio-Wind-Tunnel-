@@ -34,6 +34,11 @@ def _make_dialogue(
         Dialogue, DialogueMessage,
     )
     did = f"d_{initiator}_{invitee}_{started_tick}"
+    # 2026-05-20 fix-dialogue-eviction-tick-semantic: tests pass
+    # synthetic `started_tick` as a global tick value (e.g.
+    # `5 * ticks_per_day + 10` = 1450). The Dialogue object now needs
+    # `started_day_index` for eviction; derive it from started_tick.
+    derived_day_index = started_tick // 288
     d = Dialogue(
         dialogue_id=did,
         initiator_id=initiator,
@@ -42,6 +47,7 @@ def _make_dialogue(
         started_tick=started_tick,
         last_message_tick=started_tick + 5,
         started_at=datetime(2026, 4, 22, 8, 0),
+        started_day_index=derived_day_index,
         member_status={initiator: "ended", invitee: "ended"},
         messages=[
             DialogueMessage(
@@ -58,19 +64,25 @@ def _make_dialogue(
 
 
 def test_evict_demotes_ended_dialogues_before_cutoff() -> None:
-    """harden-worker-resilience scenario: 4 dialogues ending at days
-    1/2/3/4; evict at day 5 cutoff (2-day grace) should demote
-    days 1+2, keep 3+4 in full form."""
+    """harden-worker-resilience scenario: 4 dialogues starting + ending
+    on days 1/2/3/4; evict at day 5 cutoff (2-day grace) should demote
+    those started before day 3, keep day 3+ in full form.
+
+    2026-05-20: signature changed to compare started_day_index (not
+    ended_tick). Test setup updated so dialogues start and end on the
+    same day (matches reality — dialogues are minutes, not days)."""
     svc = _make_service()
     ticks_per_day = 288
-    d1 = _make_dialogue(svc, "a", "b", 0, 1 * ticks_per_day + 10)
-    d2 = _make_dialogue(svc, "c", "d", 0, 2 * ticks_per_day + 10)
-    d3 = _make_dialogue(svc, "e", "f", 0, 3 * ticks_per_day + 10)
-    d4 = _make_dialogue(svc, "g", "h", 0, 4 * ticks_per_day + 10)
+    # Start each dialogue on the same day it "ends" so started_day_index
+    # reflects intent. _make_dialogue derives started_day_index from
+    # started_tick // 288.
+    d1 = _make_dialogue(svc, "a", "b", 1 * ticks_per_day, 1 * ticks_per_day + 10)
+    d2 = _make_dialogue(svc, "c", "d", 2 * ticks_per_day, 2 * ticks_per_day + 10)
+    d3 = _make_dialogue(svc, "e", "f", 3 * ticks_per_day, 3 * ticks_per_day + 10)
+    d4 = _make_dialogue(svc, "g", "h", 4 * ticks_per_day, 4 * ticks_per_day + 10)
 
-    # cutoff = (5 - 2) * 288 = 864 → dialogues with ended_tick < 864 are evicted
-    cutoff = 3 * ticks_per_day
-    evicted = svc.evict_old_dialogues(before_tick=cutoff)
+    # cutoff = day 3 (= max(0, 5-2)) → days 0/1/2 evicted, 3/4 kept
+    evicted = svc.evict_old_dialogues(before_day_index=3)
     assert evicted == 2
     assert d1 not in svc._dialogues
     assert d2 not in svc._dialogues
@@ -90,7 +102,7 @@ def test_evict_does_not_touch_in_progress() -> None:
     svc = _make_service()
     d_active = _make_dialogue(svc, "a", "b", started_tick=0, ended_tick=None)
     # Cutoff way after the dialogue started — would evict if eligible
-    evicted = svc.evict_old_dialogues(before_tick=10000)
+    evicted = svc.evict_old_dialogues(before_day_index=99)
     assert evicted == 0
     assert d_active in svc._dialogues
     assert svc._dialogue_summaries == {}
@@ -99,7 +111,7 @@ def test_evict_does_not_touch_in_progress() -> None:
 def test_evict_zero_cutoff_is_noop() -> None:
     svc = _make_service()
     d1 = _make_dialogue(svc, "a", "b", 0, 100)
-    evicted = svc.evict_old_dialogues(before_tick=0)
+    evicted = svc.evict_old_dialogues(before_day_index=0)
     assert evicted == 0
     assert d1 in svc._dialogues
 
@@ -107,8 +119,8 @@ def test_evict_zero_cutoff_is_noop() -> None:
 def test_evict_idempotent_second_call() -> None:
     svc = _make_service()
     d1 = _make_dialogue(svc, "a", "b", 0, 100)
-    first = svc.evict_old_dialogues(before_tick=200)
-    second = svc.evict_old_dialogues(before_tick=200)
+    first = svc.evict_old_dialogues(before_day_index=2)
+    second = svc.evict_old_dialogues(before_day_index=2)
     assert first == 1
     assert second == 0
     assert d1 in svc._dialogue_summaries
@@ -138,7 +150,7 @@ def test_snapshot_round_trip_preserves_summaries() -> None:
     svc = _make_service()
     d1 = _make_dialogue(svc, "a", "b", 0, 100)
     _ = _make_dialogue(svc, "c", "d", 0, 500)  # stays live
-    svc.evict_old_dialogues(before_tick=200)
+    svc.evict_old_dialogues(before_day_index=2)
     assert d1 in svc._dialogue_summaries
 
     state = svc.to_snapshot_state()

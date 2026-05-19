@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -27,15 +28,25 @@ from synthetic_socio_wind_tunnel import Atlas
 _RESIDENTIAL_FLOOR = 0.40
 _STREET_CEILING = 0.20
 
+# persist-per-day-summaries-across-resumes (2026-05-20): exclude
+# seed_<N>_day<D>.summary.json, seed_<N>_tick<T>.snapshot.json,
+# seed_<N>_positions.json, seed_<N>_day<D>.partial.json from
+# canonical seed scans.
+_REAL_SEED_RE = re.compile(r"^seed_\d+\.json$")
+
+
+def _canonical_seeds(d: Path) -> list[Path]:
+    return sorted(p for p in d.glob("seed_*.json") if _REAL_SEED_RE.match(p.name))
+
 
 def _find_seed_file(target_dir: Path) -> Path:
     """Find a seed_*.json file inside target_dir or a variant subdir."""
-    seeds = sorted(target_dir.glob("seed_*.json"))
+    seeds = _canonical_seeds(target_dir)
     if seeds:
         return seeds[0]
     baseline = target_dir / "variant_baseline"
     if baseline.is_dir():
-        seeds = sorted(baseline.glob("seed_*.json"))
+        seeds = _canonical_seeds(baseline)
         if seeds:
             return seeds[0]
     raise FileNotFoundError(

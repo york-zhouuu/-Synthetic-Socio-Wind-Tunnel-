@@ -33,6 +33,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import subprocess
 import sys
 import time
@@ -48,6 +49,10 @@ _VARIANTS = (
     "global_distraction",
     "phone_friction",
 )
+
+# persist-per-day-summaries-across-resumes (2026-05-20): canonical
+# seed_<N>.json filter — exclude day/tick/positions/partial aux files.
+_REAL_SEED_RE = re.compile(r"^seed_\d+\.json$")
 
 
 def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
@@ -125,9 +130,12 @@ def _check_outputs(suite_dir: Path) -> tuple[bool, list[str]]:
             issues.append(f"variant {variant}: no variant_{variant}/ dir found")
             continue
         vd = matches[0]
-        # Expect seed_<N>.json — accept any single seed
-        seed_files = list(vd.glob("seed_*.json"))
-        seed_files = [p for p in seed_files if "partial" not in p.name]
+        # Expect seed_<N>.json — accept any single seed. Filter aux
+        # files (partial, snapshot, day-summary, positions).
+        seed_files = [
+            p for p in vd.glob("seed_*.json")
+            if _REAL_SEED_RE.match(p.name)
+        ]
         if not seed_files:
             ok = False
             issues.append(f"variant {variant}: no seed_*.json files")

@@ -471,25 +471,34 @@ class DialogueService:
 
     # -- rolling cleanup (harden-worker-resilience) -------------------
 
-    def evict_old_dialogues(self, *, before_tick: int) -> int:
-        """Demote ended dialogues finished strictly before `before_tick`
+    def evict_old_dialogues(self, *, before_day_index: int) -> int:
+        """Demote ended dialogues that started on `day_index < before_day_index`
         to compact `DialogueSummary` (drops `messages` + `member_status`).
 
         Hooked by MultiDayRunner's `on_day_end` chain. Returns the number
         of dialogues evicted. In-progress dialogues (ended_tick is None)
         are never touched.
 
-        Caller computes `before_tick = (current_day_index - grace_days) *
-        ticks_per_day` (default grace 2 days) so a dialogue ending mid-day
-        N stays full-fat through day N+1 and gets demoted at day N+2 end.
+        Caller computes `before_day_index = max(0, current_day_index -
+        grace_days)` (default grace 2 days) so a dialogue from day N stays
+        full-fat through day N+1 and gets demoted at day N+2 end.
+
+        2026-05-20 fix-dialogue-eviction-tick-semantic: prior signature
+        `before_tick: int` had caller passing `(day_index - grace) *
+        ticks_per_day` (global) but filter compared against `d.ended_tick`
+        (per-day 0-287). Mismatch → ALL ended dialogues evicted every
+        cycle → message content lost immediately, no grace.
         """
-        if before_tick <= 0:
+        if before_day_index <= 0:
             return 0
         evict_ids: list[str] = []
         for did, d in self._dialogues.items():
             if d.ended_tick is None:
                 continue  # in-progress — never evict
-            if d.ended_tick >= before_tick:
+            # Use started_day_index when available; fallback to 0 for
+            # backward-compat-constructed dialogues (treated as oldest)
+            d_day = getattr(d, "started_day_index", 0)
+            if d_day >= before_day_index:
                 continue  # too recent
             evict_ids.append(did)
         for did in evict_ids:
@@ -506,9 +515,10 @@ class DialogueService:
             )
         if evict_ids:
             logger.info(
-                "DialogueService: evicted %d dialogues (ended_tick < %d) "
-                "to summaries; full dialogue count now %d, summary count %d",
-                len(evict_ids), before_tick,
+                "DialogueService: evicted %d dialogues "
+                "(started_day_index < %d) to summaries; full dialogue "
+                "count now %d, summary count %d",
+                len(evict_ids), before_day_index,
                 len(self._dialogues), len(self._dialogue_summaries),
             )
         return len(evict_ids)

@@ -12,12 +12,17 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import statistics
 import sys
 from pathlib import Path
 from typing import Any
 
 import pyproj
+
+# persist-per-day-summaries-across-resumes (2026-05-20): canonical
+# seed_<N>.json regex — excludes day/tick/positions/partial aux files.
+_REAL_SEED_RE = re.compile(r"^seed_\d+\.json$")
 
 
 def _polygon_centroid(coords: list) -> tuple[float, float] | None:
@@ -104,9 +109,8 @@ def _load_suite(suite_dir: Path) -> dict[str, list[dict]]:
         if not vd.is_dir() or not vd.name.startswith("variant_"):
             continue
         for sf in sorted(vd.glob("seed_*.json")):
-            # Skip companion position-trace files (seed_X_positions.json) —
-            # they have their own schema and are consumed separately.
-            if "_positions" in sf.stem:
+            # Skip aux files: positions, snapshot, partial, day-summary.
+            if not _REAL_SEED_RE.match(sf.name):
                 continue
             with sf.open(encoding="utf-8") as fh:
                 by_variant.setdefault(vd.name, []).append(json.load(fh))

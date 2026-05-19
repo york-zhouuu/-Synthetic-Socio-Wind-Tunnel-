@@ -61,9 +61,17 @@ class Dialogue:
     started_tick: int
     last_message_tick: int
     started_at: "datetime | None" = None  # simulated wall time at start
+    # 2026-05-20 fix-dialogue-eviction-tick-semantic: cold-prune
+    # eviction needs day-level granularity. `started_tick` is per-day
+    # (0-287) so can't be compared to multi-day cutoffs. This field
+    # carries the day_index from orchestrator at creation time.
+    # Default 0 for backward compat — eviction treats unknown as oldest
+    # (will be pruned by any grace > 0).
+    started_day_index: int = 0
     member_status: dict[str, DialogueStatus] = field(default_factory=dict)
     messages: list[DialogueMessage] = field(default_factory=list)
     ended_tick: int | None = None
+    ended_day_index: int | None = None  # set by _end
     end_reason: str | None = None
 
     def __post_init__(self) -> None:

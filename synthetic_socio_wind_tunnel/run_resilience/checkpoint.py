@@ -171,7 +171,13 @@ class DayCheckpointWriter:
         return candidates[-1][1]
 
     def cleanup_partials(self, *, output_dir: Path, seed: int) -> list[Path]:
-        """删除该 seed 所有 partial 文件；返回被删的路径列表。"""
+        """删除该 seed 所有 partial 文件；返回被删的路径列表。
+
+        Note: SHALL NOT touch `seed_*_day*.summary.json` (introduced by
+        persist-per-day-summaries-across-resumes 2026-05-20) — those
+        files are the canonical per-day record across resumes and must
+        survive cleanup.
+        """
         if not output_dir.exists():
             return []
         removed: list[Path] = []
@@ -182,3 +188,62 @@ class DayCheckpointWriter:
             except OSError as exc:
                 logger.warning("无法删除 partial %s: %s", p, exc)
         return removed
+
+    # ---- persist-per-day-summaries-across-resumes (2026-05-20) ----
+
+    def write_day_summary(
+        self, *, day_index: int, summary_dict: dict,
+        output_dir: Path, seed: int,
+    ) -> Path:
+        """Atomic write the day's DayRunSummary (as dict) to
+        `seed_<N>_day<D>.summary.json`.
+
+        Persists across resume boundaries; allows `run_multi_day` to
+        hydrate `per_day_summaries` with ALL prior days, not only
+        this-run's days. Closes 2026-05-20 thesis-blocking bug F.
+        """
+        output_dir.mkdir(parents=True, exist_ok=True)
+        target = output_dir / f"seed_{seed}_day{day_index}.summary.json"
+        import json as _json
+        import tempfile
+        # Atomic: tmp + rename to avoid partial reads during crash
+        with tempfile.NamedTemporaryFile(
+            "w", encoding="utf-8", dir=str(output_dir),
+            prefix=f".swt-day{day_index}-", suffix=".json.tmp",
+            delete=False,
+        ) as tf:
+            _json.dump(summary_dict, tf, ensure_ascii=False, default=str)
+            tf.flush()
+            try:
+                os.fsync(tf.fileno())
+            except OSError:
+                pass
+            tmp_name = tf.name
+        os.rename(tmp_name, target)
+        return target
+
+    def load_day_summaries(
+        self, *, output_dir: Path, seed: int,
+    ) -> list[dict]:
+        """Read all `seed_<N>_day*.summary.json`; return list of dicts
+        sorted by day_index. Returns [] if directory missing / no files.
+
+        On JSON decode error, log warning + skip that file (don't crash
+        the run on stale/corrupted summary)."""
+        if not output_dir.exists():
+            return []
+        import json as _json
+        out: list[tuple[int, dict]] = []
+        for p in output_dir.glob(f"seed_{seed}_day*.summary.json"):
+            try:
+                stem = p.name[len(f"seed_{seed}_day"):-len(".summary.json")]
+                day_idx = int(stem)
+                with open(p, encoding="utf-8") as fh:
+                    data = _json.load(fh)
+                out.append((day_idx, data))
+            except (ValueError, OSError, _json.JSONDecodeError) as exc:
+                logger.warning(
+                    "skipping malformed day summary %s: %s", p, exc,
+                )
+        out.sort(key=lambda t: t[0])
+        return [d for _, d in out]

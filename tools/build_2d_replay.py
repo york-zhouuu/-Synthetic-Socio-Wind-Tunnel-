@@ -19,9 +19,14 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import sys
 from pathlib import Path
 from typing import Any
+
+# persist-per-day-summaries-across-resumes (2026-05-20): canonical
+# seed_<N>.json regex — excludes day/tick/positions/partial aux files.
+_REAL_SEED_RE = re.compile(r"^seed_\d+\.json$")
 
 
 def _load_atlas_polygons(atlas_path: Path) -> dict:
@@ -132,7 +137,7 @@ def _load_suite_metrics(suite_dir: Path) -> dict[str, dict]:
         if not vd.is_dir() or not vd.name.startswith("variant_"):
             continue
         for sf in sorted(vd.glob("seed_*.json")):
-            if "_positions" in sf.stem:
+            if not _REAL_SEED_RE.match(sf.name):
                 continue
             with sf.open(encoding="utf-8") as fh:
                 d = json.load(fh)

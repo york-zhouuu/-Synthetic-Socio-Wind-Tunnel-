@@ -98,6 +98,9 @@ def test_aborted_in_setup_metadata_set_by_runner(tmp_path: Path) -> None:
     runner._snapshot_policy.keep_last_k = 1
     runner._snapshot_policy.wal_fsync_every_ticks = 0
     runner._wal_writer = None
+    # persist-per-day-summaries-across-resumes (2026-05-20): bypass-init
+    # test must set checkpoint_writer slot or hydrate path AttributeErrors
+    runner._checkpoint_writer = None
     # restore_into path
     runner._restore_from = None
 

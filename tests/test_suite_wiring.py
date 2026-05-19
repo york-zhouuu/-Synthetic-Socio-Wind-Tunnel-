@@ -157,13 +157,14 @@ class TestDumpFields:
         suite_dirs = list(tmp_path.glob("*_dump_check"))
         assert len(suite_dirs) == 1
         # add-per-tick-position-logging writes seed_*_positions.json companions;
-        # filter those out when counting per-seed metric dumps.
+        # persist-per-day-summaries-across-resumes (2026-05-20) added
+        # seed_<N>_day<D>.summary.json files. Match canonical
+        # `seed_<digits>.json` only.
+        import re as _re
+        _RE = _re.compile(r"^seed_\d+\.json$")
         seed_files = [
             p for p in (suite_dirs[0] / "variant_hyperlocal_push").glob("seed_*.json")
-            if "_positions" not in p.name
-            and ".snapshot" not in p.name
-            and ".partial" not in p.name
-            and "_tick" not in p.name
+            if _RE.match(p.name)
         ]
         assert len(seed_files) == 1
         data = json.loads(seed_files[0].read_text(encoding="utf-8"))
