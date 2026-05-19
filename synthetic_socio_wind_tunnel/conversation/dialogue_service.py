@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import logging
 import random
-from dataclasses import replace
+from dataclasses import dataclass, replace
 from datetime import datetime, timedelta
 from typing import TYPE_CHECKING
 
@@ -27,6 +27,27 @@ from synthetic_socio_wind_tunnel.conversation.dialogue import (
     DialogueMessage,
     DialogueStatus,
 )
+
+
+@dataclass(frozen=True, slots=True)
+class DialogueSummary:
+    """Compact stand-in for an evicted Dialogue.
+
+    Retains identity + outcome metadata for downstream metric / narrative
+    use; drops messages + member_status detail to reclaim memory. Backlog
+    1.7 (harden-worker-resilience): without rolling eviction, _dialogues
+    grows unbounded (~100-500 MB / 14-day worker) and offsets the RSS
+    auto-restart capability.
+    """
+
+    dialogue_id: str
+    initiator_id: str
+    invitee_id: str
+    target_location_id: str
+    started_tick: int
+    ended_tick: int | None
+    message_count: int
+    end_reason: str | None
 
 if TYPE_CHECKING:
     from synthetic_socio_wind_tunnel.conversation.service import ConversationService
@@ -66,6 +87,7 @@ class DialogueService:
 
     __slots__ = (
         "_dialogues",
+        "_dialogue_summaries",
         "_active_by_agent",
         "_cooldown_minutes",
         "_max_messages",
@@ -85,6 +107,10 @@ class DialogueService:
         cooldown_minutes: int = DEFAULT_COOLDOWN_MINUTES,
     ) -> None:
         self._dialogues: dict[str, Dialogue] = {}
+        # harden-worker-resilience: evicted dialogues kept as compact
+        # summary (drops `messages` list) so long runs don't leak unbounded
+        # message payload memory.
+        self._dialogue_summaries: dict[str, DialogueSummary] = {}
         self._active_by_agent: dict[str, str] = {}  # agent_id → dialogue_id
         self._cooldown_minutes = cooldown_minutes
         self._max_messages = max_messages
@@ -443,6 +469,70 @@ class DialogueService:
         self._last_ended_at[pair] = simulated_time
         return d
 
+    # -- rolling cleanup (harden-worker-resilience) -------------------
+
+    def evict_old_dialogues(self, *, before_tick: int) -> int:
+        """Demote ended dialogues finished strictly before `before_tick`
+        to compact `DialogueSummary` (drops `messages` + `member_status`).
+
+        Hooked by MultiDayRunner's `on_day_end` chain. Returns the number
+        of dialogues evicted. In-progress dialogues (ended_tick is None)
+        are never touched.
+
+        Caller computes `before_tick = (current_day_index - grace_days) *
+        ticks_per_day` (default grace 2 days) so a dialogue ending mid-day
+        N stays full-fat through day N+1 and gets demoted at day N+2 end.
+        """
+        if before_tick <= 0:
+            return 0
+        evict_ids: list[str] = []
+        for did, d in self._dialogues.items():
+            if d.ended_tick is None:
+                continue  # in-progress — never evict
+            if d.ended_tick >= before_tick:
+                continue  # too recent
+            evict_ids.append(did)
+        for did in evict_ids:
+            d = self._dialogues.pop(did)
+            self._dialogue_summaries[did] = DialogueSummary(
+                dialogue_id=d.dialogue_id,
+                initiator_id=d.initiator_id,
+                invitee_id=d.invitee_id,
+                target_location_id=d.target_location_id,
+                started_tick=d.started_tick,
+                ended_tick=d.ended_tick,
+                message_count=d.message_count(),
+                end_reason=d.end_reason,
+            )
+        if evict_ids:
+            logger.info(
+                "DialogueService: evicted %d dialogues (ended_tick < %d) "
+                "to summaries; full dialogue count now %d, summary count %d",
+                len(evict_ids), before_tick,
+                len(self._dialogues), len(self._dialogue_summaries),
+            )
+        return len(evict_ids)
+
+    def retrieve_summary(self, dialogue_id: str) -> DialogueSummary | None:
+        """Return a `DialogueSummary` for any dialogue (live or evicted),
+        or None if unknown.
+
+        For live dialogues, builds a summary on the fly from the in-memory
+        Dialogue. For evicted ones, returns the cached summary."""
+        d = self._dialogues.get(dialogue_id)
+        if d is not None:
+            return DialogueSummary(
+                dialogue_id=d.dialogue_id,
+                initiator_id=d.initiator_id,
+                invitee_id=d.invitee_id,
+                target_location_id=d.target_location_id,
+                started_tick=d.started_tick,
+                ended_tick=d.ended_tick,
+                message_count=d.message_count(),
+                end_reason=d.end_reason,
+            )
+        return self._dialogue_summaries.get(dialogue_id)
+
     # -- queries -----------------------------------------------------
 
     def get(self, dialogue_id: str) -> Dialogue | None:
@@ -562,8 +652,22 @@ class DialogueService:
                 "ended_tick": d.ended_tick,
                 "end_reason": d.end_reason,
             }
+        summaries_out = {
+            did: {
+                "dialogue_id": s.dialogue_id,
+                "initiator_id": s.initiator_id,
+                "invitee_id": s.invitee_id,
+                "target_location_id": s.target_location_id,
+                "started_tick": s.started_tick,
+                "ended_tick": s.ended_tick,
+                "message_count": s.message_count,
+                "end_reason": s.end_reason,
+            }
+            for did, s in self._dialogue_summaries.items()
+        }
         return {
             "dialogues": dialogues_out,
+            "dialogue_summaries": summaries_out,
             "active_by_agent": dict(self._active_by_agent),
             "last_ended_at": {
                 f"{a}|{b}": dt.isoformat()
@@ -611,6 +715,20 @@ class DialogueService:
                 end_reason=dd.get("end_reason"),
             )
             self._dialogues[did] = d
+        # harden-worker-resilience: restore evicted summaries (back-compat:
+        # legacy snapshots without this key get empty dict, no failure).
+        self._dialogue_summaries = {}
+        for did, sd in (state.get("dialogue_summaries") or {}).items():
+            self._dialogue_summaries[did] = DialogueSummary(
+                dialogue_id=sd["dialogue_id"],
+                initiator_id=sd["initiator_id"],
+                invitee_id=sd["invitee_id"],
+                target_location_id=sd["target_location_id"],
+                started_tick=sd["started_tick"],
+                ended_tick=sd.get("ended_tick"),
+                message_count=int(sd.get("message_count", 0)),
+                end_reason=sd.get("end_reason"),
+            )
         self._active_by_agent = dict(state.get("active_by_agent") or {})
         self._last_ended_at = {}
         for k, v in (state.get("last_ended_at") or {}).items():
@@ -640,6 +758,7 @@ __all__ = [
     "DialogueAlreadyExistsError",
     "DialogueCooldownError",
     "DialogueService",
+    "DialogueSummary",
     "InvalidDialogueStateError",
     "DEFAULT_COOLDOWN_MINUTES",
     "DEFAULT_MAX_MESSAGES",

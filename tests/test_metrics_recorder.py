@@ -178,3 +178,28 @@ class TestRecorderSnapshotRoundtrip:
         rec2 = TickMetricsRecorder(ledger=ledger)
         rec2.from_snapshot_state(rec1.to_snapshot_state())
         assert rec2.snapshot()[0].distinct_encounter_pairs == 2
+
+    def test_resume_appends_to_existing_buckets(self):
+        """harden-worker-resilience scenario: Worker A runs day 0-1,
+        Worker B from_snapshot_state continues with day 2-3. Final
+        snapshot() SHALL contain 4 day-summaries, not just the 2 from
+        Worker B's session (backlog 1.11 — pre-fix this case lost the
+        pre-resume days).
+        """
+        ledger = _ledger_with([("a1", "loc_a")])
+        # Worker A
+        rec_a = TickMetricsRecorder(ledger=ledger)
+        rec_a.on_tick_end(_tick(0, 0))
+        rec_a.on_tick_end(_tick(1, 0))
+        state_a = rec_a.to_snapshot_state()
+        assert len(rec_a.snapshot()) == 2
+
+        # Worker B: fresh recorder + restore
+        rec_b = TickMetricsRecorder(ledger=ledger)
+        rec_b.from_snapshot_state(state_a)
+        # B continues with day 2, 3
+        rec_b.on_tick_end(_tick(2, 0))
+        rec_b.on_tick_end(_tick(3, 0))
+        summaries = rec_b.snapshot()
+        # Final result spans all 4 days
+        assert [s.day_index for s in summaries] == [0, 1, 2, 3]

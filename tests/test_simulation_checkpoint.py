@@ -79,15 +79,83 @@ class TestAtomicWrite:
         snap.write_atomic(path)
         assert list(tmp_path.glob("*.tmp")) == []
 
-    def test_cleans_pre_existing_tmp(self, tmp_path: Path) -> None:
+    def test_succeeds_with_unrelated_tmp_present(self, tmp_path: Path) -> None:
+        """harden-worker-resilience: write_atomic must not touch other
+        processes' in-flight .tmp files. Pre-existing tmp from a crashed
+        run or concurrent worker is left alone; the new write uses a
+        unique tmp name (NamedTemporaryFile) and only touches its own.
+        """
         path = snapshot_path(tmp_path, seed=42, tick_index_global=100)
         path.parent.mkdir(exist_ok=True, parents=True)
-        stale = path.with_suffix(path.suffix + ".tmp")
-        stale.write_text("garbage from previous crashed write")
-        assert stale.exists()
+        unrelated = path.with_suffix(path.suffix + ".tmp")
+        unrelated.write_text("not ours — could be a concurrent worker mid-write")
         snap = _make()
         snap.write_atomic(path)
-        assert not stale.exists()
+        assert path.exists()
+        loaded = SimulationCheckpoint.read(path)
+        assert loaded.seed == 42
+        # The unrelated tmp is left for its original owner to clean up
+        assert unrelated.exists()
+        # Our own tmp (unique name) is gone after rename
+        own_tmps = [
+            p for p in tmp_path.rglob("*.tmp") if p != unrelated
+        ]
+        assert own_tmps == []
+
+    def test_concurrent_writes_no_corruption(self, tmp_path: Path) -> None:
+        """harden-worker-resilience: two processes racing to write the same
+        snapshot path must not corrupt the final file.
+
+        Pre-fix bug (2026-05-19 雪崩): fixed tmp suffix `path.suffix + ".tmp"`
+        meant both writers wrote into the same `<path>.tmp` file; whichever
+        renamed last would either overwrite a half-written body, or
+        os.replace would shuffle a torn file into place.
+
+        Post-fix: each writer uses a unique tmp name (NamedTemporaryFile),
+        so the final `path` contents must equal one of the two writers'
+        full bodies — never a mix.
+        """
+        import threading
+
+        path = snapshot_path(tmp_path, seed=42, tick_index_global=100)
+        snap_a = _make(seed=42, tick_index=100, day_index=0)
+        snap_b = _make(seed=42, tick_index=100, day_index=1)
+        # Distinguish bodies by day_index field
+        body_a = json.dumps(snap_a.model_dump(mode="json"), default=str)
+        body_b = json.dumps(snap_b.model_dump(mode="json"), default=str)
+        assert body_a != body_b
+
+        barrier = threading.Barrier(2)
+        errors: list[Exception] = []
+
+        def _write(snap: SimulationCheckpoint) -> None:
+            try:
+                barrier.wait()
+                snap.write_atomic(path)
+            except Exception as e:  # noqa: BLE001
+                errors.append(e)
+
+        # Run multiple iterations to surface the race reliably
+        for _ in range(10):
+            if path.exists():
+                path.unlink()
+            errors.clear()
+            threads = [
+                threading.Thread(target=_write, args=(snap_a,)),
+                threading.Thread(target=_write, args=(snap_b,)),
+            ]
+            for t in threads:
+                t.start()
+            for t in threads:
+                t.join()
+            assert errors == [], (
+                f"Concurrent write_atomic raised: {errors[0]!r}. "
+                f"This indicates the tmp-file race fixed by harden-worker-resilience."
+            )
+            loaded = SimulationCheckpoint.read(path)
+            assert loaded.day_index in (0, 1)
+        # No tmp residue left after all iterations
+        assert list(tmp_path.rglob("*.tmp")) == []
 
     def test_read_incompatible_schema_raises(self, tmp_path: Path) -> None:
         path = tmp_path / "seed_42_tick100.snapshot.json"

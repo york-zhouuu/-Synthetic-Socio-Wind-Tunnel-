@@ -77,20 +77,29 @@ def test_atomic_no_partial_residue_after_normal_write(tmp_path: Path) -> None:
     assert leftover_tmps == []
 
 
-def test_atomic_cleans_pre_existing_tmp(tmp_path: Path) -> None:
-    """前次失败留下的 .tmp 文件应在下次 write_partial 启动时被清扫。"""
+def test_atomic_leaves_unrelated_tmp_alone(tmp_path: Path) -> None:
+    """harden-worker-resilience: a stale .tmp from a crashed run is NOT
+    swept by write_partial — it might be a concurrent worker's in-flight
+    tmp. Each write uses a unique tmp name (tempfile.mkstemp) so orphan
+    .tmp residue is harmless.
+    """
     stale = tmp_path / "seed_42_day3.partial.json.tmp"
     tmp_path.mkdir(exist_ok=True)
-    stale.write_text("garbage")
-    assert stale.exists()
+    stale.write_text("not ours — could be a concurrent worker mid-write")
     w = DayCheckpointWriter()
-    w.write_partial(
+    target = w.write_partial(
         output_dir=tmp_path, seed=42, day_index=4,
         simulated_date=date(2026, 1, 1),
         run_metrics={}, ledger_snapshot={}, memory_dump={},
         provider="stub",
     )
-    assert not stale.exists()
+    # New partial landed correctly
+    assert target.exists()
+    # Unrelated tmp is preserved (left for its owner)
+    assert stale.exists()
+    # Our own tmp is cleaned up by the rename
+    own_tmps = [p for p in tmp_path.glob("*.tmp") if p != stale]
+    assert own_tmps == []
 
 
 def test_read_partial_incompatible_schema_raises(tmp_path: Path) -> None:

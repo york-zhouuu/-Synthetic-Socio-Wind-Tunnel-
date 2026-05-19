@@ -19,6 +19,7 @@ import json
 import logging
 import os
 import random as _random
+import tempfile
 from datetime import date as date_cls, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Mapping
@@ -217,19 +218,19 @@ class SimulationCheckpoint(BaseModel):
     # ---- I/O ----
 
     def write_atomic(self, path: Path) -> Path:
-        """原子写盘：先写 <path>.tmp、fsync、然后 os.replace。
+        """原子写盘：先写唯一 tmp 文件、fsync、然后 os.replace。
 
         SIGKILL 期间目标路径 SHALL 要么不存在、要么是合法 JSON——不会
         出现写到一半的破损文件。
+
+        harden-worker-resilience (2026-05-19): 历史实现用固定
+        `path.suffix + ".tmp"` tmp 文件名，多进程 / 多线程写同一 path
+        时（如 LaunchAgent 误判 PID 死亡导致 double-spawn）会互相
+        踩在同一 tmp 上：进程 A 写完 rename，进程 B 的 os.replace
+        FileNotFoundError；更糟时撕裂 JSON。改为
+        `tempfile.NamedTemporaryFile(dir=parent)` 让 OS 保证 tmp 名唯一。
         """
         path.parent.mkdir(parents=True, exist_ok=True)
-        # 清扫前次失败的 .tmp 残骸（同 stem）
-        stale = path.with_suffix(path.suffix + ".tmp")
-        if stale.exists():
-            try:
-                stale.unlink()
-            except OSError:
-                logger.warning("无法清理残留 tmp 文件 %s", stale)
 
         body = json.dumps(
             self.model_dump(mode="json"),
@@ -237,9 +238,16 @@ class SimulationCheckpoint(BaseModel):
             default=str,
         )
 
-        fd = os.open(stale, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o644)
+        # 唯一 tmp 文件名（OS 保证），同 parent 保证 os.replace 是同卷
+        # 的原子 rename。delete=False 因为我们要把它 rename 出来。
+        tmp_fd, tmp_name = tempfile.mkstemp(
+            dir=str(path.parent),
+            prefix=path.name + ".",
+            suffix=".tmp",
+        )
+        tmp_path = Path(tmp_name)
         try:
-            with os.fdopen(fd, "w", encoding="utf-8") as f:
+            with os.fdopen(tmp_fd, "w", encoding="utf-8") as f:
                 f.write(body)
                 f.flush()
                 try:
@@ -248,11 +256,19 @@ class SimulationCheckpoint(BaseModel):
                     pass
         except Exception:
             try:
-                stale.unlink()
+                tmp_path.unlink()
             except OSError:
                 pass
             raise
-        os.replace(stale, path)
+
+        try:
+            os.replace(tmp_path, path)
+        except OSError:
+            try:
+                tmp_path.unlink()
+            except OSError:
+                pass
+            raise
         return path
 
     @classmethod

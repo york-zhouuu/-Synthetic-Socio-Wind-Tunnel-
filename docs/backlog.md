@@ -72,6 +72,20 @@ backup 永远是对的。
 
 ## 1.7 多 worker 内存优化 + 去除运行时重复计算
 
+**状态**：⚠️ B + F 已实施（2026-05-19），其它（A/C/D/E/H）仍 pending。
+见 CLAUDE.md `memory-auto-restart` 不变量。
+
+**已完成**：
+- ✅ **B** Auto-restart on memory threshold：env `RSS_RESTART_MB` 控制阈值，
+  `synthetic_socio_wind_tunnel/orchestrator/multi_day.py::_init_memory_management_hooks`
+- ✅ **F** 周期性 `gc.collect()`：env `GC_EVERY_N_TICKS` (默认 200)
+- ✅ **前置**：修了 `tools/run_variant_suite.py` 的 SIGUSR1 graceful_stop
+  污染 bug（不再写假 `seed_N.json` + 不再 cleanup partials），否则 B 每次
+  自杀都会损坏数据
+
+**未完成**（按 ROI 排序，等下次需要时做）：A mmap atlas / C cold prune /
+D fork-based / E dataclass slots / G K=1 / H 缓存 sample_population
+
 **记录时间**：2026-05-18
 
 **背景**：D2 attempt 4 (2026-05-18) 跑 4 seed × 4 variant = 16 worker
@@ -250,6 +264,17 @@ state 等价性。
 
 ## 1.9 所有直接 LLM call 加 asyncio.wait_for 硬超时兜底
 
+**状态**：✅ 已实施（截至 2026-05-19，5 个调用点全部 wrapped）。
+regression guard 在 `tests/test_direct_llm_timeout_guard.py`（源码扫描
+保护防回退）。openspec `harden-worker-resilience` 形式化进 spec。
+
+调用点 timeouts（per-site，不统一）：
+- `memory/reflection.py::reflect` — 60s
+- `memory/importance.py::score_importance` — 30s
+- `agent/planner.py::Planner.replan` — 30s
+- `data_loader/lanecove.py::_generate_life_history_for_one` — 300s
+- `data_loader/lanecove.py::_generate_identity_text_for_one` — 120s
+
 **记录时间**：2026-05-18
 
 **背景**：D2 attempt 4 (2026-05-18) hit day-end deadlock 6 次——多个
@@ -317,6 +342,14 @@ timeout)` wrapper，无 timeout 不允许调。可以是装饰器或 mixin。
 ---
 
 ## 1.11 `--resume` 不保留 run_metrics（设计漏洞）
+
+**状态**：✅ 已实施（snapshot schema v2 加 `tick_metrics_recorder_state`；
+schema v3 又加 `dialogue_service_state`）。`TickMetricsRecorder` 已有
+`to_snapshot_state` / `from_snapshot_state`；`MultiDayRunner._write_snapshot`
+和 `_write_final_snapshot_on_graceful_stop` 都已 wired；`restore_into`
+已 from_snapshot_state。round-trip + append-after-resume scenario 在
+`tests/test_metrics_recorder.py::TestRecorderSnapshotRoundtrip::test_resume_appends_to_existing_buckets`。
+openspec `harden-worker-resilience` 形式化进 `tick-level-resume` spec。
 
 **记录时间**：2026-05-18
 

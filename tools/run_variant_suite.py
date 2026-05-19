@@ -1700,41 +1700,65 @@ def main() -> int:
             )
             t_e = time.perf_counter()
 
-            # dump per-seed
+            # CLAUDE.md `sigusr1-graceful-stop-corruption` invariant:
+            # if run exited via SIGUSR1 graceful-stop (memory auto-restart,
+            # external kill -USR1, etc.), seed_N.json is NOT the final
+            # artifact — partials are. Writing seed_N.json here + running
+            # cleanup_partials would mark the cell DONE in audit while
+            # the data is truncated, and would delete the per-day partials
+            # that resume needs. Skip both writes; resume picks up next.
+            graceful_stop = bool(
+                (result.metadata or {}).get("graceful_stop", False)
+            )
+
             seed_file = variant_dir / f"seed_{seed}.json"
-            dump = {
-                "multi_day_result": result.model_dump(),
-                "run_metrics": run_metrics.model_dump(),
-            }
-            with open(seed_file, "w", encoding="utf-8") as f:
-                json.dump(dump, f, ensure_ascii=False, indent=2)
-
-            # add-per-tick-position-logging: write companion position trace
-            # for 3D dashboard replay.
-            pos_recorder = captured_variant_metadata.pop("position_recorder", None)
             pos_file = variant_dir / f"seed_{seed}_positions.json"
-            pos_changes = 0
-            if pos_recorder is not None:
-                pos_recorder.write(pos_file)
-                pos_changes = pos_recorder.total_changes
-            runs.append(run_metrics)
-            print(f"  seed={seed} wall={t_e - t_s:.1f}s "
-                  f"encs={result.total_encounters} pos_changes={pos_changes} "
-                  f"→ {seed_file.name}")
 
-            # run-resilience: cleanup partial files now that seed_<N>.json
-            # has landed (the final artifact is the source of truth).
-            try:
-                from synthetic_socio_wind_tunnel.run_resilience import (
-                    DayCheckpointWriter,
-                )
-                DayCheckpointWriter().cleanup_partials(
-                    output_dir=variant_dir, seed=seed,
-                )
-            except Exception as exc:  # noqa: BLE001
+            if graceful_stop:
+                completed_days = len(result.per_day_summaries)
                 print(
-                    f"  [warn] partial cleanup failed: {exc}", file=sys.stderr,
+                    f"  seed={seed} wall={t_e - t_s:.1f}s "
+                    f"GRACEFUL_STOP after {completed_days} day(s) "
+                    f"— seed_{seed}.json NOT written, partials preserved "
+                    f"for resume"
                 )
+            else:
+                dump = {
+                    "multi_day_result": result.model_dump(),
+                    "run_metrics": run_metrics.model_dump(),
+                }
+                with open(seed_file, "w", encoding="utf-8") as f:
+                    json.dump(dump, f, ensure_ascii=False, indent=2)
+
+                # add-per-tick-position-logging: write companion position
+                # trace for 3D dashboard replay.
+                pos_recorder = captured_variant_metadata.pop(
+                    "position_recorder", None,
+                )
+                pos_changes = 0
+                if pos_recorder is not None:
+                    pos_recorder.write(pos_file)
+                    pos_changes = pos_recorder.total_changes
+                runs.append(run_metrics)
+                print(f"  seed={seed} wall={t_e - t_s:.1f}s "
+                      f"encs={result.total_encounters} pos_changes={pos_changes} "
+                      f"→ {seed_file.name}")
+
+                # run-resilience: cleanup partial files now that
+                # seed_<N>.json has landed (the final artifact is the
+                # source of truth).
+                try:
+                    from synthetic_socio_wind_tunnel.run_resilience import (
+                        DayCheckpointWriter,
+                    )
+                    DayCheckpointWriter().cleanup_partials(
+                        output_dir=variant_dir, seed=seed,
+                    )
+                except Exception as exc:  # noqa: BLE001
+                    print(
+                        f"  [warn] partial cleanup failed: {exc}",
+                        file=sys.stderr,
+                    )
 
         # aggregate — 用真实跑出来的 variant_metadata（factory 已填 target_location 等）
         aggregate = build_suite_aggregate(runs, variant_metadata=captured_variant_metadata)

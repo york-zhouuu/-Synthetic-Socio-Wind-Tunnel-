@@ -11,6 +11,138 @@ This file provides guidance to Claude Code when working with this repository.
 
 任何对外文档/报告引用这两个数字时务必用 1000 / 1000m。
 
+## 关键不变量（testing-rigor 2026-05-19）
+
+写新 capability / 大 PR 提交前 SHALL 过 `tests/README.md` 的
+**8 类问题清单**——pytest 全绿是必要条件，**远不充分**。本项目过去
+7 个生产事故都在测试全绿的代码里。
+
+8 类问题（每类对应一个真实事故 case study，详见
+`docs/testing-philosophy.md`）：
+
+1. **中断路径**测了吗？（SIGUSR1 / SIGTERM / cancel 不写假完整文件）
+2. **启动期边界**测了吗？（WAL mtime < proc start time 的语义）
+3. **资源 budget** 测了吗？（publishable-scale fixture 测 RSS / 时长）
+4. **外部依赖失败路径** mock 了吗？（subprocess / HTTP / DB 至少 3 个失败 mode）
+5. **并发 / atomic 操作 race** 测了吗？（threading.Barrier + 10 轮迭代）
+6. **long-running 数据结构有界性**测了吗？（dict/list 跑 14 day 后 size < threshold）
+7. **smoke 覆盖最坏一天**了吗？（不只是 day 0，覆盖 day 11+ peak）
+8. **不变量配源码级 + 行为级双层 guard** 了吗？（grep test + mock test）
+
+**spec scenario 写作约束**（同源同检验）：每个
+`#### Scenario:` 的 WHEN/THEN 子句 SHALL 可机器映射到一个 test fn；
+不允许"待人工 review"作为 outcome。
+
+正例：`tests/test_harden_invariants.py`（3 不变量 × 2 层 = 6 tests）；
+`tests/test_simulation_checkpoint.py::test_concurrent_writes_no_corruption`
+（10 轮 barrier 并发 race test）。
+
+反例：本项目截至 2026-05-19 仍**缺**的高优 test（见
+`docs/testing-philosophy.md` 附录）：
+
+- `test_concurrent_resume_ram_budget.py`（问题 3）
+- `test_find_pid_ps_failure_modes.py`（问题 4）
+- `test_dialogue_service_bounded_long_run.py`（问题 6）
+- `test_smoke_publishable_day11.py`（问题 7）
+
+下次开 OpenSpec change 时考虑补 1-2 个。
+
+## 关键不变量 (harden-worker-resilience 2026-05-19)
+
+下面 3 条不变量（`monitor-as-control-plane` / `sigusr1-graceful-stop-corruption`
+/ `memory-auto-restart`）+ `snapshot-resume-ram-peak` + atomic-write 多进程
+安全 + setup-phase 哨兵 + DialogueService rolling cleanup + 直接 LLM call
+asyncio.wait_for 兜底 — 全部 formalized 在 OpenSpec change
+`harden-worker-resilience` 的 spec deltas (`run-resilience` +
+`tick-level-resume` capability)。
+
+Regression tests:
+- `tests/test_harden_invariants.py` — 3 条不变量的源码级 / 行为级 guard
+- `tests/test_direct_llm_timeout_guard.py` — 5 个直接 LLM call 位点的 wait_for guard
+- `tests/test_aborted_in_setup_sentinel.py` — setup-phase 哨兵 4 test
+- `tests/test_dialogue_service_eviction.py` — DialogueService rolling evict 8 test
+- `tests/test_simulation_checkpoint.py::test_concurrent_writes_no_corruption` — 多进程 atomic write 10 轮 barrier 测试
+
+## 关键不变量（memory-auto-restart 2026-05-19，backlog 1.7 B+F 已落地）
+
+- **每 worker RSS 永封顶 `RSS_RESTART_MB` MB**——
+  `synthetic_socio_wind_tunnel/orchestrator/multi_day.py::_init_memory_management_hooks`
+  每 `RSS_CHECK_EVERY_N_TICKS` tick 检查 self RSS，超阈值 → 设置
+  `_graceful_stop_requested=True` → 现有 graceful-stop 路径写 per-day
+  partial + 退出 0 → `tools/resume_publishable.py` / LaunchAgent 下次 tick
+  自动 spawn 替代（fresh RSS）
+- **每 worker 周期性 gc.collect()**——同一 hook 每 `GC_EVERY_N_TICKS` tick
+  跑一次，破 Python ref-cycle，省 100-300 MB / worker / 14 day
+- 关键环境变量（默认值见代码）：
+  - `RSS_RESTART_MB=0` (off) → 建议 publishable 设 `2500`（2.5 GB 单 worker 上限）
+  - `GC_EVERY_N_TICKS=200` (~每 50 min 一次 gc.collect)
+  - `RSS_CHECK_EVERY_N_TICKS=50` (~每 12 min 量一次 RSS)
+- **依赖链**：B（RSS auto-restart）依赖 [[sigusr1-graceful-stop-corruption]]
+  修复（不修，B 每次自杀都会污染数据）；今天两个一起修了
+- backlog `docs/backlog.md` 1.7 的 B + F 已完成；C/A/D/E/H 未实施
+
+## 关键不变量（snapshot-resume-ram-peak 2026-05-19）
+
+- **同时 spawn N 个 worker 全部从 mid/late-run snapshot resume 是 RAM 峰值时刻**——
+  必须 **staggered spawn**（每个间隔 ≥ 5 min），不能像 D2 attempt 6 (2026-05-19
+  12:08) 那样 2 秒内 spawn 4 个 worker 同时反序列化 day8–11 snapshot
+- 数学：JSON snapshot 反序列化在 Python 里膨胀 5–10×（每个 dict/list/string
+  套对象头）。day8–11 snapshot 已经 1.7–3.5 GB，4 worker 同时 deserialize peak
+  RAM 50–100 GB，48 GB 物理 RAM + 16 GB swap 撑不住
+- 现象：先 spawn 的 worker 顺利进入 RUNNING_FRESH（2406/2408），后 spawn 的卡
+  在 SETUP 30+ 分钟出不来（2410）；swap 占用 97%；其他 worker 也被拖到
+  RUNNING_STALE（snapshot write 写不动）
+- 救命方案（已验证）：human via monitor SIGKILL 最 lagging 的那个 → swap 立刻
+  从 18.1 GB 降到 5.0 GB → 其他 worker 立刻恢复 RUNNING_FRESH；让 LaunchAgent
+  自然 respawn 那个被杀的（这时其他 worker 已稳态，单 worker resume 不挤）
+- 入门指南：本文件 + `tools/resume_publishable.py` 顶部 docstring
+
+## 关键不变量（sigusr1-graceful-stop-corruption 2026-05-19）
+
+- **不要对 mid-resume / mid-setup worker 发 SIGUSR1**——`run_variant_suite.py`
+  的 SIGUSR1 handler ("跑完当前 tick → 写 partial → 退出 0") 在 worker 还没进
+  tick 循环时被触发，会写一个 **`total_ticks=0` + `per_day_summaries=[]` +
+  `graceful_stop=true` 的假 `seed_N.json`**，同时跑 **`cleanup_partials`** 删
+  掉所有 `seed_N_day*.partial.json` —— 假 final + 没 partial fallback，cell 看
+  起来像 DONE，实际上数据被污染
+- D2 attempt 6 教训（2026-05-19 11:59）：误判 staleness → SIGUSR1 → 2068 写假
+  `seed_42.json`（hyperlocal cell）+ 删掉 day0–day8 partial；幸好 snapshot 没
+  被动，quarantine 假 final 后能从 snapshot tick2784 resume
+- 防护：
+  - `tools/resume_publishable.py` 已剥光 SIGUSR1 路径（[[monitor-as-control-plane]]）
+  - human 需要 kill worker 时优先用 SIGKILL；SIGTERM 也会触发 graceful_stop
+    handler 一样写假 final + 删 partial
+  - 真要 graceful stop（让 worker 自己 flush + 退）只有跑了多个完整 day 的
+    worker 才安全——发前先 grep 该 cell 的 `seed_N_day*.partial.json` ≥ 几个
+- **修复已落地（2026-05-19）**：`tools/run_variant_suite.py:1704-1750` 在
+  `result.metadata.graceful_stop=True` 时**完全跳过** `seed_N.json` 写、
+  `seed_N_positions.json` 写、`DayCheckpointWriter.cleanup_partials`。
+  graceful-stop 路径只保留 per-day partials + WAL + snapshot，下次 resume
+  从这些 artifacts 走，audit 看不到 seed_N.json 知道 cell 还没完成
+
+## 关键不变量（monitor-as-control-plane 2026-05-19）
+
+- **守护 / watchdog / LaunchAgent / cron / 任何自动化运维脚本 SHALL NOT 持有
+  termination 决策权**——它们只能观察状态、写日志、emit JSON event、做
+  constructive recovery（spawn 死掉的进程、重启 crashed 服务）；SIGUSR1 /
+  SIGTERM / SIGKILL / disable service / 删数据 / rollback config 等破坏性
+  动作归 monitor / human（via monitor）
+- D2 attempt 6 教训（2026-05-19 12:00）：`tools/resume_publishable.py` 把
+  WAL staleness 判定直接绑了 SIGUSR1 动作。Mac 06:09 自动更新重启后，11:54
+  spawn 的 4 个 worker 还在 load 3.5GB snapshot 没写 WAL，WAL mtime 还是
+  pre-reboot 老时间→脚本误判 stale→12 分钟内 SIGUSR1 全部 4 个 worker，
+  破坏 30GB RAM / 6 分钟 setup 工作
+- 适用范围：`tools/watchdog_wal_deadlock.py`、`tools/audit_run_health.py`
+  的 auto-remediate 部分、`tools/resume_publishable.py`、未来任何
+  LaunchAgent / cron job
+- 写新 daemon 时的合规清单：
+  - ✓ Spawn missing workers / 重启 crashed 服务（idempotent + 可逆 OK）
+  - ✓ 把 detected state 详细 emit 到 stdout / structured log
+  - ✗ 不主动 kill / signal 任何已存活进程
+  - ✗ 不删数据 / 不改配置 / 不 rollback
+  - 真要 kill 时让 human 看 monitor 报告后手动触发，或暴露 explicit
+    `--allow-terminate` flag（user-triggered + auditable）
+
 ## 关键不变量（setup-content-cache 2026-05-16）
 
 - publishable run（β=4 seed scale）SHALL 先跑 `tools/prewarm_setup_content.py`

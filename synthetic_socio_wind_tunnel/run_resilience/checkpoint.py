@@ -75,12 +75,11 @@ class DayCheckpointWriter:
         """
         output_dir.mkdir(parents=True, exist_ok=True)
 
-        # 启动时清扫前次失败留下的 .tmp 残骸（按 seed 范围）
-        for stale in output_dir.glob(f"seed_{seed}_day*.partial.json.tmp"):
-            try:
-                stale.unlink()
-            except OSError:
-                logger.warning("无法清理残留 tmp 文件 %s", stale)
+        # harden-worker-resilience (2026-05-19): don't sweep stale .tmp by
+        # glob — that would step on a concurrent worker's in-flight tmp.
+        # We use unique tmp names via tempfile.mkstemp so old residue is
+        # orphan but harmless; cleanup is responsibility of the owning
+        # process (or a separate audit job).
 
         payload: dict[str, Any] = {
             "schema_version": self.schema_version,
@@ -95,7 +94,6 @@ class DayCheckpointWriter:
         }
 
         target = output_dir / f"seed_{seed}_day{day_index}.partial.json"
-        tmp = target.with_suffix(target.suffix + ".tmp")
 
         body = json.dumps(payload, ensure_ascii=False, default=str)
         body_bytes = len(body.encode("utf-8"))
@@ -106,10 +104,16 @@ class DayCheckpointWriter:
                 seed, day_index, body_bytes,
             )
 
-        # 写 + fsync + rename（POSIX 原子）
-        fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o644)
+        # Unique tmp name (OS guarantees), same parent so os.replace is
+        # an atomic rename on the same volume.
+        tmp_fd, tmp_name = tempfile.mkstemp(
+            dir=str(output_dir),
+            prefix=target.name + ".",
+            suffix=".tmp",
+        )
+        tmp_path = Path(tmp_name)
         try:
-            with os.fdopen(fd, "w", encoding="utf-8") as f:
+            with os.fdopen(tmp_fd, "w", encoding="utf-8") as f:
                 f.write(body)
                 f.flush()
                 try:
@@ -119,11 +123,18 @@ class DayCheckpointWriter:
                     pass
         except Exception:
             try:
-                tmp.unlink()
+                tmp_path.unlink()
             except OSError:
                 pass
             raise
-        os.replace(tmp, target)
+        try:
+            os.replace(tmp_path, target)
+        except OSError:
+            try:
+                tmp_path.unlink()
+            except OSError:
+                pass
+            raise
         return target
 
     def read_partial(self, path: Path) -> dict[str, Any]:

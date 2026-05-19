@@ -21,8 +21,11 @@ MultiDayRunner — 跨日 simulation 主入口。
 from __future__ import annotations
 
 import asyncio
+import gc
+import json
 import logging
 import math
+import os
 from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta
 from pathlib import Path
@@ -362,6 +365,9 @@ class MultiDayRunner:
         ticks_per_day = getattr(self._orchestrator, "_ticks_per_day", 288)
         self._init_wal_and_snapshot_hooks(ticks_per_day=ticks_per_day)
 
+        # backlog 1.7 F + B: periodic gc.collect() + RSS-threshold auto-restart
+        self._init_memory_management_hooks(ticks_per_day=ticks_per_day)
+
         # 注册 graceful-stop 检查 hook：每 tick 末检查 flag，True 时抛
         # _GracefulStop 中断当天剩余 tick。
         def _check_graceful(tick_result: Any) -> None:  # noqa: ARG001
@@ -435,6 +441,27 @@ class MultiDayRunner:
                     agents_by_id=agents_by_id,
                 )
 
+                # harden-worker-resilience: DialogueService rolling
+                # cleanup. Demote dialogues that ended ≥ 2 simulated
+                # days ago to compact summaries (drops messages list)
+                # so 14-day workers don't bleed 100-500 MB.
+                if self._dialogue_service is not None:
+                    grace_days = int(
+                        os.environ.get("DIALOGUE_EVICT_GRACE_DAYS", "2")
+                    )
+                    cutoff_tick = (
+                        max(0, day_index - grace_days) * ticks_per_day
+                    )
+                    try:
+                        self._dialogue_service.evict_old_dialogues(
+                            before_tick=cutoff_tick,
+                        )
+                    except Exception as exc:  # noqa: BLE001
+                        logger.warning(
+                            "DialogueService.evict_old_dialogues failed "
+                            "at day_index=%d: %s", day_index, exc,
+                        )
+
                 # on_day_end: 外部 hook 可读 batch 做 metrics 采集 / phase 转
                 if on_day_end is not None:
                     on_day_end(current_date, day_index, batch)
@@ -455,6 +482,15 @@ class MultiDayRunner:
             except (ValueError, KeyError, AttributeError):
                 pass
 
+        # harden-worker-resilience: graceful_stop 在 setup-phase（per_day=[]，
+        # 没完成过任何 day）时写哨兵文件让外部 audit / resume_publishable
+        # 区分"setup 期被中断"vs"已跑了几天被中断"。
+        aborted_in_setup = (
+            self._graceful_stop_requested and not per_day
+        )
+        if aborted_in_setup and self._output_dir is not None:
+            self._write_aborted_in_setup_sentinel()
+
         ended_at = datetime.now()
         return MultiDayResult(
             per_day_summaries=tuple(per_day),
@@ -467,6 +503,7 @@ class MultiDayRunner:
                 "mode": self._mode,
                 "resume_from": self._resume_from,
                 "graceful_stop": self._graceful_stop_requested,
+                "aborted_in_setup": aborted_in_setup,
             },
         )
 
@@ -593,6 +630,84 @@ class MultiDayRunner:
                     )
 
         self._orchestrator.register_on_tick_end(_on_tick_end_resume_hook)
+
+    def _init_memory_management_hooks(self, *, ticks_per_day: int) -> None:
+        """Backlog 1.7 F + B: periodic gc.collect + RSS-threshold auto-restart.
+
+        F (gc.collect): every N ticks (default 200) force-collect garbage
+        cycles. Python's reference counting alone doesn't break cycles, and
+        long-running workers accumulate 100-300 MB of uncollected garbage.
+        Zero-risk hint to the runtime; env: `GC_EVERY_N_TICKS` (0 = off).
+
+        B (RSS-threshold auto-restart): every M ticks (default 50) check
+        self RSS. If above threshold (default 2.5 GB; env: `RSS_RESTART_MB`),
+        set `_graceful_stop_requested = True` — the existing graceful-stop
+        path then writes per-day partials and exits cleanly. Outer
+        `resume_publishable.py` / LaunchAgent re-spawn replaces the bloated
+        worker with a fresh one resuming from snapshot. Net effect: each
+        worker's RSS oscillates around the threshold instead of climbing
+        unbounded. Env: `RSS_RESTART_MB` (0 = off).
+
+        See CLAUDE.md `snapshot-resume-ram-peak` and
+        `sigusr1-graceful-stop-corruption` invariants — both are
+        prerequisites for B to be safe to enable. As of 2026-05-19 the
+        latter is fixed in `run_variant_suite.py`, so B is now safe to
+        enable.
+        """
+        gc_every = int(os.environ.get("GC_EVERY_N_TICKS", "200"))
+        rss_threshold_mb = int(os.environ.get("RSS_RESTART_MB", "0"))
+        rss_check_every = int(os.environ.get("RSS_CHECK_EVERY_N_TICKS", "50"))
+
+        if gc_every <= 0 and rss_threshold_mb <= 0:
+            return  # both disabled
+
+        # Resolve RSS reader lazily — psutil if available, else /proc fallback
+        # (on macOS resorts to `ps -p <pid> -o rss=` which is slow but works).
+        def _self_rss_mb() -> int | None:
+            try:
+                import resource
+                # macOS ru_maxrss is bytes; Linux is KB. Detect platform.
+                ru = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+                import sys
+                if sys.platform == "darwin":
+                    return ru // (1024 * 1024)
+                return ru // 1024
+            except (ImportError, OSError):
+                return None
+
+        def _on_tick_end_memory(tick_result: Any) -> None:
+            day_idx = getattr(tick_result, "day_index", 0)
+            tick_idx = getattr(tick_result, "tick_index", 0)
+            tick_global = day_idx * ticks_per_day + tick_idx
+            if tick_global <= 0:
+                return
+
+            if gc_every > 0 and tick_global % gc_every == 0:
+                freed = gc.collect()
+                rss_after = _self_rss_mb()
+                logger.info(
+                    "[gc] tick_global=%d freed=%d cycles rss=%sMB",
+                    tick_global, freed,
+                    rss_after if rss_after is not None else "?",
+                )
+
+            if (
+                rss_threshold_mb > 0
+                and tick_global % rss_check_every == 0
+                and not self._graceful_stop_requested
+            ):
+                rss = _self_rss_mb()
+                if rss is not None and rss > rss_threshold_mb:
+                    logger.warning(
+                        "[memory] RSS %dMB > threshold %dMB at "
+                        "tick_global=%d — requesting graceful stop "
+                        "(backlog 1.7 B auto-restart); outer launcher "
+                        "should resume from snapshot",
+                        rss, rss_threshold_mb, tick_global,
+                    )
+                    self._graceful_stop_requested = True
+
+        self._orchestrator.register_on_tick_end(_on_tick_end_memory)
 
     def _write_snapshot(
         self,
@@ -765,8 +880,15 @@ class MultiDayRunner:
     ) -> None:
         """SIGUSR1 graceful-stop checkpoint: re-write the most recent
         completed day's partial（partial 内部一致性：不写 in-progress
-        day 的部分 tick 数据）。No-op if no day has completed yet."""
+        day 的部分 tick 数据）。No-op if no day has completed yet —
+        the setup-phase abort sentinel is written by run_multi_day's
+        post-finally block, not here (see harden-worker-resilience)."""
         if not per_day:
+            logger.info(
+                "MultiDayRunner: SIGUSR1 received before first day "
+                "completed — no partial to write; setup-phase sentinel "
+                "will be emitted by run_multi_day post-loop",
+            )
             return
         last = per_day[-1]
         self._write_partial(
@@ -775,6 +897,42 @@ class MultiDayRunner:
             per_day=per_day,
             agents_by_id=agents_by_id,
         )
+
+    def _write_aborted_in_setup_sentinel(self) -> None:
+        """harden-worker-resilience: write `seed_N.aborted_in_setup.json`
+        so external audit / resume_publishable can distinguish
+        "SIGUSR1 in setup-phase" from "normally INTERRUPTED with per-day
+        partial". Sentinel is harmless to the next resume — the
+        resume worker is expected to unlink it on startup.
+        """
+        if self._output_dir is None:
+            return
+        sentinel = (
+            self._output_dir / f"seed_{self._seed}.aborted_in_setup.json"
+        )
+        payload = {
+            "seed": self._seed,
+            "aborted_at": datetime.utcnow().isoformat() + "Z",
+            "reason": "SIGUSR1 received during setup phase",
+            "completed_days": 0,
+            "wal_writes": getattr(self._wal_writer, "write_count", 0)
+                if self._wal_writer is not None else 0,
+        }
+        try:
+            sentinel.parent.mkdir(parents=True, exist_ok=True)
+            sentinel.write_text(
+                json.dumps(payload, ensure_ascii=False, indent=2),
+                encoding="utf-8",
+            )
+            logger.warning(
+                "Setup-phase abort sentinel written to %s "
+                "(SIGUSR1 received before first day completed)",
+                sentinel,
+            )
+        except OSError as exc:
+            logger.error(
+                "Failed to write setup-phase abort sentinel: %s", exc,
+            )
 
     def _serialize_per_day(
         self, per_day: list[DayRunSummary],
