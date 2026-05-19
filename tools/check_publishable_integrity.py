@@ -32,14 +32,26 @@ class CheckError(Exception):
     pass
 
 
+_REAL_SEED_RE = __import__("re").compile(r"^seed_\d+\.json$")
+
+
 def _load_seed_files(suite_dir: Path) -> dict[str, list[dict]]:
-    """Load all seed_*.json grouped by variant_<name>/ subdirectory."""
+    """Load real seed result files (`seed_<N>.json`) grouped by variant.
+
+    2026-05-20 fix-publishable-integrity-glob: filter via regex
+    `^seed_\\d+\\.json$` to exclude auxiliary files like
+    `seed_<N>_positions.json`, `seed_<N>_tick<T>.snapshot.json`,
+    `seed_<N>_day<D>.partial.json`. The previous `glob("seed_*.json")`
+    matched all of these, producing ~23 false positive errors per cell.
+    """
     by_variant: dict[str, list[dict]] = {}
     for variant_dir in sorted(suite_dir.iterdir()):
         if not variant_dir.is_dir() or not variant_dir.name.startswith("variant_"):
             continue
         seeds: list[dict] = []
         for seed_file in sorted(variant_dir.glob("seed_*.json")):
+            if not _REAL_SEED_RE.match(seed_file.name):
+                continue  # skip auxiliary files
             with seed_file.open(encoding="utf-8") as fh:
                 seeds.append(json.load(fh))
         if seeds:
