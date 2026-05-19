@@ -81,21 +81,35 @@ Regression tests:
   修复（不修，B 每次自杀都会污染数据）；今天两个一起修了
 - backlog `docs/backlog.md` 1.7 的 B + F 已完成；C/A/D/E/H 未实施
 
-## 关键不变量（snapshot-resume-ram-peak 2026-05-19）
+## 关键不变量（snapshot-resume-ram-peak + spawn-burst-self-DDoS 2026-05-19）
 
-- **同时 spawn N 个 worker 全部从 mid/late-run snapshot resume 是 RAM 峰值时刻**——
-  必须 **staggered spawn**（每个间隔 ≥ 5 min），不能像 D2 attempt 6 (2026-05-19
-  12:08) 那样 2 秒内 spawn 4 个 worker 同时反序列化 day8–11 snapshot
-- 数学：JSON snapshot 反序列化在 Python 里膨胀 5–10×（每个 dict/list/string
-  套对象头）。day8–11 snapshot 已经 1.7–3.5 GB，4 worker 同时 deserialize peak
-  RAM 50–100 GB，48 GB 物理 RAM + 16 GB swap 撑不住
-- 现象：先 spawn 的 worker 顺利进入 RUNNING_FRESH（2406/2408），后 spawn 的卡
-  在 SETUP 30+ 分钟出不来（2410）；swap 占用 97%；其他 worker 也被拖到
-  RUNNING_STALE（snapshot write 写不动）
-- 救命方案（已验证）：human via monitor SIGKILL 最 lagging 的那个 → swap 立刻
-  从 18.1 GB 降到 5.0 GB → 其他 worker 立刻恢复 RUNNING_FRESH；让 LaunchAgent
-  自然 respawn 那个被杀的（这时其他 worker 已稳态，单 worker resume 不挤）
-- 入门指南：本文件 + `tools/resume_publishable.py` 顶部 docstring
+> **2026-05-19 23:00+ 二次取证更新**：原本只记 RAM 视角，这次发现**同一 root
+> cause 还引发 LLM API burst self-DDoS**——D2 attempt 6 (12:08:22) 4 worker
+> 同时 spawn → 4 × 500 protag × 1 LLM/tick = ~2000 个并发 HTTP POST 一秒打
+> DeepSeek → server-side 防 burst → silent TCP drop → `openai.APIConnectionError`
+> → 8 keys cooldown → `FallbackBudgetExceeded` 自杀。**已在代码强制 staggered
+> spawn**（见 `stagger-worker-spawn` change，2026-05-19 archived）。
+
+- **同时 spawn N 个 worker 全部从 mid/late-run snapshot resume 同时**触发**两个**
+  failure mode：
+  - **(A) RAM 峰值**：4 worker × 3.5GB snapshot deserialize × Python 5-10× 膨胀
+    = peak 50-100GB Python state，48GB RAM + 16GB swap 撑不住
+  - **(B) LLM API burst self-DDoS**：4 × 500 protag agents × 1 LLM/tick =
+    ~2000 个 HTTP POST 一秒打 api.deepseek.com → server-side 防 burst →
+    silent TCP drop → 8 keys cooldown → worker 自杀
+- **修复已在代码强制（不再是约定式）**：`tools/resume_publishable.py::
+  _spawn_allowed_now()` 默认 `min_spacing_secs=300` (5 min)，`tools/
+  run_variant_suite.py::_staggered_submit()` ThreadPool 路径也强制相同 spacing。
+  env override：`RESILIENCE_MIN_SPAWN_SPACING_SECS` (0=disable for ad-hoc tests)
+- last-spawn timestamp 持久化在 `~/Library/Logs/swt-resume-watchdog-last-spawn.json`
+  （epoch + ISO + cell info，atomic write via tempfile+rename）
+- 多 INTERRUPTED cell 在单个 LaunchAgent 周期内最多 spawn 1 个，剩余 cell
+  `action="deferred_due_to_stagger"`，下个 5-min LaunchAgent fire 重新评估
+- **原 RAM 视角的救命方案仍然有效**（万一守不住 spacing guard）：human via
+  monitor SIGKILL 最 lagging 的那个 → swap 立刻从 18.1 GB 降到 5.0 GB → 其他
+  worker 恢复 RUNNING_FRESH
+- 入门指南：本文件 + `tools/resume_publishable.py` 顶部 docstring +
+  `openspec/changes/archive/2026-05-19-stagger-worker-spawn/`
 
 ## 关键不变量（sigusr1-graceful-stop-corruption 2026-05-19）
 

@@ -465,6 +465,28 @@ async def _load_or_generate_setup_content(
     return history_records, identity_text, False
 
 
+def _staggered_submit(pool, fn, items, *, spacing_secs: float):
+    """Submit `items` to `pool` with `spacing_secs` between submissions.
+
+    Returns a list of futures in input order. `spacing_secs <= 0` submits
+    all items back-to-back (no sleep). Single-item lists never sleep.
+
+    Why: stagger-worker-spawn (2026-05-19). D2 attempt 6's 4-worker
+    self-DDoS was caused by `pool.map(fn, variants)` submitting all 4
+    futures within ~2 seconds, leading to 2000+ concurrent LLM HTTP
+    posts to DeepSeek and server-side TCP drop. Spreading submissions
+    by 5 min (default via `RESILIENCE_MIN_SPAWN_SPACING_SECS`) caps
+    peak concurrency at single-worker level (~500 in-flight).
+    """
+    futures = []
+    items_list = list(items)
+    for i, item in enumerate(items_list):
+        if i > 0 and spacing_secs > 0:
+            time.sleep(spacing_secs)
+        futures.append(pool.submit(fn, item))
+    return futures
+
+
 def _update_pids_json(suite_dir: Path, variant: str, pid: int) -> None:
     """Append `pid` for `variant` into `<suite_dir>/pids.json`.
 
@@ -1578,8 +1600,24 @@ def main() -> int:
                 proc.wait()
             return variant_name, proc.returncode, str(worker_log)
 
+        # stagger-worker-spawn (2026-05-19): avoid 4-worker burst that
+        # triggered DeepSeek server-side TCP drop in D2 attempt 6. Submit
+        # workers with min spacing between subprocess.Popen calls.
+        # Override via RESILIENCE_MIN_SPAWN_SPACING_SECS (0 = burst mode).
+        _stagger_secs = int(os.environ.get(
+            "RESILIENCE_MIN_SPAWN_SPACING_SECS", "300",
+        ) or 0)
+        if _stagger_secs > 0 and len(variants) > 1:
+            print(
+                f"[suite] worker-pool stagger: {_stagger_secs}s between "
+                f"worker spawns to avoid LLM API burst self-DDoS",
+                file=sys.stderr,
+            )
         with _TPE(max_workers=n_workers) as pool:
-            results = list(pool.map(_run_worker, variants))
+            futures = _staggered_submit(
+                pool, _run_worker, variants, spacing_secs=_stagger_secs,
+            )
+            results = [f.result() for f in futures]
         for v, rc, log in results:
             status = "ok" if rc == 0 else f"FAIL rc={rc}"
             print(f"  worker[{v}]: {status} → {log}")

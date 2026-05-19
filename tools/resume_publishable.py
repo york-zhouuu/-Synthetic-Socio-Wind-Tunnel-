@@ -14,11 +14,16 @@ Related CLAUDE.md invariants (read before modifying this file):
 - `sigusr1-graceful-stop-corruption`: do NOT SIGUSR1 a worker that is still
   in resume/setup (no day partial yet); the handler writes a fake
   `seed_N.json` with total_ticks=0 + runs `cleanup_partials`.
-- `snapshot-resume-ram-peak`: spawning N workers all from mid-run snapshots
-  in <10 sec is the RAM peak. 4 worker × day10 snapshot deserialize ≈
-  50–100 GB Python state on 48 GB Mac — must stagger ≥ 5 min between spawns
-  if RAM is tight. (Current implementation does NOT stagger; if you need
-  staggering, add it before spawning more than 2 mid-run workers at once.)
+- `snapshot-resume-ram-peak` + `spawn-burst-self-DDoS`: spawning N workers
+  simultaneously from mid-run snapshots triggers TWO failure modes:
+  (1) RAM peak ~50–100 GB on 48 GB Mac (snapshot deserialize 5-10× bloat),
+  (2) LLM API burst self-DDoS (4 worker × 500 protag agents × 1 LLM/tick
+  = ~2000 concurrent HTTP POST → DeepSeek server-side TCP drop). Both
+  fixed by **stagger guard enforced in code** (stagger-worker-spawn change,
+  2026-05-19). Default 5-min spacing; env `RESILIENCE_MIN_SPAWN_SPACING_SECS`
+  (0 = disable for ad-hoc tests). Multiple INTERRUPTED cells in one
+  LaunchAgent fire process 1 per cycle; remaining cells get
+  `action="deferred_due_to_stagger"` in the JSON report.
 
 Invoked single-shot by `~/Library/LaunchAgents/com.user.swt-resume-watchdog.plist`
 every 5 minutes. Detects every (seed, variant) cell's state and acts:
@@ -55,15 +60,160 @@ import logging
 import os
 import subprocess
 import sys
+import tempfile
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 PYTHON = REPO_ROOT / ".venv" / "bin" / "python3"
 DEFAULT_LOG = Path.home() / "Library" / "Logs" / "swt-resume-watchdog.log"
+DEFAULT_SPAWN_TIMESTAMP_FILE = (
+    Path.home() / "Library" / "Logs" / "swt-resume-watchdog-last-spawn.json"
+)
+DEFAULT_MIN_SPAWN_SPACING_SECS = 300  # 5 min, matches snapshot-resume-ram-peak
 
 logger = logging.getLogger("resume_publishable")
+
+
+# ---------------------------------------------------------------------------
+# stagger-worker-spawn (2026-05-19): cross-spawn timing coordination.
+#
+# Root cause (D2 attempt 6, 2026-05-19 12:08:22 via 23:00+ log forensics):
+# 4 workers spawned within 2 seconds → 4 × 500 protag agents × 1 LLM/tick
+# = ~2000 concurrent HTTP POST to api.deepseek.com → server-side burst
+# protection (silent TCP drop) → openai.APIConnectionError → 8 keys
+# cooldown → FallbackBudgetExceeded → 4-way suicide → LaunchAgent
+# respawns → loop.
+#
+# Fix: persistent last-spawn timestamp in JSON file; each spawn check
+# enforces `min_spacing_secs` floor. Multi-cell loop processes 1 cell
+# per LaunchAgent fire (5-min cycle), staggering naturally across cycles.
+# ---------------------------------------------------------------------------
+
+
+def _spawn_timestamp_path() -> Path:
+    """Resolve the timestamp file path (env override > default)."""
+    env = os.environ.get("SPAWN_STAGGER_TIMESTAMP_FILE")
+    if env:
+        return Path(env)
+    return DEFAULT_SPAWN_TIMESTAMP_FILE
+
+
+def _read_last_spawn_timestamp() -> dict | None:
+    """Read last spawn timestamp from disk.
+
+    Returns None if file doesn't exist (first run). On corruption /
+    missing fields / unparseable JSON: log warning and return None
+    (conservative: prefer allowing spawn over locking up).
+    """
+    path = _spawn_timestamp_path()
+    if not path.exists():
+        return None
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+    except (json.JSONDecodeError, OSError) as exc:
+        logger.warning(
+            "spawn timestamp file %s is corrupt or unreadable: %s — "
+            "treating as no previous spawn",
+            path, exc,
+        )
+        return None
+    # Required fields
+    if not isinstance(data, dict) or "last_spawn_epoch" not in data:
+        logger.warning(
+            "spawn timestamp file %s missing required field "
+            "'last_spawn_epoch' — treating as no previous spawn",
+            path,
+        )
+        return None
+    return data
+
+
+def _write_last_spawn_timestamp(cell: dict) -> None:
+    """Atomically write last-spawn timestamp. Failures log + continue.
+
+    Uses tempfile.NamedTemporaryFile in the same directory then
+    os.rename for POSIX atomic move. Caller SHOULD NOT propagate
+    failures — spawning the worker is more important than recording
+    the timestamp.
+    """
+    path = _spawn_timestamp_path()
+    now_epoch = time.time()
+    payload = {
+        "last_spawn_epoch": now_epoch,
+        "last_spawn_iso": datetime.now(timezone.utc).isoformat(
+            timespec="seconds",
+        ),
+        "last_spawn_cell": cell,
+        "version": 1,
+    }
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        # tempfile in same directory to ensure os.rename is atomic
+        # (cross-device rename would be non-atomic).
+        with tempfile.NamedTemporaryFile(
+            mode="w", dir=str(path.parent), delete=False,
+            prefix=".swt-spawn-ts-", suffix=".tmp", encoding="utf-8",
+        ) as tf:
+            json.dump(payload, tf)
+            tf.flush()
+            os.fsync(tf.fileno())
+            tmp_name = tf.name
+        os.rename(tmp_name, path)
+    except OSError as exc:
+        logger.warning(
+            "failed to write spawn timestamp %s: %s — spawn proceeds, "
+            "but spacing guard may misfire on next call",
+            path, exc,
+        )
+
+
+def _spawn_allowed_now(min_spacing_secs: int) -> tuple[bool, float, str]:
+    """Check if a spawn is allowed right now under spacing rule.
+
+    Returns (allowed, wait_secs_until_next_eligible, reason).
+    - (True, 0.0, reason) when spawn is allowed
+    - (False, secs > 0, reason) when caller SHOULD defer to next cycle
+
+    `min_spacing_secs == 0` SHALL bypass the guard entirely.
+    """
+    if min_spacing_secs <= 0:
+        return (True, 0.0, "stagger_disabled (min_spacing_secs<=0)")
+
+    data = _read_last_spawn_timestamp()
+    if data is None:
+        # Distinguish "file truly absent" (first run) vs "file exists but
+        # unreadable" (corrupt). Tests + ops monitoring use this reason
+        # to triage why guard didn't fire.
+        if _spawn_timestamp_path().exists():
+            return (True, 0.0,
+                    "allowed_after_corrupt_or_invalid_timestamp_file")
+        return (True, 0.0, "no_previous_spawn (first spawn or stale state)")
+
+    last_epoch = data.get("last_spawn_epoch", 0.0)
+    now = time.time()
+    elapsed = now - last_epoch
+
+    if elapsed < 0:
+        # Clock went backward (NTP / manual change). Conservative: reset.
+        logger.warning(
+            "system clock went backward (last_spawn_epoch=%.2f > now=%.2f) "
+            "— resetting spacing timer, allowing spawn",
+            last_epoch, now,
+        )
+        return (True, 0.0, "clock_backward_reset")
+
+    if elapsed >= min_spacing_secs:
+        return (True, 0.0,
+                f"spacing_met (elapsed={elapsed:.0f}s >= "
+                f"min={min_spacing_secs}s)")
+
+    wait = min_spacing_secs - elapsed
+    return (False, wait,
+            f"deferred_due_to_stagger (need {wait:.0f}s more; "
+            f"min_spacing={min_spacing_secs}s)")
 
 
 class CellState(str, enum.Enum):
@@ -369,7 +519,26 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--json", action="store_true",
                         help="Emit JSON report to stdout in addition to logs")
     parser.add_argument("--verbose", action="store_true")
+    parser.add_argument(
+        "--min-spawn-spacing-secs", type=int, default=None,
+        help=f"Minimum seconds between worker spawns (default "
+             f"{DEFAULT_MIN_SPAWN_SPACING_SECS}; env "
+             f"RESILIENCE_MIN_SPAWN_SPACING_SECS; 0=disable). Prevents "
+             f"4-worker self-DDoS (2026-05-19 D2 attempt 6).",
+    )
     args = parser.parse_args(argv)
+
+    # Resolve effective spacing: CLI arg > env > default
+    if args.min_spawn_spacing_secs is not None:
+        effective_spacing = args.min_spawn_spacing_secs
+    else:
+        try:
+            effective_spacing = int(os.environ.get(
+                "RESILIENCE_MIN_SPAWN_SPACING_SECS",
+                str(DEFAULT_MIN_SPAWN_SPACING_SECS),
+            ))
+        except ValueError:
+            effective_spacing = DEFAULT_MIN_SPAWN_SPACING_SECS
 
     _setup_log(args.log_file, args.verbose)
     variants = [v.strip() for v in args.variants.split(",") if v.strip()]
@@ -411,13 +580,42 @@ def main(argv: list[str] | None = None) -> int:
                     "    NEVER_STARTED — skipping (no snapshot to resume from)",
                 )
             elif state == CellState.INTERRUPTED:
-                new_pid = _spawn_resume_worker(
-                    suite_dir, seed, variant,
-                    snapshot_every_ticks=args.snapshot_every_ticks,
-                    dry_run=args.dry_run,
+                # stagger-worker-spawn (2026-05-19): check spacing guard
+                # before spawning. Multiple INTERRUPTED cells in one
+                # LaunchAgent fire SHALL serialize across LaunchAgent
+                # cycles (5-min default), not burst-spawn simultaneously.
+                allowed, wait_secs, reason = _spawn_allowed_now(
+                    effective_spacing,
                 )
-                entry["action"] = "spawn_resume"
-                entry["new_pid"] = new_pid
+                if not allowed:
+                    next_eligible_iso = datetime.now(
+                        timezone.utc,
+                    ).fromtimestamp(
+                        time.time() + wait_secs, tz=timezone.utc,
+                    ).isoformat(timespec="seconds")
+                    logger.info(
+                        "    deferred_due_to_stagger seed=%d variant=%s "
+                        "wait=%.0fs next_eligible_at=%s reason=%s",
+                        seed, variant, wait_secs, next_eligible_iso, reason,
+                    )
+                    entry["action"] = "deferred_due_to_stagger"
+                    entry["next_eligible_iso"] = next_eligible_iso
+                    entry["spawn_wait_secs"] = round(wait_secs, 1)
+                else:
+                    new_pid = _spawn_resume_worker(
+                        suite_dir, seed, variant,
+                        snapshot_every_ticks=args.snapshot_every_ticks,
+                        dry_run=args.dry_run,
+                    )
+                    # Record timestamp ONLY when actual spawn happens
+                    # (dry_run also "logs" the spawn intent — record so
+                    # the test's dry-run sequence behaves like real one).
+                    _write_last_spawn_timestamp(
+                        {"seed": seed, "variant": variant},
+                    )
+                    entry["action"] = "spawn_resume"
+                    entry["new_pid"] = new_pid
+                    entry["spawn_allowed_reason"] = reason
             elif state == CellState.RUNNING_STALE:
                 # Per `monitor-as-control-plane` invariant (CLAUDE.md
                 # 2026-05-19): this script does NOT terminate processes.
