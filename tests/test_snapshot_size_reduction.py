@@ -29,13 +29,15 @@ def _build_service_with_events(n_old: int, n_new: int, base_tick_old: int = 10,
     for i in range(n_old):
         service._stores[aid].append(MemoryEvent(
             event_id=f"old_{i}", agent_id=aid,
-            tick=base_tick_old, simulated_time=base, kind="encounter",
+            tick=base_tick_old, day_index=0,
+            simulated_time=base, kind="encounter",
             content=f"event_content_{i}" * 5,  # realistic-ish size
         ))
     for i in range(n_new):
         service._stores[aid].append(MemoryEvent(
             event_id=f"new_{i}", agent_id=aid,
-            tick=base_tick_new, simulated_time=base, kind="encounter",
+            tick=base_tick_new, day_index=3,
+            simulated_time=base, kind="encounter",
             content=f"event_content_{i}" * 5,
         ))
     return service

@@ -94,17 +94,19 @@ class MemoryStore:
 
     # ---- cold prune (enforce-worker-rss-cap, 2026-05-19) ----
 
-    def evict_cold_encounter_events(self, before_tick: int) -> int:
-        """Remove encounter events older than `before_tick` (exclusive).
+    def evict_cold_encounter_events(self, before_day_index: int) -> int:
+        """Remove encounter events with `day_index < before_day_index`.
 
         Only `kind == "encounter"` events are evicted; all other kinds
         SHALL remain. Returns the number of events removed.
 
-        2026-05-19 publishable scale measurement: encounter events
-        are 93.5% of memory_store_state bytes (6.88M events at day10).
-        Other kinds are individually small (life_history 9k, action
-        530k, reflection/etc < 10k) and semantically critical, so
-        they are NOT touched here.
+        **2026-05-20 BUG FIX (fix-encounter-eviction-tick-semantic)**:
+        signature changed from `before_tick` to `before_day_index`. The
+        old signature compared `ev.tick` (per-day 0-287) against a
+        global cutoff like `(day-2)*288=2880`, which was always true
+        for any encounter, so ALL encounter events were evicted every
+        cycle. Now compares `ev.day_index` against `before_day_index`,
+        matching the caller's intent ("evict events from days before N").
 
         Reverse indices (`_by_actor` / `_by_location` / `_by_tag` /
         `_by_kind`) SHALL be rebuilt from the surviving event list
@@ -116,7 +118,12 @@ class MemoryStore:
         survivors: list["MemoryEvent"] = []
         evicted_count = 0
         for ev in self._events:
-            if ev.kind == "encounter" and ev.tick < before_tick:
+            ev_day = getattr(ev, "day_index", None)
+            if (
+                ev.kind == "encounter"
+                and ev_day is not None
+                and ev_day < before_day_index
+            ):
                 evicted_count += 1
                 continue
             survivors.append(ev)

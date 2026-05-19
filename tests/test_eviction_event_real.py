@@ -52,29 +52,29 @@ def test_evict_event_values_match_real_store_delta(
     service = MemoryService()
     base = datetime(2026, 5, 7, 8, 0)
 
-    # Inject 100 encounter events at tick 10, 50 at tick 200
+    # Inject 100 encounter events at day 0, 50 at day 5
     for aid in ("a_001", "a_002"):
         if aid not in service._stores:
             service._stores[aid] = MemoryStore()
         for i in range(50):
             service._stores[aid].append(MemoryEvent(
                 event_id=f"ev_{aid}_old_{i}", agent_id=aid,
-                tick=10, simulated_time=base, kind="encounter",
-                content="x",
+                tick=10, day_index=0, simulated_time=base,
+                kind="encounter", content="x",
             ))
         for i in range(25):
             service._stores[aid].append(MemoryEvent(
                 event_id=f"ev_{aid}_new_{i}", agent_id=aid,
-                tick=200, simulated_time=base, kind="encounter",
-                content="x",
+                tick=50, day_index=5, simulated_time=base,
+                kind="encounter", content="x",
             ))
 
     total_before = sum(len(s) for s in service._stores.values())
     assert total_before == 150  # 2 agents × 75
 
-    # Evict tick < 100 (all 50 × 2 = 100 old events)
+    # Evict day_index < 2 → day 0 evicted (100 events), day 5 kept
     evicted = service.evict_cold_encounter_events_across_agents(
-        before_tick=100,
+        before_day_index=2,
     )
     assert evicted == 100
 
@@ -92,7 +92,7 @@ def test_evict_event_values_match_real_store_delta(
     assert ev["events_evicted"] == 100
     assert ev["memory_store_total_before"] == total_before
     assert ev["memory_store_total_after"] == total_after
-    assert ev["before_tick_cutoff"] == 100
+    assert ev["before_day_index"] == 2
     assert "duration_sec" in ev and ev["duration_sec"] >= 0
 
 
@@ -106,7 +106,7 @@ def test_evict_event_records_rss_before_after(
     instrumentation.get_instrumentation()
     service = MemoryService()
     # Even on empty service, eviction emits event (events_evicted=0)
-    service.evict_cold_encounter_events_across_agents(before_tick=100)
+    service.evict_cold_encounter_events_across_agents(before_day_index=2)
 
     events = _read_events(tmp_output_dir)
     evict_events = [e for e in events if e.get("kind") == "EVICT"]

@@ -339,7 +339,7 @@ class MemoryService:
     # ---- cold prune (enforce-worker-rss-cap, 2026-05-19) ----
 
     def evict_cold_encounter_events_across_agents(
-        self, before_tick: int,
+        self, before_day_index: int,
     ) -> int:
         """Cross-agent cold-prune wrapper.
 
@@ -377,7 +377,7 @@ class MemoryService:
         t0 = _t.monotonic()
         total = 0
         for store in self._stores.values():
-            total += store.evict_cold_encounter_events(before_tick)
+            total += store.evict_cold_encounter_events(before_day_index)
         duration_sec = _t.monotonic() - t0
         total_after = sum(len(s) for s in self._stores.values())
 
@@ -386,7 +386,7 @@ class MemoryService:
                 rss_after, _ = _read_current_rss_mb()
                 inst.emit_event(
                     kind="EVICT",
-                    before_tick_cutoff=before_tick,
+                    before_day_index=before_day_index,
                     events_evicted=total,
                     memory_store_total_before=total_before,
                     memory_store_total_after=total_after,

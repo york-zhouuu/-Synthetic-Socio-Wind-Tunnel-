@@ -1,8 +1,5 @@
-# memory-event-eviction Specification
+## MODIFIED Requirements
 
-## Purpose
-TBD - created by archiving change enforce-worker-rss-cap. Update Purpose after archive.
-## Requirements
 ### Requirement: MemoryStore 必须支持 cold prune encounter events
 
 `MemoryStore` SHALL 提供 `evict_cold_encounter_events(before_day_index: int) -> int` 方法，删除满足以下条件的 events:
@@ -84,16 +81,7 @@ evict 数 SHALL 进 DayRunSummary 新字段 `evicted_encounter_count`（向后�
 - **THEN** evict_cold_encounter_events_across_agents(before_day_index=0)
   返回 0（没有 day_index < 0 的 event）；no-op
 
-### Requirement: snapshot round-trip 不携带 evicted events
-
-snapshot serialize 后 evicted events SHALL NOT 出现在 snapshot JSON。
-resume from snapshot 后 store.all() SHALL NOT 含 evicted events。
-
-#### Scenario: snapshot + resume 不还原 evicted
-- **WHEN** worker 跑 day 0-5，day_end 5 时 evict day<3 encounter；
-  随后写 snapshot；新 worker resume 该 snapshot
-- **THEN** restored store 的 encounter events 全部 tick >= 3*288；
-  无 evicted event 复活
+## ADDED Requirements
 
 ### Requirement: encounter events SHALL accumulate in grace_days window
 
@@ -113,4 +101,3 @@ memory_store SHALL retain encounter events with `day_index >= (current_day - gra
   events 总数 SHALL > 0
 - **AND** 这些 encounter events 的 day_index SHALL 全部 ≥ 2 (= 4-2)
 - **AND** day_index < 2 的 encounter events SHALL 已被 evicted (为 0)
-

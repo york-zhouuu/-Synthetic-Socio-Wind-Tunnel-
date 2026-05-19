@@ -677,31 +677,35 @@ class MultiDayRunner:
                         )
 
                 # enforce-worker-rss-cap (2026-05-19): cold-prune
-                # encounter events from memory_store. At publishable
-                # scale (1000 agent × 14 day) encounter events reach
-                # 6.88M and dominate `memory_store_state` size by 93.5%.
-                # Eviction keeps RSS bounded for the 10GB hard cap.
+                # encounter events from memory_store. Eviction keeps
+                # RSS bounded for the 10GB hard cap.
+                # fix-encounter-eviction-tick-semantic (2026-05-20):
+                # changed from `before_tick = cutoff*288` to
+                # `before_day_index = max(0, day_index - grace)` —
+                # the old version compared ev.tick (per-day 0-287)
+                # against a global cutoff so all encounter events
+                # were always evicted. Now compares ev.day_index
+                # against before_day_index, matching caller intent.
                 evicted_encounter_count = 0
                 if self._memory_service is not None:
                     encounter_grace = int(
                         os.environ.get("MEMORY_EVENT_EVICT_GRACE_DAYS", "2")
                     )
-                    encounter_cutoff_tick = (
-                        max(0, day_index - encounter_grace) * ticks_per_day
-                    )
-                    if encounter_cutoff_tick > 0:
+                    before_day_index = max(0, day_index - encounter_grace)
+                    if before_day_index > 0:
                         try:
                             evicted_encounter_count = (
                                 self._memory_service
                                 .evict_cold_encounter_events_across_agents(
-                                    before_tick=encounter_cutoff_tick,
+                                    before_day_index=before_day_index,
                                 )
                             )
                             if evicted_encounter_count > 0:
                                 logger.info(
-                                    "[memory-evict] day=%d cutoff_tick=%d "
-                                    "evicted %d encounter events",
-                                    day_index, encounter_cutoff_tick,
+                                    "[memory-evict] day=%d "
+                                    "before_day_index=%d evicted %d "
+                                    "encounter events",
+                                    day_index, before_day_index,
                                     evicted_encounter_count,
                                 )
                         except Exception as exc:  # noqa: BLE001
@@ -1206,25 +1210,24 @@ class MultiDayRunner:
                 ))
             except ValueError:
                 grace_days = 2
-            cutoff_tick = max(0, day_index - grace_days) * (
-                self._ticks_per_day
-                if hasattr(self, "_ticks_per_day")
-                else 288
-            )
-            if cutoff_tick > 0:
+            # fix-encounter-eviction-tick-semantic (2026-05-20):
+            # changed from cutoff_tick (global) to before_day_index.
+            # See day_end eviction site for full rationale.
+            before_day_index = max(0, day_index - grace_days)
+            if before_day_index > 0:
                 try:
                     evicted_before_write = (
                         self._memory_service
                         .evict_cold_encounter_events_across_agents(
-                            before_tick=cutoff_tick,
+                            before_day_index=before_day_index,
                         )
                     )
                     if evicted_before_write > 0:
                         logger.info(
                             "[snapshot] pre-write prune evicted %d "
-                            "encounter events (cutoff_tick=%d, "
+                            "encounter events (before_day_index=%d, "
                             "day_index=%d, grace=%d)",
-                            evicted_before_write, cutoff_tick,
+                            evicted_before_write, before_day_index,
                             day_index, grace_days,
                         )
                 except Exception as exc:  # noqa: BLE001

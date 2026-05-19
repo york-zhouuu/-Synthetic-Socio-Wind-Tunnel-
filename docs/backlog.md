@@ -727,6 +727,91 @@ fix 成"在 schedule do_something / generate_message 时 lazily refresh"。
 
 ---
 
+## 1.16 encounter event eviction 误杀所有 encounter（tick 语义混用）
+
+**记录时间**：2026-05-20
+
+**严重级别**：🚨 BLOCKING for thesis-relevant analysis（encounter 是
+phone_friction / hyperlocal_push 主线 H_pull / H_info 的 dependent
+variable）
+
+**Bug**:
+2026-05-20 04:00 实测 publishable resume worker 健康跑 day 12（25+ 分钟，
+1000/1000 commits, 835 distinct destinations, 真 LLM-driven actions），
+但 `memory_store_state.events_by_kind` **encounter=0**。
+
+精确根因：
+
+- `orchestrator/service.py:260` 主 tick 循环：
+  `for tick_index in range(num_ticks):` 其中 `num_ticks = ticks_per_day
+  = 288`，所以 `tick_index ∈ [0, 287]` **per-day**
+- `memory/service.py:521` `tick = tick_result.tick_index`，传给
+  `MemoryEvent.tick` 字段 → encounter event 的 `tick` 字段是
+  **per-day 0-287**
+- `memory/store.py::evict_cold_encounter_events(before_tick)`：
+  `if ev.kind == "encounter" and ev.tick < before_tick`
+- `multi_day.py` 计算 cutoff：`(day_index - grace) * ticks_per_day`
+  → day 12 grace 2 → cutoff = **2880** (global tick)
+- **`ev.tick ∈ [0, 287] < 2880` 永远成立** → 每次 snapshot pre-write
+  evict + day_end evict 都把全部 encounter events 清空
+- action / life_history / shared_memory 不受影响（eviction 只
+  filter `kind=="encounter"`）
+
+**影响范围**：
+- 所有 `enforce-worker-rss-cap` (2026-05-19) 之后跑的 publishable run
+- encounter 检测 (WAL `encounter_count`) 不受影响 — 这是 orchestrator
+  层面统计，没经 memory_store
+- memory_store 里 encounter 用于 LLM context retrieval — 这部分 LLM
+  看不到 historical encounter，会影响"上次见过谁"类型的决策
+- 任何下游 metric 通过 `memory_store.events_by_kind("encounter")` /
+  `retrieve(kind=encounter)` 读 encounter 的 → 全是 0
+
+**为什么测试没抓到**：
+- `tests/test_memory_store_encounter_eviction.py` 用 hand-crafted
+  events with explicit small `tick` values（0, 10, 200）+ explicit
+  `before_tick=cutoff`。测的是 **eviction 机制本身**（"if tick <
+  cutoff → 删"），**不测 tick 语义是否与调用方一致**。
+- 同样 pattern 跟 `_self_rss_mb` ru_maxrss bug、跟
+  `comprehensive-runtime-instrumentation` wiring gap 一模一样：
+  **mock-level test 保证 API 契约，integration test 缺失**
+
+**修复方向**（3 选 1，待 design 讨论）：
+
+(A) 让 encounter event 存 `tick_global`
+- 改 `MemoryService.process_tick` 内部 encounter 写入时：
+  `event = MemoryEvent(tick=day_index * ticks_per_day + tick, ...)`
+- 简单，但侵入 process_tick 一处
+- ⚠️ 影响 retrieve by tick — 但 retrieve 通常按 tag/kind/agent，
+  不按 tick
+
+(B) Eviction 用 `day_index` 比较而不是 `tick`
+- `evict_cold_encounter_events(before_day_index=N)`：
+  `if ev.kind == "encounter" and ev.day_index < before_day_index`
+- 改 eviction API + caller，不动 MemoryEvent
+- 简单，语义清晰
+
+(C) Eviction 内部计算 `tick_global` on the fly
+- `ev_global = ev.day_index * ticks_per_day + ev.tick`
+- `if ev.kind == "encounter" and ev_global < before_tick`
+- 需要把 ticks_per_day 传入 evict 方法
+- 改动小，API 不变
+
+**推荐**：**(B)** —— `day_index` 比较语义最清晰，符合 cold-prune 的
+人类直觉（"删 grace_days 之前的"）。`before_tick` 参数本来就是 derived
+from day_index，不如直接用 day_index。
+
+**测试盲点修复**：
+- 加 e2e test：跑 dev smoke 50 agent × 4 day，**直接读 memory_store
+  里 encounter 数量**，断言 day 3 时 day 0-1 的 encounter evicted 但
+  day 2-3 的 encounter **存在**（不是 0）
+- 这种 test 才会捕捉 tick 语义错配
+
+**优先级**：高。当前 publishable run 数据 encounter 维度无效。
+**触发条件**：next publishable resume / 新 cell spawn 之前必须修。
+建议下个 OpenSpec change `fix-encounter-eviction-tick-semantic`。
+
+---
+
 ## 1.15 正式 publishable run 前的自动化 preflight checklist
 
 **记录时间**：2026-05-20

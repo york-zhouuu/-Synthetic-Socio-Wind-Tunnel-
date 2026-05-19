@@ -47,6 +47,49 @@ This file provides guidance to Claude Code when working with this repository.
 
 下次开 OpenSpec change 时考虑补 1-2 个。
 
+## 关键不变量 (real-artifact-test-mandatory 2026-05-20)
+
+2026-05-20 一晚撞了 3 个同样模式的 bug（ru_maxrss / instrumentation
+wiring gap / encounter eviction tick-semantic 错配）。每次都是：
+**单元测试全过、API 契约 pass，但真 worker 跑起来死/废数据**。
+
+根因：每个 module 的 unit test 只 mock 关键测量值或假设值，从来
+没人写一个 test **真跑 worker + 读真 artifact + 断言 product invariant**。
+caller-callee 之间的语义错配（e.g. tick_in_day vs tick_global）
+要到 integration 才暴露，单测全 pass 的代码里能藏完整的语义 bug。
+
+**强制不变量**（写新 capability / 改 caller 行为时 SHALL 遵守）：
+
+1. **每个新 OpenSpec change SHALL 至少有 1 个 e2e integration test**
+   真跑 dev smoke（subprocess 启动 `run_variant_suite.py`）+ 读真
+   artifact 文件（snapshot.json / events.jsonl / memstat.jsonl）+
+   断言 product-level invariant（不是 API contract）。
+2. **禁止 mock 关键测量值**：psutil.memory_info、resource.getrusage、
+   time.monotonic、文件 I/O 这些底层测量在 e2e test 里必须真实。
+3. **测试要断言"东西在该在的地方"**，不只断言"函数被调用过":
+   - 不只测 `emit_event` 被调用 → 测 events.jsonl 里有那条 line
+   - 不只测 evict 返回值 → 测 snapshot 里 encounter 数量 > 0
+   - 不只测 RSS cap "if 触发"机制 → 测 ru_maxrss/psutil 读到真值
+4. **caller-callee 语义对齐 test**: 当 A 模块 call B 模块、传一个
+   数值时，**verify A 传的数值语义符合 B 的假设**。e.g. tick 字段：
+   写真测试 inject A 实际写的 tick 值给 B，看 B 行为符合预期。
+
+**抓 bug 工作流**:
+
+发现一个 bug → **先写抓得到这个 bug 的 test → 然后才修**。永远不
+"fix and add test later"。今天 3 个 bug 复盘全部因为这个 — 修 bug
+时只改 impl 不加 e2e test，下次撞到同样模式只能再撞一次才知道。
+
+**触发条件**:
+
+- 每次开新 OpenSpec change 时，design.md SHALL 显式列出"如何 e2e
+  验证 product invariant 不只是 API contract"
+- 每次发现 bug 写 backlog 时，**SHALL 列出"如果有 e2e test 早抓到，
+  这个 test 应该长什么样"**
+- 长期：把 `tools/preflight_publishable_spawn.py`（backlog 1.15）
+  内嵌一个 5-second dev smoke e2e gate，每次 publishable spawn
+  之前自动跑一遍
+
 ## 正式 publishable cell spawn 步骤 (2026-05-20)
 
 每次 spawn publishable worker 跑实 LLM 之前，**4 个观察通道全部开启**
@@ -83,15 +126,27 @@ WORKER_PID=$!
 disown
 ```
 
-### 2-4. 必须并行开 3 个观察通道
+### 2-5. 必须并行开 **4 个** 观察通道（每一次 spawn 都要，零妥协）
 
-| 用途 | 命令 | 输出 |
-|---|---|---|
-| **每 30s RSS / WAL / 文件大小 TSV**（轻量 bash probe）| `nohup bash <probe.sh> &` | `/tmp/swt-cell-probe-v2.tsv` |
-| **memstat.jsonl rolling stats**（worker 进入 tick loop 后才有数据）| `nohup python tools/tail_memstat.py $SUITE <v> <N> --every 60 &` | `/tmp/swt-tail-memstat.log` |
-| **整 cell Markdown 概要**（events.jsonl / llm.jsonl 汇总）| `nohup python tools/summarize_run_observability.py $SUITE <N> --variants <v> --watch 120 &` | `/tmp/swt-summarize.log` |
+**为什么 4 个**：每个通道看不同维度的状态，任一缺失等于盲跑。
+2026-05-20 凌晨教训：第一次 spawn 时 monitor 通道（audit_run_health）
+忘了起，结果 worker 死掉只能事后从日志推。
 
-`tail -f /tmp/swt-*.log` 实时看。
+| # | 用途 | 命令 | 输出 |
+|---|---|---|---|
+| **2** | **每 30s RSS / WAL / 文件大小 TSV**（轻量 bash probe，最低层量化数据）| `nohup bash <probe.sh> &` | `/tmp/swt-cell-probe-v3.tsv` |
+| **3** | **memstat.jsonl rolling stats**（worker 进入 tick loop 后每 12 tick 一条 sample）| `nohup python tools/tail_memstat.py $SUITE <v> <N> --every 60 &` | `/tmp/swt-v3-tail-memstat.log` |
+| **4** | **整 cell Markdown 概要**（events.jsonl + llm.jsonl 汇总 + 健康警告）| `nohup python tools/summarize_run_observability.py $SUITE <N> --variants <v> --watch 120 &` | `/tmp/swt-v3-summarize.log` |
+| **5** | **进程健康监控**（process state / log silence / CLOSE_WAIT — `monitor-as-control-plane` 不变量的 "观察 + 报告" 角色）| `nohup python tools/audit_run_health.py $SUITE --watch 60 &` | `/tmp/swt-v3-audit-health.log` |
+
+`tail -f /tmp/swt-v3-*.log` 实时看。
+
+**spawn 完之后立刻确认 4 个 observer PID 都在**：
+```bash
+ps -p <probe_pid> <tail_memstat_pid> <summarize_pid> <audit_health_pid>
+```
+
+任一不在 → 重启那一个，不要继续，否则 spawn 时间废了。
 
 ### 5. 跑前清单（确认条件）
 
@@ -106,12 +161,17 @@ disown
 
 ### 6. 检查节点（cache window 间隔）
 
-每 5 min check 这 4 个数据源，看的是：
-1. probe TSV 里 RSS 趋势（应该有降）
-2. memstat.jsonl 是否开始写（tick loop 进入信号）
-3. events.jsonl 里 SNAPSHOT_WRITE event 的 `events_evicted_before_write`
-   字段（验证 prune 生效）
-4. log 里有没有 `[memory] RSS X > threshold` （cap trip 信号）
+每 5 min check **4 个数据源**，看的是：
+1. **probe TSV** 里 RSS 趋势 + memstat / events 行数 + 最近 phase
+2. **memstat.jsonl**（via tail_memstat）—— tick loop 进入信号 + RSS / CPU
+   per-sample 真实值
+3. **events.jsonl**（via summarize）—— PHASE 顺序 +
+   SNAPSHOT_WRITE.events_evicted_before_write（验证 prune 生效）+
+   EVICT 释放量
+4. **audit_run_health**（process state / log silence / CLOSE_WAIT）——
+   "worker 是否真活着、有没有死锁、socket 资源是否健康"
+
+`tail -f /tmp/swt-v3-*.log` 同时看 4 个。
 
 异常：
 - WAL age 持续上涨且 log 不动 → stale / deadlock

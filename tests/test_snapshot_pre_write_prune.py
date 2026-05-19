@@ -43,13 +43,15 @@ def runner_with_mocks(tmp_path, monkeypatch):
         for i in range(100):
             service._stores[aid].append(MemoryEvent(
                 event_id=f"old_{i}", agent_id=aid,
-                tick=10, simulated_time=base, kind="encounter",
+                tick=10, day_index=0,
+                simulated_time=base, kind="encounter",
                 content="x",
             ))
         for i in range(50):
             service._stores[aid].append(MemoryEvent(
                 event_id=f"new_{i}", agent_id=aid,
-                tick=600, simulated_time=base, kind="encounter",
+                tick=50, day_index=3,
+                simulated_time=base, kind="encounter",
                 content="x",
             ))
 
@@ -105,8 +107,8 @@ def _call_real_write_snapshot(
 def test_evict_called_before_snapshot_write_at_grace_threshold(
     runner_with_mocks, monkeypatch,
 ):
-    """day_index=4, grace=2 → cutoff = 2*288 = 576. Events at tick=10
-    (< 576) SHALL be evicted; events at tick=600 (>= 576) preserved."""
+    """day_index=4, grace=2 → before_day_index = max(0, 4-2) = 2.
+    Events at day_index=0 SHALL be evicted; day_index=3 events preserved."""
     monkeypatch.setenv("MEMORY_EVENT_EVICT_GRACE_DAYS", "2")
     monkeypatch.delenv("SNAPSHOT_PRUNE_BEFORE_WRITE", raising=False)
     runner, service = runner_with_mocks
