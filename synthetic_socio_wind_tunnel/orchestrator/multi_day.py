@@ -522,9 +522,37 @@ class MultiDayRunner:
         total_ticks = 0
         total_encounters = 0
 
+        # 2026-05-21 R5 (cross-variant-sim-time-anchor): coordinate
+        # start_date across variants via suite-level SUITE_ANCHOR.json.
+        # Returns the canonical date (anchor's if present, caller's if
+        # not). Defensive — typos / stale CLI args won't break alignment.
+        canonical_start_date = start_date
+        if self._output_dir is not None:
+            # output_dir = <suite_dir>/variant_<v>; suite_dir = output_dir.parent
+            suite_dir = self._output_dir.parent
+            # Variant name is derivable from output_dir.name (e.g.
+            # "variant_baseline" → "baseline")
+            variant_name = self._output_dir.name
+            if variant_name.startswith("variant_"):
+                variant_name = variant_name[len("variant_"):]
+            try:
+                canonical_start_date = (
+                    MultiDayRunner._read_or_write_suite_anchor_static(
+                        suite_dir=suite_dir,
+                        configured_start_date=start_date,
+                        configured_num_days=num_days,
+                        variant_name=variant_name,
+                    )
+                )
+            except Exception as exc:  # noqa: BLE001
+                logger.warning(
+                    "[suite-anchor] check failed (%s); proceeding with "
+                    "caller's start_date", exc,
+                )
+
         # 2026-05-21 R4 (ledger-anchor-on-resume): capture the canonical
         # start_date for snapshot writing + drift detection on resume.
-        self._start_date_anchor = start_date
+        self._start_date_anchor = canonical_start_date
 
         # 导入 agents 映射给 memory carryover 使用
         agents_by_id = self._collect_agents()
@@ -1357,6 +1385,94 @@ class MultiDayRunner:
                 )
 
         return out
+
+    @staticmethod
+    def _read_or_write_suite_anchor_static(
+        *,
+        suite_dir: Path,
+        configured_start_date: date,
+        configured_num_days: int,
+        variant_name: str,
+    ) -> date:
+        """R5 (2026-05-21 cross-variant-sim-time-anchor).
+
+        Suite-level coordination: first variant writes
+        `<suite_dir>/SUITE_ANCHOR.json` with canonical start_date.
+        Subsequent variants verify match. Returns the canonical date
+        (anchor's value if present + parseable; caller's value if
+        absent or corrupt).
+
+        - file absent → write + return caller's date
+        - file present + parseable + matches → silent return anchor's date
+        - file present + parseable + mismatch → ERROR + return anchor's
+          date (defensive: prevent typo from breaking alignment)
+        - file present + corrupt → WARNING + return caller's date (no
+          overwrite of corrupt file — forensics)
+
+        Static helper so tests can exercise without instantiating
+        MultiDayRunner.
+        """
+        import json as _json_anchor
+        anchor_path = suite_dir / "SUITE_ANCHOR.json"
+
+        if not anchor_path.exists():
+            # First variant — write the anchor
+            try:
+                suite_dir.mkdir(parents=True, exist_ok=True)
+                payload = {
+                    "start_date_iso": configured_start_date.isoformat(),
+                    "num_days": configured_num_days,
+                    "created_at": datetime.utcnow().isoformat(),
+                    "created_by_variant": variant_name,
+                }
+                anchor_path.write_text(
+                    _json_anchor.dumps(payload, indent=2),
+                    encoding="utf-8",
+                )
+                logger.info(
+                    "[suite-anchor] wrote anchor at %s (start_date=%s, "
+                    "num_days=%d, variant=%s)",
+                    anchor_path, configured_start_date,
+                    configured_num_days, variant_name,
+                )
+            except OSError as exc:
+                logger.warning(
+                    "[suite-anchor] write failed (%s); proceeding with "
+                    "caller's start_date — cross-variant alignment NOT "
+                    "guaranteed",
+                    exc,
+                )
+            return configured_start_date
+
+        # Anchor exists — try to parse
+        try:
+            payload = _json_anchor.loads(
+                anchor_path.read_text(encoding="utf-8")
+            )
+            anchor_date_iso = payload["start_date_iso"]
+            anchor_date = date.fromisoformat(anchor_date_iso)
+        except (OSError, _json_anchor.JSONDecodeError, KeyError,
+                ValueError, TypeError) as exc:
+            logger.warning(
+                "[suite-anchor] anchor file %s is corrupt or "
+                "unparseable (%s); proceeding with caller's start_date — "
+                "leaving corrupt file in place for forensics",
+                anchor_path, exc,
+            )
+            return configured_start_date
+
+        if anchor_date != configured_start_date:
+            logger.error(
+                "[suite-anchor] MISMATCH: anchor says start_date=%s "
+                "(created by variant=%s), but %s was called with "
+                "start_date=%s. Defensive override: using anchor's value. "
+                "Cross-variant alignment preserved despite operator typo / "
+                "stale CLI arg.",
+                anchor_date,
+                payload.get("created_by_variant", "?"),
+                variant_name, configured_start_date,
+            )
+        return anchor_date
 
     @staticmethod
     def _check_ledger_drift_static(
