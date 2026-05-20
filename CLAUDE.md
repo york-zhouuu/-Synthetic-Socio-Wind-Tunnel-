@@ -416,6 +416,47 @@ Regression tests:
 - dwell acceptance（baseline run）：residential ≥ 40% / street ≤ 20%；
   违反 `tools/audit_dwell_distribution.py` 即报警
 
+## 技术文档术语约定（2026-05-20）
+
+写 backlog / docs/sessions / 各种 internal 技术写作时 SHALL 遵守：
+
+**不要用模型名代替模型选型决策。** 项目 code 里 `Tier =
+Literal["sonnet", "haiku", "nano"]` 这套 tier 标识符借自 Anthropic
+产品线，作为代码标识符历史包袱可以保留，但**在解释"为什么这里选这个
+模型"时，描述应该是 (a) 实际模型名 + (b) 选型理由，而不是借用 tier
+标签当语义简写**。
+
+反例（不要这样写）：
+- ❌ "do_something 走 sonnet-tier 保证决策质量"
+- ❌ "reflect 用 haiku 就够了"
+- ❌ "score_importance 路由到 nano"
+
+正例（这样写）：
+- ✅ "do_something 用 DeepSeek v4-pro，多步推理 + 工具选择需要顶档质量"
+- ✅ "reflect 用 DeepSeek v4-flash（200-500 字总结，中等质量够用）"
+- ✅ "score_importance 用 v4-flash（单 int 输出，质量门槛低）"
+
+**为什么**：
+- 项目主力 provider 是 DeepSeek + Volces Doubao，**没有 Anthropic 模型**。
+  把 Anthropic 产品线名当 tier 标签会让读者误以为我们用 Claude 系列模型
+- "sonnet-tier 质量"这种说法既不准确（DeepSeek v4-pro 不是 Sonnet）又
+  把"我们要什么"（多步推理质量）和"市面上哪个产品提供这种质量"耦合在一起
+- 当未来换 provider / 升级模型时，按"选型理由"写的文档不需要改；按
+  tier 标签写的文档要全篇更新
+
+**模型 → 选型理由对照表**（写 backlog / docs 时复用这套描述）：
+
+| 当前代码 Tier label | 实际模型 | 选型理由 |
+|---|---|---|
+| `sonnet` | DeepSeek v4-pro | 多步推理 + 决策 + 工具选择，顶档质量 |
+| `haiku` | DeepSeek v4-flash | 200-500 字总结 / 中等质量够用 |
+| `nano` | DeepSeek v4-flash | 单 int / 短输出，质量门槛低 |
+| `doubao_flash`（动态注入）| Volces Doubao Seed Lite | 1-2 句中文短文本，快+便宜+原生中文 |
+
+**适用范围**：所有 `docs/**/*.md`、`openspec/**/*.md`、commit message、
+PR description、code comments。代码里的 Tier literal 字符串本身不动
+（重命名是独立 refactor 决策，260+ 个 reference 点）。
+
 ## 对外报告与产出物的叙述风格（严格遵守）
 
 参考样板：`docs/项目产出物.html`。任何"对外解释项目"的文档（产出物说明 / progress

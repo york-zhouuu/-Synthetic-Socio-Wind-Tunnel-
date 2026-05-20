@@ -40,20 +40,20 @@ size 偏弱时考虑——届时 push 内容个体化是首要 amplification lev
 
 **状态**：✅ 已实施（2026-05-17，比 backlog 描述更彻底）——
 Doubao 不只是"backup"，已经是 `generate_message` 的**主路径**。当前
-2-provider 切分架构：
+2-provider 切分架构（按"模型选型决策"而不是 tier 标签描述）：
 
-| LLM 调用类型 | 体量占比 | Provider | 模型 |
-|---|---|---|---|
-| `do_something`（决策） | ~31% | **DeepSeek** | v4-pro (sonnet) |
-| `generate_message`（对话生成） | ~69% | **Volces Doubao**（primary） | doubao-seed-2-0-lite-260428 |
-| `remember_conversation` | 小 | DeepSeek | v4-flash (haiku) |
-| `reflect` | 小 | DeepSeek | v4-flash (haiku) |
-| `score_importance` | 小 | DeepSeek | nano |
+| LLM 调用 | 流量占比 | Provider | 模型 | 选型理由 |
+|---|---|---|---|---|
+| `do_something`（决策） | ~31% | **DeepSeek** | v4-pro | 多步推理 + 工具选择 + 计划生成，质量门槛最高 |
+| `generate_message`（对话生成） | ~69% | **Volces Doubao** | doubao-seed-2-0-lite-260428 | 1-2 句中文短文本，主求快 + 便宜 + 原生中文 |
+| `remember_conversation` | 小 | DeepSeek | v4-flash | 200-500 字摘要，中等质量够用 |
+| `reflect` | 小 | DeepSeek | v4-flash | 同上 |
+| `score_importance` | 小 | DeepSeek | v4-flash | 单 int 输出（0-9），质量门槛低 |
 
 **Fallback chain for generate_message**：
-- 1st: Volces Doubao Seed Lite（首选，user-added 2026-05-17）
+- 1st: Volces Doubao（首选，2026-05-17 user-added）
 - 2nd: Gemini 3.1 Flash Lite（Volces auth/网络失败时）
-- 3rd: DeepSeek haiku（两上家全挂时）
+- 3rd: DeepSeek v4-flash（两上家全挂时）
 
 **实现细节**：
 - `tools/tier_llm_factory.py` 新增 `provider="volces"` 分支，复用
@@ -62,24 +62,24 @@ Doubao 不只是"backup"，已经是 `generate_message` 的**主路径**。当�
   （Volces 不接受 DeepSeek 的 `thinking` extra）
 - `.env` 配 `VOLCES_ARK_API_KEY`（机器本地，不进 git）
 - `tools/run_variant_suite.py:638-670` 起 Volces tier client →
-  注入 `tier_clients["doubao_flash"]` → `tier_for_kind["generate_message"]
-  = "doubao_flash"`；try/except 链 fallback 到 Gemini → DeepSeek haiku
-- 实测：generate_message 路由生效后，DeepSeek 单边压力降 69%，整体
+  注入 `tier_clients["doubao_flash"]` → 路由 `generate_message` 到此 key；
+  try/except 链 fallback 到 Gemini → DeepSeek v4-flash
+- 实测：`generate_message` 路由生效后，DeepSeek 单边压力降 69%，整体
   吞吐 1.5-2× 提升
 
 **为什么这样切分而不是全 Doubao**：
-- `do_something` 是 1000-agent run 的"决策大脑"——要 plan + tool selection
-  + multi-hop reasoning，Doubao Lite 当前的推理质量不够；DeepSeek v4-pro
-  是 sonnet-tier 才稳得住实验内涵
-- `generate_message` 是对话生成——一两句中文短文本，Doubao Lite 又快又
-  便宜还 native 中文，质量上够，单价 ~1/8 DeepSeek sonnet
+- `do_something` 是 1000-agent run 的"决策大脑"——要规划 + 工具选择
+  + 多步推理。Doubao Lite 当前推理深度不够支撑 1000-agent decision
+  consistency，必须用 DeepSeek v4-pro 这类顶档模型才稳得住实验内涵
+- `generate_message` 是对话生成——1-2 句中文短文本，Doubao Lite 又快又
+  便宜还 native 中文，质量够，单价 ~1/8 DeepSeek v4-pro
 - 这样既保住决策质量，又把 quota 压力分到两家 provider，单边出问题不
   整夜停摆——本来 1.5 想要的"备用发电机"价值，已经在这个切分里实现了
 
 **触发条件 / 后续工作**：
 - 当 Doubao Lite 长 context（>8K）质量明显下降 → 看用 Doubao Pro 或
   其它模型
-- 当 generate_message 还想 100% 个体化（backlog 1）→ Doubao 单价低反而
+- 当 `generate_message` 还想 100% 个体化（backlog 1）→ Doubao 单价低反而
   让个体化变可行
 
 **关联**：[[wire-emit-llm-call]] 已 emit per-call provider 字段，下游
