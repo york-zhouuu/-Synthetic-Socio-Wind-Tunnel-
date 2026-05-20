@@ -49,9 +49,10 @@ This file provides guidance to Claude Code when working with this repository.
 
 ## 关键不变量 (real-artifact-test-mandatory 2026-05-20)
 
-2026-05-20 一晚撞了 3 个同样模式的 bug（ru_maxrss / instrumentation
-wiring gap / encounter eviction tick-semantic 错配）。每次都是：
-**单元测试全过、API 契约 pass，但真 worker 跑起来死/废数据**。
+2026-05-20 一晚撞了 **4 个**同样模式的 bug（ru_maxrss / phase event
+wiring gap / encounter eviction tick-semantic 错配 / dialogue counter
+wiring gap）。每次都是：
+**单元测试全过、API 契约 pass，但真 worker 跑起来死/废数据 / 监控显示假值**。
 
 根因：每个 module 的 unit test 只 mock 关键测量值或假设值，从来
 没人写一个 test **真跑 worker + 读真 artifact + 断言 product invariant**。
@@ -74,10 +75,61 @@ caller-callee 之间的语义错配（e.g. tick_in_day vs tick_global）
    数值时，**verify A 传的数值语义符合 B 的假设**。e.g. tick 字段：
    写真测试 inject A 实际写的 tick 值给 B，看 B 行为符合预期。
 
-**抓 bug 工作流**:
+### 反模式: `getattr(obj, "field", default)` 静默漂移（wiring gap）
+
+2026-05-20 实测：**4 个生产 bug 全部因为 `getattr(target, field_name,
+default)` pattern 静默吞下"字段被重命名了"这个事故**。Pattern 长这样：
+
+```python
+# 反例 — instrumentation/observability/audit 模块里常见
+ds_stats["live"] = len(getattr(dialogue_service, "_active_dialogues", {}) or {})
+# 真实字段是 _dialogues，不是 _active_dialogues
+# getattr 找不到 → 返回 {} → len({}) = 0 → 监控永远显示 0
+# 然而 simulation 一切正常，所有 unit test pass，因为 unit test
+# 也用同样的 mock 字段名
+```
+
+**问题本质**：`getattr(x, "name", default)` 把"字段是否存在"和"字段值是什么"
+两个语义合并成"反正都返回某个值"。重构 / 重命名 / 删字段时，调用点
+**完全没有任何信号**——既不抛错也不警告，监控里就是 default。
+
+**SHALL 遵守**：
+
+1. **跨模块字段访问 prefer 直接属性**：`obj.field` 而不是
+   `getattr(obj, "field", default)`。AttributeError 是好事——它在
+   重命名时立刻 fail-loud。
+2. **不得不用 getattr 时（duck-typed 兜底）**：SHALL 加一个 startup-
+   time assertion 验证字段存在：
+   ```python
+   if dialogue_service is not None:
+       assert hasattr(dialogue_service, "_dialogues"), (
+           "instrumentation read of DialogueService._dialogues failed — "
+           "field renamed?"
+       )
+   ```
+3. **监控字段的 unit test 必须 real-artifact**：
+   - ❌ 不只测"counter 值 = mock 值"
+   - ✅ 测"真造一个 DialogueService → 注入 N 个 dialogue → 调
+     `sample_metrics` → 读出来的 JSONL 里 live=N"
+   - 正例：`tests/test_instrumentation_dialogue_counter.py`
+4. **重命名字段时 SHALL grep 整个 codebase**：`git grep
+   '"_old_field_name"'` 找所有 string-form reference，包括
+   `getattr` / `hasattr` / 配置文件 / 文档。pure-attribute reference
+   会被 mypy / pyright 抓到，**string form 不会**。
+
+**已知中过这套坑的 4 个 bug**（按发现顺序）:
+
+| Bug | 字段 | 模块 | 后果 |
+|---|---|---|---|
+| `ru_maxrss` 用错 | `psutil.Process().memory_info().rss` vs `resource.getrusage().ru_maxrss` | `_self_rss_mb` | 进程一次峰值后 RSS 永远 trip cap、死循环重启 |
+| phase event wiring gap | 9 个 PHASE event 名字 vs spec | `MultiDayRunner` setup phase | preflight 看不到 PROCESS_START / SETUP_START 等，盲跑 |
+| encounter eviction tick semantic | `ev.tick`(per-day) vs `before_tick`(global) | `evict_cold_encounter_events` | 每次 evict 删光全部 encounter，论文 H_pull 测量废 |
+| dialogue counter wiring gap | `_active_dialogues` vs 真实 `_dialogues` | memstat instrumentation | 跑了 589 dialogue 但 memstat 显示 0，差点误判 simulation bug |
+
+### 抓 bug 工作流
 
 发现一个 bug → **先写抓得到这个 bug 的 test → 然后才修**。永远不
-"fix and add test later"。今天 3 个 bug 复盘全部因为这个 — 修 bug
+"fix and add test later"。今天 4 个 bug 复盘全部因为这个 — 修 bug
 时只改 impl 不加 e2e test，下次撞到同样模式只能再撞一次才知道。
 
 **触发条件**:
