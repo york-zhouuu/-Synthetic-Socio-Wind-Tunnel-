@@ -87,6 +87,9 @@ class Orchestrator:
         "_hooks",
         "_async_tick_end_hooks",
         "_walking_speed_m_per_min",
+        # H3 (persistent-asyncio-loop, 2026-05-21): one loop reused
+        # across all ticks instead of fresh asyncio.run() per tick.
+        "_persistent_loop",
     )
 
     def __init__(
@@ -151,6 +154,14 @@ class Orchestrator:
             Callable[[TickResult], Awaitable[None]]
         ] = []
 
+        # 2026-05-21 H3 (persistent-asyncio-loop): single event loop
+        # reused across all ticks. Prevents httpx.AsyncClient
+        # cross-loop state corruption that manifested as the recurring
+        # 1.5h-hang at publishable scale (backlog 1.9, scout 2026-05-20).
+        # Lazy-initialized on first _fire_async_tick_end. Closed in
+        # _fire("on_simulation_end").
+        self._persistent_loop: asyncio.AbstractEventLoop | None = None
+
     def _default_pipeline(self) -> PerceptionPipeline:
         return PerceptionPipeline(
             self._atlas,
@@ -191,9 +202,19 @@ class Orchestrator:
             cb(payload)
 
     def _fire_async_tick_end(self, tick_result: TickResult) -> None:
-        """Run all registered async on_tick_end hooks. Failures logged."""
+        """Run all registered async on_tick_end hooks on a persistent
+        event loop (H3 2026-05-21 persistent-asyncio-loop).
+
+        Lazy-creates the loop on first call. Reuses the SAME loop
+        across all subsequent invocations to avoid the httpx.AsyncClient
+        cross-loop state corruption that manifested as the recurring
+        1.5h-hang at publishable scale (backlog 1.9 + scout 2026-05-20).
+
+        Loop is closed in `on_simulation_end` (see Orchestrator.run end).
+        """
         if not self._async_tick_end_hooks:
             return
+
         async def runner() -> None:
             for hook in self._async_tick_end_hooks:
                 try:
@@ -203,20 +224,48 @@ class Orchestrator:
                         "async on_tick_end hook %r raised: %r",
                         hook, exc,
                     )
+
+        # Lazy-create / reuse persistent loop
+        if self._persistent_loop is None or self._persistent_loop.is_closed():
+            self._persistent_loop = asyncio.new_event_loop()
+        loop = self._persistent_loop
         try:
-            # No outer event loop expected (orchestrator.run is sync);
-            # asyncio.run starts and tears down a fresh loop per tick.
-            # Cheap relative to LLM work but not free — only invoked when
-            # there ARE async hooks registered.
-            asyncio.run(runner())
-        except RuntimeError as exc:
-            # If we're nested inside an existing loop (rare; e.g. tests),
-            # fall back to creating a task on the running loop.
-            logging.getLogger(__name__).debug(
-                "asyncio.run failed (%r); falling back to existing loop", exc,
-            )
-            loop = asyncio.get_event_loop()
             loop.run_until_complete(runner())
+        except RuntimeError as exc:
+            # Defensive: if loop got into bad state, rebuild it for next tick
+            logging.getLogger(__name__).warning(
+                "persistent loop run_until_complete failed (%r); "
+                "rebuilding loop for next tick", exc,
+            )
+            try:
+                loop.close()
+            except Exception:  # noqa: BLE001
+                pass
+            self._persistent_loop = asyncio.new_event_loop()
+            try:
+                self._persistent_loop.run_until_complete(runner())
+            except Exception as exc2:  # noqa: BLE001
+                logging.getLogger(__name__).warning(
+                    "rebuilt persistent loop also failed (%r); "
+                    "skipping this tick's async hooks", exc2,
+                )
+
+    def _close_persistent_loop(self) -> None:
+        """H3 (2026-05-21): close the persistent loop at simulation end.
+        Idempotent. Called from on_simulation_end hook chain."""
+        if self._persistent_loop is None:
+            return
+        try:
+            if not self._persistent_loop.is_closed():
+                # Cancel any remaining tasks
+                pending = asyncio.all_tasks(self._persistent_loop)
+                for t in pending:
+                    t.cancel()
+                self._persistent_loop.close()
+        except Exception as exc:  # noqa: BLE001
+            logging.getLogger(__name__).warning(
+                "persistent loop close failed (%r); proceeding", exc,
+            )
 
     # ---- Main entry ----
 
@@ -289,6 +338,10 @@ class Orchestrator:
             day_index=day_index,
         )
         self._fire("on_simulation_end", summary)
+        # 2026-05-21 H3 (persistent-asyncio-loop): close the persistent
+        # loop after all on_simulation_end hooks fire (in case any
+        # cleanup hook needs to schedule async work, give it the chance).
+        self._close_persistent_loop()
         return summary
 
     # ---- One tick ----
