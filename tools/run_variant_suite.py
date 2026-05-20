@@ -1486,6 +1486,16 @@ def run_seed_with_metrics(
         all_keys_open_total=aks_open_total,
     )
 
+    # 2026-05-21 sim-time alignment detection: stash the actual
+    # sim-time window into RunMetrics.extensions so build_suite_aggregate
+    # can detect cross-variant misalignment (e.g. from watchdog
+    # auto-resume that loaded a snapshot at a divergent ledger.current_time).
+    if result.per_day_summaries:
+        run_metrics = run_metrics.with_extensions(
+            sim_time_start_iso=result.per_day_summaries[0].simulated_date.isoformat(),
+            sim_time_end_iso=result.per_day_summaries[-1].simulated_date.isoformat(),
+        )
+
     # publishable-finalize: stamp 7-field reproducibility lock
     from synthetic_socio_wind_tunnel.metrics.reproducibility import (
         compute_reproducibility_lock,

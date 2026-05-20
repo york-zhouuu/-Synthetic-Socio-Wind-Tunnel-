@@ -234,10 +234,60 @@ def build_contest_report(
         if variant_name == "baseline":
             baseline_row = row
 
+    # 2026-05-21 sim-time alignment detection.
+    #
+    # Watchdog auto-resume can load a snapshot whose ledger.current_time
+    # has drifted from the original day 0 start_date. When THIS variant
+    # has a different sim-time window than OTHER variants in the same
+    # suite, raw contest comparison is confounded by calendar offset
+    # (e.g. one variant's "intervention phase" covers a different
+    # weekday pattern than another's). Detect + flag here so analysis
+    # downstream knows to truncate to overlap before computing effects.
+    from datetime import date as _date_cls
+    _variant_windows: list[tuple[str, _date_cls, _date_cls]] = []
+    for variant_name, agg in aggregates.items():
+        s_iso = getattr(agg, "sim_time_start_iso", None)
+        e_iso = getattr(agg, "sim_time_end_iso", None)
+        if s_iso and e_iso:
+            try:
+                _variant_windows.append((
+                    variant_name,
+                    _date_cls.fromisoformat(s_iso),
+                    _date_cls.fromisoformat(e_iso),
+                ))
+            except ValueError:
+                pass
+
+    _sim_misaligned = False
+    _overlap_days = None
+    _overlap_start_iso = None
+    _overlap_end_iso = None
+    if len(_variant_windows) >= 2:
+        starts = {w[1] for w in _variant_windows}
+        ends = {w[2] for w in _variant_windows}
+        # Misaligned if any pair of variants has different start OR end date
+        _sim_misaligned = (len(starts) > 1) or (len(ends) > 1)
+        if _sim_misaligned:
+            overlap_start = max(w[1] for w in _variant_windows)
+            overlap_end = min(w[2] for w in _variant_windows)
+            if overlap_end >= overlap_start:
+                _overlap_days = round(
+                    (overlap_end - overlap_start).days + 1, 1
+                )
+                _overlap_start_iso = overlap_start.isoformat()
+                _overlap_end_iso = overlap_end.isoformat()
+            else:
+                # variants have non-overlapping windows — analysis broken
+                _overlap_days = 0.0
+
     return ContestReport(
         suite_name=suite_name,
         rows=tuple(rows),
         baseline_row=baseline_row,
+        sim_time_misaligned=_sim_misaligned,
+        sim_time_overlap_days=_overlap_days,
+        sim_time_overlap_start_iso=_overlap_start_iso,
+        sim_time_overlap_end_iso=_overlap_end_iso,
     )
 
 

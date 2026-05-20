@@ -151,6 +151,21 @@ def build_suite_aggregate(
     _avg_fb = sum(avg_fbs) / len(avg_fbs) if avg_fbs else 0.0
     _high_warn = _max_fb > 0.05
 
+    # 2026-05-21 sim-time alignment: capture the variant's actual
+    # sim-time window from RunMetrics.extensions (set by
+    # run_variant_suite from MultiDayResult.per_day_summaries.simulated_date).
+    # build_contest_report uses these to detect cross-variant misalignment
+    # caused by watchdog auto-resume from divergent snapshots.
+    _sim_start_iso: str | None = None
+    _sim_end_iso: str | None = None
+    for r in runs:
+        ext_start = r.extensions.get("sim_time_start_iso")
+        ext_end = r.extensions.get("sim_time_end_iso")
+        if ext_start and ext_end:
+            _sim_start_iso = str(ext_start)
+            _sim_end_iso = str(ext_end)
+            break
+
     return SuiteAggregate(
         variant_name=variant_name,
         variant_metadata=final_meta,
@@ -162,6 +177,8 @@ def build_suite_aggregate(
         max_llm_fallback_pct=_max_fb,
         avg_llm_fallback_pct=_avg_fb,
         high_fallback_warning=_high_warn,
+        sim_time_start_iso=_sim_start_iso,
+        sim_time_end_iso=_sim_end_iso,
     )
 
 

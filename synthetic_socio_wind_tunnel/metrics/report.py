@@ -440,10 +440,38 @@ def write_markdown(
         else "> ⚠️ **[unpublishable preview]** — at least one hard check fails or has not been run.\n"
     )
 
+    # 2026-05-21 sim-time alignment warning. Emitted when ContestReport
+    # detected cross-variant sim-time window misalignment (typical cause:
+    # watchdog auto-resume loaded snapshot at divergent ledger.current_time).
+    # Post-hoc analysis SHALL truncate raw metrics to the overlap window.
+    sim_align_banner = ""
+    if getattr(contest, "sim_time_misaligned", False):
+        win_lines = []
+        for v_name, agg in aggregates.items():
+            s = getattr(agg, "sim_time_start_iso", None) or "?"
+            e = getattr(agg, "sim_time_end_iso", None) or "?"
+            win_lines.append(f"  - `{v_name}`: {s} → {e}")
+        overlap_days = contest.sim_time_overlap_days
+        overlap_start = contest.sim_time_overlap_start_iso or "?"
+        overlap_end = contest.sim_time_overlap_end_iso or "?"
+        sim_align_banner = (
+            "> ⚠️ **[sim-time misalignment detected]** — variants in this "
+            "suite cover DIFFERENT sim-time windows (likely watchdog "
+            "auto-resume from snapshot with divergent ledger.current_time). "
+            "Cross-variant raw metric comparison is confounded by calendar "
+            "offset. Post-hoc analysis SHALL truncate to OVERLAP window "
+            "before computing effect sizes.\n>\n"
+            "> Per-variant windows:\n>\n"
+            + "\n".join(f"> {l}" for l in win_lines) + "\n>\n"
+            f"> Overlap window: **{overlap_start} → {overlap_end} "
+            f"({overlap_days} days vs full 14 days)**\n"
+        )
+
     parts = [
         f"# {contest.suite_name} — Rival Hypothesis Contest Report\n",
         "",
         banner,
+        sim_align_banner,
         _trace_comment("ReportWriter.write_markdown"),
         "",
         "本报告遵循 `experimental-design` spec 的五幕结构 + 每 variant"

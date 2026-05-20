@@ -154,6 +154,18 @@ class SuiteAggregate(BaseModel):
     high_fallback_warning: bool = False
     """max_llm_fallback_pct > 0.05 时为 True。aggregate 用，可读不一定阻断。"""
 
+    # 2026-05-21 sim-time alignment defense:
+    # Watchdog auto-resume can cause variants to have different sim-time
+    # windows (per-variant snapshot was at different ledger.current_time).
+    # Record the actual window each variant covers so cross-variant
+    # comparison can detect + warn + truncate to overlap if needed.
+    sim_time_start_iso: str | None = None
+    """variant 首个 per_day_summary 的 simulated_date (ISO)。
+    None if no per_day_summaries available."""
+    sim_time_end_iso: str | None = None
+    """variant 末个 per_day_summary 的 simulated_date (ISO).
+    None if no per_day_summaries available."""
+
 
 class ContestRow(BaseModel):
     """Contest 表里的一行（single variant × single primary_effect_size）。"""
@@ -191,6 +203,23 @@ class ContestReport(BaseModel):
     suite_name: str
     rows: tuple[ContestRow, ...]
     baseline_row: ContestRow | None = None
+
+    # 2026-05-21 sim-time alignment defense (see SuiteAggregate fields).
+    # Set by build_contest_report when variants in this suite have
+    # different sim-time windows (e.g. one variant was watchdog-resumed
+    # from a snapshot that had advanced ledger.current_time).
+    sim_time_misaligned: bool = False
+    """True iff variants in this contest cover DIFFERENT sim-time
+    windows (start or end date differs across rows). When True,
+    post-hoc analysis SHALL truncate to overlap window before computing
+    cross-variant comparisons — raw rows reflect per-variant 14-day
+    windows that aren't directly comparable."""
+    sim_time_overlap_days: float | None = None
+    """if misaligned: the size of the OVERLAP window in days (rounded
+    to 1 decimal). 14.0 = perfect alignment; smaller = shrunken
+    overlap. None if any variant lacks per_day data."""
+    sim_time_overlap_start_iso: str | None = None
+    sim_time_overlap_end_iso: str | None = None
 
     def find(self, variant_name: str) -> ContestRow | None:
         for r in self.rows:
