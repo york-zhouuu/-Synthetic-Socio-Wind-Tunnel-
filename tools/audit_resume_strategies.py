@@ -64,7 +64,18 @@ def _scan_cell(suite_dir: Path, seed: int, variant: str) -> dict[str, Any]:
             "note": "seed_N.json present — cell complete",
         }
 
-    snapshots = sorted(vdir.glob(f"seed_{seed}_tick*.snapshot.json"))
+    # 2026-05-21 NEW-B (audit-tools-pid-prefix-recognition):
+    # also match PID-prefixed format `seed_<N>_pid<PID>_tick<T>.snapshot.json`
+    # introduced by R1 (fix-snapshot-filename-spawn-collision).
+    import re as _re_audit
+    snapshot_pattern = _re_audit.compile(
+        rf"^seed_{seed}(?:_pid\d+)?_tick(?P<tick>_final|\d+)\.snapshot\.json$"
+    )
+    snapshots: list[Path] = []
+    for p in vdir.glob(f"seed_{seed}_*.snapshot.json"):
+        if snapshot_pattern.match(p.name):
+            snapshots.append(p)
+    snapshots.sort()
     partials = sorted(vdir.glob(f"seed_{seed}_day*.partial.json"))
     wal = vdir / f"seed_{seed}.wal.jsonl"
     # Quarantined stub files include any *.gracefulstop_stub_* in the
@@ -72,15 +83,22 @@ def _scan_cell(suite_dir: Path, seed: int, variant: str) -> dict[str, Any]:
     # seed_N_positions.json, etc.)
     quarantined = list(vdir.glob("*.gracefulstop_stub_*"))
 
-    # Path.stem only strips ONE extension — `seed_42_day0.partial.json`
-    # → stem `seed_42_day0.partial`. Take rightmost _tick / _day suffix
-    # then split on first `.` to drop the leftover format suffix.
+    # Extract numeric tick from each snapshot. tick_final entries
+    # are tracked separately (their authority comes from mtime, not
+    # numeric ordering).
     snapshot_ticks: list[int] = []
+    tick_final_count = 0
     for s in snapshots:
+        m = snapshot_pattern.match(s.name)
+        if not m:
+            continue
+        tick_str = m.group("tick")
+        if tick_str == "_final":
+            tick_final_count += 1
+            continue
         try:
-            tail = s.stem.rsplit("_tick", 1)[-1].split(".")[0]
-            snapshot_ticks.append(int(tail))
-        except (ValueError, IndexError):
+            snapshot_ticks.append(int(tick_str))
+        except ValueError:
             pass
 
     partial_days: list[int] = []
@@ -91,7 +109,7 @@ def _scan_cell(suite_dir: Path, seed: int, variant: str) -> dict[str, Any]:
         except (ValueError, IndexError):
             pass
 
-    has_snapshot = bool(snapshot_ticks)
+    has_snapshot = bool(snapshot_ticks) or tick_final_count > 0
     has_partial = bool(partial_days)
     has_wal = wal.is_file()
 

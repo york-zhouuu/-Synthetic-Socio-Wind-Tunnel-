@@ -490,6 +490,50 @@ async def _load_or_generate_setup_content(
     return history_records, identity_text, False
 
 
+def _write_spawn_env_file(*, suite_dir: Path, variant: str) -> Path:
+    """NEW-A (2026-05-21 watchdog-respawn-env-passthrough).
+
+    Capture Plan B / resilience env vars to `<suite_dir>/spawn_env_<variant>.json`.
+    `tools/watchdog_wal_deadlock.py:_spawn_replacement` reads this file
+    on respawn so the new worker inherits the operator's Plan B settings
+    (not the watchdog's own bare env).
+    """
+    plan_b_keys = (
+        "OPERATION_POOL_HANDLER_TIMEOUT_SEC",
+        "OPERATION_POOL_MAX_CONCURRENT_OPS",
+        "RESILIENCE_POOL_READ_TIMEOUT",
+        "RESILIENCE_RETRY_MAX_ATTEMPTS",
+        "RSS_RESTART_MB",
+        "MEMORY_EVENT_EVICT_GRACE_DAYS",
+        "SNAPSHOT_PRUNE_BEFORE_WRITE",
+        "GC_EVERY_N_TICKS",
+        "RSS_CHECK_EVERY_N_TICKS",
+        "RESILIENCE_SNAPSHOT_EVERY_TICKS",
+        "RESILIENCE_WAL_ENABLED",
+    )
+    payload = {
+        k: os.environ[k] for k in plan_b_keys if k in os.environ
+    }
+    suite_dir.mkdir(parents=True, exist_ok=True)
+    out_path = suite_dir / f"spawn_env_{variant}.json"
+    # Atomic write via tempfile + rename
+    import tempfile
+    with tempfile.NamedTemporaryFile(
+        "w", encoding="utf-8", dir=str(suite_dir),
+        prefix=f".spawn_env_{variant}-", suffix=".json.tmp",
+        delete=False,
+    ) as tf:
+        json.dump(payload, tf, ensure_ascii=False, indent=2)
+        tf.flush()
+        try:
+            os.fsync(tf.fileno())
+        except OSError:
+            pass
+        tmp_name = tf.name
+    os.rename(tmp_name, out_path)
+    return out_path
+
+
 def _staggered_submit(pool, fn, items, *, spacing_secs: float):
     """Submit `items` to `pool` with `spacing_secs` between submissions.
 
@@ -1566,6 +1610,20 @@ def main() -> int:
     # explicitly passed by parent + --workers==1) to avoid recursion.
     _is_publishable = args.agents == 1000 and args.num_days == 14
     _is_worker_child = args.suite_dir is not None and args.workers == 1
+
+    # 2026-05-21 NEW-A (watchdog-respawn-env-passthrough): worker writes
+    # spawn_env_<variant>.json so watchdog auto-respawn inherits Plan B
+    # env vars instead of falling back to bare os.environ.
+    if args.suite_dir is not None and args.variants:
+        try:
+            variant_name = args.variants.split(",")[0]
+            _write_spawn_env_file(suite_dir=args.suite_dir, variant=variant_name)
+        except Exception as exc:  # noqa: BLE001
+            print(
+                f"[spawn-env] WARN write spawn_env_<v>.json failed: {exc}; "
+                f"watchdog respawn will fall back to bare env",
+                file=sys.stderr,
+            )
 
     # enforce-worker-rss-cap (2026-05-19): publishable mode SHALL cap
     # per-worker RSS. 2026-05-19 D2 incident: single workers reached

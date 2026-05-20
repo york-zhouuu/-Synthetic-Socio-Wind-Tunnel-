@@ -165,6 +165,42 @@ def _spawn_replacement(
     ]
     env = os.environ.copy()
     env["RESILIENCE_TRUST_LAST_PREFLIGHT"] = "1"
+
+    # 2026-05-21 NEW-A (watchdog-respawn-env-passthrough): read
+    # spawn_env_<variant>.json if present and merge over os.environ.
+    # Without this, watchdog respawn silently reverts to defaults for
+    # all Plan B settings.
+    spawn_env_file = suite_dir / f"spawn_env_{variant}.json"
+    if spawn_env_file.exists():
+        try:
+            with spawn_env_file.open(encoding="utf-8") as fh:
+                spawn_env = json.load(fh)
+            if isinstance(spawn_env, dict):
+                for k, v in spawn_env.items():
+                    env[str(k)] = str(v)
+                logger.info(
+                    "  merged %d env vars from %s",
+                    len(spawn_env), spawn_env_file.name,
+                )
+            else:
+                logger.warning(
+                    "  spawn_env file %s not a dict; ignoring",
+                    spawn_env_file,
+                )
+        except (OSError, json.JSONDecodeError) as exc:
+            logger.warning(
+                "  spawn_env file %s corrupt or unparseable (%s); "
+                "watchdog respawn will use bare os.environ — Plan B "
+                "settings may revert to defaults",
+                spawn_env_file, exc,
+            )
+    else:
+        logger.warning(
+            "  spawn_env file %s missing; watchdog respawn will use bare "
+            "os.environ — Plan B env vars may revert to defaults",
+            spawn_env_file,
+        )
+
     logger.info("spawn: variant=%s log=%s", variant, log_path)
     try:
         with open(log_path, "w") as logfile:
