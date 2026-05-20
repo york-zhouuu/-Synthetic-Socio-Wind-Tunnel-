@@ -1121,3 +1121,118 @@ A 最简单但 snap 语义改变（破坏现有 snap 读取兼容）。B 最干�
 **关联**：[[resume-rng-state-determinism]] 2026-05-21 spec —
 确认 RNG 部分已正确 round-trip，但 1-tick 偏移仍是 product-level 不变量
 ("断点续跑 == 正常跑") 的最后一个 gap。
+
+## 1.17 watchdog stale threshold 默认对 day_end transition 太短（2026-05-21 实测）
+
+**触发**：seed 43 publishable run 2026-05-21 05:46 watchdog 把 baseline WAL 标 STALE (age=331s > 300s 阈值)，但 baseline 实际正在 day_end transition：
+- tick 287 写完 (05:41:07)
+- memory.run_daily_summary 跑 500 protag × LLM call (concurrency~30, p50 ~11s)
+- 总耗时 ~3-5 min daily_summary + ~3 min plan gen
+- 期间 WAL 完全无写入（因为没 tick 推进）
+
+→ **300s / 420s 阈值在 day_end 窗口必然误判**。如果 watchdog confirm 阶段（额外 60s 等待）撑过去就 SIGUSR1 → 触发 `sigusr1-graceful-stop-corruption` 风险 + 丢失 tick 277-287 工作。
+
+**修复方案**（择一）：
+
+**A. 提高 stale_secs 默认值**：从 420s → 900s (15 min)。简单但牺牲常规 hang detection 速度（25 min → 30+ min 才报）。CLAUDE.md spawn 模板里我已经更新到 900s 用于本次跑。
+
+**B. 智能 stale 判定**：watchdog 不只看 WAL mtime，还看 `llm.jsonl` mtime。如果 LLM 最近 60s 内有 call → worker 真活着，不算 stale。这个最 robust。需要改 watchdog 工具。
+
+**C. 加 events.jsonl heartbeat**：worker 在 daily_summary / plan_gen 等长阶段每 60s 写一个 `HEARTBEAT` event。watchdog 改成 events.jsonl mtime 判定。需要 instrumentation + watchdog 协同改。
+
+**D. 区分 phase**：worker 在 events.jsonl 写 `DAY_END_START / DAY_END_DONE` phase event。watchdog 检测到 DAY_END_START 后允许长 stale 直到 DAY_END_DONE。最干净但需要 wire 新 phase event。
+
+**短期对策**：CLAUDE.md spawn 模板 + `tools/preflight_publishable_spawn.py` 推荐值改 `--stale-secs 900 --confirm-secs 120`。本次跑已经手动改了。
+
+**关联**：
+- [[sigusr1-graceful-stop-corruption]] 2026-05-19 不变量 — 误 SIGUSR1 会污染数据
+- [[monitor-as-control-plane]] 2026-05-19 不变量 — watchdog 不持有 termination 决策权（但本工具是个例外，因为它跑 auto-remediate）
+
+**Owner**：未指定。下次 publishable run 之前必须有 A 兜底（B/C/D 是长期改进）。
+
+## 1.18 `_generate_plans_for_day` 没 asyncio.wait_for 兜底（2026-05-21 audit 发现）
+
+**根因**：`MultiDayRunner._generate_plans_for_day` (multi_day.py:1049-1078)：
+
+```python
+async def _one(agent):
+    plan = await self._planner.generate_daily_plan(...)  # NO wait_for!
+
+async def _all():
+    await asyncio.gather(*(_one(a) for a in agents_by_id.values()))
+
+asyncio.run(_all())
+```
+
+**风险**：500 个 plan generation task 用 `asyncio.gather` 跑 — 如果其中 1 个 LLM call hang（httpx half-open TCP / DeepSeek 长尾），**整个 gather 阻塞等所有任务完成**，工作进入静默死等。
+
+**违反不变量**：CLAUDE.md `1.9 所有直接 LLM call 加 asyncio.wait_for 硬超时兜底 2026-05-19` —
+> 任何直接 LLM call SHALL 用 `asyncio.wait_for(...)` 兜底，避免 D2 attempt 5 那种 worker silent hang
+
+`_generate_plans_for_day` 漏修。同时还需检查类似 unguarded await 的所有位点。
+
+**触发条件**：4 worker 同时 day_end → 500 plan generation 同时跑 → DeepSeek 服务端在某个 task 上 silent drop → asyncio.gather 卡住。
+
+**2026-05-21 publishable seed 43 run 实测**：跑了 100 min 没 hang（只是 ~5-10 min day_end slow window）— 但风险窗口实际存在。
+
+**修复方案**：
+
+```python
+async def _one(agent):
+    try:
+        plan = await asyncio.wait_for(
+            self._planner.generate_daily_plan(
+                agent.profile, date=current_date.isoformat(),
+                carryover=carryover,
+            ),
+            timeout=90.0,  # 单 plan 最多 90s，超时用 fallback profile-only plan
+        )
+    except asyncio.TimeoutError:
+        logger.warning(f"plan gen timeout for {agent.profile.agent_id}; "
+                       "falling back to template plan")
+        plan = self._planner.build_template_plan(agent.profile, date=current_date.isoformat())
+    agent.plan = plan
+```
+
+**Owner**：未指定。**下次 publishable run 前必修**（这次 seed 43 跑得过没 hang，下次未必）。
+
+**关联**：
+- [[1.9 所有直接 LLM call 加 asyncio.wait_for 硬超时兜底]] 2026-05-19 不变量
+- [[harden-worker-resilience]] 2026-05-19 spec — direct_llm_timeout_guard 5 个位点全 wait_for 验证 test
+- backlog 1.17 watchdog stale 阈值 — 即使 hang 发生，stale 检测应该兜住 30 min（已升 3600s 兜底）
+
+
+## 1.19 `build_suite_aggregate` 在 graceful_stop 0 RunMetrics 时崩（2026-05-21 实测）
+
+**触发**：seed 43 baseline RSS 9905MB > 6000MB cap at tick 350 → graceful_stop 写 partial + snapshot → MultiDayRunner 返回 truncated result (0 RunMetrics)。然后：
+
+```python
+File "tools/run_variant_suite.py", line 1988, in main
+    aggregate = build_suite_aggregate(runs, variant_metadata=...)
+File "synthetic_socio_wind_tunnel/metrics/aggregator.py", line 105
+    raise ValueError("build_suite_aggregate requires at least one RunMetrics")
+```
+
+→ run_variant_suite crashes at end-of-script aggregate step. **worker process exits non-zero**，外部需要手动重启（或 LaunchAgent / resume_publishable.py 自动接管）。
+
+**问题**：`build_suite_aggregate` 假设 graceful_stop 也产生 RunMetrics，但实际上 graceful_stop 路径 `seed_N.json NOT written, partials preserved for resume` — 整个 variant 还没完成，aggregate 应该 skip。
+
+**修复方案**：
+
+```python
+# tools/run_variant_suite.py around line 1988
+if not runs:
+    print("[suite] no completed runs (graceful_stop or all failed); "
+          "skipping aggregate. Use --resume to continue.", file=sys.stderr)
+    sys.exit(0)  # graceful_stop 本身不算 fail，exit 0 让 outer launcher resume
+aggregate = build_suite_aggregate(runs, ...)
+```
+
+或者 `build_suite_aggregate` 自己处理 empty list 返回 empty aggregate.
+
+**Owner**：未指定。下次 publishable run 前修，否则 RSS auto-restart 每次都需要手动重启 worker（loss-of-automation）。
+
+**关联**：
+- [[backlog 1.7 B]] auto-restart on RSS — 触发条件正常
+- [[sigusr1-graceful-stop-corruption]] — 不写假 seed_N.json 部分工作正常
+- 但 build_suite_aggregate 误把 graceful_stop 当 "all variants failed" 抛错
