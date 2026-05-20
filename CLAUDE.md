@@ -181,6 +181,29 @@ WORKER_PID=$!
 disown
 ```
 
+**多 variant batch spawn 模板**（4 variants in sequence with **mandatory 300s stagger**，
+per `worker-spawn-coordination` spec + `snapshot-resume-ram-peak +
+spawn-burst-self-DDoS` 不变量。2026-05-20 教训：60s 错峰导致 4 worker
+1.5 小时全 hang）：
+
+```bash
+SUITE=data/experiments/<run_dir>
+for V in baseline hyperlocal_push global_distraction phone_friction; do
+  OUT=$SUITE/variant_$V
+  nohup env <env_vars_above> \
+    .venv/bin/python3 tools/run_variant_suite.py \
+      --variants $V --seeds 1 --seed-start <N> \
+      --num-days 14 --agents 1000 --num-protagonists 500 \
+      --mode publishable --use-aitown --aitown-provider deepseek \
+      --workers 1 --suite-dir $SUITE \
+    >> $SUITE/worker_$V.log 2>&1 &
+  disown
+  # MANDATORY: 300s stagger between variants (NOT 60s) — see
+  # worker-spawn-coordination spec. Last spawn skips sleep.
+  [ "$V" != "phone_friction" ] && sleep 300
+done
+```
+
 **2026-05-20 Plan B 调整**（backlog 1.9 hang 反复 + scout 验证后）：
 - `RSS_RESTART_MB=10000 → 6000`：主动 ~2-3 hr 自动 restart 一次，刷新
   asyncio/httpx 状态。每次 restart 损失 ~1 min（resume from snapshot），
