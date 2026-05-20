@@ -215,6 +215,15 @@ class SimulationCheckpoint(BaseModel):
     pending_ops_meta: dict[str, Any] = Field(default_factory=dict)
     """In-flight OperationPool ops 元数据；restore 时全部 abandon，本字段仅诊断用。"""
 
+    # 2026-05-21 R4 (ledger-anchor-on-resume): preserve the original
+    # start_date so resume can detect ledger.current_time drift caused
+    # by watchdog auto-resume from a divergent ledger state. Optional
+    # for back-compat with legacy snapshots (None = drift check skipped).
+    start_date_anchor_iso: str | None = None
+    """ISO-format date (YYYY-MM-DD) of the run's original day-0 start.
+    Set by MultiDayRunner when writing the snapshot. None for legacy
+    snapshots — resume's drift check silently skipped in that case."""
+
     provider: str = "stub"
     """记录产生该 snapshot 的 LLM provider，与 run-resilience partial 同语义。"""
 

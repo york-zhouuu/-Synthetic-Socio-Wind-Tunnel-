@@ -420,6 +420,9 @@ class MultiDayRunner:
         # fix-snapshot-filename-spawn-collision (2026-05-21): PID-based
         # spawn identifier embedded in snapshot filenames.
         "_spawn_id",
+        # ledger-anchor-on-resume (2026-05-21): start_date captured at
+        # run_multi_day entry, written into every snapshot for drift detect.
+        "_start_date_anchor",
     )
 
     def __init__(
@@ -519,6 +522,10 @@ class MultiDayRunner:
         total_ticks = 0
         total_encounters = 0
 
+        # 2026-05-21 R4 (ledger-anchor-on-resume): capture the canonical
+        # start_date for snapshot writing + drift detection on resume.
+        self._start_date_anchor = start_date
+
         # 导入 agents 映射给 memory carryover 使用
         agents_by_id = self._collect_agents()
 
@@ -532,6 +539,20 @@ class MultiDayRunner:
             # forensic state.
             if self._output_dir is not None:
                 self._backup_snapshots_before_resume(self._output_dir)
+
+            # 2026-05-21 R4 (ledger-anchor-on-resume): detect ledger drift
+            # vs expected (anchor + day_index*24h + tick_index*5min).
+            # Warns only — pure detection, no auto-correction.
+            try:
+                MultiDayRunner._check_ledger_drift_static(
+                    snap=self._restore_from,
+                    configured_start_date=start_date,
+                )
+            except Exception as exc:  # noqa: BLE001
+                logger.warning(
+                    "[ledger-drift] check failed (%s); resume continues",
+                    exc,
+                )
 
             snap = self._restore_from
             if snap.day_index >= num_days:
@@ -1337,6 +1358,85 @@ class MultiDayRunner:
 
         return out
 
+    @staticmethod
+    def _check_ledger_drift_static(
+        *, snap: Any, configured_start_date: date,
+    ) -> float | None:
+        """R4 (2026-05-21 ledger-anchor-on-resume).
+
+        Compare snap's stored ledger.current_time against the expected
+        value computed from (start_date_anchor + day_index*24h +
+        tick_index*5min). If drift > 1 hour, log a WARNING.
+
+        Returns the absolute drift in hours, or None if check was
+        skipped (legacy snapshot without anchor / malformed data).
+        Pure detection — does NOT auto-correct.
+
+        Static so tests can invoke without instantiating MultiDayRunner.
+        """
+        anchor_iso = getattr(snap, "start_date_anchor_iso", None)
+        if not anchor_iso:
+            # Legacy / no anchor → skip drift check
+            return None
+        try:
+            anchor_date = date.fromisoformat(anchor_iso)
+        except (ValueError, TypeError):
+            logger.warning(
+                "[ledger-drift] snapshot has malformed start_date_anchor_iso=%r; "
+                "skipping drift check",
+                anchor_iso,
+            )
+            return None
+
+        if anchor_date != configured_start_date:
+            logger.warning(
+                "[ledger-drift] snapshot anchor (%s) != current run "
+                "start_date (%s) — variants may have been spawned with "
+                "different start_date arguments",
+                anchor_date, configured_start_date,
+            )
+
+        # Compute expected ledger.current_time
+        from datetime import timedelta as _td
+        day_idx = getattr(snap, "day_index", 0)
+        tick_idx = getattr(snap, "tick_index", 0)
+        expected = (
+            datetime.combine(anchor_date, datetime.min.time())
+            + _td(days=day_idx, minutes=tick_idx * 5)
+        )
+
+        # Read actual ledger time from snap.ledger_state.current_time
+        # (str ISO) or fall back to snap.simulated_time
+        ledger_state = getattr(snap, "ledger_state", {}) or {}
+        actual_iso = ledger_state.get("current_time")
+        if not actual_iso:
+            actual = getattr(snap, "simulated_time", None)
+            if actual is None:
+                return None
+        else:
+            try:
+                actual = datetime.fromisoformat(str(actual_iso))
+            except (ValueError, TypeError):
+                logger.warning(
+                    "[ledger-drift] malformed ledger.current_time=%r; "
+                    "skipping drift check",
+                    actual_iso,
+                )
+                return None
+
+        drift = actual - expected
+        drift_hours = abs(drift.total_seconds()) / 3600.0
+        if drift_hours > 1.0:
+            logger.warning(
+                "[ledger-drift] resume ledger.current_time drift detected: "
+                "expected %s (anchor=%s + day=%d + tick=%d*5min), "
+                "actual %s, drift=%.1f hours. "
+                "Cross-variant contest comparison may be confounded by "
+                "calendar offset.",
+                expected, anchor_date, day_idx, tick_idx, actual, drift_hours,
+            )
+        return drift_hours
+
     def _backup_snapshots_before_resume(self, output_dir: Path) -> bool:
         """R2 (2026-05-21 auto-backup-snapshot-on-resume).
 
@@ -1484,6 +1584,14 @@ class MultiDayRunner:
                 rng_state={},  # Caller-injected RNGs not tracked here; future work
                 pending_ops_meta={},
                 provider=self._provider_name,
+                # 2026-05-21 R4 (ledger-anchor-on-resume): preserve the
+                # canonical start_date so future resume can detect
+                # ledger.current_time drift.
+                start_date_anchor_iso=(
+                    self._start_date_anchor.isoformat()
+                    if getattr(self, "_start_date_anchor", None) is not None
+                    else None
+                ),
             )
             # 2026-05-21 R1 (fix-snapshot-filename-spawn-collision):
             # include process PID in snapshot filename so respawn doesn't
@@ -1589,6 +1697,13 @@ class MultiDayRunner:
                 rng_state={},
                 pending_ops_meta={},
                 provider=self._provider_name,
+                # 2026-05-21 R4 (ledger-anchor-on-resume): graceful-stop
+                # final snapshot also carries the anchor.
+                start_date_anchor_iso=(
+                    self._start_date_anchor.isoformat()
+                    if getattr(self, "_start_date_anchor", None) is not None
+                    else None
+                ),
             )
             # 2026-05-21 R1 (fix-snapshot-filename-spawn-collision):
             # graceful-stop final snapshot ALSO gets PID prefix so multiple
