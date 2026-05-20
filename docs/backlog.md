@@ -1073,3 +1073,42 @@ exit 0=clean, 1=blocker, 2=warnings only。Regression test in
 **Owner**：未指定。
 
 ---
+
+## 1.16 snap-after-tick 语义 — resume 1-tick 重叠（2026-05-21 发现）
+
+**触发**：写 `test_resume_byte_identical_to_fresh` 时发现 fresh 2-day vs
+resume (1 day → snap → 1 day) 结果差 5 分钟（1 tick）。
+
+**根因**：`_on_tick_end_resume_hook` 在每个 tick **执行完** 触发，snap
+fire 条件 `tick_global % every_ticks == 0`。当 `every_ticks=288`：
+- snap 在 `tick_global=288` 触发 = day 0 全部 288 tick + day 1 第 1 个
+  tick 完成 = ledger.current_time = start+1d+5min
+- snap 元数据：`day_index=1, tick_index=288`
+- resume restore：ledger 回到 start+1d+5min，effective_start_day=1
+- resume 跑：`for day_index in range(1, 2)` → 跑 day 1，
+  `Orchestrator.run(day_index=1)` 从 day 1 tick 0 开始**重新跑 288 tick**
+- 终态：start+1d+5min + 288*5min = start+2d+5min
+- Fresh 终态：start + 576*5min = start+2d
+- **diff = 5min（1 tick 双重执行）**
+
+**影响**：跨 worker resume 后下游分析的 timestamp 会偏 1 tick；publishable
+14-day 跑里如果中途 resume N 次累计偏移 N tick = 5N 分钟。**实测 D2
+attempt 6 同源 sim-time drift 部分原因即此**（snap mtime 在 reboot 后
+变 stale → watchdog 误判 → SIGUSR1 → 多次 resume）。
+
+**修复方案**（择一）：
+- **A. 修 snap-fire timing**: 改成 `_on_tick_start_resume_hook`，snap
+  fires **before** tick 执行 → snap 内 ledger 是 tick boundary 状态
+  → resume 不重叠
+- **B. 引入 tick-in-day resume**: snap 内增 `tick_in_day_at_snap`；
+  Orchestrator.run 接受 `start_tick=N` 参数，跳过 0..N-1 tick
+- **C. snap 文件本身记录 "已完成 N tick"，resume 把 day 跑 (288-N) tick**
+
+A 最简单但 snap 语义改变（破坏现有 snap 读取兼容）。B 最干净但需要
+改 Orchestrator.run 签名。
+
+**Owner**：未指定，需 design review。
+
+**关联**：[[resume-rng-state-determinism]] 2026-05-21 spec —
+确认 RNG 部分已正确 round-trip，但 1-tick 偏移仍是 product-level 不变量
+("断点续跑 == 正常跑") 的最后一个 gap。

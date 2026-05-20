@@ -283,6 +283,16 @@ class SimulationCheckpoint(BaseModel):
             except OSError:
                 pass
             raise
+
+        # WRITE-PROTECT (2026-05-21 snapshot-write-protect-chmod):
+        # chmod 0o444 immediately so accidental `>` redirection or
+        # external `cp -f` raises PermissionError instead of silently
+        # destroying the snapshot. prune_snapshots restores write
+        # permission before unlink.
+        try:
+            os.chmod(path, 0o444)
+        except OSError:
+            pass
         return path
 
     @classmethod
@@ -507,6 +517,13 @@ def prune_snapshots(output_dir: Path, *, seed: int, keep: int) -> list[Path]:
     to_delete = candidates[:-keep]  # keep newest K (last in list)
     deleted: list[Path] = []
     for p in to_delete:
+        # WRITE-PROTECT (2026-05-21): snapshots are chmod 0o444; restore
+        # write permission so unlink works regardless of platform
+        # delete-on-readonly semantics.
+        try:
+            os.chmod(p, 0o644)
+        except OSError:
+            pass
         try:
             p.unlink()
             deleted.append(p)

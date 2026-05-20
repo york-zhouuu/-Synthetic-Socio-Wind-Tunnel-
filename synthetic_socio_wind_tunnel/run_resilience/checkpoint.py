@@ -135,6 +135,13 @@ class DayCheckpointWriter:
             except OSError:
                 pass
             raise
+        # WRITE-PROTECT (2026-05-21 snapshot-write-protect-chmod):
+        # canonical artifact — chmod 0o444 so accidental overwrites
+        # raise PermissionError loudly.
+        try:
+            os.chmod(target, 0o444)
+        except OSError:
+            pass
         return target
 
     def read_partial(self, path: Path) -> dict[str, Any]:
@@ -220,6 +227,12 @@ class DayCheckpointWriter:
                 pass
             tmp_name = tf.name
         os.rename(tmp_name, target)
+        # WRITE-PROTECT (2026-05-21 snapshot-write-protect-chmod):
+        # canonical artifact — chmod 0o444.
+        try:
+            os.chmod(target, 0o444)
+        except OSError:
+            pass
         return target
 
     def load_day_summaries(
