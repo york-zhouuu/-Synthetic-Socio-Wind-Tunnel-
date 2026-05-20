@@ -197,6 +197,20 @@ class SimulationCheckpoint(BaseModel):
     day_index: int
     simulated_time: datetime
 
+    # 2026-05-21 mid-day-resume (closes backlog 1.16): which tick within
+    # day_index has been completed at snap time. Resume re-enters
+    # Orchestrator.run with `start_tick = tick_index_in_day + 1` so the
+    # next-day-fresh path doesn't re-execute already-completed ticks.
+    # Default 0 = legacy snapshots assume "day just started, no tick run
+    # yet" which is consistent with the historical day-boundary
+    # interpretation (off-by-one absorbed for legacy).
+    tick_index_in_day: int = 0
+    """Tick index within day_index that has been COMPLETED at snap moment.
+    -1 means "no tick of this day has run yet" (snap at day boundary
+    BEFORE day starts). 0..ticks_per_day-1 means "tick at this index
+    has just finished". Used by MultiDayRunner on resume to compute
+    Orchestrator.run start_tick."""
+
     ledger_state: dict[str, Any] = Field(default_factory=dict)
     agent_runtime_states: dict[str, dict[str, Any]] = Field(default_factory=dict)
     """agent_id → 该 agent 的 to_snapshot_state() 输出。"""
@@ -210,6 +224,11 @@ class SimulationCheckpoint(BaseModel):
     """Bilateral dialogues + DialogueMessage history. Without this the
     "agent 之间的故事" narrative output is lost on resume.
     Added 2026-05-19 (capability 1.12)."""
+    conversation_service_state: dict[str, Any] = Field(default_factory=dict)
+    """ConversationService state (RNG + infos + known + share_count).
+    Without this the P(share) probabilistic gate diverges from fresh
+    run on resume — ShareEvent emissions become non-deterministic.
+    Added 2026-05-21 (RESUME-DETERMINISM D)."""
     rng_state: dict[str, list[Any]] = Field(default_factory=dict)
 
     pending_ops_meta: dict[str, Any] = Field(default_factory=dict)
@@ -337,6 +356,7 @@ class SimulationCheckpoint(BaseModel):
         attention_service: "AttentionService | None" = None,
         tick_metrics_recorder: Any = None,
         dialogue_service: Any = None,
+        conversation_service: Any = None,
         named_rngs: Mapping[str, _random.Random] | None = None,
     ) -> None:
         """把 snapshot 完整还原到 in-memory 对象。
@@ -383,6 +403,13 @@ class SimulationCheckpoint(BaseModel):
         # for narrative output (capability 1.12)
         if dialogue_service is not None and self.dialogue_service_state:
             dialogue_service.from_snapshot_state(self.dialogue_service_state)
+
+        # 4d. ConversationService — preserves info propagation state +
+        # _rng for P(share) gate (2026-05-21 RESUME-DETERMINISM D)
+        if conversation_service is not None and self.conversation_service_state:
+            conversation_service.from_snapshot_state(
+                self.conversation_service_state,
+            )
 
         # 5. RNGs (caller-provided mapping; cf. capture_rng)
         if named_rngs is not None and self.rng_state:

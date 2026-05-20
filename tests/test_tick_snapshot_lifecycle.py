@@ -30,6 +30,57 @@ from synthetic_socio_wind_tunnel.run_resilience import (
 )
 
 
+# 2026-05-21: R1 changed snap filenames to `seed_<N>_pid<PID>_tick<T>...`
+# These helpers tolerate both legacy and PID-prefixed formats.
+import re as _re_lifecycle
+
+
+def _snap_pattern(seed: int):
+    return _re_lifecycle.compile(
+        rf"^seed_{seed}(?:_pid\d+)?_tick(?P<tick>_final|\d+)\.snapshot\.json$"
+    )
+
+
+def _snapshot_ticks(out_dir: Path, *, seed: int) -> list[int]:
+    """Return sorted numeric tick indices for the snapshot files in out_dir.
+    Excludes tick_final."""
+    p = _snap_pattern(seed)
+    ticks: list[int] = []
+    for f in out_dir.glob(f"seed_{seed}*.snapshot.json"):
+        m = p.match(f.name)
+        if not m:
+            continue
+        ts = m.group("tick")
+        if ts == "_final":
+            continue
+        try:
+            ticks.append(int(ts))
+        except ValueError:
+            continue
+    return sorted(ticks)
+
+
+def _find_snap_at_tick(out_dir: Path, *, seed: int, tick: int) -> Path:
+    p = _snap_pattern(seed)
+    for f in out_dir.glob(f"seed_{seed}*.snapshot.json"):
+        m = p.match(f.name)
+        if m and m.group("tick") == str(tick):
+            return f
+    raise FileNotFoundError(
+        f"no snapshot at tick={tick} for seed={seed} in {out_dir} "
+        f"(files: {[f.name for f in out_dir.glob('seed_*.snapshot.json')]})"
+    )
+
+
+def _find_final_snap(out_dir: Path, *, seed: int) -> Path | None:
+    p = _snap_pattern(seed)
+    for f in out_dir.glob(f"seed_{seed}*.snapshot.json"):
+        m = p.match(f.name)
+        if m and m.group("tick") == "_final":
+            return f
+    return None
+
+
 def _small_atlas() -> Atlas:
     region = (
         RegionBuilder("r", "r")
@@ -131,8 +182,8 @@ class TestSnapshotLifecycle:
         runner.run_multi_day(start_date=date(2026, 4, 22), num_days=1)
         # 1 day = 288 ticks (tick_index 0..287); global tick max = 287
         # Snapshots at tick_global % 24 == 0 && > 0 → 24, 48, ..., 264 (11 entries)
-        snaps = sorted(tmp_path.glob("seed_42_tick*.snapshot.json"))
-        ticks = sorted(int(p.name.split("tick")[1].split(".")[0]) for p in snaps)
+        # 2026-05-21 R1: filenames are `seed_42_pid<PID>_tick<N>.snapshot.json`
+        ticks = _snapshot_ticks(tmp_path, seed=42)
         assert ticks == [24 * (i + 1) for i in range(11)]  # 24..264
 
     def test_keep_last_k_rolls_old_snapshots(self, tmp_path: Path) -> None:
@@ -145,8 +196,7 @@ class TestSnapshotLifecycle:
         runner.run_multi_day(start_date=date(2026, 4, 22), num_days=1)
         # Only last 2 snapshots remain (240 and 264 are the last 2 written;
         # 288 is not reachable since tick_index max = 287)
-        snaps = sorted(tmp_path.glob("seed_42_tick*.snapshot.json"))
-        ticks = sorted(int(p.name.split("tick")[1].split(".")[0]) for p in snaps)
+        ticks = _snapshot_ticks(tmp_path, seed=42)
         assert ticks == [240, 264]
 
     def test_every_ticks_zero_no_snapshots(self, tmp_path: Path) -> None:
@@ -157,7 +207,8 @@ class TestSnapshotLifecycle:
             snapshot_policy=SnapshotPolicy(every_ticks=0, wal_enabled=True),
         )
         runner.run_multi_day(start_date=date(2026, 4, 22), num_days=1)
-        assert list(tmp_path.glob("seed_42_tick*.snapshot.json")) == []
+        # No snapshots → no files matching either legacy or PID-prefixed format
+        assert _snapshot_ticks(tmp_path, seed=42) == []
 
     def test_snapshot_content_valid(self, tmp_path: Path) -> None:
         orch, _, _ = _make_orch(date(2026, 4, 22))
@@ -167,10 +218,9 @@ class TestSnapshotLifecycle:
             snapshot_policy=SnapshotPolicy(every_ticks=24, keep_last_k=20),
         )
         runner.run_multi_day(start_date=date(2026, 4, 22), num_days=1)
-        # Read one snapshot back
-        snap = SimulationCheckpoint.read(
-            tmp_path / "seed_42_tick24.snapshot.json"
-        )
+        # Read tick=24 snapshot (PID-prefix aware)
+        snap_path = _find_snap_at_tick(tmp_path, seed=42, tick=24)
+        snap = SimulationCheckpoint.read(snap_path)
         assert snap.seed == 42
         assert snap.tick_index == 24
         assert snap.provider == "stub"
@@ -193,8 +243,8 @@ class TestGracefulStopFinalSnapshot:
         orch.register_on_tick_end(trip)
 
         runner.run_multi_day(start_date=date(2026, 4, 22), num_days=14)
-        # Final snapshot exists
-        final = tmp_path / "seed_99_tick_final.snapshot.json"
-        assert final.exists()
+        # Final snapshot exists (PID-prefix aware)
+        final = _find_final_snap(tmp_path, seed=99)
+        assert final is not None and final.exists()
         snap = SimulationCheckpoint.read(final)
         assert snap.seed == 99

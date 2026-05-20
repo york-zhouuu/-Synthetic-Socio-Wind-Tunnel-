@@ -70,7 +70,10 @@ def runner_with_mocks(tmp_path, monkeypatch):
     mock_ledger.current_time = datetime(2026, 5, 7, 8, 0)
     mock_orchestrator = MagicMock()
     mock_orchestrator._ledger = mock_ledger
+    mock_orchestrator._ticks_per_day = 288
     runner._orchestrator = mock_orchestrator
+    # 2026-05-21 R4: avoid MagicMock.isoformat() leaking into pydantic
+    runner._start_date_anchor = None
     return runner, service
 
 
@@ -90,6 +93,9 @@ def _call_real_write_snapshot(
     )
     tick_result = MagicMock()
     tick_result.simulated_time = datetime(2026, 5, 7, 8, 0)
+    # Real int required for tick_index_in_day computation (mid-day-resume)
+    tick_result.tick_index = 0
+    tick_result.day_index = day_index
 
     # Mock SimulationCheckpoint.write_atomic to capture state
     with patch(

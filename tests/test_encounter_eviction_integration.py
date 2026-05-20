@@ -76,16 +76,26 @@ def _run_dev_smoke(
 
 def _latest_snapshot(out_dir: Path) -> Path:
     """Return the highest-tick snapshot file. dev smoke normal completion
-    doesn't write `tick_final`, only periodic ticks."""
+    doesn't write `tick_final`, only periodic ticks.
+
+    2026-05-21: matches both legacy (`seed_42_tick<N>`) and PID-prefixed
+    (`seed_42_pid<PID>_tick<N>`) formats per R1.
+    """
+    import re as _re
+    pattern = _re.compile(
+        r"^seed_42(?:_pid\d+)?_tick(?P<tick>_final|\d+)\.snapshot\.json$"
+    )
     candidates = []
-    for p in out_dir.glob("seed_42_tick*.snapshot.json"):
-        name = p.stem
-        if name.endswith("tick_final.snapshot"):
+    for p in out_dir.glob("seed_42*.snapshot.json"):
+        m = pattern.match(p.name)
+        if not m:
+            continue
+        tick_str = m.group("tick")
+        if tick_str == "_final":
             return p
         try:
-            tick_n = int(name.rsplit("_tick", 1)[-1].split(".")[0])
-            candidates.append((tick_n, p))
-        except (ValueError, IndexError):
+            candidates.append((int(tick_str), p))
+        except ValueError:
             continue
     assert candidates, f"no snapshots in {out_dir}"
     return sorted(candidates)[-1][1]

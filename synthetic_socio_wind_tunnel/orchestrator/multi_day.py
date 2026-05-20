@@ -583,6 +583,15 @@ class MultiDayRunner:
                 )
 
             snap = self._restore_from
+            # 2026-05-21: reject graceful-stop sentinel snaps (day_index=-1)
+            # as resume sources — they're post-mortem diagnostic only.
+            if snap.day_index < 0:
+                raise ValueError(
+                    f"restore_from.day_index ({snap.day_index}) is the "
+                    f"graceful-stop sentinel — this snap is post-mortem "
+                    f"only, NOT a valid resume source. Use the most recent "
+                    f"periodic snapshot or per-day partial instead.",
+                )
             if snap.day_index >= num_days:
                 raise ValueError(
                     f"restore_from.day_index ({snap.day_index}) exceeds "
@@ -619,6 +628,11 @@ class MultiDayRunner:
 
             import time as _t_snap
             _load_t0 = _t_snap.monotonic()
+            # 2026-05-21 RESUME-DETERMINISM D: also restore ConversationService
+            # state via MemoryService._conversation (the canonical owner).
+            _conv_for_restore = getattr(
+                self._memory_service, "_conversation", None,
+            ) if self._memory_service is not None else None
             snap.restore_into(
                 ledger=getattr(self._orchestrator, "_ledger", None),
                 agents=agents_by_id,
@@ -626,6 +640,7 @@ class MultiDayRunner:
                 attention_service=self._attention_service,
                 tick_metrics_recorder=self._tick_metrics_recorder,
                 dialogue_service=self._dialogue_service,
+                conversation_service=_conv_for_restore,
             )
             try:
                 if _inst is not None:
@@ -747,12 +762,28 @@ class MultiDayRunner:
                 except Exception:  # noqa: BLE001
                     pass
 
-                # on_day_start: 先让外部 hook 决定 phase / intervention on/off
-                if on_day_start is not None:
+                # 2026-05-21 mid-day-resume (1.16): skip on_day_start +
+                # _generate_plans_for_day on the first resumed day if we
+                # already mid-stream (snap.tick_index_in_day > 0). Why:
+                # `apply_day_start` is NOT idempotent (e.g.
+                # shared_anchor.apply_day_start inject_feed_item appends
+                # NotificationEvents to ledger + consumes RNG per recipient);
+                # re-firing on resume would double-inject and diverge from
+                # fresh. Plans are also already generated in the source run.
+                is_mid_day_resume = (
+                    self._restore_from is not None
+                    and day_index == effective_start_day
+                    and getattr(self._restore_from, "tick_index_in_day", 0) > 0
+                )
+                if on_day_start is not None and not is_mid_day_resume:
                     on_day_start(current_date, day_index)
 
                 # 内置：若 planner + llm_client 都在，生成次日 plan 并挂到 runtime
-                if self._planner is not None and self._llm_client is not None:
+                if (
+                    self._planner is not None
+                    and self._llm_client is not None
+                    and not is_mid_day_resume
+                ):
                     self._generate_plans_for_day(
                         agents_by_id,
                         current_date=current_date,
@@ -760,10 +791,29 @@ class MultiDayRunner:
                     )
 
                 # 一日 tick 循环 — 可能被 _GracefulStop 中断
+                # 2026-05-21 mid-day-resume (closes backlog 1.16):
+                # 第一个 resumed day 从 snap.tick_index_in_day + 1 开始；
+                # 后续 day 都从 0 开始（fresh-day semantics）。
+                day_start_tick = 0
+                if (
+                    self._restore_from is not None
+                    and day_index == effective_start_day
+                    and effective_start_tick_global >= 0
+                ):
+                    snap_tick_in_day = getattr(
+                        self._restore_from, "tick_index_in_day", 0,
+                    )
+                    # If snap completed the last tick of its day, the
+                    # next "fresh" tick is on the NEXT day — but the
+                    # outer day loop already iterates day_index ranges,
+                    # so we just skip this day entirely by setting
+                    # day_start_tick = ticks_per_day.
+                    day_start_tick = int(snap_tick_in_day) + 1
                 try:
                     day_summary = self._orchestrator.run(
                         day_index=day_index,
                         simulated_date=current_date,
+                        start_tick=day_start_tick,
                     )
                 except _GracefulStop:
                     logger.warning(
@@ -1512,13 +1562,31 @@ class MultiDayRunner:
                 anchor_date, configured_start_date,
             )
 
-        # Compute expected ledger.current_time
+        # Compute expected ledger.current_time.
+        #
+        # 2026-05-21 (C: drift formula fix): the prior formula
+        # `expected = anchor + day*1d + tick*5min` used snap.tick_index
+        # (which is tick_GLOBAL = day*ticks_per_day + tick_in_day) as if
+        # it were tick_in_day, producing massively inflated `expected`
+        # values (off by `day_idx * 24h`). Causes false-positive
+        # drift warnings on every cross-variant resume monitoring.
+        #
+        # Correct: snap fires AFTER tick (day_idx, tick_in_day)
+        # completes, so:
+        #   expected_ledger_time = anchor + day_idx*1d + (tick_in_day+1)*5min
+        #
+        # Always derive tick_in_day from tick_global (= snap.tick_index)
+        # because the explicit `tick_index_in_day` field defaults to 0
+        # on legacy snaps that pre-date the field. Derivation works for
+        # both old and new snaps:
+        #     tick_in_day = tick_global - day_idx * ticks_per_day
         from datetime import timedelta as _td
         day_idx = getattr(snap, "day_index", 0)
-        tick_idx = getattr(snap, "tick_index", 0)
+        tick_global = getattr(snap, "tick_index", 0)
+        tick_in_day = max(0, tick_global - day_idx * 288)
         expected = (
             datetime.combine(anchor_date, datetime.min.time())
-            + _td(days=day_idx, minutes=tick_idx * 5)
+            + _td(days=day_idx, minutes=(tick_in_day + 1) * 5)
         )
 
         # Read actual ledger time from snap.ledger_state.current_time
@@ -1545,11 +1613,11 @@ class MultiDayRunner:
         if drift_hours > 1.0:
             logger.warning(
                 "[ledger-drift] resume ledger.current_time drift detected: "
-                "expected %s (anchor=%s + day=%d + tick=%d*5min), "
+                "expected %s (anchor=%s + day=%d + (tick_in_day=%d + 1)*5min), "
                 "actual %s, drift=%.1f hours. "
                 "Cross-variant contest comparison may be confounded by "
                 "calendar offset.",
-                expected, anchor_date, day_idx, tick_idx, actual, drift_hours,
+                expected, anchor_date, day_idx, tick_in_day, actual, drift_hours,
             )
         return drift_hours
 
@@ -1666,11 +1734,33 @@ class MultiDayRunner:
         ledger = getattr(self._orchestrator, "_ledger", None)
         agents = self._collect_agents()
 
+        # 2026-05-21 mid-day-resume (closes backlog 1.16): compute
+        # tick_in_day from tick_result so the snap encodes "which
+        # tick within day_index just finished". MultiDayRunner on
+        # resume uses snap.tick_index_in_day + 1 as Orchestrator.run
+        # start_tick, avoiding re-execution of the boundary tick.
+        ticks_per_day_for_snap = getattr(
+            self._orchestrator, "_ticks_per_day", 288,
+        )
+        # tick_result.tick_index is the in-day tick that just ran;
+        # day_index is the day it belongs to. We can also derive via
+        # tick_index_global % ticks_per_day, but using tick_result is
+        # authoritative (no off-by-one risk).
+        tick_in_day_at_snap = int(
+            getattr(tick_result, "tick_index", 0)
+        )
+        # Defensive: clamp to [0, ticks_per_day - 1]
+        if tick_in_day_at_snap < 0:
+            tick_in_day_at_snap = 0
+        if tick_in_day_at_snap >= ticks_per_day_for_snap:
+            tick_in_day_at_snap = ticks_per_day_for_snap - 1
+
         try:
             snap = SimulationCheckpoint(
                 seed=self._seed,
                 tick_index=tick_index_global,
                 day_index=day_index,
+                tick_index_in_day=tick_in_day_at_snap,
                 simulated_time=(
                     getattr(tick_result, "simulated_time", None)
                     or (ledger.current_time if ledger else datetime.utcnow())
@@ -1696,6 +1786,18 @@ class MultiDayRunner:
                 dialogue_service_state=(
                     self._dialogue_service.to_snapshot_state()
                     if self._dialogue_service is not None else {}
+                ),
+                # 2026-05-21 RESUME-DETERMINISM D: capture ConversationService
+                # state via MemoryService._conversation. Without this the
+                # P(share) probabilistic gate diverges from fresh after resume.
+                conversation_service_state=(
+                    getattr(self._memory_service, "_conversation").to_snapshot_state()
+                    if (
+                        self._memory_service is not None
+                        and getattr(self._memory_service, "_conversation", None)
+                        is not None
+                    )
+                    else {}
                 ),
                 rng_state={},  # Caller-injected RNGs not tracked here; future work
                 pending_ops_meta={},
@@ -1809,6 +1911,16 @@ class MultiDayRunner:
                 dialogue_service_state=(
                     self._dialogue_service.to_snapshot_state()
                     if self._dialogue_service is not None else {}
+                ),
+                # 2026-05-21 RESUME-DETERMINISM D
+                conversation_service_state=(
+                    getattr(self._memory_service, "_conversation").to_snapshot_state()
+                    if (
+                        self._memory_service is not None
+                        and getattr(self._memory_service, "_conversation", None)
+                        is not None
+                    )
+                    else {}
                 ),
                 rng_state={},
                 pending_ops_meta={},

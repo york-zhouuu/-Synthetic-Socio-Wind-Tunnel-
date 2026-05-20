@@ -396,3 +396,96 @@ class ConversationService:
         if not hops_list:
             return 0.0
         return sum(hops_list) / len(hops_list)
+
+    # ----------------------------------------------------------- snapshot
+    # 2026-05-21 RESUME-DETERMINISM (D): per audit, _rng drives the
+    # P(share) gate in process_tick → ShareEvent emission. Without
+    # round-trip the resumed sim diverges from fresh at first share
+    # decision. Also persist _infos / _known / _known_by_info /
+    # _share_count so propagation state continues from the snap point.
+    # _relevance_provider / _audience_tag_provider are callables —
+    # rebuilt at runner init; not snapshotted.
+
+    def to_snapshot_state(self) -> dict:
+        from synthetic_socio_wind_tunnel.run_resilience.state_snapshot import (
+            _rng_state_to_json,
+        )
+        return {
+            "rng_state": _rng_state_to_json(self._rng.getstate()),
+            "infos": {
+                info_id: {
+                    "info_id": info.info_id,
+                    "content": info.content,
+                    "category": info.category,
+                    "salience": info.salience,
+                    "origin_tick": info.origin_tick,
+                    "origin_agent_id": info.origin_agent_id,
+                    "origin_day_index": info.origin_day_index,
+                    "source_feed_item_id": info.source_feed_item_id,
+                    "source_location_id": info.source_location_id,
+                    "target_audience_tags": list(info.target_audience_tags),
+                }
+                for info_id, info in self._infos.items()
+            },
+            "known": {
+                agent_id: {
+                    info_id: {
+                        "first_learned_tick": k.first_learned_tick,
+                        "hops_at_learn": k.hops_at_learn,
+                    }
+                    for info_id, k in per_agent.items()
+                }
+                for agent_id, per_agent in self._known.items()
+            },
+            "known_by_info": {
+                info_id: sorted(agents)
+                for info_id, agents in self._known_by_info.items()
+            },
+            "share_count": dict(self._share_count),
+        }
+
+    def from_snapshot_state(self, state: dict) -> None:
+        from synthetic_socio_wind_tunnel.run_resilience.state_snapshot import (
+            _rng_state_from_json,
+        )
+        if not isinstance(state, dict):
+            raise ValueError(
+                f"ConversationService.from_snapshot_state expects dict, "
+                f"got {type(state).__name__}"
+            )
+        rng_state = state.get("rng_state")
+        if rng_state is not None:
+            try:
+                self._rng.setstate(_rng_state_from_json(list(rng_state)))
+            except Exception:  # noqa: BLE001
+                pass
+        self._infos = {
+            info_id: Information(
+                info_id=raw["info_id"],
+                content=raw["content"],
+                category=raw["category"],
+                salience=raw["salience"],
+                origin_tick=raw["origin_tick"],
+                origin_agent_id=raw["origin_agent_id"],
+                origin_day_index=raw["origin_day_index"],
+                source_feed_item_id=raw.get("source_feed_item_id"),
+                source_location_id=raw.get("source_location_id"),
+                target_audience_tags=tuple(raw.get("target_audience_tags") or ()),
+            )
+            for info_id, raw in (state.get("infos") or {}).items()
+        }
+        self._known = {
+            agent_id: {
+                info_id: _Knowledge(
+                    first_learned_tick=raw["first_learned_tick"],
+                    hops_at_learn=raw["hops_at_learn"],
+                )
+                for info_id, raw in per_agent.items()
+            }
+            for agent_id, per_agent in (state.get("known") or {}).items()
+        }
+        self._known_by_info = {
+            info_id: set(agents)
+            for info_id, agents in (state.get("known_by_info") or {}).items()
+        }
+        self._share_count = dict(state.get("share_count") or {})

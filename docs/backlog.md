@@ -1074,7 +1074,16 @@ exit 0=clean, 1=blocker, 2=warnings only。Regression test in
 
 ---
 
-## 1.16 snap-after-tick 语义 — resume 1-tick 重叠（2026-05-21 发现）
+## 1.16 snap-after-tick 语义 — resume 1-tick 重叠 ✅ RESOLVED 2026-05-21
+
+**状态**：closed by `resume-rng-state-determinism` openspec change
+(2026-05-21). 实施方案 B：`Orchestrator.run(start_tick=N)` 参数 +
+`SimulationCheckpoint.tick_index_in_day` 字段 + `MultiDayRunner` 在第一
+个 resumed day 传 `start_tick = snap.tick_index_in_day + 1`。E2E test
+`TestMidDayResumeDeterministic::test_resume_from_mid_day_snap_matches_fresh`
+验证 fresh 2-day vs mid-day-snap-resume 终态 byte-equal。
+
+**原始记录**（保留 for 历史）：
 
 **触发**：写 `test_resume_byte_identical_to_fresh` 时发现 fresh 2-day vs
 resume (1 day → snap → 1 day) 结果差 5 分钟（1 tick）。

@@ -73,11 +73,17 @@ def _write_snapshot_with_service(
     mock_ledger.current_time = datetime(2026, 5, 7, 8, 0)
     mock_orch = MagicMock()
     mock_orch._ledger = mock_ledger
+    mock_orch._ticks_per_day = 288
     runner._orchestrator = mock_orch
     runner._collect_agents = MagicMock(return_value={})
+    # 2026-05-21 R4: avoid MagicMock.isoformat() leaking into pydantic
+    runner._start_date_anchor = None
 
     tick_result = MagicMock()
     tick_result.simulated_time = datetime(2026, 5, 7, 8, 0)
+    # Real int for tick_index_in_day computation (mid-day-resume)
+    tick_result.tick_index = 0
+    tick_result.day_index = day_index
     tick_global = day_index * 288
 
     write_snap = MultiDayRunner._write_snapshot.__get__(

@@ -274,14 +274,19 @@ class Orchestrator:
         *,
         day_index: int = 0,
         simulated_date: date | None = None,
+        start_tick: int = 0,
     ) -> SimulationSummary:
         """
-        跑完一天 288 tick。
+        跑完一天 288 tick (或从 start_tick 跑到日末)。
 
         - `day_index` 默认 0（单日调用）；`MultiDayRunner` 按 0, 1, 2, ... 传入
         - `simulated_date` 未传时从 `Ledger.current_time.date()` 派生
         - 两者被填入 TickContext / TickResult / CommitRecord /
           SimulationContext / SimulationSummary，但**不影响**单日行为
+        - `start_tick` (2026-05-21 mid-day-resume, closes backlog 1.16):
+          mid-day resume 时跳过已完成的 tick。Fresh run = 0；snap-resume
+          时由 MultiDayRunner 传入 `snap.tick_index_in_day + 1`。range
+          变为 `range(start_tick, num_ticks)`。
         """
         started_at = datetime.now()
         resolved_date = simulated_date or self._ledger.current_time.date()
@@ -306,7 +311,12 @@ class Orchestrator:
         agents_by_id = {a.profile.agent_id: a for a in self._agents}
         sorted_agent_ids = tuple(sorted(agents_by_id.keys()))
 
-        for tick_index in range(num_ticks):
+        if not (0 <= start_tick <= num_ticks):
+            raise ValueError(
+                f"start_tick={start_tick} out of bounds for "
+                f"num_ticks={num_ticks} (day_index={day_index})"
+            )
+        for tick_index in range(start_tick, num_ticks):
             tick_result = self._run_tick(
                 tick_index,
                 agents_by_id,
@@ -326,8 +336,11 @@ class Orchestrator:
             self._fire_async_tick_end(tick_result)
 
         ended_at = datetime.now()
+        # total_ticks reflects actual ticks executed (excludes
+        # already-completed ticks skipped via start_tick on mid-day
+        # resume). Fresh runs have start_tick=0 → unchanged.
         summary = SimulationSummary(
-            total_ticks=num_ticks,
+            total_ticks=num_ticks - start_tick,
             total_encounters=total_encounters,
             total_commits_succeeded=total_commits_succeeded,
             total_commits_failed=total_commits_failed,
