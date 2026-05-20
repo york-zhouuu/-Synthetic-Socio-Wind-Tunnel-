@@ -58,6 +58,31 @@ reflection 没有内容，对话没有人设。15 个 seed × 500 protag = 7500 
 
 ---
 
+## 当前库存（要跑哪个 seed 先看这里）
+
+每台机器独立 prewarm（cache 不进 git）。本机当前状态见
+[`data/README.md`](../../data/README.md) 的"setup_content_cache 库存"段。
+
+快速查命令：
+
+```bash
+.venv/bin/python -c "
+import json
+for n in range(42, 52):
+    try:
+        with open(f'data/setup_content_cache/seed_{n}.json') as f:
+            sc = json.load(f)
+        lh, it = sc.get('life_history', {}), sc.get('identity_text', {})
+        non_empty = sum(1 for v in lh.values() if v)
+        print(f'seed_{n}: lh={len(lh)}/500 ({non_empty} non-empty), id={len(it)}/500')
+    except FileNotFoundError:
+        print(f'seed_{n}: NOT PREWARMED')
+"
+```
+
+如果某个 seed 输出 `lh=5/500` 之类的残缺值，**不能直接跑 publishable**——
+runner 会走 cache MISS 路径，在线生成 → 触发 D2 attempt 3 模式的 LLM burst。
+
 ## 用法速记
 
 ### 一次性预热（每台新机器 / schema 升级后跑一次）
