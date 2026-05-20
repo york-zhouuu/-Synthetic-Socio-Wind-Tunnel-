@@ -60,13 +60,17 @@ def test_full_smoke_passes_on_clean_repo():
     import os
     env = dict(os.environ)
     env.update({
-        "RSS_RESTART_MB": "10000",
+        # 2026-05-20 Plan B: includes 3 new hang-mitigation env vars
+        "RSS_RESTART_MB": "6000",
         "MEMORY_EVENT_EVICT_GRACE_DAYS": "2",
         "SNAPSHOT_PRUNE_BEFORE_WRITE": "1",
         "GC_EVERY_N_TICKS": "200",
         "RSS_CHECK_EVERY_N_TICKS": "50",
         "RESILIENCE_SNAPSHOT_EVERY_TICKS": "12",
         "RESILIENCE_WAL_ENABLED": "true",
+        "OPERATION_POOL_HANDLER_TIMEOUT_SEC": "90",
+        "RESILIENCE_POOL_READ_TIMEOUT": "60",
+        "RESILIENCE_RETRY_MAX_ATTEMPTS": "2",
     })
     result = _run([], env=env)
     # 0 = clean, 2 = warnings only (e.g. swap pressure on busy CI)

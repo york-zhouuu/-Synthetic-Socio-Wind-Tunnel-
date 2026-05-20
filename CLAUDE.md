@@ -157,11 +157,14 @@ nohup env \
   RESILIENCE_TRUST_LAST_PREFLIGHT=1 \
   RESILIENCE_SNAPSHOT_EVERY_TICKS=12 \
   RESILIENCE_WAL_ENABLED=true \
-  RSS_RESTART_MB=10000 \
+  RSS_RESTART_MB=6000 \
   GC_EVERY_N_TICKS=200 \
   RSS_CHECK_EVERY_N_TICKS=50 \
   MEMORY_EVENT_EVICT_GRACE_DAYS=2 \
   SNAPSHOT_PRUNE_BEFORE_WRITE=1 \
+  OPERATION_POOL_HANDLER_TIMEOUT_SEC=90 \
+  RESILIENCE_POOL_READ_TIMEOUT=60 \
+  RESILIENCE_RETRY_MAX_ATTEMPTS=2 \
   INSTRUMENTATION_OUTPUT_DIR=$OUT \
   INSTRUMENTATION_SEED=<N> \
   INSTRUMENTATION_SAMPLE_EVERY_N_TICKS=12 \
@@ -178,11 +181,24 @@ WORKER_PID=$!
 disown
 ```
 
-### 2-5. 必须并行开 **4 个** 观察通道（每一次 spawn 都要，零妥协）
+**2026-05-20 Plan B 调整**（backlog 1.9 hang 反复 + scout 验证后）：
+- `RSS_RESTART_MB=10000 → 6000`：主动 ~2-3 hr 自动 restart 一次，刷新
+  asyncio/httpx 状态。每次 restart 损失 ~1 min（resume from snapshot），
+  比让坏状态累积到撞 hang 损失 ~25 min 划算
+- 新加 `OPERATION_POOL_HANDLER_TIMEOUT_SEC=90`：单 handler 上限 90s
+  (默认 120s)；hang 不会再 stuck 25 min，最多 90s 强 fallback
+- 新加 `RESILIENCE_POOL_READ_TIMEOUT=60`：单 httpx read 上限 60s
+  (默认 300s)；publishable 的 LLM 平均响应 < 30s，60s 已经远超容差
+- 新加 `RESILIENCE_RETRY_MAX_ATTEMPTS=2`：retry 上限 2 次 (默认 3 次)；
+  减少 connection 误抖动期间的雪崩 retry，让 backoff/fallback 更早进入
 
-**为什么 4 个**：每个通道看不同维度的状态，任一缺失等于盲跑。
-2026-05-20 凌晨教训：第一次 spawn 时 monitor 通道（audit_run_health）
-忘了起，结果 worker 死掉只能事后从日志推。
+### 2-6. 必须并行开 **5 个** 观察通道（每一次 spawn 都要，零妥协）
+
+**为什么 5 个**（2026-05-20 Plan B 之后从 4 升到 5）：每个通道看不同维度
+的状态，任一缺失等于盲跑。2026-05-20 凌晨教训：第一次 spawn 时 monitor
+通道（audit_run_health）忘了起，结果 worker 死掉只能事后从日志推。
+**watchdog 这条通道 2026-05-20 晚上才加进必备清单——之前是独立工具
+没默认启用**，结果 scout 4-worker hang 全部要人工 SIGKILL。
 
 | # | 用途 | 命令 | 输出 |
 |---|---|---|---|
@@ -190,12 +206,13 @@ disown
 | **3** | **memstat.jsonl rolling stats**（worker 进入 tick loop 后每 12 tick 一条 sample）| `nohup python tools/tail_memstat.py $SUITE <v> <N> --every 60 &` | `/tmp/swt-v3-tail-memstat.log` |
 | **4** | **整 cell Markdown 概要**（events.jsonl + llm.jsonl 汇总 + 健康警告）| `nohup python tools/summarize_run_observability.py $SUITE <N> --variants <v> --watch 120 &` | `/tmp/swt-v3-summarize.log` |
 | **5** | **进程健康监控**（process state / log silence / CLOSE_WAIT — `monitor-as-control-plane` 不变量的 "观察 + 报告" 角色）| `nohup python tools/audit_run_health.py $SUITE --watch 60 &` | `/tmp/swt-v3-audit-health.log` |
+| **6** ⭐ NEW | **WAL 死锁自动救援**（detect WAL stale > 300s → SIGUSR1→SIGTERM→SIGKILL→自动 resume from snapshot）| `nohup bash -c 'while true; do python tools/watchdog_wal_deadlock.py $SUITE --stale-secs 300 --confirm-secs 60; sleep 60; done' &` | `/tmp/swt-v3-watchdog.log` |
 
 `tail -f /tmp/swt-v3-*.log` 实时看。
 
-**spawn 完之后立刻确认 4 个 observer PID 都在**：
+**spawn 完之后立刻确认 5 个 observer PID 都在**：
 ```bash
-ps -p <probe_pid> <tail_memstat_pid> <summarize_pid> <audit_health_pid>
+ps -p <probe_pid> <tail_memstat_pid> <summarize_pid> <audit_health_pid> <watchdog_pid>
 ```
 
 任一不在 → 重启那一个，不要继续，否则 spawn 时间废了。

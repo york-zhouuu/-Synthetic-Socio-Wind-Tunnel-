@@ -29,9 +29,11 @@ Output:
 from __future__ import annotations
 
 import argparse
+import faulthandler
 import json
 import os
 import random
+import signal
 import sys
 import time
 from pathlib import Path
@@ -42,6 +44,29 @@ from typing import Any
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from _env import load_dotenv as _load_dotenv  # noqa: E402
 _load_dotenv()
+
+# 2026-05-20 root cause diagnosis (D4 path):
+# Install faulthandler so when a worker hangs, we can SIGUSR2 it to dump
+# full Python stacks (all threads) to stderr without needing sudo / py-spy.
+# This is the same mechanism Python uses for `--enable-fault-handler`.
+# Crucially, faulthandler uses a dedicated background thread that's
+# unaffected by the GIL or asyncio loop being blocked — so we get the
+# real Python frame even when SIGUSR1 (asyncio signal handler) doesn't
+# respond.
+#
+# Env-controlled to keep CI clean:
+#   FAULTHANDLER_SIGUSR2=1    register USR2 handler (default ON for workers)
+#   FAULTHANDLER_AUTO_DUMP=300  auto-dump every N seconds (off if unset)
+if os.environ.get("FAULTHANDLER_SIGUSR2", "1") == "1":
+    faulthandler.register(signal.SIGUSR2, all_threads=True, chain=False)
+_auto_dump_sec = os.environ.get("FAULTHANDLER_AUTO_DUMP")
+if _auto_dump_sec:
+    try:
+        faulthandler.dump_traceback_later(
+            int(_auto_dump_sec), repeat=True, exit=False,
+        )
+    except (ValueError, RuntimeError):
+        pass
 from datetime import date, datetime
 from pathlib import Path
 

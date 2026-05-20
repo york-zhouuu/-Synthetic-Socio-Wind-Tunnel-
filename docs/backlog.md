@@ -393,6 +393,62 @@ regression guard 在 `tests/test_direct_llm_timeout_guard.py`（源码扫描
 - `data_loader/lanecove.py::_generate_life_history_for_one` — 300s
 - `data_loader/lanecove.py::_generate_identity_text_for_one` — 120s
 
+**2026-05-20 复盘补充**（hang 又出现 + scout 验证 + Plan B 实施）：
+
+scout 跑 1 seed × 4 variant publishable，5 个工作小时后**4 worker 同时
+hang ~25 min**。SIGUSR1 不响应（asyncio loop 锁死）。手动 SIGKILL 后从
+snapshot resume 1 个 baseline 验证 30 min 又 hang 一次同样模式。
+
+**Solid 证据**（不是嫌疑）：
+- 4 worker 都 stuck 在 `_pthread_cond_wait`（kernel mutex），主线程
+  `_queue_SimpleQueue_get`
+- 同时性：3 个 worker 在 10:45:04 UTC 同时静默
+- SIGUSR1 send 后 60 秒 worker 仍 alive (asyncio loop blocked)
+- Thread 数 10min→20min 从 4 → 22 增长（ThreadPoolExecutor 扩容）
+- 健康栈 baseline：主线程在 `selectors.select()` （正常 event loop wait）
+- 卡的时候栈一样 — **意味着不是 Python 代码层 deadlock，是 OS/network 层卡死**
+
+**最一致的 root cause（无法 100% solid 证明，需要 sudo + py-spy）**：
+asyncio + httpx + macOS 网络栈交互。`httpx.AsyncClient` 在 sync startup
+建一份，4032 个 fresh `asyncio.run()` loop 复用——httpx 内部 asyncio
+primitives 跨 loop 状态损坏。多 worker 并发 APIConnectionError 时踩到。
+
+**Plan B 落地（2026-05-20 晚上）—— 接受 bug 存在 + 自动救援**：
+
+1. **OperationPool 引入 env 控制 handler timeout**:
+   `OPERATION_POOL_HANDLER_TIMEOUT_SEC=90` (默认 120s → 90s)
+   - hang 不再 25min 锁住 → 最长 90s 强制 fallback
+   - regression test in `tests/test_operation_pool_env_timeout.py`
+2. **httpx pool read_timeout 推荐 60s** (默认 300s):
+   `RESILIENCE_POOL_READ_TIMEOUT=60`
+   - publishable 平均 LLM 响应 < 30s，60s 远超容差
+   - hang 时 httpx 自身 60s 后报错，不再持续 30 min
+3. **retry attempts 推荐 2 次** (默认 3 次):
+   `RESILIENCE_RETRY_MAX_ATTEMPTS=2`
+   - 单次 op 总等待上限从 24s 降到 16s，更快进 fallback
+4. **RSS_RESTART_MB 推荐 6000** (从 10000):
+   - 主动每 2-3 hr restart 一次，**阻止坏 asyncio 状态长期累积**
+   - 每次 restart 损失 ~1 min wall（resume from snapshot）
+5. **watchdog 作为第 5 观察通道默认启用**:
+   `tools/watchdog_wal_deadlock.py` 用 bash while-true loop 包，每 60s
+   检测一次 WAL stale > 300s
+   - 真 hang → SIGUSR1 → SIGTERM → SIGKILL → 自动 resume
+   - 总损失：~7 min wall per hang
+6. **preflight 加 watchdog availability check + 11 个 env vars 推荐值
+   全部更新**
+
+**预期 publishable 14 天 × β=4 effective behavior**:
+- 预计 16-48 次 hang occurrence
+- 每次 hang 损失 ~7 min wall + 1 worker restart
+- 总损失 ~2-5 hr 在 22-30 hr 总 wall 上（10-20%）
+- 数据完整性 100%（snapshot resume + per-day summary persistence）
+- 人工干预 0 次（全自动）
+
+**留作未来工作**:
+- 真 root cause 需要 sudo + py-spy 在 hang 现场 attach 取 Python 栈
+- 或者大架构改：换持久 asyncio loop / 换 sync HTTP + ThreadPool
+- 当前 Plan B 是 mask + auto-recover，不是 root fix
+
 **记录时间**：2026-05-18
 
 **背景**：D2 attempt 4 (2026-05-18) hit day-end deadlock 6 次——多个

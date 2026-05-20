@@ -50,13 +50,19 @@ from typing import Callable
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
 _RECOMMENDED_ENV = {
-    "RSS_RESTART_MB": "10000",
+    # 2026-05-20 Plan B: post-hang investigation tightening.
+    # RSS_RESTART_MB 10000 → 6000: proactive process recycle every ~2-3hr.
+    # Three new tighter LLM timeout settings cap hang impact to 60-90s.
+    "RSS_RESTART_MB": "6000",
     "MEMORY_EVENT_EVICT_GRACE_DAYS": "2",
     "SNAPSHOT_PRUNE_BEFORE_WRITE": "1",
     "GC_EVERY_N_TICKS": "200",
     "RSS_CHECK_EVERY_N_TICKS": "50",
     "RESILIENCE_SNAPSHOT_EVERY_TICKS": "12",
     "RESILIENCE_WAL_ENABLED": "true",
+    "OPERATION_POOL_HANDLER_TIMEOUT_SEC": "90",
+    "RESILIENCE_POOL_READ_TIMEOUT": "60",
+    "RESILIENCE_RETRY_MAX_ATTEMPTS": "2",
 }
 
 _REQUIRED_PHASE_EVENTS = (
@@ -125,6 +131,42 @@ def _check_env_vars() -> CheckResult:
     return CheckResult(
         "env_vars", True, "info",
         f"all {len(_RECOMMENDED_ENV)} recommended env vars set",
+    )
+
+
+def _check_watchdog_available() -> CheckResult:
+    """Plan B.3 (2026-05-20): watchdog is 5th observer channel, required.
+
+    `tools/watchdog_wal_deadlock.py` auto-detects WAL stale > 300s and
+    SIGUSR1→SIGTERM→SIGKILL hung worker + resume from snapshot. Without
+    it, every recurring asyncio/httpx hang (backlog 1.9) loses 25-30 min
+    of human attention. Verify the binary exists + imports cleanly."""
+    wd = REPO_ROOT / "tools" / "watchdog_wal_deadlock.py"
+    if not wd.exists():
+        return CheckResult(
+            "watchdog", False, "blocker",
+            f"watchdog binary missing at {wd} — spawn cannot auto-recover hangs",
+        )
+    # Import-test
+    venv_py = REPO_ROOT / ".venv/bin/python"
+    try:
+        proc = subprocess.run(
+            [str(venv_py), str(wd), "--help"],
+            capture_output=True, text=True, timeout=10, cwd=REPO_ROOT,
+        )
+    except subprocess.TimeoutExpired:
+        return CheckResult(
+            "watchdog", False, "warning",
+            "watchdog --help timed out — script may be broken",
+        )
+    if proc.returncode != 0:
+        return CheckResult(
+            "watchdog", False, "warning",
+            f"watchdog --help failed: {proc.stderr[-200:]}",
+        )
+    return CheckResult(
+        "watchdog", True, "info",
+        "watchdog_wal_deadlock.py available — remember to start it as obs channel #6",
     )
 
 
@@ -349,6 +391,7 @@ _CHECK_REGISTRY: list[tuple[str, Callable[[], CheckResult]]] = [
     ("disk_free", _check_disk_free),
     ("stale_worker", _check_no_stale_worker),
     ("swap_pressure", _check_swap_pressure),
+    ("watchdog", _check_watchdog_available),
     ("instrumentation_smoke", _check_instrumentation_smoke),
 ]
 

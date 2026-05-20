@@ -142,17 +142,24 @@ class OperationPool:
             base_kwargs = self._handler_kwargs.get(agent_id, {})
             # Wall-clock safety net: handler may chain multiple LLM calls, and
             # one hung connection in 500 concurrent tasks blocks the entire
-            # asyncio.gather call. Cap each handler at 120s — covers a
-            # 2-3 LLM-call workflow at 45s × 1 retry = ~95s per call worst
-            # case (matches tier_llm_factory tuning). Tasks exceeding this
-            # raise asyncio.TimeoutError → routed to fallback via the
-            # exception branch below. Tuned for the 2026-05-13 D1' incident:
-            # deepseek hung 26 min per call before this guard.
+            # asyncio.gather call. Cap each handler.
+            #
+            # 2026-05-20 (Plan B): default 120 → still 120s in code, but
+            # env `OPERATION_POOL_HANDLER_TIMEOUT_SEC` lets spawn lower
+            # to 60-90s for publishable runs. Tighter timeout = faster
+            # detect-and-fallback on the recurring asyncio/httpx hang
+            # (backlog 1.9 line 398). Hangs go from 25min stuck → 60-90s
+            # forced fallback → watchdog auto-resume in ~5min total
+            # (vs prior 25-30min lost per occurrence).
+            import os as _os_pool
+            _handler_timeout_sec = float(
+                _os_pool.environ.get("OPERATION_POOL_HANDLER_TIMEOUT_SEC", "120")
+            )
             running.append(
                 (agent_id, asyncio.create_task(
                     asyncio.wait_for(
                         handler(op, llm_client=llm_client, **base_kwargs),
-                        timeout=120.0,
+                        timeout=_handler_timeout_sec,
                     ),
                 ))
             )
