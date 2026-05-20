@@ -219,6 +219,17 @@ ps -p <probe_pid> <tail_memstat_pid> <summarize_pid> <audit_health_pid> <watchdo
 
 ### 5. 跑前清单（确认条件）
 
+- [ ] **任何 resume / diag run 前 SHALL 备份所有 variant 的 snapshot**：
+  ```bash
+  cp -r $SUITE/variant_*/seed_*.snapshot.json /tmp/swt-snapshot-backup-$(date +%Y%m%d_%H%M%S)/
+  ```
+  - **不变量**（2026-05-20 教训）：worker resume 时使用同名 snapshot 文件
+    `seed_<N>_tick<T>.snapshot.json`——续跑时会**覆写**原 snapshot。
+    如果原 snapshot 是想保的"基准 sim time"，**必须先 cp 备份**，
+    否则 diag/scout 续跑后再想"回到原起点"就回不去了
+  - 2026-05-20 教训：baseline scout SIGKILL 后续跑了 30 min 做诊断，
+    diag run 覆写了 baseline 的 day 0 23:00 snapshot 为 day 1 22:05，
+    导致 4 variant sim time 错位 23 小时 → β=1 publishable resume 不可用
 - [ ] `audit_resume_strategies.py` 确认 cell state + 选对
   `--resume-strategy`（特别注意 `INTERRUPTED_PARTIAL_MISSING` 必须
   `snapshot-only`）
