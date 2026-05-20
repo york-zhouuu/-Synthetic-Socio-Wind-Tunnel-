@@ -526,6 +526,13 @@ class MultiDayRunner:
         effective_start_day = self._resume_from
         effective_start_tick_global = -1  # -1 = 起始时不存在前驱 tick
         if self._restore_from is not None:
+            # 2026-05-21 R2 (auto-backup-snapshot-on-resume): cp existing
+            # snapshot files to .snapshot_backup_<ts>/ BEFORE any tick
+            # processing so a resume-induced overwrite can't destroy
+            # forensic state.
+            if self._output_dir is not None:
+                self._backup_snapshots_before_resume(self._output_dir)
+
             snap = self._restore_from
             if snap.day_index >= num_days:
                 raise ValueError(
@@ -1329,6 +1336,57 @@ class MultiDayRunner:
                 )
 
         return out
+
+    def _backup_snapshots_before_resume(self, output_dir: Path) -> bool:
+        """R2 (2026-05-21 auto-backup-snapshot-on-resume).
+
+        On resume, cp all existing `seed_<N>*.snapshot.json` files to
+        a subdirectory `.snapshot_backup_<YYYYMMDD_HHMMSS>/` BEFORE
+        the tick loop fires any new snapshot write.
+
+        Best-effort: failures log a warning but don't abort the resume.
+        Env `RESILIENCE_SKIP_RESUME_BACKUP=1` disables.
+        Returns True if backup succeeded (or had nothing to backup);
+        False if attempted but failed.
+        """
+        import os as _os_bk
+        import shutil as _shutil_bk
+        from datetime import datetime as _dt_bk
+
+        if _os_bk.environ.get("RESILIENCE_SKIP_RESUME_BACKUP") == "1":
+            return True
+
+        try:
+            # Find existing snapshots (both legacy and PID-prefixed formats)
+            snaps = list(output_dir.glob(f"seed_{self._seed}_*.snapshot.json"))
+            if not snaps:
+                return True  # nothing to backup
+
+            ts = _dt_bk.now().strftime("%Y%m%d_%H%M%S")
+            backup_dir = output_dir / f".snapshot_backup_{ts}"
+            backup_dir.mkdir(parents=True, exist_ok=True)
+
+            for snap_path in snaps:
+                try:
+                    _shutil_bk.copy2(snap_path, backup_dir / snap_path.name)
+                except OSError as cp_exc:
+                    logger.warning(
+                        "[resume-backup] copy of %s failed: %s",
+                        snap_path.name, cp_exc,
+                    )
+                    # Continue — best-effort. One failed copy doesn't
+                    # abort the whole resume.
+            logger.info(
+                "[resume-backup] backed up %d snapshot files to %s",
+                len(snaps), backup_dir,
+            )
+            return True
+        except Exception as exc:  # noqa: BLE001
+            logger.warning(
+                "[resume-backup] failed (%s); resume continues without backup",
+                exc,
+            )
+            return False
 
     def _write_snapshot(
         self,
