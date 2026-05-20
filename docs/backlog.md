@@ -38,12 +38,54 @@ size 偏弱时考虑——届时 push 内容个体化是首要 amplification lev
 
 ## 1.5. 用 Doubao Seed Lite 替换 Gemini 3.1 Flash Lite（generate_message 路由）
 
-**记录时间**：2026-05-17
+**状态**：✅ 已实施（2026-05-17，比 backlog 描述更彻底）——
+Doubao 不只是"backup"，已经是 `generate_message` 的**主路径**。当前
+2-provider 切分架构：
 
-**背景**：D2 attempt-4 把 `generate_message` (~69% ops/day) 从 DeepSeek
-sonnet 路由到 Gemini 3.1 Flash Lite 提速。Gemini 跑得动但 D1' Gemini
-connection-pool 不稳定的教训还在心里，多备一个 fast/cheap provider 做
-backup 永远是对的。
+| LLM 调用类型 | 体量占比 | Provider | 模型 |
+|---|---|---|---|
+| `do_something`（决策） | ~31% | **DeepSeek** | v4-pro (sonnet) |
+| `generate_message`（对话生成） | ~69% | **Volces Doubao**（primary） | doubao-seed-2-0-lite-260428 |
+| `remember_conversation` | 小 | DeepSeek | v4-flash (haiku) |
+| `reflect` | 小 | DeepSeek | v4-flash (haiku) |
+| `score_importance` | 小 | DeepSeek | nano |
+
+**Fallback chain for generate_message**：
+- 1st: Volces Doubao Seed Lite（首选，user-added 2026-05-17）
+- 2nd: Gemini 3.1 Flash Lite（Volces auth/网络失败时）
+- 3rd: DeepSeek haiku（两上家全挂时）
+
+**实现细节**：
+- `tools/tier_llm_factory.py` 新增 `provider="volces"` 分支，复用
+  `_DeepSeekTierClient` 适配器（Volces Ark `/api/v3/chat/completions`
+  是 OpenAI-compatible），指向 `VOLCES_BASE_URL`，注入 `extra_body={}`
+  （Volces 不接受 DeepSeek 的 `thinking` extra）
+- `.env` 配 `VOLCES_ARK_API_KEY`（机器本地，不进 git）
+- `tools/run_variant_suite.py:638-670` 起 Volces tier client →
+  注入 `tier_clients["doubao_flash"]` → `tier_for_kind["generate_message"]
+  = "doubao_flash"`；try/except 链 fallback 到 Gemini → DeepSeek haiku
+- 实测：generate_message 路由生效后，DeepSeek 单边压力降 69%，整体
+  吞吐 1.5-2× 提升
+
+**为什么这样切分而不是全 Doubao**：
+- `do_something` 是 1000-agent run 的"决策大脑"——要 plan + tool selection
+  + multi-hop reasoning，Doubao Lite 当前的推理质量不够；DeepSeek v4-pro
+  是 sonnet-tier 才稳得住实验内涵
+- `generate_message` 是对话生成——一两句中文短文本，Doubao Lite 又快又
+  便宜还 native 中文，质量上够，单价 ~1/8 DeepSeek sonnet
+- 这样既保住决策质量，又把 quota 压力分到两家 provider，单边出问题不
+  整夜停摆——本来 1.5 想要的"备用发电机"价值，已经在这个切分里实现了
+
+**触发条件 / 后续工作**：
+- 当 Doubao Lite 长 context（>8K）质量明显下降 → 看用 Doubao Pro 或
+  其它模型
+- 当 generate_message 还想 100% 个体化（backlog 1）→ Doubao 单价低反而
+  让个体化变可行
+
+**关联**：[[wire-emit-llm-call]] 已 emit per-call provider 字段，下游
+audit 可以分 provider 看 latency / success / fallback rate。
+
+**记录时间**：2026-05-17
 
 **新加 provider**：Volces / 火山引擎 Doubao
 - Endpoint：`https://ark.cn-beijing.volces.com/api/v3/responses`
@@ -109,24 +151,65 @@ seed44 + seed45 两 suite 释放内存，β=2 跑完。
 **优化方向**（按 ROI 排序）：
 
 ### A. 进程间共享只读数据（高 ROI, 中等工作量）
-**状态**：⚠️ 2026-05-20 重估后未实施 — 真正的跨进程共享需要 4-6 小时
-refactor，原 1 天估计低估。具体瓶颈：
+**状态**：⚠️ 2026-05-20 实测后 **defer** — 原 "1 天" 估计低估了 Python
+对象模型的本质约束，真做需 4-6 小时风险较高的 refactor，而 β=4
+publishable 现状下 ROI 已不显著。
 
-- Python 对象是 refcount-based，普通 mmap 文件 → 每个 worker 仍然
-  pickle.load / json.load 出自己的对象图，没真共享
-- 真正能跨进程共享 RAM 的路径有 3 条：
-  (a) 把 Atlas 用 `multiprocessing.shared_memory` 做成 raw bytes
-      + Python facade lazy-read — 需重写所有 Atlas accessor
-  (b) Atlas 数据用 numpy.memmap'd 数组 + facade — 同样需重写
-  (c) fork-based worker（1.7 D）— 用 COW 页面共享，但当前用 nohup &
-      子进程模型，不是 parent fork
-- 单 worker Atlas 实测 RSS 占用 164MB（buildings=5722, outdoor=4257）
-- 当前 4-worker 场景重复占用 ~600MB，但项目其它优化已把单 worker
-  RSS 封顶 2.5GB，Atlas 是其中 6%，**ROI 低于初估**
-- JSON+pydantic load 实测 0.27s（pickle 反而 0.47s 更慢），冷启动也不是瓶颈
+#### 为什么 "mmap atlas" 在 Python 里不像 C/Go 那么简单
 
-**触发条件**：当 publishable scale > 8 worker 同时跑（β=15+），或单机
-RAM 紧张到 atlas 几百 MB 起作用时，再做。当前 β=4 不紧张。
+普通理解里 "用 mmap 共享地图" 是：把地图 dump 成一个 binary 文件，
+4 个 worker 各自 mmap 这个文件，操作系统的 page cache 自然让 4 个进程
+看到的是同一段物理内存——节省 RAM。**这在 C / Go / Rust 里成立，因为
+那些语言可以直接操作 raw bytes。**
+
+但 Python 不一样。Python 里的"对象"是带 refcount 的 PyObject 结构体，
+住在堆上、每访问一次都要改 refcount。哪怕底下的 raw bytes 来自 mmap'd
+文件，**每个 worker 进程做 `pickle.load(mmap_file)` 时仍然会在自己的
+heap 上 allocate 一整个对象图**——`Region` / `Building` / `OutdoorArea`
+那 16 万个对象在每个 worker 里都是独立分配的。Mmap 文件只是被读了 4 次，
+没有任何"共享"。这就是为什么实测下来 atlas 还是 164MB × 4 = 656MB。
+
+#### 真正能让 4 个 worker 共享 atlas RAM 的 3 条路径，**每条都要重写 Atlas accessor**
+
+| 路径 | 怎么共享 | 工作量 | 风险 |
+|---|---|---|---|
+| **(a) `multiprocessing.shared_memory`** | Atlas 序列化成一段 raw bytes 放在共享内存段，所有 Atlas accessor（`get_building` / `list_workplaces` / `connection_graph`）改成从 bytes lazy-parse | ~4-6h | 中（要重写 ~30 个方法，加 facade） |
+| **(b) numpy.memmap arrays** | Atlas 几何字段（Coord / Polygon / 邻接表）转成 numpy 数组存到磁盘，每 worker `np.memmap` 同一文件——numpy 支持 OS page-cache 共享。其它字段（building_type / name 等 str）还得另想办法 | ~4-6h | 中-高（Atlas 几何与字符串混杂，numpy 不天然支持 dtype=object） |
+| **(c) fork-based worker（即 backlog 1.7 D）** | Parent 进程 load Atlas 一次，然后 `os.fork()` 出 children → COW（copy-on-write）让 children 共享 parent 的 RAM 页面。**但当前 worker 是 `nohup ... &` 独立 shell 进程，不是 parent fork** | ~2 day（重写 launcher 协调模型 + macOS Apple Silicon 的 fork/objc 限制） | 高 |
+
+**为什么 pickle / msgpack 这种"换个序列化格式"路径不算解**：换格式只
+解决 cold-start 时间问题，**对 RAM 共享毫无帮助**——每 worker 反序列
+化时还是分配自己的对象图。实测 JSON 0.27s vs pickle 0.47s，pickle 反而更慢；
+也就是说 cold-start 不是瓶颈，根本不值得换格式。
+
+#### 当前 D2 (β=4) 实际帐目
+
+- 单 worker Atlas 实测 RSS：164MB（buildings=5722, outdoor=4257）
+- 4 worker 重复占用：~656MB
+- 项目已有的 worker RSS cap：2500MB / worker（`RSS_RESTART_MB=10000` 时
+  10000，但通常按 backlog 1.7 B 设 2500）
+- Atlas 占单 worker 的 6.5% RSS——**远低于 MemoryStore（55-70%）和
+  agent_runtime / setup_content（15-20%）这两个大头**
+- 已落地的内存优化（1.7 B auto-restart + F gc.collect + cold-prune
+  encounter + slots-MemoryEvent + snapshot-prune-before-write）合计
+  能压住 RSS 不爆——atlas 不在关键路径上
+
+#### 何时触发回来做
+
+- **β scale 翻倍**：跑 8+ worker 同时（β≥15），656MB → 1.3GB+，atlas 开始
+  挤其它优化预算
+- **跨机分布式**：搬到多机部署后，每机 RAM 单独算 budget，atlas 复制成本
+  在 budget 紧的机器上变明显
+- **新增 atlas 大头**：如果后面 atlas 嵌入 high-res 几何 / 大量额外
+  building metadata 涨到 500MB+，6.5% 变 20%+，那就值得做
+- **fork-based worker（1.7 D）做了之后**：fork + COW 是免费午餐，做了 1.7 D
+  自动就把 atlas 共享了，不需要单独做 (a)/(b)
+
+#### 当前一定不做的原因 summary
+
+不是不能做，是 ROI 倒挂：4-6h 风险性重写换 ~600MB（占总 budget 1.2%），
+而同样的 4-6h 投到 backlog 1（push 个体化）或 1.8（baseline-prefix-share）
+直接给论文带 25% wall 减少 / 实验有效性扎实化——价值高一个数量级。
 
 - Atlas 用 `mmap` 持久化 → 16 worker 共享同一份 100 MB 而不是 1.6 GB
 - 同样适用于 shared_memories / archetype / setup_content_cache
