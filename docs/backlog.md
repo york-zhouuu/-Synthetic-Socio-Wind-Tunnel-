@@ -148,6 +148,11 @@ seed44 + seed45 两 suite 释放内存，β=2 跑完。
 - 注意：macOS fork() 在 Apple Silicon 上有 Objective-C / GIL 限制
 
 ### E. 紧凑 MemoryEvent 表示（小工作量，可叠加）
+**状态**：✅ 已实施（2026-05-20）。MemoryEvent 之前其实已经是 @dataclass(frozen=True)，
+本次只加 `slots=True`。同步加给 `MemoryQuery` + `DailySummary`。
+副作用修复：`memory/service.py::_event_to_json_fast` 之前用 `ev.__dict__`，
+slot 类没有 `__dict__`——改为直接 attribute access（在 CPython 实际更快）。
+Regression guard 在 `tests/test_memory_event_slots.py`。
 - Pydantic BaseModel → `@dataclass(slots=True)` 替换
 - 每 event 省 ~50% 内存
 - 估省：500 MB - 1 GB / worker
@@ -163,11 +168,22 @@ seed44 + seed45 两 suite 释放内存，β=2 跑完。
 - 风险：零
 
 ### G. snapshot 保留策略：K=2 → K=1（小 ROI，极简单）
+**状态**：✅ 已实施（commit `4c6d99b`，establish-observability-baselines 一起带的）。
+`SnapshotPolicy.keep_last_k` default 已是 1；env `RESILIENCE_SNAPSHOT_KEEP_LAST=2`
+可恢复旧行为。
 - 改 `_SNAPSHOT_KEEP_K` 常量
 - 实际是磁盘优化非内存优化，估省 ~200 MB 磁盘 / worker
 - 工作量：30 min
 
 ### H. 去除运行时重复计算（小 ROI，简单）
+**状态**：✅ 已实施（2026-05-20 narrow scope）。
+`synthetic_socio_wind_tunnel/data_loader/population_cache.py::cached_sample_population`
+缓存 sample_population 输出（~10-20s/spawn）到
+`data/population_cache/v1/<sha16>.json`，run_variant_suite 已切换。
+**未缓存 `build_location_pools`**：那函数消费 caller 的 rng，HIT 时跳过会
+让下游 `build_scripted_plan` 看到没 advance 的 rng → 决定性破坏。
+env `POPULATION_CACHE_DISABLE=1` 可关闭。8 个 regression test in
+`tests/test_population_cache.py`，含 caching-doesn't-change-output 不变量。
 - `sample_population` / `build_location_pools` 同 seed 同结果，可缓存
 - 估省：~30 sec setup time / worker（时间，非内存）
 - 工作量：~1 day
@@ -823,6 +839,15 @@ from day_index，不如直接用 day_index。
 ---
 
 ## 1.15 正式 publishable run 前的自动化 preflight checklist
+
+**状态**：✅ 已实施（2026-05-20）。`tools/preflight_publishable_spawn.py`
+跑 6 个检查 (python_venv / env_vars / disk_free / stale_worker /
+swap_pressure / instrumentation_smoke) + 可选 resume_strategy（带
+suite_dir+seed）。其中 instrumentation_smoke 跑 3-4 秒真 dev smoke +
+inspect 真 events.jsonl，断言 7 个 required PHASE events 全部 fire。
+exit 0=clean, 1=blocker, 2=warnings only。Regression test in
+`tests/test_preflight_publishable_spawn.py`（3 个 test 含 phase-gap
+检测的负向 case）。
 
 **记录时间**：2026-05-20
 

@@ -1078,32 +1078,31 @@ def _event_to_json_fast(ev) -> dict[str, Any]:
     updated alongside the dataclass — otherwise the round-trip corpus
     test will fail loudly.
     """
-    # __dict__ on frozen dataclass gives the actual attribute dict (not
-    # a fresh copy in CPython 3.11+; near-zero cost).
-    d = ev.__dict__
-
-    # Build dict literal in declared field order so json.dumps emits
-    # bytes identical to legacy.
-    sim_time = d["simulated_time"]
-    last_access = d["last_access"]
-    embedding = d["embedding"]
+    # backlog 1.7 E (2026-05-20): MemoryEvent now uses slots, so
+    # ev.__dict__ doesn't exist. Direct attribute access is the new
+    # fast path — slot attribute reads in CPython are O(1) and faster
+    # than dict lookups by name. Build dict literal in declared field
+    # order so json.dumps emits bytes identical to legacy.
+    sim_time = ev.simulated_time
+    last_access = ev.last_access
+    embedding = ev.embedding
 
     return {
-        "event_id": d["event_id"],
-        "agent_id": d["agent_id"],
-        "tick": d["tick"],
+        "event_id": ev.event_id,
+        "agent_id": ev.agent_id,
+        "tick": ev.tick,
         "simulated_time": sim_time.isoformat(),
-        "kind": d["kind"],
-        "content": d["content"],
-        "actor_id": d["actor_id"],
-        "location_id": d["location_id"],
-        "day_index": d["day_index"],
-        "urgency": d["urgency"],
-        "importance": d["importance"],
-        "participants": list(d["participants"]),
-        "tags": list(d["tags"]),
+        "kind": ev.kind,
+        "content": ev.content,
+        "actor_id": ev.actor_id,
+        "location_id": ev.location_id,
+        "day_index": ev.day_index,
+        "urgency": ev.urgency,
+        "importance": ev.importance,
+        "participants": list(ev.participants),
+        "tags": list(ev.tags),
         "embedding": list(embedding) if embedding is not None else None,
-        "related_memory_ids": list(d["related_memory_ids"]),
+        "related_memory_ids": list(ev.related_memory_ids),
         "last_access": last_access.isoformat() if last_access is not None else None,
     }
 

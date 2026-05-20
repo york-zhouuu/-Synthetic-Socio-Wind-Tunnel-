@@ -1052,6 +1052,15 @@ def run_seed_with_metrics(
         "name": "variant_suite",
         "size": n_agents,
     })
+    # backlog 1.7 H (2026-05-20): cached_sample_population caches the
+    # deterministic 10-20s sample_population output to disk keyed by
+    # (seed, profile, pools, atlas). Subsequent spawns with the same
+    # inputs HIT the cache and skip the work. `POPULATION_CACHE_DISABLE=1`
+    # to bypass. Safe vs build_location_pools (which we don't cache —
+    # see population_cache.py docstring for the rng-determinism reason).
+    from synthetic_socio_wind_tunnel.data_loader.population_cache import (
+        cached_sample_population,
+    )
     if use_aitown:
         # Build tier_clients now (needed downstream for OperationPool +
         # _load_or_generate_setup_content's MISS fallback). identity_llm
@@ -1059,14 +1068,13 @@ def run_seed_with_metrics(
         # cache overwrites; see protag_llm_variation=False below).
         from tools.tier_llm_factory import build_tier_clients
         tier_clients = build_tier_clients(provider=aitown_provider)
-        profiles = sample_population(
+        profiles = cached_sample_population(
             profile_template,
             seed=seed,
             pools=pools,
             atlas=atlas,
             num_protagonists=num_protagonists,
             generate_identity=True,
-            llm_client=None,
             # 2026-05-17 fix: skip the 500-protag haiku identity burst.
             # setup-content-cache provides higher-quality sonnet-tier
             # identity_text that ALWAYS overwrites profile.identity_text
@@ -1077,7 +1085,7 @@ def run_seed_with_metrics(
         )
     else:
         tier_clients = None
-        profiles = sample_population(
+        profiles = cached_sample_population(
             profile_template,
             seed=seed,
             pools=pools,

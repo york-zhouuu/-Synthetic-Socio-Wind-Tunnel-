@@ -96,6 +96,11 @@ data/setup_content_cache/
 # Legacy life-history-only cache (predecessor to setup_content_cache)
 data/life_history_cache/
 
+# Population cache (backlog 1.7 H, 2026-05-20): per-seed sample_population
+# output cache. Deterministic from inputs but ~10-20s/spawn to regenerate;
+# each machine maintains its own.
+data/population_cache/
+
 # runtime-instrumentation (2026-05-20): stray JSONL files at repo
 # root if a test or ad-hoc script defaults INSTRUMENTATION_OUTPUT_DIR=.
 seed_*.memstat.jsonl

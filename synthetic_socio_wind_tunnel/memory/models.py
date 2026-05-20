@@ -27,9 +27,16 @@ MemoryKind = Literal[
 ]
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class MemoryEvent:
-    """单条 memory 事件。append-only；不可变。"""
+    """单条 memory 事件。append-only；不可变。
+
+    backlog 1.7 E (2026-05-20): `slots=True` cuts per-instance overhead
+    (skips per-instance `__dict__`). At publishable scale (1000 agents
+    × 14 days × ~500 events/agent ≈ 7M events) this saves ~500MB-1GB
+    of RSS vs the default attribute-dict layout. Frozen + slots is a
+    safe combination — `dataclasses.asdict` / `__reduce__` round-trip
+    works for snapshot serialization."""
 
     event_id: str                          # 唯一标识（uuid 或 seq）
     agent_id: str                          # 归属 agent
@@ -66,7 +73,7 @@ class MemoryEvent:
     last_access: datetime | None = None
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class MemoryQuery:
     """MemoryRetriever 的查询描述。"""
 
@@ -90,7 +97,7 @@ class MemoryQuery:
     min_importance: float = 0.0
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class DailySummary:
     """单 agent 的日终摘要产物。"""
 
