@@ -221,7 +221,12 @@ class TestSnapshotFileHelpers:
             (dir_ / f"seed_{seed}_tick{t}.snapshot.json").write_text("{}")
 
     def test_find_latest_snapshot_picks_max_tick(self, tmp_path: Path) -> None:
-        self._make_files(tmp_path, 42, [24, 96, 48, 72])
+        """In a single spawn, snapshots are written in tick order; latest
+        mtime SHALL equal highest tick. 2026-05-21 R1: selection now uses
+        mtime (PID-aware), but writing in tick order preserves the old
+        intent."""
+        # Write in tick order — matches production behavior
+        self._make_files(tmp_path, 42, [24, 48, 72, 96])
         latest = find_latest_snapshot(tmp_path, seed=42)
         assert latest is not None
         assert latest.name == "seed_42_tick96.snapshot.json"

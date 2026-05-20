@@ -43,15 +43,18 @@ def test_numeric_wins_when_tick_final_is_stale(tmp_path: Path) -> None:
     assert result.name == "seed_42_tick3984.snapshot.json"
 
 
-def test_only_numeric_pick_highest_tick(tmp_path: Path) -> None:
-    """Regression: no tick_final → behavior unchanged (highest tick wins)."""
+def test_only_numeric_pick_latest_mtime(tmp_path: Path) -> None:
+    """2026-05-21 R1 (fix-snapshot-filename-spawn-collision): selection
+    moved from highest-tick to latest-mtime. When no tick_final, mtime
+    wins — supports PID-prefixed spawn collision avoidance where
+    newer respawn may have LOWER internal tick number than older spawn."""
     now = time.time()
     _touch(tmp_path / "seed_42_tick3000.snapshot.json", mtime=now)
     _touch(tmp_path / "seed_42_tick3500.snapshot.json", mtime=now - 100)
     result = find_latest_snapshot(tmp_path, seed=42)
     assert result is not None
-    # Highest numeric tick, regardless of mtime, when no tick_final
-    assert result.name == "seed_42_tick3500.snapshot.json"
+    # Latest mtime wins (regardless of tick number)
+    assert result.name == "seed_42_tick3000.snapshot.json"
 
 
 def test_only_tick_final_present_picks_it(tmp_path: Path) -> None:

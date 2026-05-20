@@ -389,80 +389,115 @@ class SimulationCheckpoint(BaseModel):
 # Snapshot 文件命名 + 滚动清理
 # ---------------------------------------------------------------------------
 
-def snapshot_path(output_dir: Path, *, seed: int, tick_index_global: int) -> Path:
-    return output_dir / f"seed_{seed}_tick{tick_index_global}.snapshot.json"
+def snapshot_path(
+    output_dir: Path, *, seed: int, tick_index_global: int,
+    spawn_id: int | None = None,
+) -> Path:
+    """Compose the snapshot file path.
+
+    2026-05-21 R1 (fix-snapshot-filename-spawn-collision): optionally
+    prepend `pid<spawn_id>` so respawn doesn't overwrite earlier
+    spawn's snapshots at colliding internal tick numbers.
+
+    - `spawn_id=None` (default) → legacy `seed_<N>_tick<T>.snapshot.json`
+      (back-compat for existing callers + tests)
+    - `spawn_id=<int>` → `seed_<N>_pid<spawn_id>_tick<T>.snapshot.json`
+
+    The PID is the writing process's `os.getpid()`. Two distinct workers
+    naturally have different PIDs → different filenames → no collision.
+    """
+    if spawn_id is None:
+        return output_dir / f"seed_{seed}_tick{tick_index_global}.snapshot.json"
+    return output_dir / (
+        f"seed_{seed}_pid{spawn_id}_tick{tick_index_global}.snapshot.json"
+    )
 
 
 def find_latest_snapshot(output_dir: Path, *, seed: int) -> Path | None:
-    """枚举 output_dir 下该 seed 的 snapshot 文件，返回最权威那个。
+    """Find the most-recently-written snapshot for `seed`.
 
-    2026-05-20 fix-find-latest-snapshot-tick-final: also consider
-    `seed_<N>_tick_final.snapshot.json` (graceful_stop's final state),
-    not just numeric `tick<N>` files. The pre-fix `int(stem)` raised
-    ValueError on `_final` and silently dropped the file, causing
-    auto-resume to pick stale periodic snapshots after a graceful_stop.
+    2026-05-21 R1 (fix-snapshot-filename-spawn-collision): selection
+    moved from "highest numeric tick" to "latest mtime". Reason:
+    PID-prefixed snapshots (`seed_<N>_pid<PID>_tick<T>.snapshot.json`)
+    from a newer respawn can have a LOWER internal tick number than
+    an older spawn's snapshot — but the newer file IS the right resume
+    point.
+
+    Recognized formats (both):
+    - `seed_<N>_tick<T>.snapshot.json` (legacy, no PID)
+    - `seed_<N>_pid<PID>_tick<T>.snapshot.json` (PID-prefixed)
+    - `seed_<N>_tick_final.snapshot.json` (graceful_stop final)
+    - `seed_<N>_pid<PID>_tick_final.snapshot.json` (graceful_stop final
+      from PID-aware spawn)
 
     Selection rule:
-    1. If tick_final exists AND its mtime >= newest numeric's mtime →
-       return tick_final (graceful_stop final is authoritative).
-    2. Else if numeric exists → return highest-tick numeric.
-    3. Else if only tick_final exists → return it.
-    4. Else None.
+    1. Among all matching files, pick the one with the latest mtime.
+    2. tick_final files participate on equal footing — their authority
+       comes from being the latest write at graceful_stop time, which
+       is captured by mtime anyway.
     """
     if not output_dir.exists():
         return None
-    prefix = f"seed_{seed}_tick"
-    suffix = ".snapshot.json"
-    numeric: list[tuple[int, Path]] = []
-    tick_final_path: Path | None = None
-    for p in output_dir.glob(f"{prefix}*{suffix}"):
-        stem = p.name[len(prefix):-len(suffix)]
-        if stem == "_final":
-            tick_final_path = p
+    import re as _re
+    pattern = _re.compile(
+        rf"^seed_{seed}(?:_pid\d+)?_tick(?P<tick>_final|\d+)\.snapshot\.json$"
+    )
+    matched: list[tuple[float, int, Path]] = []
+    for p in output_dir.glob(f"seed_{seed}_*.snapshot.json"):
+        m = pattern.match(p.name)
+        if not m:
             continue
+        tick_str = m.group("tick")
+        # tick_final → effectively highest tick (graceful_stop authority)
+        tick_num = -1 if tick_str == "_final" else int(tick_str)
         try:
-            numeric.append((int(stem), p))
-        except ValueError:
-            continue  # other non-numeric tick suffixes (defensive)
-
-    if numeric:
-        numeric.sort(key=lambda t: t[0])
-        latest_numeric = numeric[-1][1]
-        if tick_final_path is None:
-            return latest_numeric
-        # Both exist — pick by mtime
-        try:
-            final_mtime = tick_final_path.stat().st_mtime
-            numeric_mtime = latest_numeric.stat().st_mtime
+            mtime = p.stat().st_mtime
         except OSError:
-            return latest_numeric
-        return tick_final_path if final_mtime >= numeric_mtime else latest_numeric
-
-    # Only tick_final
-    if tick_final_path is not None:
-        return tick_final_path
-    return None
+            mtime = 0.0
+        # tick_final wins tiebreaker → use a huge number
+        tiebreak = (10**12) if tick_str == "_final" else tick_num
+        matched.append((mtime, tiebreak, p))
+    if not matched:
+        return None
+    # Sort by (mtime, tick_tiebreak) ascending; last is latest write
+    # → if multiple files share the same mtime, the one with higher
+    # tick number wins (preserves "pick highest tick" intent when
+    # files were created in rapid succession).
+    matched.sort(key=lambda t: (t[0], t[1]))
+    return matched[-1][2]
 
 
 def prune_snapshots(output_dir: Path, *, seed: int, keep: int) -> list[Path]:
-    """删除该 seed 除最近 keep 个之外的所有 snapshot 文件；返回被删的路径列表。"""
+    """Keep the K most-recently-written snapshots for `seed`; delete rest.
+
+    2026-05-21 R1 (fix-snapshot-filename-spawn-collision): selection
+    moved from "highest tick number" to "newest mtime" to handle
+    PID-prefixed filenames where two spawns can have overlapping tick
+    ranges. Recognizes both legacy and PID-prefixed formats; also
+    recognizes `_tick_final` variants.
+
+    Returns the list of deleted paths.
+    """
     if not output_dir.exists() or keep <= 0:
         return []
-    prefix = f"seed_{seed}_tick"
-    suffix = ".snapshot.json"
-    candidates: list[tuple[int, Path]] = []
-    for p in output_dir.glob(f"{prefix}*{suffix}"):
-        stem = p.name[len(prefix):-len(suffix)]
-        try:
-            candidates.append((int(stem), p))
-        except ValueError:
-            continue
+    import re as _re
+    pattern = _re.compile(
+        rf"^seed_{seed}(?:_pid\d+)?_tick(?:_final|\d+)\.snapshot\.json$"
+    )
+    candidates: list[Path] = []
+    for p in output_dir.glob(f"seed_{seed}_*.snapshot.json"):
+        if pattern.match(p.name):
+            candidates.append(p)
     if len(candidates) <= keep:
         return []
-    candidates.sort(key=lambda t: t[0])
-    to_delete = candidates[:-keep]  # keep the last `keep`
+    # Sort by mtime ascending; oldest at front
+    try:
+        candidates.sort(key=lambda p: p.stat().st_mtime)
+    except OSError:
+        candidates.sort(key=lambda p: p.name)
+    to_delete = candidates[:-keep]  # keep newest K (last in list)
     deleted: list[Path] = []
-    for _, p in to_delete:
+    for p in to_delete:
         try:
             p.unlink()
             deleted.append(p)

@@ -417,6 +417,9 @@ class MultiDayRunner:
         # establish-observability-baselines (2026-05-19): per-tick
         # latency buffer, reset per day; consumed at day_end.
         "_day_tick_latencies_ms",
+        # fix-snapshot-filename-spawn-collision (2026-05-21): PID-based
+        # spawn identifier embedded in snapshot filenames.
+        "_spawn_id",
     )
 
     def __init__(
@@ -1424,9 +1427,18 @@ class MultiDayRunner:
                 pending_ops_meta={},
                 provider=self._provider_name,
             )
+            # 2026-05-21 R1 (fix-snapshot-filename-spawn-collision):
+            # include process PID in snapshot filename so respawn doesn't
+            # overwrite earlier spawn's snapshots at colliding internal
+            # tick numbers. PID is cached on first call to avoid
+            # repeated os.getpid() syscalls.
+            import os as _os_snap
+            spawn_id = getattr(self, "_spawn_id", None) or _os_snap.getpid()
+            self._spawn_id = spawn_id  # type: ignore[assignment]
             path = snapshot_path(
                 self._output_dir, seed=self._seed,
                 tick_index_global=tick_index_global,
+                spawn_id=spawn_id,
             )
             # comprehensive-runtime-instrumentation: capture RSS before
             # write to compute peak during; prune-before-snapshot-write:
@@ -1520,8 +1532,15 @@ class MultiDayRunner:
                 pending_ops_meta={},
                 provider=self._provider_name,
             )
-            # Use a special "final" name so it doesn't collide with N-tick snaps
-            path = self._output_dir / f"seed_{self._seed}_tick_final.snapshot.json"
+            # 2026-05-21 R1 (fix-snapshot-filename-spawn-collision):
+            # graceful-stop final snapshot ALSO gets PID prefix so multiple
+            # graceful-stop events across spawns don't overwrite each other.
+            import os as _os_final
+            spawn_id = getattr(self, "_spawn_id", None) or _os_final.getpid()
+            self._spawn_id = spawn_id
+            path = self._output_dir / (
+                f"seed_{self._seed}_pid{spawn_id}_tick_final.snapshot.json"
+            )
             snap.write_atomic(path)
             logger.info(
                 "Graceful-stop final snapshot written to %s", path,
