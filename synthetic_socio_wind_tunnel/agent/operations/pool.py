@@ -146,22 +146,14 @@ class OperationPool:
             #
             # 2026-05-20 (Plan B): default 120 → still 120s in code, but
             # env `OPERATION_POOL_HANDLER_TIMEOUT_SEC` lets spawn lower
-            # to 60-90s for publishable runs. Tighter timeout = faster
-            # detect-and-fallback on the recurring asyncio/httpx hang
-            # (backlog 1.9 line 398). Hangs go from 25min stuck → 60-90s
-            # forced fallback → watchdog auto-resume in ~5min total
-            # (vs prior 25-30min lost per occurrence).
+            # to 60-90s for publishable runs.
             import os as _os_pool
             _handler_timeout_sec = float(
                 _os_pool.environ.get("OPERATION_POOL_HANDLER_TIMEOUT_SEC", "120")
             )
             running.append(
-                (agent_id, asyncio.create_task(
-                    asyncio.wait_for(
-                        handler(op, llm_client=llm_client, **base_kwargs),
-                        timeout=_handler_timeout_sec,
-                    ),
-                ))
+                (agent_id, op.kind, handler, llm_client, base_kwargs,
+                 _handler_timeout_sec)
             )
 
         # Sweep timeouts
@@ -172,7 +164,53 @@ class OperationPool:
         if not running:
             return []
 
-        # Concurrent execution
+        # 2026-05-21 hot-fix (Plan B follow-up): concurrent op limiter via
+        # semaphore. Previously asyncio.gather fired 1000+ tasks at once →
+        # burst HTTP POST to LLM provider → server-side rate-limit /
+        # silent TCP drop → cascade hang (backlog 1.9 line 398,
+        # snapshot-resume-ram-peak+spawn-burst-self-DDoS invariant).
+        #
+        # Env `OPERATION_POOL_MAX_CONCURRENT_OPS` caps in-flight ops to
+        # this number. Default 0 = unlimited (back-compat). Recommend 200
+        # for 4-worker publishable (4×200 = 800 total < provider burst
+        # threshold).
+        _max_concurrent = int(
+            _os_pool.environ.get("OPERATION_POOL_MAX_CONCURRENT_OPS", "0")
+        )
+
+        async def _run_one(handler, op_inner, llm_client_inner, kwargs_inner,
+                            timeout_sec, semaphore=None):
+            """One op task, optionally gated by semaphore."""
+            if semaphore is None:
+                return await asyncio.wait_for(
+                    handler(op_inner, llm_client=llm_client_inner, **kwargs_inner),
+                    timeout=timeout_sec,
+                )
+            async with semaphore:
+                return await asyncio.wait_for(
+                    handler(op_inner, llm_client=llm_client_inner, **kwargs_inner),
+                    timeout=timeout_sec,
+                )
+
+        _semaphore = (
+            asyncio.Semaphore(_max_concurrent) if _max_concurrent > 0 else None
+        )
+        # Rebuild running with task objects (under semaphore if set)
+        tasks: list[tuple[str, asyncio.Task[OperationResult]]] = []
+        for agent_id, kind_, handler_, client_, kwargs_, to_sec in running:
+            op_inner = self._in_flight.get(agent_id)
+            if op_inner is None:
+                continue
+            tasks.append((
+                agent_id,
+                asyncio.create_task(
+                    _run_one(handler_, op_inner, client_, kwargs_, to_sec,
+                             semaphore=_semaphore),
+                ),
+            ))
+        running = tasks  # type: ignore[assignment]
+
+        # Concurrent execution (now gated by semaphore if set)
         completed = await asyncio.gather(
             *[task for _, task in running], return_exceptions=True,
         )
