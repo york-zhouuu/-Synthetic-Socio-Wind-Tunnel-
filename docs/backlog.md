@@ -109,6 +109,25 @@ seed44 + seed45 两 suite 释放内存，β=2 跑完。
 **优化方向**（按 ROI 排序）：
 
 ### A. 进程间共享只读数据（高 ROI, 中等工作量）
+**状态**：⚠️ 2026-05-20 重估后未实施 — 真正的跨进程共享需要 4-6 小时
+refactor，原 1 天估计低估。具体瓶颈：
+
+- Python 对象是 refcount-based，普通 mmap 文件 → 每个 worker 仍然
+  pickle.load / json.load 出自己的对象图，没真共享
+- 真正能跨进程共享 RAM 的路径有 3 条：
+  (a) 把 Atlas 用 `multiprocessing.shared_memory` 做成 raw bytes
+      + Python facade lazy-read — 需重写所有 Atlas accessor
+  (b) Atlas 数据用 numpy.memmap'd 数组 + facade — 同样需重写
+  (c) fork-based worker（1.7 D）— 用 COW 页面共享，但当前用 nohup &
+      子进程模型，不是 parent fork
+- 单 worker Atlas 实测 RSS 占用 164MB（buildings=5722, outdoor=4257）
+- 当前 4-worker 场景重复占用 ~600MB，但项目其它优化已把单 worker
+  RSS 封顶 2.5GB，Atlas 是其中 6%，**ROI 低于初估**
+- JSON+pydantic load 实测 0.27s（pickle 反而 0.47s 更慢），冷启动也不是瓶颈
+
+**触发条件**：当 publishable scale > 8 worker 同时跑（β=15+），或单机
+RAM 紧张到 atlas 几百 MB 起作用时，再做。当前 β=4 不紧张。
+
 - Atlas 用 `mmap` 持久化 → 16 worker 共享同一份 100 MB 而不是 1.6 GB
 - 同样适用于 shared_memories / archetype / setup_content_cache
 - 估省：~2-3 GB
