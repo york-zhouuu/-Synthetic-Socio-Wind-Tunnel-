@@ -429,15 +429,31 @@ class RuntimeInstrumentation:
                     pass
 
             # dialogue_service stats
-            ds_stats: dict[str, Any] = {"live": 0, "evicted_total": 0}
+            #
+            # 2026-05-20 wiring-gap fix: previously read `_active_dialogues` /
+            # `_evicted_count` — those attributes don't exist on DialogueService.
+            # `getattr(default=...)` silently returned 0/0 → memstat showed
+            # dialogue.live=0 for entire publishable scout despite 589 dialogues
+            # actually existing in snapshot. Real fields are `_active_by_agent`
+            # (agent_id → dialogue_id, count/2 = live pairs but for "live"
+            # we want the dialogue count, derived from `_dialogues` filtered
+            # by ended_tick is None) and `_dialogue_summaries` (evicted set).
+            ds_stats: dict[str, Any] = {
+                "live": 0, "ended_unevicted": 0, "evicted_total": 0,
+            }
             if dialogue_service is not None:
                 try:
-                    ds_stats["live"] = len(getattr(
-                        dialogue_service, "_active_dialogues", {},
-                    ) or {})
-                    ds_stats["evicted_total"] = getattr(
-                        dialogue_service, "_evicted_count", 0,
+                    all_d = getattr(dialogue_service, "_dialogues", {}) or {}
+                    summaries = getattr(
+                        dialogue_service, "_dialogue_summaries", {},
+                    ) or {}
+                    live = sum(
+                        1 for d in all_d.values()
+                        if getattr(d, "ended_tick", None) is None
                     )
+                    ds_stats["live"] = live
+                    ds_stats["ended_unevicted"] = len(all_d) - live
+                    ds_stats["evicted_total"] = len(summaries)
                 except Exception:  # noqa: BLE001
                     pass
 
