@@ -108,6 +108,91 @@ class TestDialogueEncountersNotDeduped:
         assert len(dialogue) == 1 and dialogue[0].encounter_count == 1
 
 
+class TestLocationDiversityPreserved:
+    """backlog 1.7 A.2: when a dedup'd pair encounters at multiple
+    locations on the same day, encounter_locations accumulates the
+    full ordered set of unique locations. Empty for the 86% case of
+    single-location pair-days; populated for the rest."""
+
+    def test_single_location_stays_empty(self) -> None:
+        store = MemoryStore()
+        for tick in range(100):
+            store.append(_enc(
+                owner="a_001", other="a_002", day=3, tick=tick,
+                location="park_1",
+            ))
+        ev = store.all()[0]
+        assert ev.encounter_count == 100
+        assert ev.encounter_locations == ()  # lazy: stayed empty
+        assert ev.location_id == "park_1"
+
+    def test_two_locations_seed_tuple(self) -> None:
+        store = MemoryStore()
+        store.append(_enc(
+            owner="a_001", other="a_002", day=3, tick=10,
+            location="park_1",
+        ))
+        store.append(_enc(
+            owner="a_001", other="a_002", day=3, tick=50,
+            location="cafe_2",
+        ))
+        ev = store.all()[0]
+        assert ev.encounter_count == 2
+        assert ev.encounter_locations == ("park_1", "cafe_2")
+
+    def test_three_unique_locations_accumulate(self) -> None:
+        store = MemoryStore()
+        for tick, loc in (
+            (10, "park_1"), (50, "cafe_2"), (100, "park_1"),
+            (200, "gym_3"), (250, "cafe_2"),
+        ):
+            store.append(_enc(
+                owner="a_001", other="a_002", day=3, tick=tick,
+                location=loc,
+            ))
+        ev = store.all()[0]
+        assert ev.encounter_count == 5
+        # Order preserved, duplicates filtered
+        assert ev.encounter_locations == ("park_1", "cafe_2", "gym_3")
+
+    def test_helper_returns_all_locations_for_single(self) -> None:
+        from synthetic_socio_wind_tunnel.memory.models import (
+            all_encounter_locations,
+        )
+        store = MemoryStore()
+        store.append(_enc(
+            owner="a_001", other="a_002", day=3, tick=10, location="park_1",
+        ))
+        assert all_encounter_locations(store.all()[0]) == ("park_1",)
+
+    def test_helper_returns_all_locations_for_multi(self) -> None:
+        from synthetic_socio_wind_tunnel.memory.models import (
+            all_encounter_locations,
+        )
+        store = MemoryStore()
+        store.append(_enc(
+            owner="a_001", other="a_002", day=3, tick=10, location="park_1",
+        ))
+        store.append(_enc(
+            owner="a_001", other="a_002", day=3, tick=50, location="cafe_2",
+        ))
+        assert all_encounter_locations(store.all()[0]) == ("park_1", "cafe_2")
+
+    def test_locations_snapshot_round_trip(self) -> None:
+        from synthetic_socio_wind_tunnel.memory.service import (
+            _event_to_json, _event_from_json,
+        )
+        store = MemoryStore()
+        for tick, loc in ((10, "p1"), (20, "p2"), (30, "p3")):
+            store.append(_enc(
+                owner="a_001", other="a_002", day=3, tick=tick, location=loc,
+            ))
+        ev = store.all()[0]
+        roundtripped = _event_from_json(_event_to_json(ev))
+        assert roundtripped.encounter_locations == ("p1", "p2", "p3")
+        assert roundtripped.encounter_count == 3
+
+
 class TestNonEncounterUnaffected:
     def test_action_events_not_deduped(self) -> None:
         store = MemoryStore()
@@ -202,6 +287,46 @@ class TestSnapshotRoundTripPreservesCount:
         ev = replace(ev, encounter_count=42)
         roundtripped = _event_from_json(_event_to_json(ev))
         assert roundtripped.encounter_count == 42
+
+    def test_snapshot_load_preserves_location_diversity(self) -> None:
+        """Loading legacy snapshot with N events for same pair-day at
+        DIFFERENT locations: dedup gate fires per-event during
+        from_snapshot_state, encounter_locations accumulates ordered
+        unique set. This is what makes resume-from-snapshot of current
+        dead workers a NON-lossy migration."""
+        from synthetic_socio_wind_tunnel.memory.service import (
+            MemoryService, _event_to_json,
+        )
+        from synthetic_socio_wind_tunnel.memory.embedding import NullEmbedding
+
+        legacy_events = []
+        for tick, loc in enumerate(
+            ["park_1", "cafe_2", "park_1", "gym_3", "cafe_2", "park_1"]
+        ):
+            ev = _enc(
+                owner="a_001", other="a_002", day=6, tick=tick,
+                location=loc,
+            )
+            legacy_events.append(_event_to_json(ev))
+
+        state = {
+            "agent_events": {"a_001": legacy_events},
+            "event_counter": 6, "consumed_feed_item_ids": {},
+            "replan_count_today": {}, "replan_no_op_count_today": {},
+            "last_day_index": 6, "last_reflection_time": {},
+            "rng_state": None, "noticing_seed": 0,
+        }
+        svc = MemoryService(
+            embedding_provider=NullEmbedding(), atlas=None,
+        )
+        svc.from_snapshot_state(state)
+        events_after = list(svc._stores["a_001"].all())
+        assert len(events_after) == 1
+        assert events_after[0].encounter_count == 6
+        # Unique locations in order seen
+        assert events_after[0].encounter_locations == (
+            "park_1", "cafe_2", "gym_3",
+        )
 
     def test_snapshot_load_auto_dedups_legacy_duplicates(self) -> None:
         """An old (pre-dedup) snapshot may contain thousands of

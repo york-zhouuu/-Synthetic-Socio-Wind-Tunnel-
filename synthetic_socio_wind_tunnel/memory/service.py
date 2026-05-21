@@ -1094,9 +1094,33 @@ class MemoryService:
         agent: "AgentRuntime",
         events: list[MemoryEvent],
     ) -> str:
+        from synthetic_socio_wind_tunnel.memory.models import (
+            all_encounter_locations,
+        )
         lines = [f"{agent.profile.name} 一天的经历，请用 3-5 句话概括："]
         for e in events[-50:]:  # 最近 50 条避免 prompt 爆炸
-            lines.append(f"- [{e.simulated_time.strftime('%H:%M')}] {e.content}")
+            time_str = e.simulated_time.strftime('%H:%M')
+            # backlog 1.7 A.2 (2026-05-22): for dedup'd encounter
+            # events, expand into a richer line so the LLM sees count
+            # + full location set, not just the first encounter's
+            # content. Non-deduped events (count=1) use original
+            # content unchanged.
+            if e.kind == "encounter" and e.encounter_count > 1:
+                locs = all_encounter_locations(e)
+                if len(locs) > 1:
+                    loc_str = f"at {', '.join(locs)}"
+                elif len(locs) == 1:
+                    loc_str = f"at {locs[0]}"
+                else:
+                    loc_str = ""
+                actor = e.actor_id or "someone"
+                line = (
+                    f"- [{time_str}+] ran into {actor} "
+                    f"{e.encounter_count} times {loc_str}".rstrip()
+                )
+            else:
+                line = f"- [{time_str}] {e.content}"
+            lines.append(line)
         lines.append("\n只输出概要文字，不要列表。")
         return "\n".join(lines)
 
@@ -1185,6 +1209,7 @@ def _event_to_json_fast(ev) -> dict[str, Any]:
         "related_memory_ids": list(ev.related_memory_ids),
         "last_access": last_access.isoformat() if last_access is not None else None,
         "encounter_count": ev.encounter_count,
+        "encounter_locations": list(ev.encounter_locations),
     }
 
 
@@ -1218,8 +1243,10 @@ def _event_from_json(data: dict[str, Any]):
                 kwargs[f.name] = datetime.fromisoformat(v)
             except ValueError:
                 kwargs[f.name] = v
-        elif f.name in ("participants", "tags", "embedding", "related_memory_ids") \
-                and isinstance(v, list):
+        elif f.name in (
+            "participants", "tags", "embedding", "related_memory_ids",
+            "encounter_locations",
+        ) and isinstance(v, list):
             kwargs[f.name] = tuple(v)
         else:
             kwargs[f.name] = v

@@ -79,6 +79,31 @@ class MemoryEvent:
     # at 1 — see MemoryStore.append for the dedup gate.
     encounter_count: int = 1
 
+    # backlog 1.7 A.2 (2026-05-22): preserve location diversity across
+    # the dedup window. Lazy-initialized: empty tuple if the pair only
+    # encountered at ONE location (the `location_id` field already holds
+    # it); populated to the full ordered set of unique locations once a
+    # second distinct location appears. Real data: 86% of pair-days
+    # only have 1 location → this stays () for them. Consumers SHALL
+    # read via `all_encounter_locations(ev)` helper to merge with
+    # `location_id` on the empty path.
+    encounter_locations: tuple[str, ...] = ()
+
+
+def all_encounter_locations(event: MemoryEvent) -> tuple[str, ...]:
+    """Return all unique locations where this dedup'd encounter happened.
+
+    For non-dedup'd or single-location encounters, `event.encounter_locations`
+    is empty and the answer is just `(event.location_id,)`. Once a second
+    distinct location appears, dedup writes the full ordered set to
+    `encounter_locations`.
+    """
+    if event.encounter_locations:
+        return event.encounter_locations
+    if event.location_id:
+        return (event.location_id,)
+    return ()
+
 
 @dataclass(frozen=True, slots=True)
 class MemoryQuery:

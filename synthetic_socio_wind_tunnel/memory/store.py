@@ -61,9 +61,28 @@ class MemoryStore:
             if existing_idx is not None:
                 from dataclasses import replace as _dc_replace
                 existing = self._events[existing_idx]
+                # backlog 1.7 A.2: preserve location diversity. Lazy-
+                # init encounter_locations on first time a SECOND
+                # distinct location appears for this pair-day, then
+                # append-unique on each subsequent dedup hit.
+                existing_locs = existing.encounter_locations
+                new_locs = existing_locs
+                if event.location_id is not None:
+                    if not existing_locs:
+                        # First dedup hit AND new location differs
+                        # from existing.location_id → seed the tuple
+                        if (existing.location_id is not None
+                                and event.location_id
+                                != existing.location_id):
+                            new_locs = (
+                                existing.location_id, event.location_id,
+                            )
+                    elif event.location_id not in existing_locs:
+                        new_locs = existing_locs + (event.location_id,)
                 self._events[existing_idx] = _dc_replace(
                     existing,
                     encounter_count=existing.encounter_count + 1,
+                    encounter_locations=new_locs,
                 )
                 return
 

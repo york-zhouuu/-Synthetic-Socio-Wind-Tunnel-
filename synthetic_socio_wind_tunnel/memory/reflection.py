@@ -57,14 +57,39 @@ DEFAULT_IMPORTANCE_THRESHOLD = 50.0
 def _build_reflection_prompt(
     *, agent_name: str, memories: list[MemoryEvent],
 ) -> str:
-    """1:1 port of ai-town's prompt structure (memory.ts:350-360)."""
+    """1:1 port of ai-town's prompt structure (memory.ts:350-360).
+
+    backlog 1.7 A.2 (2026-05-22): expand dedup'd encounter events
+    (encounter_count > 1) into a richer statement so the LLM gets
+    count + location set, not just the first encounter's content.
+    """
+    from synthetic_socio_wind_tunnel.memory.models import (
+        all_encounter_locations,
+    )
     lines = [
         "[no prose]",
         "[Output only JSON]",
         f"You are {agent_name}, statements about you:",
     ]
     for idx, m in enumerate(memories):
-        lines.append(f"Statement {idx}: {m.content}")
+        if m.kind == "encounter" and m.encounter_count > 1:
+            locs = all_encounter_locations(m)
+            actor = m.actor_id or "someone"
+            if len(locs) > 1:
+                stmt = (
+                    f"encountered {actor} {m.encounter_count} times today "
+                    f"at {', '.join(locs)}"
+                )
+            elif len(locs) == 1:
+                stmt = (
+                    f"encountered {actor} {m.encounter_count} times today "
+                    f"at {locs[0]}"
+                )
+            else:
+                stmt = f"encountered {actor} {m.encounter_count} times today"
+            lines.append(f"Statement {idx}: {stmt}")
+        else:
+            lines.append(f"Statement {idx}: {m.content}")
     lines.append(
         "What 3 high-level insights can you infer from the above statements?"
     )
