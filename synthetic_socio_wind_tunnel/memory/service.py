@@ -935,9 +935,29 @@ class MemoryService:
         """
         每 agent 1 次 LLM 调用，产出 DailySummary 并回填 tags / importance。
         LLM 失败时 fallback：summary_text="(unavailable)"，不抛异常。
+
+        2026-05-21 parallelize-day-end-llm-batches (backlog 1.20 follow-up):
+        改为 asyncio.gather + Semaphore(N) 并发，N 默认 30。每 call 仍包
+        asyncio.wait_for(60s) 兜底 hang。`daily_summary` MemoryEvent 在
+        gather 完成后按 agent_id 升序串行 record，保持 memory_store
+        event_id 顺序确定（避免 snapshot round-trip 不稳）。
         """
+        import os as _os_ds
+        try:
+            max_concurrency = int(_os_ds.environ.get(
+                "DAILY_SUMMARY_CONCURRENCY", "30",
+            ))
+        except ValueError:
+            max_concurrency = 30
+        if max_concurrency < 1:
+            max_concurrency = 1
+        sem = asyncio.Semaphore(max_concurrency)
+
         summaries: dict[str, DailySummary] = {}
-        for agent_id, agent in agents.items():
+        # event_args[agent_id] = (today_events, summary) for later record()
+        event_args: dict[str, tuple[list, DailySummary]] = {}
+
+        async def _summarize_one(agent_id: str, agent: "AgentRuntime") -> None:
             all_events = self.all_for(agent_id)
             if not all_events:
                 summaries[agent_id] = DailySummary(
@@ -947,54 +967,61 @@ class MemoryService:
                     ),
                     summary_text="(no events)",
                 )
-                continue
+                return
 
-            # 只拿当前"最大 day_index"那一天的事件来总结——避免把历史天的
-            # 事件重复 summarize（多日 run 关键：每天独立 daily_summary）
             current_day_index = max(ev.day_index for ev in all_events)
             today_events = [
                 ev for ev in all_events
                 if ev.day_index == current_day_index and ev.kind != "daily_summary"
             ]
             if not today_events:
-                # 没有当日非-summary 事件（可能是 run 起步无动作）；跳过
-                continue
+                return
 
             date_str = str(today_events[0].simulated_time.date())
             prompt = self._build_summary_prompt(agent, today_events)
-            try:
-                # capability 1.9 follow-up (2026-05-19): D2 attempt 5
-                # caught seed42 pf hanging here at day-11 end — the
-                # underlying httpx timeout failed (half-open TCP to
-                # DeepSeek). asyncio.wait_for is the only reliable
-                # bound. 60s matches reflection (same scale: per-agent
-                # one LLM call producing summary text).
-                raw = await asyncio.wait_for(
-                    llm_client.generate(
-                        prompt, model=agent.profile.base_model
-                    ),
-                    timeout=60.0,
-                )
-                summary = DailySummary(
-                    agent_id=agent_id,
-                    date=date_str,
-                    summary_text=raw.strip(),
-                )
-            except asyncio.TimeoutError:
-                summary = DailySummary(
-                    agent_id=agent_id,
-                    date=date_str,
-                    summary_text="(daily summary timed out)",
-                )
-            except Exception:
-                summary = DailySummary(
-                    agent_id=agent_id,
-                    date=date_str,
-                    summary_text="(unavailable)",
-                )
+            async with sem:
+                try:
+                    # capability 1.9 (2026-05-19): wait_for tied to
+                    # per-agent reflection scale (60s) — half-open TCP
+                    # to DeepSeek doesn't deadlock the gather, only this
+                    # one slot's worth.
+                    raw = await asyncio.wait_for(
+                        llm_client.generate(
+                            prompt, model=agent.profile.base_model
+                        ),
+                        timeout=60.0,
+                    )
+                    summary = DailySummary(
+                        agent_id=agent_id,
+                        date=date_str,
+                        summary_text=raw.strip(),
+                    )
+                except asyncio.TimeoutError:
+                    summary = DailySummary(
+                        agent_id=agent_id,
+                        date=date_str,
+                        summary_text="(daily summary timed out)",
+                    )
+                except Exception:  # noqa: BLE001
+                    summary = DailySummary(
+                        agent_id=agent_id,
+                        date=date_str,
+                        summary_text="(unavailable)",
+                    )
             summaries[agent_id] = summary
+            event_args[agent_id] = (today_events, summary)
 
-            # 写一条 daily_summary 事件作为索引入口；day_index 继承当天
+        await asyncio.gather(*(
+            _summarize_one(aid, agent) for aid, agent in agents.items()
+        ))
+
+        # Post-gather: record daily_summary MemoryEvent per agent in
+        # deterministic agent_id-sorted order. The serial record loop
+        # keeps event_id ordering stable for snapshot round-trip
+        # determinism — gather order is non-deterministic.
+        for agent_id in sorted(event_args.keys()):
+            today_events, summary = event_args[agent_id]
+            current_day_index = today_events[0].day_index
             self.record(agent_id, MemoryEvent(
                 event_id=self._next_event_id(agent_id, -1),
                 agent_id=agent_id,

@@ -956,44 +956,55 @@ def _setup_aitown_stack(
             pass
 
         # Fire daily reflection for every protag on the last tick of each day.
-        # 2026-05-18 hotfix: wrap each maybe_reflect call in asyncio.wait_for
-        # with a 60s timeout. The reflection path makes LLM calls that aren't
-        # protected by OperationPool's 120s wait_for, so a hung httpx
-        # connection mid-SSL could deadlock the entire worker indefinitely.
-        # D2 attempt 4 hit this exact bug: seed42 hp + seed43 baseline both
-        # hung at day-end ticks 1727 and 2879 respectively, no recovery for
-        # 40+ min. 60s per protag means worst-case day-end takes 60s × 500
-        # protag = 50 min serially — but most return in 5-15s; the cap just
-        # bounds the pathological case.
+        # 2026-05-21 parallelize-day-end-llm-batches: per-protag maybe_reflect
+        # 改为 asyncio.gather + Semaphore(N) 并发跑，N 默认 30。每 call 仍包
+        # asyncio.wait_for(60s) 兜底 hang（capability 1.9 不变量保留）。
+        # 单个 hang 只 block 1/30 slot，不再 block 整 batch。
+        # 原 2026-05-18 hotfix 注释：500 protag × 60s = 50 min serial worst
+        # case。现 concurrent N=30 → 500/30 × 60s = 17 min worst case，正常
+        # ~2-3 min（前提 LLM provider 不被 burst 限速；4-worker tick loop 已
+        # 跑通 200 concurrent，30 远低于此）。
         import asyncio as _asyncio_local
+        import os as _os_reflect
+        try:
+            _reflect_concurrency = int(_os_reflect.environ.get(
+                "DAY_END_REFLECT_CONCURRENCY", "30",
+            ))
+        except ValueError:
+            _reflect_concurrency = 30
+        if _reflect_concurrency < 1:
+            _reflect_concurrency = 1
+
         within_day_tick = tick_result.tick_index % ticks_per_day
         if within_day_tick == last_tick_of_day:
-            for rt in runtimes:
+            _reflect_sem = _asyncio_local.Semaphore(_reflect_concurrency)
+
+            async def _reflect_one(rt) -> None:
                 if not rt.profile.is_protagonist:
-                    continue
-                try:
-                    await _asyncio_local.wait_for(
-                        memory_service.maybe_reflect(
-                            rt.profile.agent_id,
-                            rt.profile.name,
-                            current_tick=tick_result.tick_index,
-                            simulated_time=tick_result.simulated_time,
-                            day_index=tick_result.day_index,
-                            force_for_day_end=True,
-                        ),
-                        timeout=60.0,
-                    )
-                except _asyncio_local.TimeoutError:
-                    # Reflection timed out — log and move on; the agent
-                    # doesn't get a reflection for this day. Better than
-                    # deadlocking the worker.
-                    print(
-                        f"[aitown] reflect TIMEOUT (60s) for "
-                        f"{rt.profile.agent_id}; skipping",
-                        file=sys.stderr,
-                    )
-                except Exception:
-                    pass
+                    return
+                async with _reflect_sem:
+                    try:
+                        await _asyncio_local.wait_for(
+                            memory_service.maybe_reflect(
+                                rt.profile.agent_id,
+                                rt.profile.name,
+                                current_tick=tick_result.tick_index,
+                                simulated_time=tick_result.simulated_time,
+                                day_index=tick_result.day_index,
+                                force_for_day_end=True,
+                            ),
+                            timeout=60.0,
+                        )
+                    except _asyncio_local.TimeoutError:
+                        print(
+                            f"[aitown] reflect TIMEOUT (60s) for "
+                            f"{rt.profile.agent_id}; skipping",
+                            file=sys.stderr,
+                        )
+                    except Exception:
+                        pass
+
+            await _asyncio_local.gather(*(_reflect_one(rt) for rt in runtimes))
 
     orchestrator.register_on_tick_end_async(_process_ops_hook)
 
