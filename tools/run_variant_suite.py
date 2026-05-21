@@ -1985,12 +1985,37 @@ def main() -> int:
                     )
 
         # aggregate — 用真实跑出来的 variant_metadata（factory 已填 target_location 等）
+        # 2026-05-21 backlog 1.19: skip aggregate if all runs are
+        # graceful_stop (= empty runs list). Outer launcher will
+        # respawn the variant from snapshot/partial → resume + complete
+        # → next invocation of run_variant_suite will see complete runs
+        # and produce aggregate then. Exit 0 (not crash) so the resume
+        # chain remains intact.
+        if not runs:
+            print(
+                f"  [aggregate] skipped — 0 RunMetrics for variant "
+                f"{variant_name} (graceful_stop or all-failed). "
+                f"Use --resume on next invocation to continue.",
+                file=sys.stderr,
+            )
+            continue
         aggregate = build_suite_aggregate(runs, variant_metadata=captured_variant_metadata)
         agg_file = variant_dir / "aggregate.json"
         with open(agg_file, "w", encoding="utf-8") as f:
             json.dump(aggregate.model_dump(), f, ensure_ascii=False, indent=2)
         aggregates[variant_name] = aggregate
         print(f"  aggregate → {agg_file.name}")
+
+    # 2026-05-21 backlog 1.19: if no aggregates (all variants
+    # graceful_stop), skip contest + report. exit 0 so caller knows
+    # this isn't a fatal crash — outer launcher should resume.
+    if not aggregates:
+        print(
+            "[suite] no completed variant aggregates (all graceful_stop). "
+            "Use --resume to continue. exit 0.",
+            file=sys.stderr,
+        )
+        return 0
 
     # contest
     contest = build_contest_report(aggregates, suite_name=args.suite_name)

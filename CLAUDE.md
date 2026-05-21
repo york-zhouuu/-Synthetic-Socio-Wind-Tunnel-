@@ -157,7 +157,7 @@ nohup env \
   RESILIENCE_TRUST_LAST_PREFLIGHT=1 \
   RESILIENCE_SNAPSHOT_EVERY_TICKS=12 \
   RESILIENCE_WAL_ENABLED=true \
-  RSS_RESTART_MB=6000 \
+  RSS_RESTART_MB=20000 \
   GC_EVERY_N_TICKS=200 \
   RSS_CHECK_EVERY_N_TICKS=50 \
   MEMORY_EVENT_EVICT_GRACE_DAYS=2 \
@@ -229,7 +229,7 @@ done
 | **3** | **memstat.jsonl rolling stats**（worker 进入 tick loop 后每 12 tick 一条 sample）| `nohup python tools/tail_memstat.py $SUITE <v> <N> --every 60 &` | `/tmp/swt-v3-tail-memstat.log` |
 | **4** | **整 cell Markdown 概要**（events.jsonl + llm.jsonl 汇总 + 健康警告）| `nohup python tools/summarize_run_observability.py $SUITE <N> --variants <v> --watch 120 &` | `/tmp/swt-v3-summarize.log` |
 | **5** | **进程健康监控**（process state / log silence / CLOSE_WAIT — `monitor-as-control-plane` 不变量的 "观察 + 报告" 角色）| `nohup python tools/audit_run_health.py $SUITE --watch 60 &` | `/tmp/swt-v3-audit-health.log` |
-| **6** ⭐ NEW | **WAL 死锁自动救援**（detect WAL stale > 300s → SIGUSR1→SIGTERM→SIGKILL→自动 resume from snapshot）| `nohup bash -c 'while true; do python tools/watchdog_wal_deadlock.py $SUITE --stale-secs 300 --confirm-secs 60; sleep 60; done' &` | `/tmp/swt-v3-watchdog.log` |
+| **6** ⭐ NEW | **WAL 死锁自动救援**（detect WAL stale > 1800s → SIGUSR1→SIGTERM→SIGKILL→自动 resume from snapshot）| `nohup bash -c 'while true; do python tools/watchdog_wal_deadlock.py $SUITE --stale-secs 1800 --confirm-secs 120; sleep 60; done' &` | `/tmp/swt-v3-watchdog.log` |
 
 `tail -f /tmp/swt-v3-*.log` 实时看。
 

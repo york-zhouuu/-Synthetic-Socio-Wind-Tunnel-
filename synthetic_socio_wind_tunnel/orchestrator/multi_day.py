@@ -1065,11 +1065,30 @@ class MultiDayRunner:
                     agent.profile.agent_id,
                     current_day_index=day_index,
                 )
-            plan = await self._planner.generate_daily_plan(
-                agent.profile,
-                date=current_date.isoformat(),
-                carryover=carryover,
-            )
+            # 2026-05-21 backlog 1.18: wrap generate_daily_plan in
+            # asyncio.wait_for so a single hung LLM call doesn't
+            # deadlock the asyncio.gather over 500 protag plans.
+            # Violation of CLAUDE.md 1.9 "all-direct-LLM-call SHALL
+            # be wrapped in wait_for" — close it now.
+            try:
+                plan = await asyncio.wait_for(
+                    self._planner.generate_daily_plan(
+                        agent.profile,
+                        date=current_date.isoformat(),
+                        carryover=carryover,
+                    ),
+                    timeout=90.0,
+                )
+            except asyncio.TimeoutError:
+                logger.warning(
+                    "plan gen timeout (90s) for agent=%s day=%d; "
+                    "falling back to template plan",
+                    agent.profile.agent_id, day_index,
+                )
+                # Fallback: leave agent.plan unchanged (carry the previous
+                # plan or None). The agent will operate from
+                # scripted_plan defaults — acceptable degradation.
+                return
             agent.plan = plan
 
         async def _all() -> None:
