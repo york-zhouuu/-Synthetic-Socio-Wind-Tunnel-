@@ -16,7 +16,10 @@ if TYPE_CHECKING:
 class MemoryStore:
     """per-agent memory store。"""
 
-    __slots__ = ("_events", "_by_actor", "_by_location", "_by_tag", "_by_kind")
+    __slots__ = (
+        "_events", "_by_actor", "_by_location", "_by_tag", "_by_kind",
+        "_by_encounter_pair_day",
+    )
 
     def __init__(self) -> None:
         self._events: list["MemoryEvent"] = []
@@ -24,12 +27,46 @@ class MemoryStore:
         self._by_location: dict[str, list[int]] = defaultdict(list)
         self._by_tag: dict[str, list[int]] = defaultdict(list)
         self._by_kind: dict[str, list[int]] = defaultdict(list)
+        # backlog 1.7 A: (actor_id, day_index) → event index, for routine
+        # movement-encounter dedup. See append() for the gate.
+        self._by_encounter_pair_day: dict[tuple[str, int], int] = {}
 
     def __len__(self) -> int:
         return len(self._events)
 
+    @staticmethod
+    def _is_routine_encounter(event: "MemoryEvent") -> bool:
+        """Routine = movement-induced encounter eligible for dedup.
+
+        Dialogue-completion encounters (tags contain "dialogue") and
+        encounters without an actor_id are kept distinct."""
+        return (
+            event.kind == "encounter"
+            and event.actor_id is not None
+            and "dialogue" not in event.tags
+        )
+
     def append(self, event: "MemoryEvent") -> None:
-        """写入 + 更新 4 路索引。"""
+        """写入 + 更新 5 路索引。
+
+        backlog 1.7 A: routine encounters (movement-induced, same actor
+        + same day_index) collapse into a single MemoryEvent whose
+        `encounter_count` is bumped on each subsequent occurrence. This
+        is what keeps the per-day encounter event count at O(pairs) instead
+        of O(pairs × ticks_per_day).
+        """
+        if self._is_routine_encounter(event):
+            key = (event.actor_id, event.day_index)
+            existing_idx = self._by_encounter_pair_day.get(key)
+            if existing_idx is not None:
+                from dataclasses import replace as _dc_replace
+                existing = self._events[existing_idx]
+                self._events[existing_idx] = _dc_replace(
+                    existing,
+                    encounter_count=existing.encounter_count + 1,
+                )
+                return
+
         idx = len(self._events)
         self._events.append(event)
         if event.actor_id:
@@ -39,6 +76,8 @@ class MemoryStore:
         for tag in event.tags:
             self._by_tag[tag].append(idx)
         self._by_kind[event.kind].append(idx)
+        if self._is_routine_encounter(event):
+            self._by_encounter_pair_day[(event.actor_id, event.day_index)] = idx
 
     # ---- 查询入口 ----
 
@@ -94,6 +133,51 @@ class MemoryStore:
 
     # ---- cold prune (enforce-worker-rss-cap, 2026-05-19) ----
 
+    def _evict_kinds_before_day(
+        self, kinds: frozenset[str], before_day_index: int,
+    ) -> int:
+        """Remove events of any kind in `kinds` with day_index < cutoff.
+
+        Reverse indices (`_by_actor` / `_by_location` / `_by_tag` /
+        `_by_kind` / `_by_encounter_pair_day`) SHALL be rebuilt from
+        the surviving event list so subsequent queries don't return
+        stale or off-by-one indices.
+        """
+        if not self._events:
+            return 0
+        survivors: list["MemoryEvent"] = []
+        evicted_count = 0
+        for ev in self._events:
+            ev_day = getattr(ev, "day_index", None)
+            if (
+                ev.kind in kinds
+                and ev_day is not None
+                and ev_day < before_day_index
+            ):
+                evicted_count += 1
+                continue
+            survivors.append(ev)
+        if evicted_count == 0:
+            return 0
+
+        self._events = survivors
+        self._by_actor = defaultdict(list)
+        self._by_location = defaultdict(list)
+        self._by_tag = defaultdict(list)
+        self._by_kind = defaultdict(list)
+        self._by_encounter_pair_day = {}
+        for idx, ev in enumerate(self._events):
+            if ev.actor_id:
+                self._by_actor[ev.actor_id].append(idx)
+            if ev.location_id:
+                self._by_location[ev.location_id].append(idx)
+            for tag in ev.tags:
+                self._by_tag[tag].append(idx)
+            self._by_kind[ev.kind].append(idx)
+            if self._is_routine_encounter(ev):
+                self._by_encounter_pair_day[(ev.actor_id, ev.day_index)] = idx
+        return evicted_count
+
     def evict_cold_encounter_events(self, before_day_index: int) -> int:
         """Remove encounter events with `day_index < before_day_index`.
 
@@ -107,44 +191,27 @@ class MemoryStore:
         for any encounter, so ALL encounter events were evicted every
         cycle. Now compares `ev.day_index` against `before_day_index`,
         matching the caller's intent ("evict events from days before N").
-
-        Reverse indices (`_by_actor` / `_by_location` / `_by_tag` /
-        `_by_kind`) SHALL be rebuilt from the surviving event list
-        so subsequent queries don't return stale or off-by-one
-        results.
         """
-        if not self._events:
-            return 0
-        survivors: list["MemoryEvent"] = []
-        evicted_count = 0
-        for ev in self._events:
-            ev_day = getattr(ev, "day_index", None)
-            if (
-                ev.kind == "encounter"
-                and ev_day is not None
-                and ev_day < before_day_index
-            ):
-                evicted_count += 1
-                continue
-            survivors.append(ev)
-        if evicted_count == 0:
-            return 0
+        return self._evict_kinds_before_day(
+            frozenset({"encounter"}), before_day_index,
+        )
 
-        # Rebuild events list + all reverse indices from survivors.
-        self._events = survivors
-        self._by_actor = defaultdict(list)
-        self._by_location = defaultdict(list)
-        self._by_tag = defaultdict(list)
-        self._by_kind = defaultdict(list)
-        for idx, ev in enumerate(self._events):
-            if ev.actor_id:
-                self._by_actor[ev.actor_id].append(idx)
-            if ev.location_id:
-                self._by_location[ev.location_id].append(idx)
-            for tag in ev.tags:
-                self._by_tag[tag].append(idx)
-            self._by_kind[ev.kind].append(idx)
-        return evicted_count
+    def evict_cold_action_events(self, before_day_index: int) -> int:
+        """Remove action events with `day_index < before_day_index`.
+
+        backlog 1.7 A+ (2026-05-22): action events are now the largest
+        per-day kind once encounter dedup ships (~290K/agent-day vs
+        ~58K dedup'd encounters). They feed daily_summary on creation
+        day and reflection within the GRACE window; older actions are
+        captured by daily_summary text and are safe to drop.
+
+        Opt-in via env `ACTION_EVICT_ENABLED=true` at the caller side —
+        the function itself always honors the request. Returns the
+        number of events removed.
+        """
+        return self._evict_kinds_before_day(
+            frozenset({"action"}), before_day_index,
+        )
 
     def replace(self, event_id: str, new_event: "MemoryEvent") -> bool:
         """

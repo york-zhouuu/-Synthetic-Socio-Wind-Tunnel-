@@ -398,6 +398,59 @@ class MemoryService:
                 pass
         return total
 
+    def evict_cold_action_events_across_agents(
+        self, before_day_index: int,
+    ) -> int:
+        """Cross-agent cold-prune wrapper for action events.
+
+        backlog 1.7 A+ (2026-05-22): mirrors
+        `evict_cold_encounter_events_across_agents` for kind="action".
+        Caller-guarded via env (ACTION_EVICT_ENABLED) at the multi-day
+        orchestrator hook; the wrapper itself always honors the request
+        so tests can drive it independently.
+
+        Emits an EVICT_ACTION event to instrumentation (distinct kind
+        from encounter EVICT so post-mortem can tell which prune ran).
+        """
+        import time as _t
+        total_before = sum(len(s) for s in self._stores.values())
+        try:
+            from synthetic_socio_wind_tunnel.observability import (
+                get_instrumentation,
+            )
+            from synthetic_socio_wind_tunnel.observability.instrumentation import (
+                _read_current_rss_mb,
+            )
+            rss_before, _ = _read_current_rss_mb()
+            inst = get_instrumentation()
+        except Exception:  # noqa: BLE001
+            inst = None
+            rss_before = 0
+
+        t0 = _t.monotonic()
+        total = 0
+        for store in self._stores.values():
+            total += store.evict_cold_action_events(before_day_index)
+        duration_sec = _t.monotonic() - t0
+        total_after = sum(len(s) for s in self._stores.values())
+
+        if inst is not None:
+            try:
+                rss_after, _ = _read_current_rss_mb()
+                inst.emit_event(
+                    kind="EVICT_ACTION",
+                    before_day_index=before_day_index,
+                    events_evicted=total,
+                    memory_store_total_before=total_before,
+                    memory_store_total_after=total_after,
+                    duration_sec=duration_sec,
+                    rss_before_mb=rss_before,
+                    rss_after_mb=rss_after,
+                )
+            except Exception:  # noqa: BLE001
+                pass
+        return total
+
     # ---- 跨日检索（multi-day-simulation 引入） ----
 
     def get_daily_summary(
@@ -1131,6 +1184,7 @@ def _event_to_json_fast(ev) -> dict[str, Any]:
         "embedding": list(embedding) if embedding is not None else None,
         "related_memory_ids": list(ev.related_memory_ids),
         "last_access": last_access.isoformat() if last_access is not None else None,
+        "encounter_count": ev.encounter_count,
     }
 
 

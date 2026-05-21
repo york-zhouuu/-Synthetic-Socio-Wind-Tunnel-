@@ -72,6 +72,13 @@ class MemoryEvent:
     # Defaults to None → recency falls back to simulated_time.
     last_access: datetime | None = None
 
+    # backlog 1.7 A (2026-05-22): per-(actor, day) routine-encounter dedup.
+    # Movement-induced encounters between the same pair on the same day
+    # collapse to a single event with this bumped each time. Dialogue-completion
+    # encounters (tags contain "dialogue") and non-encounter kinds always stay
+    # at 1 — see MemoryStore.append for the dedup gate.
+    encounter_count: int = 1
+
 
 @dataclass(frozen=True, slots=True)
 class MemoryQuery:

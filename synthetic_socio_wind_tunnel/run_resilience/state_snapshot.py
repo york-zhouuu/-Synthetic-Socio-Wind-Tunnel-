@@ -265,11 +265,14 @@ class SimulationCheckpoint(BaseModel):
         """
         path.parent.mkdir(parents=True, exist_ok=True)
 
-        body = json.dumps(
-            self.model_dump(mode="json"),
-            ensure_ascii=False,
-            default=str,
-        )
+        # backlog 1.7 C (2026-05-22): stream JSON encoder directly to
+        # the file via json.dump instead of building the full body
+        # string in memory via json.dumps + file.write. At publishable
+        # scale the snapshot dict is ~2.7GB; the doubled-copy peak
+        # during write was the proximate trigger for swap thrash that
+        # ended runs at day 6-7. json.dump iterates the encoder and
+        # writes chunks → peak ≈ dict only, not dict + full string.
+        snapshot_dict = self.model_dump(mode="json")
 
         # 唯一 tmp 文件名（OS 保证），同 parent 保证 os.replace 是同卷
         # 的原子 rename。delete=False 因为我们要把它 rename 出来。
@@ -281,7 +284,12 @@ class SimulationCheckpoint(BaseModel):
         tmp_path = Path(tmp_name)
         try:
             with os.fdopen(tmp_fd, "w", encoding="utf-8") as f:
-                f.write(body)
+                json.dump(
+                    snapshot_dict,
+                    f,
+                    ensure_ascii=False,
+                    default=str,
+                )
                 f.flush()
                 try:
                     os.fsync(f.fileno())
@@ -293,6 +301,11 @@ class SimulationCheckpoint(BaseModel):
             except OSError:
                 pass
             raise
+        finally:
+            # Drop our reference so the dict can be GC'd ASAP after
+            # write — multi-worker scenarios benefit from each worker
+            # freeing its post-serialize heap quickly.
+            del snapshot_dict
 
         try:
             os.replace(tmp_path, path)

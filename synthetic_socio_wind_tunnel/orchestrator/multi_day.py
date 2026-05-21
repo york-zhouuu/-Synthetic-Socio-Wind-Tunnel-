@@ -948,6 +948,48 @@ class MultiDayRunner:
                                 "failed at day_index=%d: %s",
                                 day_index, exc,
                             )
+                # backlog 1.7 A+ (2026-05-22): optional action eviction.
+                # Opt-in via env ACTION_EVICT_ENABLED=true. Reuses the
+                # same GRACE window as encounters (or ACTION_EVICT_GRACE_DAYS
+                # override). Drops day < grace action events to bound the
+                # second-largest event kind post-encounter-dedup.
+                if (
+                    self._memory_service is not None
+                    and os.environ.get(
+                        "ACTION_EVICT_ENABLED", "false",
+                    ).strip().lower() in ("1", "true", "yes")
+                ):
+                    try:
+                        action_grace = int(os.environ.get(
+                            "ACTION_EVICT_GRACE_DAYS",
+                            os.environ.get(
+                                "MEMORY_EVENT_EVICT_GRACE_DAYS", "2",
+                            ),
+                        ))
+                    except ValueError:
+                        action_grace = 2
+                    action_before = max(0, day_index - action_grace)
+                    if action_before > 0:
+                        try:
+                            evicted_action = (
+                                self._memory_service
+                                .evict_cold_action_events_across_agents(
+                                    before_day_index=action_before,
+                                )
+                            )
+                            if evicted_action > 0:
+                                logger.info(
+                                    "[memory-evict] day=%d "
+                                    "before_day_index=%d evicted %d "
+                                    "action events",
+                                    day_index, action_before, evicted_action,
+                                )
+                        except Exception as exc:  # noqa: BLE001
+                            logger.warning(
+                                "evict_cold_action_events_across_agents "
+                                "failed at day_index=%d: %s",
+                                day_index, exc,
+                            )
                 # Patch the most-recent DayRunSummary with eviction count
                 # (per_day_summaries[-1] was just appended above)
                 if per_day:
@@ -1749,6 +1791,42 @@ class MultiDayRunner:
                         "write but may be larger than ideal",
                         tick_index_global, exc,
                     )
+
+            # backlog 1.7 A+ (2026-05-22): action eviction at snapshot
+            # pre-write. Same opt-in env as the day_end hook. Combined
+            # with encounter dedup, this is what lets 4-worker
+            # publishable runs fit in 48GB RAM.
+            if os.environ.get(
+                "ACTION_EVICT_ENABLED", "false",
+            ).strip().lower() in ("1", "true", "yes"):
+                try:
+                    action_grace = int(os.environ.get(
+                        "ACTION_EVICT_GRACE_DAYS",
+                        os.environ.get("MEMORY_EVENT_EVICT_GRACE_DAYS", "2"),
+                    ))
+                except ValueError:
+                    action_grace = 2
+                action_before = max(0, day_index - action_grace)
+                if action_before > 0:
+                    try:
+                        evicted_actions = (
+                            self._memory_service
+                            .evict_cold_action_events_across_agents(
+                                before_day_index=action_before,
+                            )
+                        )
+                        if evicted_actions > 0:
+                            logger.info(
+                                "[snapshot] pre-write evicted %d action "
+                                "events (before_day_index=%d, grace=%d)",
+                                evicted_actions, action_before, action_grace,
+                            )
+                    except Exception as exc:  # noqa: BLE001
+                        logger.warning(
+                            "[snapshot] pre-write action evict failed: "
+                            "%s — snapshot will write but bigger",
+                            exc,
+                        )
 
         ledger = getattr(self._orchestrator, "_ledger", None)
         agents = self._collect_agents()
