@@ -1,316 +1,269 @@
 # Synthetic Socio Wind Tunnel · 合成社会风洞
 
-> 一句话研究问题：**手机注意力在高密度城市制造"附近性盲区"——超在地推送能否反向把人带回附近？**
+> **你认识住你楼上的邻居吗?**
+>
+> 在悉尼 Lane Cove 这样的高密度城区,人和人之间的物理距离只剩几米,社会距离却被一面看不见的墙隔开——那面墙是手机里的全球资讯流。
+>
+> 这个项目造了一个 **AI 多智能体城市模型**,在虚拟世界里测试一件事:**把推送的注意力从"全球远处"拉回到"楼下街角",人会不会真的走出门、抬起头、看见附近?**
 
-实验场景：悉尼真实街区 **Lane Cove**，1000 个 AI 智能体，14 天 4 对照变体（baseline / 超在地推送 / 镜像全球新闻 / 减少手机吸力）。
-
-📖 **快速入口（先看这三份）**：
-- **[`docs/项目产出物.html`](docs/项目产出物.html)** — 用日常语言讲项目在做什么、要产出什么（给没接触过项目的人看）
-- **[`docs/四个对照组.html`](docs/四个对照组.html)** — 4 个对照实验各自在干啥、为什么 4 个不是 1 个
-- **[`docs/项目状态.md`](docs/项目状态.md)** — 内部 status board：当前阶段、待办、时间线
-
-🚨 **从新机器接管 (2026-05-15)**:
-1. clone 完先读 **[`docs/HANDOFF_2026_05_15.md`](docs/HANDOFF_2026_05_15.md)** —— 当前 D1' 状态 / 3 个续跑选项 / 必须应用的 Gemini 修复
-2. 事故根因复盘: **[`docs/sessions/2026-05-15-d1-gemini-incident.md`](docs/sessions/2026-05-15-d1-gemini-incident.md)**
-3. **API key 没传到 GitHub** (`.env` 永远 gitignored),需要手动通过 AirDrop / Notes / 1Password 等私密方式从旧机拷过来。`.env.example` 列了需要哪几个变量
-
-## Setup (新机器首次)
-
-```bash
-git clone git@github.com-york:york-zhouuu/-Synthetic-Socio-Wind-Tunnel-.git
-cd Synthetic-Socio-Wind-Tunnel
-pip install -e ".[full]"
-cp .env.example .env   # 然后填 GEMINI_API_KEY / DEEPSEEK_API_KEYS 等
-python3 -m pytest tests/ -q  # 应 1350+ passed,确认环境 OK
-```
+[🇨🇳 中文版](#中文版) · [🇬🇧 English](#english) · [📜 License & Data](#数据来源与许可)
 
 ---
 
-## Project Status (2026-05-12)
+## 中文版
 
-**装置已完成 + D2 publishable run 进行中**。round-1/round-2 修复（共 10 个 measurement bug）+ A1 perception-loop archive + B 全套（archetype / life-history / social-priors / conversation-topics）archive + A2/A3 minimum-viable ship + D1' DeepSeek smoke 通过。
+### 1. 一句话讲清楚
 
-| 维度 | 状态 |
-|---|---|
-| **测试基线** | **1267 passed / 3 skipped**（从 Phase 1 的 506 → Phase 2 + 修复后的 1267） |
-| **OpenSpec archives** | **20+ 个 change**（含 A1 / B 整套 / round-1 fix-variant-measurement / round-2 fix-encounter-detection / DeepSeek tier client）|
-| **运行中** | D2 publishable: 15 seed × 14 day × 100 agent × DeepSeek（启动 2026-05-11 17:26，预估 60-80 hr）|
-| **D1' 验证结果** | hp encounter -1.2%（与 Gemini +4.4% 对比，需 D2 多 seed 确认）/ traj_dev hp 188m < gd 232m ✅ / pf +7.1% ✅ |
-| **Provider 支持** | Gemini Flash + Anthropic Haiku/Sonnet + DeepSeek v4-pro/flash + stub（4 家 + 多 tier 路由）|
-| **修复历史** | 2 轮 bug audit 共修 10 个 measurement bug，见 [`docs/audit/2026-05-09-bug-hunt.md`](docs/audit/2026-05-09-bug-hunt.md) |
-| **局限与伦理** | [`docs/limitations-ethics.md`](docs/limitations-ethics.md) —— synthetic ≠ real / LLM bias / 单城市外推风险 / 15-seed < 30 publishable 门槛 |
+我们在电脑里造了一个 **悉尼 Lane Cove 的虚拟街区**,放进 **1000 个 AI 居民**,让他们过 **14 天**。然后给他们的"手机"换不同的内容,看人的走路路线、谁会跟谁相遇、谁会跟谁聊上几句——**哪些变了,哪些没变**。
 
-仍 propose-only 待 implement：
-- A2 §4-§6（scripted_plan household coordination + multi_day_run 集成）
-- A3 §3-§7（move_entity overflow + orchestrator 集成 + metrics）
-- D2 完成后的 v4 报告 HTML（基于真数据）
+这是一个研究**注意力 → 物理行为**的"风洞"。就像飞机上天前要先放进风洞里吹一遍,城市级的数字干预放到真居民身上之前,可以先在这个虚拟城市里跑一遍。
 
-完整时间线 + 决策点 + 候选路径：[`docs/项目状态.md`](docs/项目状态.md) §3 + §5
+### 2. 我们想回答的问题
 
-### Quick visualize
+**核心问题**:手机注意力的"全球化",是不是在物理上的高密度社区里制造了一片 **1000 米半径的盲区**?
 
-```bash
-# 跑完一个 suite 后渲染 trajectory heatmap（per-variant）
-python3 tools/visualize_run.py --run-dir data/experiments/<ts>_<suite>/
-```
+> *"我每天通勤路过 Cowper 街,知道地球另一端的政治新闻,却不知道楼下咖啡馆昨天换了老板。"*
 
-输出 `<run-dir>/heatmap.png` —— 6 variant 各一张子图，颜色深浅 = 累计
-dwell tick；可视化对比 hyperlocal_push（拉向 target_location）/
-shared_anchor（聚集到 community）/ baseline（无明显热点）。
+这种**"近处的盲"**(Attention-induced Nearby Blindness)是一个**研究假说**——不是已经证明的事实。我们用这个虚拟城市去测它存不存在、能不能逆转。
 
-```bash
-# Tick-级 replan 因果链 trace（debug 用；< 2s 跑完小 sim）
-python3 tools/replan_trace.py --variant hyperlocal_push --max-events 30
-python3 tools/replan_trace.py --variant baseline    # → 应 0 plan_changed
-```
+### 3. 四个对照组(日常语言版)
 
-输出文本：feed_delivered → plan_changed → moved 的 tick 级序列；按
-(day, agent) 分组。把"variant 真的影响行为"的因果链**可读化**。
+我们没有只跑一个"实验组",而是同时跑了 4 组,因为单组数据无法回答"是这个干预起的作用,还是别的什么":
 
-
----
-
-## The Problem
-
-Modern high-density urban communities harbor a paradox:
-
-**Physical distance has never been smaller. Social distance has never been greater.**
-
-In places like Sydney's Zetland/Green Square or Lane Cove 2066, residents share corridors, elevators, and train exits — yet have near-zero social connection. The biggest barrier isn't a wall. It's **attention displacement**: algorithms route every glance toward global news and distant events, leaving a 1,000-metre blind spot around each person's actual life.
-
-### Main boundary: Attention-induced Nearby Blindness
-
-One **main boundary** sits at the centre of this phenomenon. Three further layers stack around it as an input → output → validation chain — not parallel boundaries, but positions on a single mechanism chain:
-
-```
-algorithmic-input  →  attention-main  →  spatial-output  →  social-downstream
-   (source)             (MAIN)              (spatial        (downstream
-                                             symptom)        validation)
-```
-
-| Chain position | What it is | Measurement |
+| 对外白话名 | 在做什么 | 想回答的问题 |
 |---|---|---|
-| `algorithmic-input` | Recommender bias toward global over hyperlocal | feed content hyperlocal ratio |
-| **`attention-main`** | **Phone gaze displaces the physical <500m environment** | `AttentionState`, notification reach |
-| `spatial-output` | Commute paths ossify; public space reduced to transit | trajectory deviation, space activation |
-| `social-downstream` | Serendipity and weak ties disappear | encounter → conversation conversion |
+| **对照组:什么都不推** | 居民正常生活,手机不收任何推送 | 不干预时,人本来是什么样? |
+| **实验组(核心):超在地推送** | 推送只关于楼下 1000 米内的事——咖啡馆活动、社区议题、邻居动态 | "把注意力拉回附近"真的能让人走出去吗? |
+| **镜像组:推全球新闻** | 推送的是远方的新闻——选举、地震、明星 | 反过来"把注意力推向远方"会让人更宅吗? |
+| **反技术组:减少手机吸引力** | 推送频率降下来、通知不响——直接减少手机这一项 | 是手机本身吸走了注意力,还是推送内容? |
 
-See [`docs/agent_system/00-thesis.md`](docs/agent_system/00-thesis.md) for the canonical thesis statement, mechanism chain, and `Chain-Position` gate that every Phase 2 change must cite.
+**为什么 4 组而不是 1 组**:研究界叫"对手假说框架"(rival hypothesis framing)。任何一组单独看都不能证明因果——必须把"和它长得很像但机制不同"的候选解释一个个排除掉,剩下的才可信。
 
----
+### 4. 项目能拿出什么(6 大产出物)
 
-## What This Is
+每个产出物都有"是什么 / 解决什么问题 / 意义"三段说明。详细版在 [`docs/项目产出物.html`](docs/项目产出物.html)。
 
-A **synthetic wind tunnel for social experiments** — the same logic as aerodynamic testing. You don't bolt a new wing shape onto a plane and fly it; you run it through a wind tunnel first. Here, the "wing shape" is a hyperlocal digital intervention (a rerouted news feed, an unlocked courtyard door, a shared hidden task), and the "wind tunnel" is a simulated urban neighbourhood populated by ~1,000 AI agents.
+| 产出物 | 一句话 |
+|---|---|
+| 📊 **实验答案** | 4 个对照组的可量化结果——超在地推送在多大程度上把人拉回附近 |
+| 📖 **研究故事** | 五幕报告:从"我们假设了什么"到"虚拟城市里发生了什么"到"这对真实城市意味着什么" |
+| 🗺️ **地图与图表** | 把"走路路线变了"、"偶遇密度涨了"画在 Lane Cove 真实街区上的热力图 |
+| 🏙️ **可运行的虚拟城市** | 完整的模拟系统代码——任何人都能 clone 下来,换条街、换组干预,自己跑 |
+| 🔒 **可验证的研究记录** | 每次跑都留下种子数(seed)、配置、内存峰值、日志——别人能完全复现 |
+| 📚 **研究知识库** | 完整的设计文档:为什么这么做、踩过哪些坑、哪些不变量必须守 |
 
-The system runs three classes of experiment:
+### 5. 怎么跑起来
 
-### Experiment 1 — Digital Lure
-*Does hyperlocal information change physical movement?*
-Push location-specific micro-news to agents. Measure trajectory deviation and space activation in formerly dead zones.
-
-### Experiment 2 — Spatial Unlock
-*Does a minimal rule change trigger an ecological chain reaction?*
-Unlock a previously closed passage; place a bench in a dead zone. Measure emergent desire paths and dwell-time shifts.
-
-### Experiment 3 — Shared Perception
-*Does a shared hidden goal collapse psychological distance?*
-Assign a common ambient task (e.g. find the lost cat) to otherwise isolated agents. Measure convergence across demographic clusters.
-
-Each experiment produces a four-act output:
-
-Updated five-act structure and the rival-hypothesis framing that organises
-these experiments live in [`docs/agent_system/13-research-design.md`](docs/agent_system/13-research-design.md).
-The four-act sketch above is preserved as historical shorthand.
-
----
-
-## Research Posture
-
-This is an **exploratory research instrument** — functionally closer to a
-physics cloud chamber than to a deployable policy engine.
-
-- **Exploratory instrument, not policy engine.** The goal is to make the
-  phenomenon of attention-induced nearby blindness visible and navigable,
-  not to produce deployable recommendations.
-- **Dual-use explicit.** Every intervention we test has a paired "mirror"
-  scenario that weaponises the same mechanism in the opposite direction;
-  our primary deliverable includes at least one mirror at equal rigor.
-- **No deployment endorsement.** We do not claim the tool is ready to run
-  on real residents. Real deployment requires consent, governance, and
-  feedback — all out of scope here.
-- **Rigor: β standard.** Publishable effect sizes use 30-seed × 14-day
-  runs reported as median + IQR/CI. Single-run numbers are preliminary.
-
-Canonical thesis statement: [`docs/agent_system/00-thesis.md`](docs/agent_system/00-thesis.md).
-Canonical research design + experimental protocol: [`docs/agent_system/13-research-design.md`](docs/agent_system/13-research-design.md).
-Validity taxonomy + audit protocols + pre-publication checklist: [`docs/agent_system/18-validation-strategy.md`](docs/agent_system/18-validation-strategy.md).
-
----
-
-## How It Works
-
-The simulation is built in two layers.
-
-### Layer 1 — Map Engine (adapted, open to modification)
-
-A CQRS spatial engine that models urban geography with the fidelity needed for social simulation. Built around a "Theater Model":
-
-```
-┌──────────────────────────────────────────────────────────────────┐
-│                        Agent Layer (actors)                      │
-└───────────────────────────┬──────────────────────────────────────┘
-                            │
-        ┌───────────────────┼────────────────────┐
-        ▼                   ▼                    ▼
-┌───────────────┐  ┌────────────────┐  ┌──────────────────┐
-│ Engine (WRITE)│  │Perception(READ)│  │Cartography(SETUP)│
-│ movement      │  │ per-agent view │  │ OSM import       │
-│ doors, items  │  │ filter chain   │  │ map builder      │
-└───────┬───────┘  └───────┬────────┘  └──────────────────┘
-        │                  │
-        ▼                  ▼
-┌─────────────────────────────────────────┐
-│  Atlas (static map)  │  Ledger (state)  │
-│  buildings, rooms,   │  positions,      │
-│  doors, geometry     │  items, doors    │
-└─────────────────────────────────────────┘
-```
-
-Key properties of the engine:
-- **Atlas** — immutable geography (OpenStreetMap → GeoJSON → region)
-- **Ledger** — mutable world state (where everyone and everything is)
-- **Rashomon Effect** — same space, different subjective experiences per agent (skill, emotion, knowledge all filter perception)
-- **Schrödinger Details** — room contents don't exist until an agent looks; generated on demand, constrained by spatial budget
-- **Cognitive Map** — agents don't know the full layout; they discover it by moving
-
-### Layer 2 — Agent System (in development)
-
-1,000 agents with differentiated resolution:
-
-| Tier | Count | Model | Memory |
-|------|-------|-------|--------|
-| Protagonists | 10 | Full LLM (Sonnet) | Full episodic memory |
-| Supporting cast | ~200 | Mid-tier, context-triggered | Summary memory |
-| Background crowd | ~790 | Rule-based + lightweight LLM | Pattern memory |
-
-**Plan-based execution** keeps costs viable: each agent generates a daily plan in one LLM call (~$3–5/day for the full 1,000-agent run), then follows it — replanning only when interrupted by an intervention or social encounter.
-
----
-
-## Project Structure
-
-```
-Synthetic_Socio_Wind_Tunnel/
-├── synthetic_socio_wind_tunnel/     # Map engine (adapted)
-│   ├── core/                        # Geometry primitives
-│   ├── atlas/                       # Static map layer
-│   ├── ledger/                      # Dynamic state layer
-│   ├── engine/                      # Write operations (movement, doors)
-│   ├── perception/                  # Read operations (per-agent views)
-│   │   └── filters/                 # Environmental, audio, olfactory, skill
-│   ├── cartography/                 # Map building from OSM/GeoJSON
-│   └── agent/                       # Agent profile, planner, runtime
-├── tests/                           # Test suite
-└── docs/
-    ├── 项目Brief.md                  # Full research brief
-    ├── agent_system/                 # Agent architecture (01–06)
-    └── map_pipeline/                 # Map building guide (01–03)
-```
-
----
-
-## Development Status
-
-| Component | Status |
-|-----------|--------|
-| Map engine (Atlas + Ledger) | ✅ Complete |
-| Simulation service (movement, doors, items) | ✅ Complete |
-| Perception pipeline + filter chain | ✅ Complete |
-| Navigation (door-aware pathfinding) | ✅ Complete |
-| Cognitive map (exploration memory) | ✅ Complete |
-| OSM/GeoJSON map import | ✅ Complete |
-| Agent profile + daily planner | ✅ Complete |
-| Orchestrator + simulation clock (single-day) | ✅ Complete |
-| Multi-day orchestration (N-day runner + memory carryover) | ✅ Complete |
-| Policy hack (4 rival-hypothesis variants + 1 paired mirror) | ✅ Complete |
-| Metrics (rival contest scorer + 5-act Markdown report) | ✅ Complete |
-| Suite wiring (variant → memory → replan → behavior causal chain) | ✅ Complete |
-| Run resilience (D1' fix: keepalive=0 + retry + checkpoint + SIGUSR1 + preflight) | ✅ Complete |
-| Tick-level resume (per-tick WAL + per-N-tick snapshot + state restore) | ✅ Complete |
-| Intervention engine (Policy Hack) | 📋 Designed |
-| Model budget allocation (dynamic tiering) | 📋 Designed |
-| Experiment visualisation (heatmaps, trajectories) | 📋 Designed |
-
----
-
-## Getting Started
+**前置条件**:Python 3.11、≥ 16GB RAM(完整 publishable 跑需要 ≥ 48GB)、DeepSeek 或 Anthropic 或 Gemini API key 任一即可。
 
 ```bash
+# 安装
 git clone git@github.com:york-zhouuu/-Synthetic-Socio-Wind-Tunnel-.git
 cd -Synthetic-Socio-Wind-Tunnel-
-pip install -e ".[dev]"
+pip install -e ".[full]"
+cp .env.example .env  # 填入 DEEPSEEK_API_KEYS / GEMINI_API_KEY / ANTHROPIC_API_KEY 之一
 
-python -m pytest tests/ -v
+# 跑测试确认环境 OK(应 1350+ 测试通过)
+python3 -m pytest tests/ -q
+
+# 跑一个 smoke(100 agent × 1 day,~10 min,验证打通整个流程)
+python3 tools/run_variant_suite.py --variants baseline hyperlocal_push \
+  --seeds 1 --num-days 1 --agents 100 --num-protagonists 50 \
+  --mode smoke --use-aitown --aitown-provider deepseek
+
+# 看结果(热力图 + Markdown 报告 + JSON 数据)
+ls data/experiments/<最新时间戳>_<suite>/
 ```
 
-## Fitness audit (Phase 1.5)
+**完整规模运行**(1000 agent × 14 day × 4 variant × 4 seed)需要 ~20-30 小时单机、约 50GB 磁盘——这是论文级的"publishable run",不是日常验证。
 
-The `fitness-audit` capability checks whether the Phase 1 infrastructure actually
-supports the three experiments described above. It is the gate that Phase 2
-changes (memory / orchestrator / policy-hack / …) must reference before opening
-implementation:
+### 6. 项目结构(技术维度)
+
+主代码在 `synthetic_socio_wind_tunnel/`,按 CQRS 架构分层:
+
+```
+synthetic_socio_wind_tunnel/
+├── atlas/          🎭 静态地图(只读:墙、门、容器)
+├── ledger/         📋 动态状态(读写:位置、物品)
+├── engine/         ⚙️  写操作(移动、开门、生成细节)
+├── perception/     📷 读操作(每个 agent 的主观视角渲染)
+├── agent/          🧠 agent 的决策栈(感知 → 规划 → 行动)
+├── memory/         💾 长期记忆(ai-town 端口:reflection、importance、retrieval)
+├── orchestrator/   🎬 主控:时钟、变体、resume、snapshot
+├── observability/  📡 埋点(memstat / events / llm.jsonl 三通道)
+└── run_resilience/ 🛡️  断点续跑、watchdog、graceful-stop
+```
+
+支持系统在 `tools/`(运行脚本、可视化、监控、preflight gate)和 `tests/`(1350+ tests)。
+
+### 7. 文档导航
+
+| 想知道什么 | 看哪份 |
+|---|---|
+| 项目对外讲解 | [`docs/项目产出物.html`](docs/项目产出物.html) |
+| 当前进度 / 待办 | [`docs/项目状态.md`](docs/项目状态.md) |
+| 研究假说 + 实验设计 | [`docs/agent_system/00-thesis.md`](docs/agent_system/00-thesis.md) + [`docs/agent_system/13-research-design.md`](docs/agent_system/13-research-design.md) |
+| Agent 系统架构 | [`docs/agent_system/01-overview.md`](docs/agent_system/01-overview.md) ~ `18-validation-strategy.md` |
+| 地图构建 | [`docs/map_pipeline/`](docs/map_pipeline/) |
+| 工程规范 + 不变量 | [`CLAUDE.md`](CLAUDE.md)(LLM 协作指南,人类同样可读) |
+| 已知局限 + 伦理 | [`docs/limitations-ethics.md`](docs/limitations-ethics.md) |
+
+### 8. 学术立场(必读)
+
+这是一个**探索性研究工具**——更接近物理学里的"云室"(让看不见的粒子留下轨迹的设备),而不是"可部署的政策引擎"。
+
+- **不是政策引擎**:目标是让"附近性盲区"这个现象**变得可见、可讨论**,不是产出可以直接拿去推的方案。
+- **双向暴露**:每个干预都跑了"镜像版"(用同样机制做反向的事),双手都摊开放在桌上。
+- **没有部署背书**:虚拟城市里的有效干预 ≠ 真城市里可用——真部署需要居民同意、治理框架、反馈机制,这些都不在本项目里。
+- **严谨度门槛**:发表级的效应量用 **4 seed × 14 day** runs,报告中位数 + 区间。单跑数字只能算预实验。
+
+权威说法见 [`docs/agent_system/13-research-design.md`](docs/agent_system/13-research-design.md) 和 [`docs/agent_system/18-validation-strategy.md`](docs/agent_system/18-validation-strategy.md)。
+
+---
+
+## English
+
+### 1. In One Sentence
+
+We built a **virtual neighborhood modeled on Sydney's Lane Cove**, populated it with **1,000 AI residents**, ran them for **14 days**, then tested what happens when you change what their "phones" feed them — and watched their walking routes, who runs into whom, who actually talks to whom. **What changes. What doesn't.**
+
+This is a **wind tunnel for attention → physical-behavior dynamics**. Same logic as the wind tunnel a plane goes through before flying: city-scale digital interventions should run through a simulation like this before touching real residents.
+
+### 2. The Research Question
+
+**Core question**: Has phone-borne attention "globalization" carved out a **1,000-metre blind spot** of social invisibility around each person in dense urban areas?
+
+> *"I commute past Cowper Street every day, know political news from the other side of the planet, but don't know the café below my apartment changed owners last week."*
+
+We call this **Attention-induced Nearby Blindness**. It's a **research hypothesis** — not a proven fact. The virtual city is where we test whether it exists, and whether it can be reversed.
+
+### 3. The Four Comparison Groups (Plain-Language Names)
+
+We didn't just run one "treatment group" — we ran 4 comparison conditions, because a single condition can't tell you whether the intervention or some other confound did the work:
+
+| Plain name | What happens | Question it answers |
+|---|---|---|
+| **Control: nothing pushed** | Residents live normally, phones receive nothing | What's the baseline? |
+| **Treatment (core): hyperlocal push** | Pushes only about things within 1,000m — café events, neighborhood issues, neighbor activity | Does refocusing attention on the nearby actually pull people out? |
+| **Mirror: global news push** | Pushes are distant news — elections, earthquakes, celebrities | Does *pushing attention away* make people more reclusive? |
+| **Anti-tech: reduce phone pull** | Fewer notifications, quieter alerts — reduces phones as a category | Is it the phone itself, or the content of pushes? |
+
+**Why 4 groups, not 1**: This is called the *rival hypothesis framing*. No single group proves causation — you have to systematically rule out near-identical alternative explanations. What survives is credible.
+
+### 4. What the Project Produces (6 Deliverables)
+
+Each deliverable has a "what is it / what problem it solves / why it matters" explanation. The full public-facing version is in [`docs/项目产出物.html`](docs/项目产出物.html).
+
+| Deliverable | One-liner |
+|---|---|
+| 📊 **Experimental Answers** | Quantified comparison across 4 groups — how much hyperlocal push pulled attention to "nearby" |
+| 📖 **Research Story** | Five-act report: hypothesis → simulation events → implications for real cities |
+| 🗺️ **Maps & Charts** | "Walking routes shifted" / "encounter density rose" rendered as heatmaps on real Lane Cove streets |
+| 🏙️ **The Runnable Virtual City** | Full simulation code — clone, swap the street, swap the intervention, run your own variant |
+| 🔒 **Verifiable Research Record** | Every run logs seeds, configs, memory peaks, full event traces — fully reproducible by others |
+| 📚 **Research Knowledge Base** | Complete design docs: why decisions were made, what we hit, what invariants hold |
+
+### 5. Quick Start
+
+**Prerequisites**: Python 3.11, ≥ 16GB RAM (≥ 48GB for full publishable runs), one of: DeepSeek / Anthropic / Gemini API key.
 
 ```bash
-make fitness-audit          # quick: 100 agents × 72 ticks  (~5s)
-make fitness-audit-full     # full:  1000 agents × 288 ticks (slower)
+# Install
+git clone git@github.com:york-zhouuu/-Synthetic-Socio-Wind-Tunnel-.git
+cd -Synthetic-Socio-Wind-Tunnel-
+pip install -e ".[full]"
+cp .env.example .env  # Fill in DEEPSEEK_API_KEYS / GEMINI_API_KEY / ANTHROPIC_API_KEY
+
+# Verify environment (should pass 1350+ tests)
+python3 -m pytest tests/ -q
+
+# Run a smoke test (100 agents × 1 day, ~10 min, validates the whole pipeline)
+python3 tools/run_variant_suite.py --variants baseline hyperlocal_push \
+  --seeds 1 --num-days 1 --agents 100 --num-protagonists 50 \
+  --mode smoke --use-aitown --aitown-provider deepseek
+
+# See outputs (heatmap + markdown report + JSON data)
+ls data/experiments/<latest_timestamp>_<suite>/
 ```
 
-Output: `data/fitness-report.json` (not committed — it's a point-in-time snapshot).
+**Full-scale publishable runs** (1000 agents × 14 days × 4 variants × 4 seeds) take ~20-30 hours on a single machine and ~50 GB of disk. That's the paper-grade run, not the daily verification path.
 
-Each audit result carries one of three statuses:
+### 6. Project Structure
 
-| status | meaning |
+Main code lives in `synthetic_socio_wind_tunnel/`, sliced via CQRS:
+
+```
+synthetic_socio_wind_tunnel/
+├── atlas/          🎭 Static map (read-only: walls, doors, containers)
+├── ledger/         📋 Dynamic state (read-write: positions, items)
+├── engine/         ⚙️  Write ops (movement, door interactions, detail generation)
+├── perception/     📷 Read ops (per-agent subjective view rendering)
+├── agent/          🧠 Agent decision stack (perceive → plan → act)
+├── memory/         💾 Long-term memory (ai-town port: reflection, importance, retrieval)
+├── orchestrator/   🎬 Master control: clock, variants, resume, snapshot
+├── observability/  📡 Instrumentation (memstat / events / llm.jsonl)
+└── run_resilience/ 🛡️  Mid-run resume, watchdog, graceful-stop
+```
+
+Tooling in `tools/` (run scripts, viz, monitors, preflight gates) and tests in `tests/` (1350+ tests).
+
+### 7. Documentation Map
+
+| You want to know | Look here |
 |---|---|
-| `pass` | Phase 1 supports this check |
-| `fail` | Phase 1 has a gap; `mitigation_change` points at which Phase 2 capability must fix it |
-| `skip` | Expected gap (e.g. "no per-agent task store yet"); `mitigation_change` identifies the capability that will add it |
+| Public-facing overview | [`docs/项目产出物.html`](docs/项目产出物.html) |
+| Current status / WIP | [`docs/项目状态.md`](docs/项目状态.md) |
+| Research hypothesis + experimental design | [`docs/agent_system/00-thesis.md`](docs/agent_system/00-thesis.md) + [`docs/agent_system/13-research-design.md`](docs/agent_system/13-research-design.md) |
+| Agent system architecture | [`docs/agent_system/01-overview.md`](docs/agent_system/01-overview.md) through `18-validation-strategy.md` |
+| Map pipeline | [`docs/map_pipeline/`](docs/map_pipeline/) |
+| Engineering conventions + invariants | [`CLAUDE.md`](CLAUDE.md) (LLM-collaboration guide, also human-readable) |
+| Known limitations + ethics | [`docs/limitations-ethics.md`](docs/limitations-ethics.md) |
 
-Phase 2 change proposals **SHALL** cite at least one `fail` or `skip` entry in
-their `## Why` section so every capability has documented motivation tied back
-to observed infrastructure gaps.
+### 8. Research Posture (Important)
 
-See `openspec/changes/realign-to-social-thesis/` for the design rationale and
-`docs/agent_system/07-审计报告解读.md` for how to read the report.
+This is an **exploratory research instrument** — closer to a physics cloud chamber (a device that lets invisible particles leave visible tracks) than to a deployable policy engine.
 
----
+- **Not a policy engine**: The goal is to make *attention-induced nearby blindness* **visible and discussable**, not to ship deployable recommendations.
+- **Dual-use explicit**: Every intervention has a "mirror" version (same mechanism, opposite direction). Both hands on the table.
+- **No deployment endorsement**: An effective intervention in simulation does *not* mean it's ready for real residents. Real deployment requires consent, governance, feedback — all out of scope here.
+- **Rigor threshold**: Publishable effect sizes use **4 seeds × 14 days**, reported as median + interval. Single-run numbers are preliminary.
 
-## Context
-
-This project responds to the design brief *Border Crossings: Instruments of Erasure and Infiltration* — exploring new forms of social boundary that emerge at the intersection of digital and physical space in contemporary cities, and designing tools to penetrate them.
-
-**Disciplines:** Social Design · Computational Social Science · Interactive System Design
-
-**Site:** High-density urban residential communities (reference case: Zetland/Green Square, Sydney)
+Canonical statements: [`docs/agent_system/13-research-design.md`](docs/agent_system/13-research-design.md) and [`docs/agent_system/18-validation-strategy.md`](docs/agent_system/18-validation-strategy.md).
 
 ---
 
-## Data sources & attribution
+## 数据来源与许可 · Data Sources & Attribution
 
-The Lane Cove reference region is built from public geospatial data:
+Lane Cove 参考区域的地图数据来自公开地理数据集 · The Lane Cove reference region is built from public geospatial data:
 
-| Source | Role | License |
+| 来源 Source | 用途 Role | 许可 License |
 |---|---|---|
 | **OpenStreetMap** (via Overpass) | Roads, buildings, land use | [ODbL 1.0](https://www.openstreetmap.org/copyright) — © OpenStreetMap contributors |
 | **Overture Maps Foundation** — Buildings & Places themes | Building footprints + POI enrichment | [Overture attribution](https://docs.overturemaps.org/attribution/) — mixed ODbL / CDLA-P 2.0 |
 | **Geoscape G-NAF** | Optional address-level resolution (not yet wired) | [Open G-NAF EULA](https://data.gov.au/data/dataset/geocoded-national-address-file-g-naf) — © Geoscape Australia |
 | **Microsoft Global ML Building Footprints** | Reserved as fallback for geometry gaps | [CDLA-Permissive 2.0](https://github.com/microsoft/GlobalMLBuildingFootprints) |
-| **NSW DCS Spatial Services — Geoscape Buildings** | *Not used* (public-sector only) | — |
 
-Derived artifacts committed under `data/` (e.g. `lanecove_osm.geojson`,
-`lanecove_enriched.geojson`, `lanecove_atlas.json`) are combinations of the
-above; each downstream consumer must keep the attributions above intact.
+衍生 artifact(`data/lanecove_*.json`)是多份数据的组合;下游使用者需保留以上署名。
+Derived artifacts under `data/` are combinations of the above; downstream consumers must keep the attributions intact.
+
+## 引用 · Citation
+
+如果本项目对你的研究有启发,请引用 · If this work informs yours, please cite:
+
+```bibtex
+@misc{synthetic_socio_wind_tunnel_2026,
+  title = {Synthetic Socio Wind Tunnel: A Multi-Agent Urban Simulation
+           for Attention-induced Nearby Blindness},
+  author = {Zhou, York},
+  year = {2026},
+  url = {https://github.com/york-zhouuu/-Synthetic-Socio-Wind-Tunnel-}
+}
+```
 
 ## License
 
-MIT (for project code).  Map data remains under the licences above.
+代码:MIT(见 [LICENSE](LICENSE))。地图数据保留各自许可(见上表)。
+Code: MIT (see [LICENSE](LICENSE)). Map data remains under the licenses above.
+
+API keys(DeepSeek / Anthropic / Gemini)永远不进 git——见 `.env.example` 列出所需变量。
+API keys are never committed; see `.env.example` for the variables you'll need.
