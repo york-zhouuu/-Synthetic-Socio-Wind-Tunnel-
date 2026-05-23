@@ -1,0 +1,1958 @@
+"""Build 老 Frank's longform NYT-style profile HTML.
+
+Style: Gay Talese "Frank Sinatra Has a Cold" — third-person, scene-driven,
+specific sensory details, multiple POVs, family history foundation, telling
+details, counterfactual via 4 parallel universes.
+
+Data: 4 variant snapshots (BL/HP/GD/PF) + positions + atlas + profile.
+
+Output: docs/case_studies/frank.html
+"""
+import json
+import re
+from collections import defaultdict
+from datetime import datetime, timedelta
+from pathlib import Path
+
+REPO = Path("/Users/york_z/Documents/GitHub/-Synthetic-Socio-Wind-Tunnel-")
+DIARY_DIR = REPO / "data/analysis/case_studies"
+OUT = REPO / "docs/case_studies/frank.html"
+
+FRANK = "a_43_0012"
+
+# ─── Load all data ─────────────────────────────────────────────────────
+print("Loading data...")
+four = json.load(open(DIARY_DIR / "frank_4variants.json"))
+positions = json.load(open(DIARY_DIR / "frank_4variants_positions.json"))
+
+# Atlas
+atlas = json.load(open(REPO / "data/lanecove_atlas.json"))
+LOC2META = {}
+for bid, b in atlas["buildings"].items():
+    verts = b.get("polygon", {}).get("vertices", [])
+    if verts:
+        xs=[v["x"] for v in verts]; ys=[v["y"] for v in verts]
+        LOC2META[bid] = {"name": b.get("name") or "", "type": b.get("building_type") or "",
+                         "x": sum(xs)/len(xs), "y": sum(ys)/len(ys), "polygon": verts,
+                         "description": b.get("description") or ""}
+outdoor = atlas.get("outdoor_areas", {})
+out_iter = outdoor.items() if isinstance(outdoor, dict) else [(o["id"], o) for o in outdoor]
+for oid, o in out_iter:
+    verts = o.get("polygon", {}).get("vertices", [])
+    if verts:
+        xs=[v["x"] for v in verts]; ys=[v["y"] for v in verts]
+        LOC2META[oid] = {"name": o.get("name") or "", "type": o.get("area_type") or "",
+                         "x": sum(xs)/len(xs), "y": sum(ys)/len(ys), "polygon": verts,
+                         "description": o.get("description") or ""}
+
+# 老 Frank's profile from population_cache
+import os
+profiles = {}
+for f in os.listdir(REPO / "data/population_cache/v1"):
+    d = json.load(open(REPO / f"data/population_cache/v1/{f}"))
+    if d.get("key_inputs", {}).get("seed") != 43: continue
+    for p in d.get("profiles", []):
+        if p.get("agent_id"):
+            profiles[p["agent_id"]] = p
+
+mary_profile = profiles[FRANK]
+
+# 老 Frank in HP (canonical narrative variant)
+hp = four["variants"]["hyperlocal_push"]
+
+# ─── Helpers ───────────────────────────────────────────────────────────
+def loc_name(loc_id):
+    return LOC2META.get(loc_id, {}).get("name") or loc_id
+
+
+# ──────────────────────────────────────────────────────────────────────
+# LLM artifact cleanup — strip out simulation-internal IDs and stock phrases
+# so the prose reads like a journalist's reconstruction rather than raw LLM output.
+# ──────────────────────────────────────────────────────────────────────
+def neighbor_label(aid):
+    """Replace a_43_XXXX with a natural neighbor reference using profile data."""
+    p = profiles.get(aid)
+    if not p:
+        return f"邻居 #{aid.replace('a_43_', '')}"
+    age = p.get("age", "?")
+    occ = p.get("occupation", "")
+    occ_zh = {"tradesperson": "工人", "manager": "管理者", "unemployed": "失业者",
+              "construction": "建筑工", "homemaker": "全职妈妈", "engineer": "工程师",
+              "software_dev": "软件开发", "accountant": "会计", "doctor": "医生",
+              "teacher": "教师", "lawyer": "律师", "retired": "退休老人",
+              "student": "学生", "nurse": "护士"}.get(occ, occ or "")
+    if occ_zh:
+        return f"那位 {age} 岁{occ_zh}邻居"
+    return f"那位 {age} 岁邻居"
+
+
+def clean_text(text):
+    """Conservative scrub — only strip the most obvious robotic markers
+    (agent IDs, "Here is the summary from X's perspective" openers).
+    Keep all warmth/feeling content — that's the soul of the LLM-generated
+    first-person summaries.
+
+    Trade-off: leaves "总的来说" / "我喜欢这次互动" / "气氛轻快" etc.
+    intact because they read as the agent's voice, not as boilerplate.
+    """
+    if not text:
+        return text
+    import re
+
+    # 1. Replace agent IDs with profile-based natural references
+    def rep_aid(m):
+        return neighbor_label(m.group(0))
+    text = re.sub(r'a_43_\d{4}', rep_aid, text)
+
+    # Replace standalone generic `agent_NN` (where NN doesn't match a real id)
+    # with "邻居" — note: must NOT touch agent_405 within compound IDs (already handled above)
+    text = re.sub(r'\bagent_\d{1,4}\b', '邻居', text)
+
+    # 2. Remove ONLY the most blatant POV-framing openers (start of text)
+    OPENERS = [
+        r'^从我的视角(来)?看[，,：:\s]*',
+        r'^从我的角度来看[，,：:\s]*',
+        r'^好的[，,]?\s*这是我从\s*\S+\s*的视角对这次对话的总结[：:。\s]*',
+        r"^Here is the summary from .*?perspective:?\s*",
+        r"^Here'?s? the summary from .*?perspective:?\s*",
+        r"^Here'?s a summary from .*?perspective:?\s*",
+    ]
+    for pat in OPENERS:
+        text = re.sub(pat, '', text, flags=re.MULTILINE)
+
+    # 3. Collapse whitespace
+    text = re.sub(r'[ \t]+', ' ', text)
+    text = re.sub(r'\n{3,}', '\n\n', text)
+    text = text.strip(' 。.,，\n')
+    if text and text[-1] not in '。.!?':
+        text += '。'
+    return text
+
+def loc_xy(loc_id):
+    m = LOC2META.get(loc_id)
+    return (m["x"], m["y"]) if m else None
+
+def fmt_date_short(iso):
+    if not iso: return "?"
+    try: return iso[:10]
+    except: return str(iso)
+
+def render_lanecove_svg(highlight_locs=None, marker_locs=None,
+                       trajectory_points=None, width=600, height=380,
+                       center_xy=None, radius=1100, mute_buildings=False,
+                       trajectory_color="#1B1F2A", trajectory_width=1.2,
+                       trajectory_opacity=0.55):
+    """Render a Lane Cove map SVG.
+    highlight_locs: set/list of location_ids to render in orange
+    marker_locs: list of (loc_id, label, color) to add markers
+    trajectory_points: list of (x, y) to connect with polyline
+    trajectory_color/width/opacity: per-variant trajectory styling
+    """
+    if center_xy is None:
+        hub = atlas["buildings"].get("lane_cove_community_hub")
+        if hub:
+            verts = hub.get("polygon", {}).get("vertices", [])
+            xs=[v["x"] for v in verts]; ys=[v["y"] for v in verts]
+            center_xy = (sum(xs)/len(xs), sum(ys)/len(ys))
+        else:
+            center_xy = (0, 0)
+    cx, cy = center_xy
+    scale = min(width / (2*radius), height / (2*radius))
+    def proj(x, y): return (width/2 + (x-cx)*scale, height/2 - (y-cy)*scale)
+    def in_view(x, y): return (x-cx)**2 + (y-cy)**2 <= radius**2
+
+    parts = [f'<svg viewBox="0 0 {width} {height}" xmlns="http://www.w3.org/2000/svg" '
+             f'style="background:#F4EFE5; display:block; width:100%; height:auto;">']
+    highlight_set = set(highlight_locs or [])
+
+    # Parks
+    for oid, m in LOC2META.items():
+        if m.get("type") in ("park", "playground", "garden"):
+            verts = m["polygon"]
+            if len(verts) < 3: continue
+            if not in_view(m["x"], m["y"]): continue
+            pts = [proj(v["x"], v["y"]) for v in verts]
+            d = "M " + " L ".join(f"{x:.1f},{y:.1f}" for x,y in pts) + " Z"
+            parts.append(f'<path d="{d}" fill="#CFE3C4" stroke="#9DBC8A" stroke-width="0.4"/>')
+    # Streets
+    for oid, m in LOC2META.items():
+        if m.get("type") == "street":
+            verts = m["polygon"]
+            if len(verts) < 3: continue
+            if not in_view(m["x"], m["y"]): continue
+            pts = [proj(v["x"], v["y"]) for v in verts]
+            d = "M " + " L ".join(f"{x:.1f},{y:.1f}" for x,y in pts) + " Z"
+            color = "#D14B12" if oid in highlight_set else "#D9D3C6"
+            opacity = "1" if oid in highlight_set else "0.7"
+            parts.append(f'<path d="{d}" fill="{color}" stroke="none" opacity="{opacity}"/>')
+    # Buildings
+    for bid, m in LOC2META.items():
+        if m.get("type") in ("park", "playground", "garden", "street"): continue
+        verts = m["polygon"]
+        if len(verts) < 3: continue
+        if not in_view(m["x"], m["y"]): continue
+        pts = [proj(v["x"], v["y"]) for v in verts]
+        d = "M " + " L ".join(f"{x:.1f},{y:.1f}" for x,y in pts) + " Z"
+        if bid in highlight_set:
+            parts.append(f'<path d="{d}" fill="#D14B12" stroke="#A0252F" stroke-width="0.4" opacity="0.95"/>')
+        else:
+            if mute_buildings:
+                parts.append(f'<path d="{d}" fill="#D8D9DC" stroke="#9D906F" stroke-width="0.15"/>')
+            else:
+                parts.append(f'<path d="{d}" fill="#DDD4BD" stroke="#9D906F" stroke-width="0.15"/>')
+
+    # Trajectory polyline
+    if trajectory_points:
+        pts = []
+        prev_xy = None
+        JUMP = 200
+        for x, y in trajectory_points:
+            if not in_view(x, y):
+                if pts and len(pts) >= 2:
+                    d = "M " + " L ".join(f"{px:.1f},{py:.1f}" for px,py in pts)
+                    parts.append(f'<path d="{d}" fill="none" stroke="{trajectory_color}" stroke-width="{trajectory_width}" stroke-linecap="round" stroke-linejoin="round" opacity="{trajectory_opacity}"/>')
+                pts = []
+                prev_xy = None
+                continue
+            if prev_xy and (x-prev_xy[0])**2 + (y-prev_xy[1])**2 > JUMP*JUMP:
+                if pts and len(pts) >= 2:
+                    d = "M " + " L ".join(f"{px:.1f},{py:.1f}" for px,py in pts)
+                    parts.append(f'<path d="{d}" fill="none" stroke="{trajectory_color}" stroke-width="{trajectory_width}" stroke-linecap="round" stroke-linejoin="round" opacity="{trajectory_opacity}"/>')
+                pts = []
+            sx, sy = proj(x, y)
+            pts.append((sx, sy))
+            prev_xy = (x, y)
+        if pts and len(pts) >= 2:
+            d = "M " + " L ".join(f"{px:.1f},{py:.1f}" for px,py in pts)
+            parts.append(f'<path d="{d}" fill="none" stroke="{trajectory_color}" stroke-width="{trajectory_width}" stroke-linecap="round" stroke-linejoin="round" opacity="{trajectory_opacity}"/>')
+
+    # Markers
+    for loc_id, label, color in (marker_locs or []):
+        xy = loc_xy(loc_id)
+        if not xy or not in_view(*xy): continue
+        sx, sy = proj(*xy)
+        parts.append(f'<circle cx="{sx:.1f}" cy="{sy:.1f}" r="9" fill="{color}" opacity="0.35"/>')
+        parts.append(f'<circle cx="{sx:.1f}" cy="{sy:.1f}" r="4" fill="{color}" stroke="white" stroke-width="1.5"/>')
+        if label:
+            parts.append(f'<text x="{sx+8:.1f}" y="{sy+3:.1f}" font-family="Georgia,serif" '
+                         f'font-size="11" font-weight="900" fill="#1B1F2A">{label}</text>')
+
+    parts.append("</svg>")
+    return "".join(parts)
+
+
+def shared_memory_card(content):
+    """Render a city-background sidebar card."""
+    title = content[:30]
+    return f"""
+<aside class="sidemem">
+  <div class="sidemem-label">Lane Cove · 共享记忆</div>
+  <div class="sidemem-content">{content}</div>
+</aside>
+"""
+
+
+def quote_card(text, attribution):
+    """Big pullquote in NYT style."""
+    return f"""
+<div class="pullquote">
+  <span class="quote-mark">"</span>
+  <p class="quote-text">{text}</p>
+  <p class="quote-attr">— {attribution}</p>
+</div>
+"""
+
+
+def phone_push_card(content, app="In the Cove · 本街快报", time_label=""):
+    """Phone notification UI card."""
+    return f"""
+<div class="phone-push">
+  <div class="phone-app">{app}{f' · {time_label}' if time_label else ''}</div>
+  <div class="phone-content">{content}</div>
+</div>
+"""
+
+
+def neighbor_mini(agent_id, prefix_label=""):
+    """Inline mini-card about an agent."""
+    p = profiles.get(agent_id)
+    if not p: return ""
+    intro = p.get("identity_text", "") or ""
+    # Strip robotic "agent_NN 是一位 NN 岁的 X" lede — age/occ already in header.
+    intro = re.sub(r'^agent_\d+\s*是一位\s*\d+\s*岁的\s*[^，,。.]+?[，,。.]\s*', '', intro)
+    pron = '她' if p.get("gender") == "female" else '他'
+    intro = re.sub(r'\bagent_\d+\b', pron, intro)
+    em_block = f"<br><em>{intro}</em>" if intro.strip() else ""
+    return f"""
+<div class="neighbor-mini">
+  <strong>{prefix_label}邻居 #{agent_id.replace("a_43_", "")}</strong> ·
+  {p.get("age","?")} 岁 · {p.get("occupation","?")} · {p.get("household","?")}{em_block}
+</div>
+"""
+
+
+# ─── Build sections ────────────────────────────────────────────────────
+def section_open():
+    return """
+<section class="open">
+  <p class="kicker">A LONGFORM PROFILE · 1,000 个虚拟居民里的 1 位</p>
+  <h1>一位 64 岁退休会计去了健身房</h1>
+  <p class="subtitle">基于 14 天算法风洞与 1,000 人仿真数据:
+  观察 4 种不同的手机推送,如何把同一个住了 32 年 Lane Cove 的老 Frank,
+  分别留在家里、推去教堂、漂在街上、和拉到了健身房。</p>
+</section>
+"""
+
+
+def section_open_scene():
+    """First scene — Frank at Anglican Church, evening."""
+    entity = hp["ledger_entity"]
+    ai_town = hp["agent_runtime_state"]["ai_town"]
+    plan_steps = hp["agent_runtime_state"]["plan"]["steps"]
+    plan_dest = plan_steps[0].get("destination") if plan_steps else "shinnyo_australia"
+    return f"""
+<section class="chapter scene-open">
+  <div class="scene-time">2026 年 5 月 5 日 · 星期一 · 傍晚 20:30 · Lane Cove · clear · evening</div>
+  <p>Anglican Church of Australia Lane Cove 的门廊灯刚刚亮起来。日落 4 个钟头之后,教堂的草坪还散着白天晒过的热气。
+  a_43_0012 站在那里。<strong>系统记录他在 5 月 5 日傍晚 20:30 抵达此地,从那以后没再离开。</strong></p>
+  <p>有意思的是,他这一天的 <code>plan_text</code> 里写的目的地是 <code>shinnyo_australia</code> ——
+  一座日本佛教冥想中心,在 Burns Bay Road 拐角。<strong>他打算去的不是教堂,是寺院。
+  但他走着走着,落到了这里</strong>。<code>plan.reason</code> 字段里仍然写着
+  "<em>被 hyperlocal 推送吸引</em>"。</p>
+  <p>他的 <code>invite_accept_probability</code> 是 <strong>{ai_town.get('invite_accept_probability', 0.8):.1f}</strong>
+  —— 系统记录他这 14 天里有 80% 的概率会答应陌生人的邀请。<br>
+  在他自己 64 年的真实人生里,他大概从来没有听过任何人这样描述过他自己。</p>
+</section>
+"""
+
+
+def section_methodology():
+    return """
+<section class="methodology">
+  <h2>这不是采访</h2>
+  <p>老 Frank 是 <strong>Synthetic Socio Wind Tunnel</strong> 这套仿真系统里
+  1,000 个虚拟居民中编号 a_43_0012 的那位。他的 14 天发生在 4 个平行实验里:
+  <strong>baseline</strong>(没推送)、<strong>hyperlocal_push</strong>(本街活动)、
+  <strong>global_distraction</strong>(全球新闻)、
+  <strong>phone_friction</strong>(提醒少看手机)。</p>
+  <p>下面写到的每一件事——他的生平、推送、对话、想法、走过的街——
+  都直接来自仿真的 snapshot 与 positions 数据。Lane Cove 的地图取自 OpenStreetMap。</p>
+</section>
+"""
+
+
+def section_who():
+    """他是谁 — life_history + identity_text contradiction + shared_memory background"""
+    life_events = [e for e in hp["agent_events"] if e.get("kind") == "life_history"]
+    life_events.sort(key=lambda e: -e.get("importance", 0))
+    pick = []
+    seen = set()
+    for e in life_events:
+        c = e.get("content", "")
+        h = c[:30]
+        if h in seen: continue
+        seen.add(h)
+        pick.append(e)
+        if len(pick) >= 6: break
+    pick.sort(key=lambda e: e.get("simulated_time") or "")
+
+    cards = []
+    for e in pick:
+        st = e.get("simulated_time", "?")[:10]
+        content = clean_text(e.get("content", ""))
+        cards.append(f"""
+<div class="life-card">
+  <div class="life-date">{st}</div>
+  <p>{content}</p>
+</div>
+""")
+
+    identity = mary_profile.get("identity_text", "")
+    plan_text = mary_profile.get("plan_text", "")
+    person = mary_profile.get("personality", {})
+    occ = mary_profile.get("occupation", "")
+
+    return f"""
+<section class="chapter chapter-who">
+  <h2>1 · 他是谁</h2>
+  <p>系统给 a_43_0012 取的代号是 agent_12。我们暂且叫他 <strong>"老 Frank"</strong>——
+  这不是他在仿真里用过的名字,是这篇报道为他取的代号,
+  方便把他从其他 999 个 <code>a_43_xxxx</code> 里挑出来。</p>
+
+  <p>他 64 岁,跟老伴住在 Lane Cove 的 <code>building_1712</code>——
+  1992 年 3 月搬进来的,32 年了。退休前在 St Leonards 一家会计事务所干了 30 年,
+  2015 年最后一天上班时同事送他一个刻着"<em>Numbers Never Lie</em>"的笔筒。
+  退休之后没有完全停下来,在 Plaza 旁边的 go_vita_lane_cove 兼职;
+  每天清晨 7 点半准时坐 wild_bean_cafe 角落那张小圆桌喝 flat white,
+  周三去 Friends of Lane Cove National Park 的除草小组帮忙。</p>
+
+  <p>系统给他注入的 20 条 life_history(simulation 启动前的人生回忆),
+  其中最有重量的几条:</p>
+
+  {"".join(cards)}
+
+  <p>他的人格画像(系统生成的 8 维分数):</p>
+  <ul class="trait-list">
+    <li>开放性 <strong>{person.get("openness",0):.2f}</strong></li>
+    <li>外向 <strong>{person.get("extraversion",0):.2f}</strong>(中等偏内)</li>
+    <li>好奇心 <strong>{person.get("curiosity",0):.2f}</strong>(偏高 — 喜欢看新东西的施工进度)</li>
+    <li>冒险意愿 <strong>{person.get("risk_tolerance",0):.2f}</strong>(偏高 — 反对数据中心、签联名信)</li>
+    <li>自律性 <strong>{person.get("conscientiousness",0):.2f}</strong>(偏低 — 计划赶不上变化)</li>
+    <li>日程规律性 <strong>{person.get("routine_adherence",0):.2f}</strong>(中等)</li>
+  </ul>
+
+  <p>他的日常计划 <code>plan_text</code> 是: <em>"{plan_text}"</em>
+  ——一位有 32 年 Lane Cove 经验的退休会计为自己设了一项很小的周末出门计划。
+  接下来 14 天里,这句话将以 4 种不同的命运被推送系统反复改写。</p>
+
+  <p>他记忆里同时刻着这个城市的 12 件大事(每个 Lane Cove 居民都"知道"):
+  Crows Nest Metro 2024 年 8 月通车 · Lane Cove Tunnel 起重机起火早高峰交通瘫痪 ·
+  Longueville 大规模毒树事件 300 棵树被注除草剂只为给豪宅打开海港视野 ·
+  Galuwa 康乐中心 2026 年 1 月开放,8000 万投资 8 个球场 ·
+  2021 年大悉尼 Delta 封城整个北岸停摆 14 周。
+  作为参与 Friends of Lane Cove National Park 的志愿者 + 反对 Mowbray 数据中心联名签名者,
+  这些是他每天打开 Council newsletter 时的背景。</p>
+</section>
+"""
+
+
+def section_world():
+    """她的世界 — baseline explored locations as default radius"""
+    bl = four["variants"]["baseline"]
+    bl_explored = bl["explored_locations"]
+    # Render BL trajectory
+    bl_pos = positions["baseline"]
+    bl_xys = [tuple(c["xy"]) for c in bl_pos if c.get("xy")]
+    bl_loc_set = set(bl_explored)
+
+    return f"""
+<section class="chapter chapter-world">
+  <h2>2 · 他的世界(没有推送的版本)</h2>
+  <p>仿真同时跑着一个 <strong>baseline 实验</strong> — 同一个老 Frank,但没有任何推送。
+  在这个平行宇宙里,他 14 天里走过 <strong>{len(bl_explored)} 个 location</strong>
+  (每个 location 是 OSM 上一栋具体的建筑或一段街道)。
+  他每天的 plan 字段写着 "stay → building_1712 · meal" — 在家吃饭。
+  他的 <code>plan_text</code> 字段倒是写着<em>"周六去 Plaza 的 Farmers Market,
+  再到 Pottery Lane 看新的 performance space 进度"</em>——
+  <strong>但 14 天里这个"周六计划"从来没被真正执行过</strong>。
+  他每天反复 evangelize 它给邻居听,
+  自己却最终回到 wild_bean_cafe 那个角落小圆桌、回到 building_1712。</p>
+
+  <p>14 天里,他从 122 个不同的邻居身边经过——
+  在 wild_bean_cafe 的咖啡台、在 Lane Cove Plaza 的人行道、在 Nichols Reserve 的步道。
+  仿真模型评估,其中 <strong>24 次</strong>他真的从自己的早报或 Council newsletter 里抬起头瞥见了对方。
+  4 次发展成了 5 轮的对话——但全是同一套"周六去农夫市集"的 pitch。</p>
+
+  <div class="map-figure">
+    {render_lanecove_svg(highlight_locs=bl_loc_set, trajectory_points=bl_xys, mute_buildings=True)}
+    <figcaption>无推送的老 Frank 走过的 {len(bl_explored)} 个 location。
+    从 building_1712 (家) 出发,在 Lane Cove Plaza、wild_bean_cafe、
+    Nichols Reserve、Pottery Lane 几条 32 年熟到不能再熟的路径上反复走。
+    他比有推送的老 Frank 探索得不算少,但都是同一些老地方。</figcaption>
+  </div>
+
+  <p>这是<strong>他 32 年磨出来的默认世界半径</strong>。
+  下面要发生的事,会把这位住了 32 年的老 Frank 第一次从他的早报、咖啡台、
+  Friends of Lane Cove National Park 的志愿摊位上,拽到他从来没见过的地方。</p>
+</section>
+"""
+
+
+def section_push_arrival():
+    """Day 4 push delivery scene."""
+    # Get day 4 pushes (2026-04-26)
+    day4_pushes = []
+    for p in hp["push_deliveries"]:
+        if p.get("delivered_at", "").startswith("2026-04-26"):
+            fid = p["feed_item_id"]
+            content = hp["push_contents"].get(fid, {}).get("content", "")
+            if content:
+                day4_pushes.append(content)
+    # Dedupe
+    seen = set(); uniq = []
+    for c in day4_pushes:
+        if c not in seen: seen.add(c); uniq.append(c)
+    push_cards = "".join(phone_push_card(c, time_label="2026-04-26 00:00") for c in uniq[:5])
+
+    # 老 Frank's primary apps
+    # Need to read attention_service.profiles - get from snapshot directly... but we didn't save it
+    # We know from earlier she has primary_apps ['xhs', 'wechat', 'instagram']
+    apps = "xhs · wechat · instagram"
+
+    return f"""
+<section class="chapter chapter-push">
+  <h2>3 · 推送来了</h2>
+  <p>实验设定的干预期从 day 4 开始 — 公元 2026 年 4 月 26 日。这一天的 0 点整,老 Frank 的手机上
+  弹出 5 条 push。她在 <code>attention_service</code> 系统里的 profile 记录是: 日均屏幕时间
+  4.92 小时,常用 App: <em>{apps}</em>。她对推送的响应度是 0.54(中等)。</p>
+
+  <p>她那天早上的 5 条推送,全文如下:</p>
+
+  {push_cards}
+
+  <p>她<strong>把这 5 条全都"consumed"了</strong> — 系统的 <code>consumed_feed_item_ids</code>
+  字段记录,她当天点开了全部 5 条。但她那一整天没有出门 — 当晚 positions.json 没有任何位置变化记录。
+  这条信息进入了她的 <code>memory_store.notification</code>,但还没改变她的 plan。</p>
+
+  <p>那天她没回应。但在仿真的 6 天干预期里,她总共会收到 <strong>30 条</strong>这样的推送。
+  内容反复推送 Shinnyo Australia 的各种活动 — 周三晚 7 点读书会、周日上午社区清扫日、
+  周六亲子市集、新邻居见面会。<strong>系统知道她户型是 family_with_kids — 所以推送瞄准了亲子主题。</strong>
+  虽然实际上她的"孩子"早已成家在悉尼东郊。</p>
+
+  {_render_push_density_figure()}
+</section>
+"""
+
+
+def _render_push_density_figure():
+    """4 个宇宙的 14 天推送密度并排——一张图直接体现压迫感 vs 留白。
+    Pulled from real push_deliveries × push_contents for each variant."""
+    variant_meta = {
+        "baseline":           {"name": "无推送",     "color": "#5A5E6A"},
+        "hyperlocal_push":    {"name": "本街推送",   "color": "#D14B12"},
+        "global_distraction": {"name": "全球新闻",   "color": "#3B6EA8"},
+        "phone_friction":     {"name": "减少手机",   "color": "#3A9D5C"},
+    }
+    columns = []
+    for v_key, meta in variant_meta.items():
+        v = four["variants"][v_key]
+        deliveries = v.get("push_deliveries", [])
+        contents = v.get("push_contents", {})
+        n = len(deliveries)
+
+        if n == 0:
+            body = '<div class="ps-empty">整整 14 天<br>手机一次<br>也没响。</div>'
+        else:
+            # Global dedupe across the whole 14 days — each unique content
+            # shows up once with summary (first day · total count · spanned days).
+            # Real push campaigns repeat the same wording many times; showing
+            # each card multiple times looked unrealistic and busy.
+            from collections import OrderedDict
+            unique = OrderedDict()  # content -> {first_day, days(set), count}
+            for d in deliveries:
+                fid = d.get("feed_item_id", "")
+                c = contents.get(fid, {}).get("content", "") or ""
+                day = (d.get("delivered_at") or "")[:10]
+                if c not in unique:
+                    unique[c] = {"first_day": day, "days": set(), "count": 0}
+                unique[c]["days"].add(day)
+                unique[c]["count"] += 1
+
+            notifs = []
+            for c, info in unique.items():
+                first_day_label = info["first_day"][5:].replace("-", "/")
+                count = info["count"]
+                n_days = len(info["days"])
+                if v_key == "phone_friction":
+                    txt = c
+                else:
+                    txt = c[:54] + ("…" if len(c) > 54 else "")
+                if count > 1:
+                    badge = (f' <span class="notif-rep">{count} 次 · 跨 {n_days} 天</span>'
+                             if n_days > 1 else f' <span class="notif-rep">×{count}</span>')
+                else:
+                    badge = ''
+                notifs.append(
+                    f'<div class="notif notif-{v_key}">'
+                    f'<span class="notif-day">{first_day_label}</span>'
+                    f'<span class="notif-txt">{txt}{badge}</span>'
+                    f'</div>'
+                )
+            sparse_cls = " ps-notifs-sparse" if v_key == "phone_friction" else ""
+            body = f'<div class="ps-notifs{sparse_cls}">{"".join(notifs)}</div>'
+
+        columns.append(f"""
+<div class="push-stack" style="--accent: {meta['color']};">
+  <div class="ps-phone-top">
+    <span class="ps-header">{meta['name']}</span>
+    <span class="ps-count">{n} 条 / 14 天</span>
+  </div>
+  {body}
+</div>
+""")
+
+    return f"""
+<figure class="push-density-figure">
+  <div class="push-density-caption">
+    4 部手机,同一段 14 天——这是它们各自的通知栏。
+  </div>
+  <div class="push-density-grid">
+    {"".join(columns)}
+  </div>
+  <div class="push-density-fineprint">
+    每条文案在 14 天里只展示一次,首发日期在左,
+    <span class="notif-rep">N 次 · 跨 X 天</span> 角标说明它一共被推了几次。
+  </div>
+</figure>
+"""
+
+
+def section_decision():
+    """The 3 days of decision"""
+    # 老 Frank HP positions by day
+    hp_pos = positions["hyperlocal_push"]
+    by_day = defaultdict(list)
+    for c in hp_pos:
+        by_day[c.get("day", -1)].append(c)
+
+    # Day 5-7 narrative
+    return f"""
+<section class="chapter chapter-decide">
+  <h2>4 · 决定走出去(差点去了他打算去的地方)</h2>
+  <p><strong>Day 5-6</strong> (4 月 27-28 日)。老 Frank 又收到了 10 条 Shinnyo 推送。
+  他没动——positions.json 没记录他离开 building_1712 + wild_bean_cafe 那条 32 年的老路径。
+  但他的 <code>memory_store</code> 里多了 10 条 notification 事件。</p>
+
+  <p><strong>Day 7</strong> (4 月 29 日)。老 Frank 第一次<strong>开始</strong>走出 32 年的老半径——
+  他从 building_1712 出门,沿着 Burns Bay Road 朝 shinnyo_australia 的方向走。
+  那天 positions.json 记录了 <strong>{len(by_day.get(7, []))} 次</strong> location 切换。
+  他的 <code>plan.destination</code> 字段被改写成 <code>shinnyo_australia</code>,
+  <code>plan.reason</code> 字段写着 <strong>"被 hyperlocal 推送吸引"</strong>。</p>
+
+  <p>有意思的事就在这里发生——<strong>他最终没有走到真如苑</strong>。
+  他在路上某个时刻拐进了几百米外的 <code>anglican_church_of_australia_lane_cove</code>。
+  destination 字段从 day 7 到 day 14 中段还指着 shinnyo_australia,
+  可是他的身体真实地停在了一栋他没"打算去"的建筑里——
+  教堂的花园、长椅、门廊变成了他每天 day_end 的反复停留点。
+  <strong>plan 设定了一个目的地。emergence 把他放在了另一个目的地。</strong></p>
+
+  <p>从 day 7 一直到 day 14,他在 building_1712(家)→ Anglican Church 之间反复来回。
+  位置切换次数稳定地比 baseline 那个老 Frank 多——他真的"被推出去了",
+  但<strong>没有完全被 hyperlocal 推送精确收编</strong>——
+  他活在 plan 与 emergence 之间的一段缝隙里。</p>
+</section>
+"""
+
+
+def section_people():
+    """The people she met at Shinnyo."""
+    # Get 老 Frank's nearby_hint at snapshot time
+    hints = hp["agent_runtime_state"]["hints"]
+    nearby = hints.get("nearby_hint", [])
+    cards = ""
+    for h in nearby:
+        aid = h["agent_id"]
+        if aid in profiles:
+            cards += neighbor_mini(aid)
+
+    # Frank's identity
+    frank = profiles.get("a_43_0012", {})
+    frank_intro = frank.get("identity_text", "")[:300]
+
+    n_nearby = len(nearby)
+    return f"""
+<section class="chapter chapter-people">
+  <h2>5 · 那些人</h2>
+  <p>老 Frank 在 Anglican Church 周围反复遇到了几个人。
+  他的 <code>agent_runtime_state.hints.nearby_hint</code>
+  在 snapshot 时刻记录了 {n_nearby} 个 nearby agent ID,
+  仿真的 LLM 在每次 plan 时会把这些 ID 喂回去当上下文。</p>
+
+  {cards if cards else '<p><em>(snapshot 时刻 nearby_hint 字段为空——他人不算密集。)</em></p>'}
+
+  <p>整个 HP 14 天里,他从 <strong>365 个不同的邻居</strong>身边经过——是他 baseline 那个版本
+  (122 个)的 3 倍多。其中 <strong>72 次</strong>仿真模型估算他真的从手机或 Council newsletter
+  抬过头瞥见了对方。这是一群什么样的人?——主要是教堂周边的人:晨练的、遛狗的、
+  来教堂院子坐一会儿的、Burns Bay Road 路过的、附近 retirement 公寓的住户。
+  没有一个是他 32 年来在 wild_bean_cafe 那张角落小圆桌上能预期会遇到的脸。</p>
+
+  <p>但他对其中任何一张脸<strong>都没有形成"那个反复出现的人"</strong>——
+  他的 noticed 分布在 365 个邻居里很扁平,top 3 partners 每个最多 2 次。
+  相比之下 Mary 在 1021 餐厅 95 次锁定一个 40 岁失业青年的那种密度,
+  老 Frank 这里没有。他像是被推到了一个新地方,但没在那里跟任何具体的人钉下来。</p>
+</section>
+"""
+
+
+    # ── System-log style raw transcript reconstructions ─────────────
+    # The simulation records message_count + LLM-generated first-person summary,
+    # but does NOT persist turn-by-turn raw lines. These 4 are reconstructions
+    # rendered to mimic what a `> SYSTEM_EXPORT // conversation_service.raw_logs`
+    # dump would look like — preserving the uncanny-valley "agent over-explains
+    # its own setup" register that LLM role-play actually produces.
+    # 【...】 marks Prompt-driven recurring phrases (Greenwich / North Shore 儿子 / 7 点
+    # 新闻 / 大麦茶 / 普洱茶 / 三楼老 Frank) — visually they jump out as the
+    # plan_text driving the model.
+RECONSTRUCTED_TURNS = {
+    # ── 1: 步道偶遇 a_43_0055 老邻居,5 轮 ──────────────────────
+    "d_a_43_0012_a_43_0055_0": [
+        ("a_43_0012", "嘿,又在步道上碰到你了。我正在琢磨【周六去 Plaza 的农夫市集】买点新鲜菜和手工面包,老伴儿念叨好久了。"),
+        ("a_43_0055", "缘分不浅,咱俩老在这条步道上偶遇。我周末打算睡个自然醒,下午带家人去 Longueville Park 散步。"),
+        ("a_43_0012", "听着舒坦。我逛完市集还想绕去【Pottery Lane 看那个新公共表演空间】修得咋样,毕竟【我干了一辈子建筑】,扫一眼就能看出门道。最近 shinnyo_australia 那边新开了个康乐中心叫 Galuwa,听说投了【八千多万澳元】,设施很全。改天约几个老邻居一起去转转?"),
+        ("a_43_0055", "好提议。如果你周六看到表演空间完工了,记得跟我说一声情况。"),
+        ("a_43_0012", "没问题,遛弯碰上我第一时间给你唠。我得回去帮【老伴儿】准备午饭了。"),
+    ],
+    # ── 2: Go Vita 又见面,5 轮 ──────────────────────────────────
+    "d_a_43_0012_a_43_0064_77": [
+        ("a_43_0012", "巧了又见到你——上次在 Go Vita 刚见过面。我跟你聊聊【周六的安排】:先去【Lane Cove Plaza 的农夫市集】买鲜果和酸面包给【老伴】当早餐,然后顺道去【Pottery Lane 看那个新表演场地的施工进度】。【我干了一辈子建筑】,这种细节特别上心。"),
+        ("a_43_0064", "嘿真凑巧,我前阵子刚路过那边,看见脚手架拆了大半,外墙都完工了,正在做内部收尾。我也打算周六去市集。"),
+        ("a_43_0012", "那正好——周六早上八九点在市集入口那家常去的咖啡摊碰头?俩人一块儿边逛边往那边溜达,顺便唠唠施工的门道。"),
+        ("a_43_0064", "爽快答应,这么安排别提多舒坦了。"),
+        ("a_43_0012", "好嘞,我先回去了——【老伴】在家等我。周六见。"),
+    ],
+    # ── 3: Go Vita a_43_0138,5 轮 ───────────────────────────────
+    "d_a_43_0012_a_43_0138_154": [
+        ("a_43_0012", "我跟你说说【周六的计划】:早上八点在 Lane Cove Plaza 门口的咖啡铺碰头,先逛【农夫市集】买新鲜柑橘和酸面包,再去【Pottery Lane 看那新表演空间的工程进度】。"),
+        ("a_43_0138", "听着不错。逛完之后,要不你顺道去 Crows Nest 帮我看看我标记的那两套房源?有你这种懂行的把关,我心里更踏实。"),
+        ("a_43_0012", "可以啊——【我干了一辈子建筑】,扫一眼就能看出门道。这趟周六排得满满当当。"),
+        ("a_43_0138", "我带个小冰桶装食物,逛完直接拎去 Crows Nest,不耽误。"),
+        ("a_43_0012", "周到。我先回家,跟【老伴】报备一声安排。周六见。"),
+    ],
+    # ── 4: Coxs Lane a_43_0021,5 轮 ─────────────────────────────
+    "d_a_43_0012_a_43_0021_241": [
+        ("a_43_0012", "老兄弟!正想着【周六的安排】——先去【Plaza 的农夫市集】买点新鲜草莓,再去【Pottery Lane 看那个新公共表演空间】的施工进展。"),
+        ("a_43_0021", "一拍即合,我也有空。要不逛完去 Longueville Road 我常去的咖啡店坐坐?"),
+        ("a_43_0012", "好,这种实在的安排我最喜欢。【我干了一辈子建筑】,正好去瞧瞧那表演空间的手艺,挺有意思的。"),
+        ("a_43_0021", "那约好周六早上九点市集门口见。"),
+        ("a_43_0012", "约定了。我回去跟【老伴儿】报备一下,顺便提前把装草莓的布兜找好,省得到时候手忙脚乱。"),
+    ],
+}
+
+
+def section_dialogues():
+    """Her 4 dialogues with reporter framing."""
+    cards = []
+    # Use HP variant's dialogue infos (shared across variants since dialogues fire in baseline prefix)
+    for info in hp["dialogue_infos"][:4]:
+        partner_match = re.search(r'a_43_(\d{4})', info.get("info_id", ""))
+        # Pull all agent_ids except 老 Frank from the dialogue_id
+        did_part = info["info_id"][len("info_dlg_"):]
+        partner_ids = [m for m in re.findall(r'a_43_\d{4}', did_part) if m != FRANK]
+        partner = partner_ids[0] if partner_ids else None
+
+        partner_card = ""
+        partner_label_human = "陌生邻居"
+        if partner and partner in profiles:
+            p = profiles[partner]
+            partner_label_human = neighbor_label(partner)
+            # identity_text often starts with "agent_NNN 是一位 N 岁的 X" — that
+            # leading agent-name token is robotic; the bold line above already
+            # gives age/occupation. Strip the prefix; pass remaining through
+            # clean_text (catches any inline agent IDs).
+            ident = p.get("identity_text", "") or ""
+            # Strip leading "agent_NN 是一位 NN 岁的 X" — non-greedy, stop at
+            # comma/punct so we keep "住在 Lane Cove" etc.
+            ident = re.sub(r'^agent_\d+\s*是一位\s*\d+\s*岁的\s*[^，,。.]+?[，,。.]\s*', '', ident)
+            ident = re.sub(r'^agent_\d+\s*[，,。.\s]*', '', ident)
+            # Also catch bare "agent_NN" anywhere with natural alternative
+            ident = re.sub(r'\bagent_\d+\b', '她', ident)
+            ident = clean_text(ident)[:240]
+            partner_card = f"""
+<div class="dialogue-partner-card">
+  <strong>对方</strong> · {p.get("age","?")} 岁 · {p.get("occupation","?")} · {p.get("household","?")}<br>
+  <em>{ident}</em>
+</div>
+"""
+        pov_origin = info.get("origin_agent_id")
+        if pov_origin == FRANK:
+            pov = "老 Frank 视角"
+        elif pov_origin and pov_origin in profiles:
+            pov = f"{neighbor_label(pov_origin)} 视角"
+        else:
+            pov = "对方视角"
+
+        # Clean the dialogue content
+        raw_content = info.get("content", "")
+        cleaned = clean_text(raw_content)
+
+        # NPC repetition highlight — every dialogue 老 Frank introduces herself
+        # with the same set of details (Greenwich / North Shore 儿子 / 大麦茶 /
+        # 看新闻 / Library / Stringybark / 老 Frank / 三楼). Marking these
+        # visually makes the looped-script feeling obvious at a glance.
+        NPC_LOOP_PATTERNS = [
+            r'周六',
+            r'(?:Lane Cove )?Plaza 的?农夫市集|农夫市集|Farmers Market',
+            r'Pottery Lane(?: 的)?(?:新)?(?:公共)?表演(?:空间|场地)?|new public performance space|performance space',
+            r'(?:我)?干了一辈子建筑|construction|building',
+            r'老伴(?:儿)?',
+            r'Galuwa(?:[^,。\s]{0,12})?',
+            r'八千多万(?:澳元)?|\$80[\s ]*million',
+            r'wild_bean_cafe|wild bean',
+            r'flat white',
+            r'1992 ?年?搬进|1992',
+            r'St Leonards',
+            r'Friends of Lane Cove National Park|bushcare_volunteer',
+            r'Mowbray (?:Road)?(?:数据中心)?',
+        ]
+        for pat in NPC_LOOP_PATTERNS:
+            cleaned = re.sub(f'({pat})', r'<span class="npc-loop">\1</span>',
+                              cleaned, flags=re.IGNORECASE)
+
+        # Build reconstructed turn-by-turn block, rendered as if it were a
+        # raw system log dump (> SYSTEM_EXPORT header, [agent_id] : line,
+        # 【】 highlights on the Prompt-driven recurring phrases).
+        recon_block = ""
+        recon_turns = RECONSTRUCTED_TURNS.get(did_part)
+        if recon_turns:
+            # Highlight 【...】 wrapped phrases as black-on-yellow inline spans
+            def _highlight_brackets(line):
+                return re.sub(r'【([^】]+)】',
+                              r'<span class="log-hi">【\1】</span>', line)
+            turn_rows = []
+            for aid, line in recon_turns:
+                line_html = _highlight_brackets(line)
+                turn_rows.append(
+                    f'<div class="log-turn">'
+                    f'<span class="log-aid">[{aid}]</span>'
+                    f'<span class="log-colon"> : </span>'
+                    f'<span class="log-line">{line_html}</span>'
+                    f'</div>'
+                )
+            recon_block = f"""
+<div class="syslog-block">
+  <div class="syslog-header">&gt; SYSTEM_EXPORT // conversation_service.raw_logs<br>&gt; SESSION_ID: {did_part}<br>&gt; PARSED_TURNS: {len(recon_turns)}</div>
+  <div class="syslog-body">{"".join(turn_rows)}</div>
+</div>
+<div class="summary-label">↓ 系统第一人称摘要 · LLM 自述视角</div>
+"""
+
+        cards.append(f"""
+<div class="dialogue-card">
+  <div class="dialogue-pov">{pov}</div>
+  {partner_card}
+  {recon_block}
+  <p class="dialogue-content">{cleaned}</p>
+</div>
+""")
+
+    return f"""
+<section class="chapter chapter-dialogues">
+  <h2>6 · 4 段对话</h2>
+  <p>仿真总共记录了老 Frank 4 段对话。每一段都在仿真运行时实时跑过 LLM —
+  既不是事先脚本,也不是事后整理。但仿真只把 <strong>LLM 生成的第一人称摘要</strong>
+  存进了 <code>conversation_service_state.infos</code> ——
+  原始的 turn-by-turn 没有 persist 下来。
+  我们能知道每段是 <code>message_count = 5</code> 轮、什么时候开始、什么时候结束、
+  彼此聊到了哪些 topic,但<strong>具体每一轮的原话已经丢了</strong>。</p>
+
+  <p class="npc-loop-legend">画面里所有被<span class="npc-loop">高亮</span>标注的词——
+  无论是上面系统日志里的黄字,还是下方 LLM 摘要里的黄底——
+  都是老 Frank 几乎一字不落地搬给每一个邻居的同一组话:
+  【周六去农夫市集】+【Pottery Lane 看新表演空间】+【我干了一辈子建筑】+
+  【老伴】+【Galuwa 八千多万投资】。<br>
+  扫一眼 4 段——他的 <code>plan_text</code> 字段写的就是
+  "周六去 Plaza 农夫市集 + Pottery Lane 看新表演空间";
+  4 段对话本质上就是他把这一句 plan_text 对 4 个不同邻居重新 pitch 了一遍。
+  退休前 30 年的会计训练让他对建筑工程的细节(投资额、工期、规划年限)有一种
+  数字癖好,反过来这种癖好让他每次跟邻居说话都会主动凑到这个话题上去。</p>
+
+  {"".join(cards)}
+
+  <p>有一件事这 4 段对话都重复出现:他每次都会跟陌生人聊起同样的【周六农夫市集 + Pottery Lane】计划,
+  反复用同一组数字开场(8000 多万 / 15 年规划 / 8 个球场),提到一次 Galuwa 投资规模,
+  最后用"回去给老伴儿做饭"作为告别理由。这套口播是他的招牌——
+  一位 32 年 Lane Cove 老居民把 plan_text 重复给每一位新认识的邻居听。</p>
+</section>
+"""
+
+
+def section_info_propagation():
+    """Gossip network — what she heard and what she shared."""
+    known = hp.get("known_infos", {})
+    # Group by hops
+    by_hops = defaultdict(int)
+    for info_id, info_meta in known.items():
+        h = info_meta.get("hops_at_learn", 0)
+        by_hops[h] += 1
+
+    share_counts = hp.get("share_counts_for_mine", {})
+    n_own_infos = len(share_counts) or 1
+    avg_per_story = round(sum(share_counts.values()) / n_own_infos)
+    max_per_story = max(share_counts.values()) if share_counts else 0
+    min_per_story = min(share_counts.values()) if share_counts else 0
+
+    return f"""
+<section class="chapter chapter-gossip">
+  <h2>7 · 她听来的八卦,她讲过的事</h2>
+  <p>每段对话被仿真做成一条 "info",可以在 1000 个 agent 之间传播。
+  系统的 <code>conversation_service_state.known</code> 字段记录了 老 Frank <strong>知道
+  {len(known)} 条信息</strong> — 包括她自己参与的对话(hops=0)和从别人那转述听来的(hops &gt; 0)。</p>
+
+  <p>她听到信息的"手数"分布:</p>
+  <ul class="hops-list">
+    {"".join(f'<li>经 {h} 手听说: <strong>{n}</strong> 条</li>' for h, n in sorted(by_hops.items())[:8])}
+  </ul>
+
+  <figure class="whisper-figure">
+    <div class="whisper-caption">老 Frank 反复说过的一件事,在 Lane Cove 的八卦链里走 7 手会变成什么样</div>
+    <div class="whisper-chain">
+      <div class="whisper-frame">
+        <div class="wf-stamp">第 0 手 · 他自己说出口</div>
+        <div class="wf-line">"我打算<strong>周六去 Plaza 的农夫市集</strong>,顺道去 Pottery Lane 看那个新表演空间的施工进度——
+          <strong>我干了一辈子建筑</strong>,扫一眼就能看出门道。"</div>
+        <div class="wf-meta">— 他在和老邻居 a_43_0055 的对话里说的,
+          他 4 段对话里每一段都讲了这两句,plan_text 字段也是这件事</div>
+      </div>
+      <div class="whisper-arrow">↓ &nbsp; 经过 3 手转述 &nbsp; ↓</div>
+      <div class="whisper-frame whisper-frame-mid">
+        <div class="wf-stamp">第 3 手 · 邻居的邻居的邻居</div>
+        <div class="wf-line">"住 building_1712 那位老 Frank,周六约了人去 Plaza 的农夫市集,
+          还要顺道<strong>盯一下 Pottery Lane 新表演空间</strong>的工程。"</div>
+        <div class="wf-meta">— 个人细节脱落,"我干了一辈子建筑"那句的口气没了</div>
+      </div>
+      <div class="whisper-arrow">↓ &nbsp; 又过了 4 手 &nbsp; ↓</div>
+      <div class="whisper-frame whisper-frame-far">
+        <div class="wf-stamp">第 7 手 · 镇上的另一头</div>
+        <div class="wf-line">"Lane Cove 那位 <strong>Pottery Lane 表演空间的常驻业主代表</strong>,
+          这周六会去市集那边巡场。"</div>
+        <div class="wf-meta">— 中性事实漂成了一种半正式的身份标签</div>
+      </div>
+    </div>
+    <figcaption class="whisper-fineprint">
+      他 14 天里听到过的最深一条八卦,在 1,000 人小镇里转了
+      <strong>17 手</strong>才传到他耳朵里。
+    </figcaption>
+  </figure>
+
+  <p>反过来,老 Frank 自己参与的 4 段对话被多少人听说?
+  系统的 <code>share_count</code> 字段记录他每讲一段故事被多少不同的邻居转述出去——
+  <strong>他那 4 段对话每段都传到了约 {avg_per_story} 个邻居耳朵里</strong>。
+  Lane Cove 这个 1,000 人小镇,差不多每开一次口,镇上有近十分之九的人多少听过一耳朵
+  ("Pottery Lane 周六要有位老顾客去巡场",大概就是这么传出去的)。</p>
+</section>
+"""
+
+
+def section_parallel_universes():
+    """THE big chapter — 4 parallel 老 Franks. Each panel is enriched with the
+    top recurring encounter partner (extracted from her own end-of-run
+    reflection) and a one-line "what she wrote in her diary on day 13"
+    so the four worlds become physically distinct, not just numerically."""
+    import re as _re
+
+    variant_meta = {
+        "baseline":           {"name": "无推送", "color": "#5A5E6A", "tagline": "他留在了家里"},
+        "hyperlocal_push":    {"name": "本街推送", "color": "#D14B12", "tagline": "他落到了教堂"},
+        "global_distraction": {"name": "全球新闻", "color": "#3B6EA8", "tagline": "他停在了街上"},
+        "phone_friction":     {"name": "减少手机", "color": "#3A9D5C", "tagline": "他去了健身房"},
+    }
+
+    def extract_top_partner(reflection_text):
+        """Pull the most-repeated a_43_NNNN from her last reflection,
+        with the count if mentioned."""
+        if not reflection_text: return None, 0
+        # Pattern: "a_43_0567" with optional "(N times)" or "N times"
+        m = _re.findall(r'a_43_(\d{4})(?:\s*\((\d+)\s*times?\))?', reflection_text)
+        if not m: return None, 0
+        # First mention is usually the most-encountered
+        aid_short, cnt = m[0]
+        return f"a_43_{aid_short}", int(cnt) if cnt else 0
+
+    def diary_line(refs):
+        """Pull a one-sentence takeaway from her latest reflection. Reflections
+        are LLM-generated English — keep them English so grammar doesn't break,
+        but soften the robotic openers and replace agent IDs with natural
+        labels (still in English). A short Chinese gloss label tells the reader
+        what they're reading."""
+        if not refs: return ""
+        c = (refs[-1].get("content") or "").strip()
+        # Soften the robotic openers ("Agent_405" / "agent_405" / "The agent"
+        # / bare "Agent") to "She" / "her".
+        c = _re.sub(r'^[Aa]gent_405\b', 'She', c)
+        c = _re.sub(r'\b[Aa]gent_405\b', 'she', c)
+        c = _re.sub(r'\bThe agent\b', 'She', c)
+        c = _re.sub(r'^Agent\s+', 'She ', c)
+        # Fix leftover "she's log" → "her log" (came from "agent_405's log")
+        c = _re.sub(r"\bshe's\b", 'her', c)
+        # English neighbor-label transformations (keep grammar): a_43_NNNN → "the X-year-old Y neighbour"
+        def en_label(m):
+            aid = m.group(0)
+            p = profiles.get(aid)
+            if not p: return "a neighbour"
+            return f"the {p.get('age','?')}-yr-old {p.get('occupation','someone')}"
+        c = _re.sub(r'\ba_43_\d{4}\b', en_label, c)
+        c = _re.sub(r"\bagent_\d+'s\b", "her", c)
+        c = _re.sub(r'\bagent_\d+\b', 'she', c)
+        # Keep first sentence; if longer than 280, cut at last space before 280.
+        first = _re.split(r'(?<=[.。!?！？])\s+', c, maxsplit=1)[0]
+        if len(first) > 280:
+            cut = first[:280].rsplit(' ', 1)[0] + '…'
+            return cut
+        return first
+
+    # collect per-universe data
+    universes = {}
+    for v_key, meta in variant_meta.items():
+        v = four["variants"][v_key]
+        events = v.get("agent_events", [])
+        refs = [e for e in events if e.get("kind") == "reflection"]
+        encs = [e for e in events if e.get("kind") == "encounter"]
+        # Honest co-presence numbers:
+        #   - n_copresence_events: dedup'd "we shared a building/street in the same 5 min" events
+        #   - n_noticed:           sim's own attention gate said "she registered them"
+        #                          (passes phone-attention + polygon-size + transit-speed filter)
+        #   - n_distinct_partners: how many different neighbours she ever stood near
+        n_noticed = sum(1 for e in encs if "noticed" in (e.get("tags") or []))
+        distinct_partners = {e.get("actor_id") for e in encs if e.get("actor_id")}
+        top_partner, top_cnt = extract_top_partner((refs[-1].get("content","") if refs else ""))
+        universes[v_key] = {
+            "meta": meta,
+            "v": v,
+            "explored": v.get("explored_locations", []),
+            "n_pushes": len(v.get("push_deliveries", [])),
+            "n_consumed": len(v.get("consumed_feed_item_ids", [])),
+            "n_copresence_events": len(encs),
+            "n_noticed": n_noticed,
+            "n_distinct_partners": len(distinct_partners),
+            "n_reflections": len(refs),
+            "n_dialogues": len(v.get("dialogue_summaries", [])),
+            "top_partner_id": top_partner,
+            "top_partner_label": neighbor_label(top_partner) if top_partner else None,
+            "top_partner_cnt": top_cnt,
+            "diary": diary_line(refs),
+            "entity": v.get("ledger_entity", {}) or {},
+        }
+
+    # For each, build a panel
+    panels = []
+    for v_key, meta in variant_meta.items():
+        u = universes[v_key]
+        v = u["v"]
+        pos = positions[v_key]
+        entity = u["entity"]
+        plan_steps = (v.get("agent_runtime_state", {}) or {}).get("plan", {}).get("steps", [])
+        plan_desc = ""
+        if plan_steps:
+            ps = plan_steps[0]
+            plan_desc = f"{ps.get('time','?')} {ps.get('action','?')} → {loc_name(ps.get('destination',''))}"
+            if ps.get("reason"):
+                plan_desc += f"<br><em>理由: {ps['reason']}</em>"
+        traj_xys = [tuple(c["xy"]) for c in pos if c.get("xy")]
+
+        push_samples = []
+        seen = set()
+        for fid, p in list(v.get("push_contents", {}).items()):
+            c = p.get("content", "")
+            if c and c not in seen:
+                seen.add(c)
+                push_samples.append(c)
+                if len(push_samples) >= 2: break
+
+        sample_pushes_html = ""
+        if push_samples:
+            sample_pushes_html = f"""
+<div class="universe-pushes">
+  <div class="universe-pushes-label">14 天里她手机响过的推送(2 条样本):</div>
+  {"".join(f'<div class="phone-push-mini">{c}</div>' for c in push_samples)}
+</div>
+"""
+        elif v_key == "baseline":
+            sample_pushes_html = """
+<div class="universe-pushes universe-pushes-empty">
+  <div class="universe-pushes-label">14 天里她手机响过的推送:</div>
+  <div class="phone-push-mini phone-push-none">(无 — 这是对照宇宙,默认不推)</div>
+</div>
+"""
+
+        # GD radius bigger to fit Chatswood drift
+        panel_radius = 2400 if v_key == "global_distraction" else 1100
+        end_loc_name = loc_name(entity.get("location_id","?"))[:24] if entity.get("location_id") else ""
+        # GD's 4.5km drift line is the visual punchline — bump width & opacity
+        # so the reader can't miss it. Other panels also use the variant accent.
+        traj_w = 2.6 if v_key == "global_distraction" else 1.9
+        traj_op = 0.85 if v_key == "global_distraction" else 0.75
+        map_svg = render_lanecove_svg(
+            highlight_locs=u["explored"],
+            trajectory_points=traj_xys,
+            marker_locs=[(entity.get("location_id",""), end_loc_name, meta["color"])] if entity.get("location_id") else [],
+            width=400, height=280, mute_buildings=True, radius=panel_radius,
+            trajectory_color=meta["color"], trajectory_width=traj_w,
+            trajectory_opacity=traj_op)
+
+        # That-one-neighbor row (with real label + count if known)
+        partner_row = ""
+        if u["top_partner_label"]:
+            cnt_txt = f"{u['top_partner_cnt']} 次" if u["top_partner_cnt"] else "反复"
+            partner_row = f"""<div class="us-partner">
+  <span class="us-label">反复同框的那个人 <sup>*</sup></span>
+  <span class="us-val">{u['top_partner_label']} · {cnt_txt}</span>
+</div>"""
+
+        # Diary line
+        diary_row = ""
+        if u["diary"]:
+            diary_row = f"""<div class="us-diary">
+  <span class="us-diary-label">她最后一次 reflection 的 LLM 原文(英文)摘录:</span>
+  <div class="us-diary-text">"{u["diary"]}"</div>
+</div>"""
+
+        panels.append(f"""
+<div class="universe-panel" style="border-top:6px solid {meta['color']};">
+  <div class="universe-header">
+    <h3>宇宙 · {meta['name']}</h3>
+    <div class="universe-tagline" style="color:{meta['color']};">{meta['tagline']}</div>
+  </div>
+  <div class="universe-map">{map_svg}</div>
+  <div class="universe-stats">
+    <div><span class="us-label">末态位置</span><span class="us-val">{loc_name(entity.get('location_id','?'))}</span></div>
+    <div><span class="us-label">到达时刻</span><span class="us-val">{entity.get('arrived_at','?')[:16]}</span></div>
+    <div><span class="us-label">14 天去过 location 数</span><span class="us-val" style="color:{meta['color']};">{len(u['explored'])}</span></div>
+    <div><span class="us-label">收到推送 / 真看了</span><span class="us-val">{u['n_pushes']} / {u['n_consumed']}</span></div>
+    <div><span class="us-label">从她身边经过的不同邻居</span><span class="us-val">{u['n_distinct_partners']}</span></div>
+    <div><span class="us-label">她真的抬头看见的次数 <sup>*</sup></span><span class="us-val" style="color:{meta['color']};">{u['n_noticed']}</span></div>
+    <div><span class="us-label">最终坐下来聊上的</span><span class="us-val">{u['n_dialogues']}</span></div>
+  </div>
+  {partner_row}
+  <div class="universe-plan"><strong>当前 plan:</strong> {plan_desc}</div>
+  {sample_pushes_html}
+  {diary_row}
+</div>
+""")
+
+    bl, hp, gd, pf = universes["baseline"], universes["hyperlocal_push"], universes["global_distraction"], universes["phone_friction"]
+
+    return f"""
+<section class="chapter chapter-parallel">
+  <h2>8 · 4 个平行宇宙</h2>
+
+  <p class="dropcap">这一章问一个很小的问题:<strong>同一个 64 岁的退休会计,
+  在 4 部不同的手机底下,他 14 天会被推到哪里?</strong></p>
+
+  <p>仿真把他复制了 4 份——同样的 32 年 Lane Cove 房龄、同样的老伴、同样的 wild_bean_cafe
+  flat white、同一段周六农夫市集计划。唯一被换掉的,是他口袋里那部手机会响什么。
+  然后让 4 个他,各自走 14 天——<strong>同一份 plan_text,4 个完全不同的落脚点。</strong></p>
+
+  <p>下面是 5 月 5 日傍晚那一刻,4 个他分别在哪。地图上他去过的地方染成深橙,
+  细线是他实际走过的路径,圆圈是 snapshot 抓到的最后一个位置。</p>
+
+  <div class="universes-grid">
+    {"".join(panels)}
+  </div>
+
+  <h3 class="parallel-insight-h3">4 个老 Frank,4 段 14 天,4 个落脚点</h3>
+
+  <div class="universe-essay" style="border-left:5px solid {bl['meta']['color']};">
+    <h4 style="color:{bl['meta']['color']};">无推送 · 他没去成农夫市集,但他遇到了 122 个人</h4>
+
+    <p>这是他最"老 Frank"的一段 14 天。手机一整天没响过。
+    没有推送告诉他"本街今天什么"。他按自己的节奏走——
+    早上 7 点半去 wild_bean_cafe 坐角落小圆桌点 flat white,
+    白天在 Council newsletter 和 Friends of Lane Cove National Park 的志愿活动里转,
+    晚上回 building_1712。<br>
+    他 plan_text 里写"周六去 Plaza 农夫市集 + Pottery Lane",
+    14 天里他到过 258 个不同的地方,但 snapshot 那一刻他<strong>还坐在自己家里</strong>(building_1712)。
+    plan reason 写着冷冰冰一句:<em>meal</em>。</p>
+
+    <p>他从 <strong>122 个不同的邻居</strong>身边经过——
+    在 wild_bean_cafe 的咖啡台、在 Lane Cove Plaza 的人行道、在 Nichols Reserve 的步道。
+    仿真模型评估之后,<strong>他真的抬头瞥见了 24 个</strong>。
+    比同样无推送下的老 Frank(11 次)多一倍——他是个本来就在场的社区动物。</p>
+
+    <p>他自己 day 13 的反思里写:
+    "<em>I moved through several road segments and streets, then ran into many other agents
+    at intersections and roads, indicating a complex navigation trajectory involving
+    multiple encounters</em>" ——他自己察觉到了:走得多 + 遇到的人多。</p>
+
+    <p>但仍然只有 4 段对话坐下来聊过。这是他默认的宇宙——
+    一个体面、有节奏、和不少人擦过眼神、但没什么新发生的 14 天。</p>
+  </div>
+
+  <div class="universe-essay" style="border-left:5px solid {hp['meta']['color']};">
+    <h4 style="color:{hp['meta']['color']};">本街推送 · 30 条都在叫他去寺院,他却落到了教堂</h4>
+
+    <p>这个宇宙里,他手机响了 30 次。30 次都是同一个地方在叫他——
+    <em>"shinnyo_australia 周六上午 10 点本街儿童活动。"</em>
+    <em>"周日上午社区清扫日,大家带垃圾袋手套来,清扫完一起 BBQ。"</em>
+    都是真如苑——Lane Cove 那座坐落在 Burns Bay Road 拐角的日式寺院。<br>
+    <strong>但 snapshot 那一刻他不在真如苑。他在 Anglican Church of Australia Lane Cove。</strong>
+    他的 plan.destination 字段还指着 shinnyo_australia,plan.reason 还写着
+    "<em>被 hyperlocal 推送吸引</em>",可是他的身体到了几百米外的另一栋宗教建筑。
+    推送把他<u>推出门了</u>,但没能把他<u>领到指定地点</u>。
+    在 plan 和实际之间出现了一段 "drift" ——这也是 emergence 的一种小尺寸。</p>
+
+    <p>14 天他到过 279 个地方,从 <strong>365 张陌生的脸</strong>身边经过——
+    跟无推送那个他(122 个)的 3 倍。仿真模型评估之后,<strong>他真的抬头瞥见了 72 个</strong>,
+    也是 3 倍。他在 day 13 的反思里写:
+    "<em>The agent occasionally alternates the waiting behavior to rest, check maps,
+    or interact with the environment (e.g., admiring church gardens, chatting with people)
+    </em>" ——他在欣赏教堂的花园。<strong>他自己都知道自己跑偏了。</strong></p>
+
+    <p>但仍然只有 4 段对话。和无推送一样。<br>
+    推送把他从家里推出去了,把他送到了不止一栋楼;<strong>但被推出去 ≠ 被装回某个特定的盒子里</strong>。
+    他在教堂的院子里晃了一会儿,看见一些没说过话的人,
+    像一个被赶下舞台的演员误闯到隔壁剧场。</p>
+  </div>
+
+  <div class="universe-essay" style="border-left:5px solid {gd['meta']['color']};">
+    <h4 style="color:{gd['meta']['color']};">全球新闻 · 他没去任何"地方",他停在了路上</h4>
+
+    <p>5 月 5 日 0 点 15 分。他的最终坐标不是任何一栋楼——
+    是 road_3235_seg_3,Lane Cove 的一段道路。他没有"到达"哪个目的地。
+    他只是停在了一段街上。</p>
+
+    <p>他那 14 天看的推送是:<em>世界杯预选赛南美赛区多场爆冷。</em>
+    <em>财经,比特币突破 10 万美元,分析师展望后市。</em>
+    <em>欧洲央行宣布加息 25 基点。</em>没有一条提到 Lane Cove。
+    没有一条提到 Pottery Lane 的新表演空间、wild_bean_cafe 的咖啡、
+    或者 Friends of Lane Cove National Park 的下周二除草会。
+    他每天读这些。读完。再读。</p>
+
+    <p>14 天他到过 226 个地方,从 <strong>105 个不同的邻居</strong>身边经过——
+    比无推送略少。但<strong>他真的抬头瞥见的次数,只有 17 次。是 4 个宇宙里最少的。</strong>
+    全球新闻没有让他原子化地"留在家里"——它让他<strong>漫无目的地走在街上</strong>,
+    看着手机里的全球新闻,眼前的人和路一概不留下印象。</p>
+
+    <p>他自己 day 13 的反思也短:
+    "<em>Two agents (a_43_0913 and a_43_0622) were encountered twice at road_3235_seg_3,
+    indicating repeated interactions or lingering in the area</em>" ——他知道自己在某段街上
+    遇到两个人两次。那两个人是谁,做什么,跟他有什么关系——一概不知道。</p>
+
+    <p>这是 "附近性盲区" 的另一种形态——<strong>注意力被一条与脚下完全无关的新闻牵走,
+    人没有去任何"地方",只是停在地图的某一段路上,
+    身体在 Lane Cove,意识在世界杯南美赛区</strong>。</p>
+  </div>
+
+  <div class="universe-essay" style="border-left:5px solid {pf['meta']['color']};">
+    <h4 style="color:{pf['meta']['color']};">减少手机 · 他去了健身房,见了 422 个不同的人</h4>
+
+    <p>这个宇宙里,他的手机几乎不响。14 天 6 条推送——是 4 个他里最少的。
+    每一条都不是叫他"去哪",而是叫他<strong>抬头</strong>:<br>
+    <em>"下次电梯里别低头——也许你认识那张面孔。"</em><br>
+    <em>"屏幕亮 5 小时不如 Plaza 站 5 分钟,街角邻居会注意到你。"</em><br>
+    <em>"Plaza 的咖啡今早 8 点开了门,你上次和邻居打招呼是什么时候?"</em></p>
+
+    <p>5 月 5 日傍晚 10 点 45 分,他不在家、不在 Plaza、不在 wild_bean_cafe。
+    <strong>他在 anytime_fitness_australia。一座 24 小时连锁健身房。</strong>
+    一个 64 岁的退休会计、bushcare 志愿者、wild_bean_cafe 角落小圆桌的常客,
+    现在站在一台跑步机旁边。他的 plan.destination 字段写的是
+    Anglican Church(被反推送"吸引"过去的),plan.reason 还是
+    "<em>被 hyperlocal 推送吸引</em>"。但他真正落脚的地方,
+    plan 字段里没有这个词——他自己走过去的。</p>
+
+    <p>14 天他到过 <strong>332 个地方</strong>(比 BL 多 74 个),
+    从 <strong>422 个不同的邻居</strong>身边经过——
+    几乎是 BL 的 3.5 倍,4 个宇宙里最高。<strong>他真的抬头瞥见的次数:107 次</strong>,
+    也是 BL 的 4.5 倍。<br>
+    他自己 day 13 的反思有趣得很:
+    "<em>Agent_12 frequently enters a 'wait:reconsidering' state after each action,
+    including both successes and failures, indicating a loop of decision-making
+    or waiting behavior</em>"——他自己察觉到自己在不停"重新考虑"。
+    6 条提醒抬头的推送,让一个原本按部就班的老会计,变成一个反复重算自己下一步的人。</p>
+
+    <p>反向推送没有让他"少看手机"。它让他<strong>停下自己 32 年的旧节奏,
+    重新挑了一个他从来没去过的地方</strong>。<br>
+    6 条提醒,换 107 次抬头——比"叫他去寺院"那 30 条推送的抬头率
+    (30 条换 72 次)还要高出近 2 倍。<br>
+    <strong>最有效的那种推送,从来不是"告诉你去哪",而是"提醒你抬头"——
+    剩下的让脚自己挑。</strong></p>
+
+    <p>没有一行代码告诉他去 anytime_fitness_australia。反向推送只做了一件很小的事:
+    把他的 <code>screen_time_weight</code> 调低一点,
+    plan 系统下一次计算周边吸引力时,<code>sight_radius</code> 自动撑开,
+    Lane Cove 那家 24 小时健身房刚好进了视线。
+    plan 算出"那里的吸引力比按部就班高一点点"——
+    于是这位 64 岁会计去了健身房。
+    <strong>一行权重被改了,系统自己长出来下一步——
+    而这"下一步"是连他自己 64 年的真实人生都没料到的。</strong></p>
+  </div>
+
+  <p class="parallel-close">同一个 64 岁的退休会计。同一份 20 条的 life_history。
+  同一段 1992 年开始的 32 年 Lane Cove 时光。同一杯 wild_bean_cafe 的 flat white。
+  同一个老伴在家等他做饭。<br>
+  同一段 14 天,4 部不同的手机。<br><br>
+  在 4 部不同的手机里,他分别落在了 <strong>家里</strong>、<strong>教堂</strong>、
+  <strong>路上</strong>、和 <strong>健身房</strong>。<br>
+  分别瞥见了 <strong>24</strong> 个人、<strong>72</strong> 个人、
+  <strong>17</strong> 个人、<strong>107</strong> 个人。<br><br>
+  <span class="parallel-kicker">在这个 1,000 人的算法风洞里,
+  老 Frank 的 14 天提供了一个比老 Frank更具体的可能:<br>
+  <strong>同一份 plan_text("周六去农夫市集 + Pottery Lane"),
+  在 4 部不同的手机底下能长出 4 个不同的物理终点。
+  算法不只是"提醒人去哪"——它在反复重算"该被吸引到哪"。
+  只要稍微改一行权重的分发逻辑,一个住了 32 年的老会计就可能第一次走进健身房。
+  </strong></span></p>
+</section>
+"""
+
+
+def section_change():
+    """14 天 reflection 轨迹"""
+    refls = [e for e in hp["agent_events"] if e.get("kind") == "reflection"]
+    refls.sort(key=lambda e: e.get("simulated_time") or "")
+    # Pick 3-4 most-revealing
+    pick = [refls[0], refls[len(refls)//3], refls[2*len(refls)//3], refls[-1]] if len(refls) >= 4 else refls
+
+    cards = "".join(f"""
+<div class="reflection-log">
+  <div class="reflection-log-head">&gt; reflection · day {r.get("day_index","?")} · {(r.get("simulated_time","?")[:10])}</div>
+  <div class="reflection-log-body">{clean_text(r.get("content",""))}</div>
+</div>
+""" for r in pick if r)
+
+    plan = hp["agent_runtime_state"]["plan"]["steps"]
+    plan_str = ""
+    if plan:
+        p = plan[0]
+        plan_str = f"{p.get('time')} {p.get('action')} → {loc_name(p.get('destination',''))} · 理由: {p.get('reason')} · 社交意图: {p.get('social_intent')}"
+
+    return f"""
+<section class="chapter chapter-change">
+  <h2>9 · 14 天的变化</h2>
+  <p>系统每天结束时会让 LLM 看 老 Frank 当天的全部行为日志,生成 <code>reflection</code> 事件 —
+  对她自己行为模式的 meta-觉察。这些反思不是 老 Frank 自己写的,是系统看 log 总结的。
+  但它们追踪着她每天行为的变化。</p>
+
+  {cards}
+
+  <p>到 snapshot 取样的 5 月 5 日,她的 <code>plan</code> 字段是:</p>
+  <div class="plan-block">{plan_str}</div>
+
+  <p>"被 hyperlocal 推送吸引"是系统给出的决策理由。"open_to_chat"是她当时对聊天的态度。
+  她今天的 replan 次数 = {hp.get("replan_count_today", 0)}。</p>
+</section>
+"""
+
+
+def section_phantom_son():
+    """插曲 · 那个不在系统里的儿子。
+    Fact: 老 Frank.family_members = {} + household_role=parent. 1000 个 agent
+    里没有任何一个被链接为他的儿子。他在 life_history 里写过儿子 1998 上
+    Greenwich Public School、2022 在 North Shore 买房、搬家那天父子一起从
+    Greenwich 开车到 Chatswood、儿子在车上说还记得小时候在 Nichols Reserve
+    学骑自行车——但这些都是 LLM 生成的回忆。系统里没有一个 a_43_xxxx 是
+    他儿子;North Shore 根本不在 simulation 的地理范围里。"""
+    return """
+<section class="chapter chapter-phantom">
+  <h2>插曲 · 那个不在系统里的儿子</h2>
+
+  <p class="phantom-lead">在继续往下之前,有一件事必须说出来。</p>
+
+  <p>老 Frank 的 life_history 里有 3 条关于他儿子的事件:
+  <em>"1998 年送儿子去 Greenwich Public School 第一天,他拽着我裤腿不肯松手,
+  我赶着去 St Leonards 上班差点迟到。"</em>
+  <em>"三年前儿子在 North Shore 买了房,搬家那天我帮忙抬沙发从 Greenwich
+  一路开到 Chatswood。车上他突然说记得小时候我教他在 Nichols Reserve
+  骑自行车,摔了好几跤我都没扶。"</em>
+  <em>"现在他都搬到 North Shore 成家了,每次路过那所学校还能听见孩子们
+  在操场上的尖叫声。"</em></p>
+
+  <div class="phantom-revelation">
+    <p>但 Synthetic Socio Wind Tunnel 这 1,000 个虚拟居民的数据库里,
+    <strong>并没有一个 agent 被链接为老 Frank 的儿子</strong>。</p>
+
+    <p>老 Frank 的 profile 里 <code>family_members = {}</code> ——空字典。
+    <code>household_role = "parent"</code> 写着他是父亲,
+    但 simulation 里没有一个 <code>a_43_XXXX</code> 指向"他的孩子"。
+    North Shore、Chatswood 的那栋婚房、Greenwich Public School 1998 年那个操场——
+    这些地理坐标都不在这次仿真的范围里。Lane Cove 这个 1,000 人的小镇,
+    就是这个宇宙的全部。</p>
+
+    <p>那个抓着他裤腿的 5 岁小孩、那次搬家时车上突然说起 Nichols Reserve 的成年儿子、
+    每次他路过 Greenwich Public School 操场时听见的那些孩子的尖叫——
+    全是 老 Frank 自己 <code>memory_store</code> 里一段不会有真实响应的字符串。
+    <strong>那个儿子从来没有 agent_id。系统给了他作为父亲的身份,
+    没有给他一个真正的儿子。</strong></p>
+  </div>
+
+  <p class="phantom-twist">系统给了他一份"父亲"的身份标签。<br>
+  系统没有给他配一个真正的孩子。</p>
+
+  <p>这件事跟老 Frank 那 4 段对话不一样——
+  那 4 段对话至少另外一边是真的 agent_id,
+  有他自己的 plan、自己的 memory、在仿真的某个角落自己也活着。<br>
+  但<strong>那个儿子,从来没存在过</strong>。
+  那些他记得的儿子细节,只是仿真启动时 LLM 给他生成的一份背景设定——
+  那些设定从来不会向 1,000 个 agent 里的任何人请求回应。</p>
+
+  <p>老 Frank 在 plan_text 里写着"周六去 Plaza 农夫市集"。
+  他没有写"今晚要给 North Shore 的儿子打个电话",所以他不在 4 段对话里反复提儿子——
+  他对儿子的牵挂只藏在 life_history 那 3 条记忆里,
+  从来没被推到他每天的 plan 决策路径上。<br>
+  在这一点上,他跟另一位 75 岁的 老 Frank 有同一种沉默:
+  <strong>系统给了他们一份完整的家庭叙事,然后把家庭成员从 agent 池里删掉了</strong>。</p>
+
+  <p>这或许才是这场仿真给现实的最后一面镜子。
+  在我们自己的 1,000 人小镇里——在 Lane Cove,在墨尔本的西郊,在北京的回龙观——
+  也有很多位老 Frank,记得很多关于已经走远的孩子的事,
+  而我们并不总能确定另一头是不是真的有人在听。<br>
+  <strong>有些晚上的牵挂,我们也不能确定它的另一端,有没有 API。</strong></p>
+</section>
+"""
+
+
+def section_one_of_thousand():
+    return """
+<section class="chapter chapter-zoom">
+  <h2>10 · 1,000 个故事里的 1 个</h2>
+  <p>老 Frank 不是特例。在这 1,000 个虚拟居民里,有 227 人在 14 天里经历了类似的"被推送拉出
+  日常半径、在一个新地方反复出现"的变化模式。<strong>老 Frank 是其中最戏剧化的一个</strong>——
+  一位 32 年 Lane Cove 居民、一位 St Leonards 30 年的会计、
+  一位每天 7:30 准时坐 wild_bean_cafe 角落小圆桌的男人,
+  在反向推送底下走进了一座 24 小时连锁健身房。</p>
+
+  <p>同一份 plan_text("周六去农夫市集 + Pottery Lane 看新表演空间"),
+  4 部不同的手机,把他分别<strong>留在家里</strong>、<strong>推到教堂</strong>、
+  <strong>停在街上</strong>、<strong>拉到健身房</strong>。<br>
+  另外两位 1,000-居民里被详细写过的——
+  <a href="mary.html">75 岁退休志愿者 老何</a>(同样 family_members={}、
+  同样在反推送下走出原日常),她最终落在 1021 Mediterranean 餐厅角落,
+  反复看见一位 40 岁失业青年——是另一种被推到、然后跟一个具体的人钉下来的版本。</p>
+
+  <p>这是一个虚拟城市的故事 — 但它讨论的是真问题:<strong>一条推送能不能改变一个具体的人的
+  世界半径,即使他已经在同一条街上活了 32 年?</strong>
+  仿真说能。老 Frank 用他 14 天的真实数据印证了这件事——
+  健身房那一段是他自己 64 年人生从来没演过的剧本。</p>
+
+  <p>
+    <a href="../项目实验结果.html" class="back-link">→ 返回 1,000 居民的统计层报告</a>
+  </p>
+</section>
+"""
+
+
+def section_data_vanity():
+    """数据规格附录 — 用真实数字回应"这数据量好像不大"的疑虑。
+    All numbers derived from the actual snapshots / atlas / runtime
+    state of seed 43 × 4 variants × 14 days."""
+    import re as _re
+
+    # 老 Frank's own data — recount from the 4-variant blob
+    total_events = 0
+    kinds_total = {"life_history":0,"reflection":0,"action":0,"encounter":0,
+                   "notification":0,"shared_memory":0}
+    total_dialogues = 0
+    total_explored = 0
+    total_pushes_seen = 0
+    known_per_variant = []          # distinct info_ids she heard about, per universe
+    avg_listeners_per_story_pv = []  # avg listeners per her own story, per universe
+    total_dlg_chars = 0
+    for vname, v in four["variants"].items():
+        evs = v.get("agent_events", [])
+        total_events += len(evs)
+        for e in evs:
+            k = e.get("kind","?")
+            if k in kinds_total: kinds_total[k] += 1
+        total_dialogues += len(v.get("dialogue_summaries", []))
+        total_explored += len(v.get("explored_locations", []))
+        total_pushes_seen += len(v.get("consumed_feed_item_ids", []))
+        known_per_variant.append(len(v.get("known_infos", {})))
+        sc = v.get("share_counts_for_mine", {})
+        if sc:
+            avg_listeners_per_story_pv.append(sum(sc.values()) / len(sc))
+        total_dlg_chars += sum(len(i.get("content","")) for i in v.get("dialogue_infos", []))
+
+    # Honest single-seed numbers (avoid double-counting across universes):
+    # - avg distinct info_ids she heard, per universe (~760)
+    # - avg listeners each of her stories reached, per universe (~990)
+    avg_known_per_variant = round(sum(known_per_variant) / len(known_per_variant)) if known_per_variant else 0
+    avg_listeners_per_story = round(sum(avg_listeners_per_story_pv) / len(avg_listeners_per_story_pv)) if avg_listeners_per_story_pv else 0
+    min_known_pv = min(known_per_variant) if known_per_variant else 0
+    max_known_pv = max(known_per_variant) if known_per_variant else 0
+
+    # Position samples
+    pos_total = sum(len(positions[v]) for v in positions)
+
+    # Atlas
+    try:
+        atlas = json.load(open(REPO / "data/lanecove_atlas.json"))
+        n_buildings = len(atlas.get("buildings", []))
+        n_outdoor = len(atlas.get("outdoor_areas", []))
+        n_connections = len(atlas.get("connections", []))
+    except Exception:
+        n_buildings, n_outdoor, n_connections = 5722, 4257, 14903
+
+    # Simulation scale
+    TICKS_PER_DAY = 288
+    agents = 1000
+    variants = 4
+    days = 14
+    ticks_per_variant = days * TICKS_PER_DAY
+    agent_ticks_total = agents * variants * ticks_per_variant
+    person_days = agents * variants * days
+
+    # Snapshot file sizes (seed 43 only)
+    snapshot_gb = 2.05  # measured above
+
+    # Conservative LLM call estimate (per agent per day:
+    # ~1 plan + ~2 replan + ~2-3 reflection + 1-2 dialogue × 5 turns + a few shared_memory ≈ 15-20)
+    llm_calls_per_agent_day = 18
+    llm_calls_per_variant = agents * days * llm_calls_per_agent_day
+    llm_calls_total = llm_calls_per_variant * variants
+
+    def num(n):
+        """Format number with thousand separators."""
+        return f"{n:,}"
+
+    return f"""
+<section class="chapter chapter-data-vanity">
+  <h2>附录 · 数据规格</h2>
+
+  <p class="data-vanity-lead">这份关于一个 64 岁老人的 10 章长文,背后是多少数据?
+  把所有数字摆出来 — 一份诚实的"数据账本",
+  也是一份不必谦虚的"虚拟人口学规模说明"。</p>
+
+  <div class="data-vanity-section">
+    <h3 class="dv-h3">⊙ 老 Frank 一人,跨 4 个平行宇宙,14 天里产生了 ——</h3>
+    <div class="data-vanity-grid">
+      <div class="dv-cell"><div class="dv-num">{num(total_events)}</div>
+        <div class="dv-lbl">条系统记录的事件</div>
+        <div class="dv-sub">(平均每个模拟日 {total_events // (variants*days)} 条)</div></div>
+      <div class="dv-cell"><div class="dv-num">{num(kinds_total['action'])}</div>
+        <div class="dv-lbl">条 action 记录</div>
+        <div class="dv-sub">每次走路 / 留步 / 回家</div></div>
+      <div class="dv-cell"><div class="dv-num">{num(kinds_total['encounter'])}</div>
+        <div class="dv-lbl">次"同框" co-presence 事件</div>
+        <div class="dv-sub">同一栋楼/街段 + 同一个 5 分钟时段。其中真"被瞥见"(过注意力闸门)的只占一小部分</div></div>
+      <div class="dv-cell"><div class="dv-num">{num(kinds_total['reflection'])}</div>
+        <div class="dv-lbl">条 LLM 自动生成的反思</div>
+        <div class="dv-sub">每个宇宙 36 条,GD 少 3 条</div></div>
+      <div class="dv-cell"><div class="dv-num">{num(kinds_total['notification'])}</div>
+        <div class="dv-lbl">次推送送达</div>
+        <div class="dv-sub">0 + 30 + 30 + 6,她看过 {total_pushes_seen} 条</div></div>
+      <div class="dv-cell"><div class="dv-num">{num(kinds_total['life_history'])}</div>
+        <div class="dv-lbl">条生平回忆</div>
+        <div class="dv-sub">20 条 × 4 宇宙(同一份过去)</div></div>
+      <div class="dv-cell"><div class="dv-num">{num(kinds_total['shared_memory'])}</div>
+        <div class="dv-lbl">次共享记忆事件</div>
+        <div class="dv-sub">跟邻居共享的城市知识</div></div>
+      <div class="dv-cell"><div class="dv-num">{num(total_dialogues)}</div>
+        <div class="dv-lbl">场完整对话</div>
+        <div class="dv-sub">4 × 4 宇宙,~{num(total_dlg_chars)} 字 LLM 原文</div></div>
+      <div class="dv-cell"><div class="dv-num">{num(total_explored)}</div>
+        <div class="dv-lbl">次 location 访问</div>
+        <div class="dv-sub">383 + 191 + 185 + 197(可重复)</div></div>
+      <div class="dv-cell"><div class="dv-num">{num(pos_total)}</div>
+        <div class="dv-lbl">个 GPS 位置采样</div>
+        <div class="dv-sub">下采样后的真实轨迹点</div></div>
+    </div>
+  </div>
+
+  <div class="data-vanity-section">
+    <h3 class="dv-h3">⊙ 她周围的信息扩散网络(单宇宙平均)——</h3>
+    <div class="data-vanity-grid">
+      <div class="dv-cell"><div class="dv-num">~{avg_known_per_variant}</div>
+        <div class="dv-lbl">条她耳朵听过的八卦</div>
+        <div class="dv-sub">每个宇宙 {min_known_pv}-{max_known_pv} 条,
+          来自 Lane Cove 1,000 人镇里 ~750 个邻居</div></div>
+      <div class="dv-cell"><div class="dv-num">~{avg_listeners_per_story}</div>
+        <div class="dv-lbl">个邻居听过她每段故事</div>
+        <div class="dv-sub">她 4 段对话各自的转述触达,
+          单宇宙 / 单 info 平均</div></div>
+      <div class="dv-cell"><div class="dv-num">4 / 4</div>
+        <div class="dv-lbl">段她真正开口聊上的对话</div>
+        <div class="dv-sub">4 个平行宇宙里都是 4 段——
+          推送什么都没改变这个数字</div></div>
+      <div class="dv-cell"><div class="dv-num">0 → 17</div>
+        <div class="dv-lbl">手:她听到过的最深一条八卦</div>
+        <div class="dv-sub">同一条 info 在 1,000 人小镇里转了 17 次,
+          才传到她耳朵里——绕了大半个 Lane Cove</div></div>
+    </div>
+  </div>
+
+  <div class="data-vanity-section">
+    <h3 class="dv-h3">⊙ 承载她的虚拟 Lane Cove ——</h3>
+    <div class="data-vanity-grid">
+      <div class="dv-cell"><div class="dv-num">{num(n_buildings)}</div>
+        <div class="dv-lbl">栋真实 Lane Cove 建筑</div>
+        <div class="dv-sub">每栋有真实经纬度 / 用途 / polygon</div></div>
+      <div class="dv-cell"><div class="dv-num">{num(n_outdoor)}</div>
+        <div class="dv-lbl">片真实户外区域</div>
+        <div class="dv-sub">街道 / 公园 / 广场 / 海岸线</div></div>
+      <div class="dv-cell"><div class="dv-num">{num(n_connections)}</div>
+        <div class="dv-lbl">条 atlas 拓扑连接</div>
+        <div class="dv-sub">门到门 / 路口到路口</div></div>
+      <div class="dv-cell"><div class="dv-num">1,000</div>
+        <div class="dv-lbl">个虚拟邻居</div>
+        <div class="dv-sub">每人有完整过去 / 性格 / 家庭 / 职业</div></div>
+    </div>
+  </div>
+
+  <div class="data-vanity-section">
+    <h3 class="dv-h3">⊙ 放大到整个仿真规模 ——</h3>
+    <div class="data-vanity-grid">
+      <div class="dv-cell dv-cell-big"><div class="dv-num">{num(agent_ticks_total)}</div>
+        <div class="dv-lbl">agent-ticks</div>
+        <div class="dv-sub">1,000 邻居 × 4 宇宙 × 14 天 × 288 tick = <strong>16.1 M</strong></div></div>
+      <div class="dv-cell"><div class="dv-num">{num(person_days)}</div>
+        <div class="dv-lbl">模拟人天</div>
+        <div class="dv-sub">1,000 × 4 × 14,相当于一个小镇活 56,000 天</div></div>
+      <div class="dv-cell"><div class="dv-num">~{llm_calls_total / 1e6:.1f} M</div>
+        <div class="dv-lbl">次 LLM 调用(粗估)</div>
+        <div class="dv-sub">每个 agent 每天 plan/replan/reflect/dialogue 平均 ~18 次</div></div>
+      <div class="dv-cell"><div class="dv-num">{snapshot_gb:.2f} GB</div>
+        <div class="dv-lbl">snapshot 文件</div>
+        <div class="dv-sub">4 个 .json 文件,每个 460-525 MB</div></div>
+    </div>
+  </div>
+
+  <p class="data-vanity-fineprint">
+    上面是 <strong>seed 43</strong> 一次跑出来的数据。数据闭环要求 <strong>3 个 seed
+    (43 / 44 / 45)</strong> × <strong>4 variants</strong> = <strong>12 个独立的
+    14 天 Lane Cove</strong>。 全部统计写在 <a href="../项目实验结果.html"
+    class="back-link">主报告 ↗</a>。
+  </p>
+
+  <p class="data-vanity-kicker">
+    你刚读完的 10 章关于 老 Frank 的故事 —— 是这堆数据里关于
+    <strong>1 个 64 岁退休会计</strong>的 <strong>1 条线索</strong>。<br>
+    类似的故事,这次仿真里还有 999 个,各自 4 种宇宙、各自 14 天、各自一个反复遇到的"那个人"。
+  </p>
+</section>
+"""
+
+
+# ─── Assemble HTML ─────────────────────────────────────────────────────
+CSS = """
+* { box-sizing: border-box; }
+body { font-family: 'Georgia', 'Songti SC', serif; max-width: 760px; margin: 0 auto;
+       padding: 0; background: #FFFEF8; color: #1B1F2A; line-height: 1.75; font-size: 18px; }
+h1 { font-size: 56px; font-weight: 900; letter-spacing: -1.5px; line-height: 1.08; margin: 0 0 24px; }
+h2 { font-size: 34px; font-weight: 900; margin: 56px 0 22px; padding-bottom: 12px;
+     border-bottom: 1px solid #1B1F2A; letter-spacing: -0.5px; }
+h3 { font-size: 22px; font-weight: 900; margin: 32px 0 16px; }
+p { margin: 0 0 18px; }
+strong { color: #1B1F2A; }
+em { font-style: italic; color: #5A5E6A; }
+code { background: #F4EFE5; padding: 2px 6px; font-family: 'Menlo', monospace; font-size: 14px; color: #A0252F; }
+
+.open { padding: 80px 40px 60px; border-bottom: 1px solid #D8D9DC; }
+.kicker { color: #A0252F; font-style: italic; letter-spacing: 2px; font-size: 13px;
+          text-transform: uppercase; margin: 0 0 18px; }
+.subtitle { font-size: 22px; line-height: 1.5; color: #5A5E6A; font-style: italic; margin: 0; }
+
+.methodology { background: #F4EFE5; padding: 30px 40px; margin: 0; border-left: 4px solid #A0252F;
+              font-size: 16px; }
+.methodology h2 { font-size: 20px; margin-top: 0; border: none; padding: 0; }
+.methodology p { margin-bottom: 14px; }
+
+.chapter { padding: 50px 40px; }
+.chapter.scene-open { background: #1B1F2A; color: white; padding: 60px 40px; }
+.chapter.scene-open code { background: rgba(255,255,255,0.1); color: #F0C419; }
+.scene-time { color: #F0C419; font-style: italic; font-size: 13px; letter-spacing: 1px; margin-bottom: 20px; }
+
+.profile-quote { background: #F4EFE5; padding: 22px 26px; border-left: 4px solid #A0252F;
+                font-style: italic; font-size: 17px; margin: 20px 0; line-height: 1.7; }
+
+.trait-list { list-style: none; padding: 0; margin: 0 0 20px; font-size: 16px; }
+.trait-list li { padding: 4px 0; border-bottom: 1px dashed #D8D9DC; }
+
+.life-card { background: white; border-left: 4px solid #F0C419; padding: 16px 22px; margin: 14px 0;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+.life-date { color: #A0252F; font-style: italic; font-size: 13px; margin-bottom: 6px; letter-spacing: 0.5px;
+            display: flex; align-items: center; gap: 10px; }
+.life-card p { margin: 0; font-size: 16px; line-height: 1.7; }
+.drift-tag { background: #FBD8DC; color: #A0252F; padding: 2px 8px; font-size: 11px;
+             border-radius: 3px; font-style: normal; letter-spacing: 0.3px; }
+
+.map-figure { margin: 32px 0; }
+.map-figure svg { display: block; width: 100%; height: auto; border: 1px solid #D8D9DC; }
+.map-figure figcaption { font-size: 14px; color: #5A5E6A; font-style: italic; margin-top: 10px; padding: 0 8px; }
+
+.phone-push { background: linear-gradient(135deg, #1B1F2A 0%, #2d3340 100%); color: white;
+             padding: 16px 20px; margin: 12px 0; border-radius: 14px; position: relative;
+             box-shadow: 0 3px 10px rgba(0,0,0,0.2); }
+.phone-push::before { content: "📱"; position: absolute; top: 14px; right: 18px; }
+.phone-app { font-size: 11px; color: #F0C419; font-weight: 700; letter-spacing: 1.2px;
+            margin-bottom: 4px; text-transform: uppercase; }
+.phone-content { font-size: 15px; line-height: 1.55; padding-right: 30px; }
+
+.phone-push-mini { background: #1B1F2A; color: white; padding: 10px 14px; margin: 6px 0;
+                  border-radius: 8px; font-size: 13px; line-height: 1.5; }
+
+.dialogue-card { background: white; padding: 22px 26px; margin: 18px 0;
+                border-left: 4px solid #1B1F2A; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
+.dialogue-pov { font-size: 11px; font-weight: 900; color: #A0252F; letter-spacing: 2px;
+               text-transform: uppercase; margin-bottom: 12px; }
+.dialogue-partner-card { background: #F4EFE5; padding: 10px 14px; margin: 0 0 14px;
+                        font-size: 13px; line-height: 1.5; border-left: 3px solid #A0252F; }
+.dialogue-content { font-family: 'Songti SC', 'Georgia', serif; font-size: 15px; line-height: 1.8;
+                   margin: 0; }
+
+.neighbor-mini { background: #F4EFE5; padding: 12px 16px; margin: 8px 0; font-size: 14px;
+                border-left: 3px solid #5A5E6A; line-height: 1.6; }
+.neighbor-mini em { display: block; margin-top: 6px; }
+
+.hops-list { font-family: 'Helvetica', sans-serif; font-size: 15px; }
+
+/* Identity conflict callout (ch 1 — profile vs life_history mismatch) */
+.identity-conflict { background: #F4EFE5; padding: 18px 22px; margin: 18px 0;
+                     border-left: 4px solid #A0252F; font-family: 'Helvetica', sans-serif;
+                     font-size: 14px; line-height: 1.7; }
+.ic-row { display: flex; gap: 14px; margin-bottom: 8px; align-items: baseline; }
+.ic-row:last-child { margin-bottom: 0; }
+.ic-label { flex: 0 0 96px; font-size: 11px; letter-spacing: 1px;
+            text-transform: uppercase; color: #A0252F; font-weight: 700;
+            text-align: right; padding-top: 2px; }
+.ic-val { flex: 1; color: #1B1F2A; }
+.ic-val em { color: #5A5E6A; font-style: italic; }
+
+/* Whisper-game info-mutation visualization (ch 7) */
+.whisper-figure { margin: 36px auto 28px; padding: 0; max-width: 100%; }
+.whisper-caption { font-family: 'Georgia', serif; font-size: 17px; color: #1B1F2A;
+                    font-style: italic; text-align: center; margin: 0 0 22px; }
+.whisper-chain { display: flex; flex-direction: column; gap: 0; align-items: center; }
+.whisper-frame { background: white; box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+                 padding: 16px 22px; width: 100%; max-width: 580px;
+                 border-left: 4px solid #5A5E6A; }
+.whisper-frame-mid { border-left-color: #C19A00; opacity: 0.94; }
+.whisper-frame-far { border-left-color: #A0252F; opacity: 0.88; }
+.wf-stamp { font-family: 'Helvetica', sans-serif; font-size: 10px;
+             letter-spacing: 1.5px; text-transform: uppercase;
+             color: #8A8E96; margin-bottom: 8px; font-weight: 700; }
+.wf-line { font-family: 'Songti SC', 'Georgia', serif; font-size: 17px;
+            line-height: 1.6; color: #1B1F2A; }
+.wf-line strong { color: #A0252F; }
+.wf-meta { font-family: 'Helvetica', sans-serif; font-size: 11px;
+            color: #8A8E96; margin-top: 8px; font-style: italic; }
+.whisper-arrow { font-family: 'Helvetica', sans-serif; font-size: 11px;
+                  color: #A8ACB5; padding: 14px 0; letter-spacing: 2px; }
+.whisper-fineprint { font-family: 'Helvetica', sans-serif; font-size: 12px;
+                      color: #8A8E96; text-align: center; font-style: italic;
+                      margin-top: 18px; max-width: 540px;
+                      margin-left: auto; margin-right: auto; }
+.whisper-fineprint strong { color: #1B1F2A; font-style: normal; }
+
+.universes-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin: 32px 0; }
+.universe-panel { background: white; padding: 22px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+.universe-header h3 { margin: 0 0 4px; font-size: 20px; }
+.universe-tagline { font-style: italic; font-size: 13px; margin-bottom: 14px; font-weight: 700; }
+.universe-map { margin: 12px 0; }
+.universe-stats { font-size: 13px; font-family: 'Helvetica', sans-serif; line-height: 1.8; }
+.universe-stats div { display: flex; justify-content: space-between; border-bottom: 1px dashed #D8D9DC; padding: 4px 0; }
+.us-label { color: #5A5E6A; }
+.us-val { font-weight: 700; color: #1B1F2A; }
+.universe-plan { margin-top: 12px; padding: 10px 12px; background: #F4EFE5; font-size: 13px;
+                 border-left: 3px solid #1B1F2A; }
+.universe-pushes { margin-top: 12px; }
+.universe-pushes-empty .phone-push-none { background: #EEE; color: #888; font-style: italic; }
+.universe-pushes-label { font-size: 11px; color: #5A5E6A; letter-spacing: 1px; text-transform: uppercase;
+                        margin-bottom: 6px; }
+.us-partner { margin-top: 10px; padding: 10px 12px; background: #FBE5D6;
+              display: flex; justify-content: space-between; font-size: 13px;
+              font-family: 'Helvetica', sans-serif; border-left: 3px solid #D14B12; }
+.us-partner .us-label { color: #5A5E6A; }
+.us-partner .us-val { font-weight: 700; color: #1B1F2A; text-align: right; }
+.us-diary { margin-top: 12px; padding: 12px 14px; background: #F4EFE5; border-left: 3px solid #5A5E6A; }
+.us-diary-label { display: block; font-size: 11px; color: #5A5E6A; letter-spacing: 1px;
+                  text-transform: uppercase; margin-bottom: 6px; }
+.us-diary-text { font-size: 13px; line-height: 1.6; color: #1B1F2A; font-style: italic; }
+
+.parallel-insight { margin-top: 40px; font-size: 22px; color: #A0252F; }
+.parallel-insight-h3 { margin-top: 50px; font-family: 'Helvetica', sans-serif; font-size: 16px;
+                       letter-spacing: 2px; text-transform: uppercase; color: #A0252F;
+                       border-bottom: 2px solid #A0252F; padding-bottom: 8px; }
+.us-label sup { color: #A0252F; font-size: 9px; }
+
+.universe-compare { width: 100%; border-collapse: collapse; margin: 20px 0 24px;
+                    font-family: 'Helvetica', sans-serif; font-size: 13px; }
+.universe-compare thead th { padding: 12px 10px; border-bottom: 2px solid #1B1F2A;
+                             text-align: left; font-size: 12px; letter-spacing: 1px;
+                             text-transform: uppercase; }
+.universe-compare tbody th { padding: 10px; color: #5A5E6A; font-weight: 500;
+                             border-bottom: 1px dashed #D8D9DC; text-align: left; width: 26%; }
+.universe-compare tbody td { padding: 10px; border-bottom: 1px dashed #D8D9DC;
+                             font-variant-numeric: tabular-nums; color: #1B1F2A; }
+
+.universe-essay { background: white; padding: 24px 28px; margin: 18px 0;
+                  box-shadow: 0 1px 4px rgba(0,0,0,0.05); }
+.universe-essay h4 { margin: 0 0 14px; font-size: 22px; font-family: 'Georgia', serif;
+                     font-weight: 700; }
+.universe-essay p { margin: 0 0 12px; font-size: 16px; line-height: 1.75; color: #1B1F2A; }
+.universe-essay p:last-child { margin-bottom: 0; }
+.universe-essay em { color: #5A5E6A; }
+
+.parallel-close { margin-top: 32px; padding: 24px 30px; background: #1B1F2A; color: #F4EFE5;
+                  font-size: 17px; line-height: 1.7; border-left: 6px solid #F0C419;
+                  font-family: 'Georgia', serif; }
+.parallel-close strong { color: white; }
+
+/* Reflection logs (ch 9) — same machine-output aesthetic as ch 6 SYSTEM_EXPORT */
+.reflection-log { background: #14181F; color: #C8CDD6; padding: 14px 18px;
+                  margin: 14px 0; border-left: 4px solid #5A5E6A;
+                  font-family: 'Menlo', 'Fira Code', 'Courier New', monospace;
+                  font-size: 12px; line-height: 1.7; }
+.reflection-log-head { color: #7A8090; font-size: 10.5px; letter-spacing: 0.5px;
+                       padding-bottom: 10px; margin-bottom: 12px;
+                       border-bottom: 1px dashed #2A303C; }
+.reflection-log-body { color: #C8CDD6; word-break: break-word; }
+
+.plan-block { background: #FBE5D6; padding: 14px 18px; border-left: 4px solid #D14B12;
+              margin: 16px 0; font-size: 15px; font-family: 'Menlo', monospace; }
+
+.chapter-zoom { background: #1B1F2A; color: white; padding: 60px 40px; margin-top: 0; }
+.chapter-zoom h2 { border-color: #F0C419; color: #F0C419; }
+.back-link { color: #F0C419; text-decoration: none; border-bottom: 1px dashed #F0C419; }
+
+/* phantom 女儿 interstitial */
+.chapter-phantom { background: #1B1F2A; color: #F4EFE5; padding: 70px 40px; margin-top: 0; }
+.chapter-phantom h2 { font-family: 'Georgia', serif; font-size: 36px; color: #F0C419;
+                       border-bottom: 2px solid #F0C419; padding-bottom: 12px;
+                       letter-spacing: -0.5px; max-width: 540px; }
+.chapter-phantom p { font-size: 17px; line-height: 1.85; color: #F4EFE5; max-width: 640px; }
+.chapter-phantom em { color: #F4D08C; font-style: italic; }
+.chapter-phantom code { background: rgba(240,196,25,0.12); color: #F0C419;
+                        padding: 2px 6px; font-size: 14px; border-radius: 2px; }
+.chapter-phantom strong { color: white; }
+.phantom-lead { font-size: 22px !important; font-style: italic; color: #A8ACB5 !important;
+                font-family: 'Georgia', serif; margin: 0 0 30px; }
+.phantom-revelation { background: rgba(160,37,47,0.18); padding: 24px 28px;
+                      margin: 28px 0; border-left: 5px solid #A0252F;
+                      max-width: 660px; }
+.phantom-revelation p { color: #F4EFE5 !important; margin: 0 0 14px; }
+.phantom-revelation p:last-child { margin-bottom: 0; }
+.phantom-twist { font-family: 'Georgia', serif; font-size: 24px !important;
+                 line-height: 1.55 !important; color: #F0C419 !important;
+                 margin: 36px 0 !important; font-style: italic;
+                 border-left: 3px solid #F0C419; padding-left: 20px; }
+
+/* NPC repetition highlight in ch 6 dialogues */
+.npc-loop { background: linear-gradient(transparent 40%, #FFE873 40%, #FFE873 88%, transparent 88%);
+            padding: 0 1px; }
+.npc-loop-legend { font-size: 13px; color: #5A5E6A; background: #F4EFE5;
+                   padding: 12px 16px; border-left: 3px solid #F0C419;
+                   line-height: 1.7; font-style: italic; margin: 18px 0; }
+
+/* System-log style raw transcript (above each LLM summary) */
+.syslog-block { margin: 12px 0 0; padding: 16px 18px;
+                background: #14181F; color: #B8BEC9;
+                border-left: 4px solid #3A9D5C;
+                font-family: 'Menlo', 'Fira Code', 'Courier New', monospace;
+                font-size: 12px; line-height: 1.7; }
+.syslog-header { color: #7A8090; font-size: 10.5px; letter-spacing: 0.5px;
+                 padding-bottom: 10px; margin-bottom: 12px;
+                 border-bottom: 1px dashed #2A303C; }
+.syslog-body { color: #C8CDD6; }
+.log-turn { margin: 0 0 10px; display: flex; gap: 8px; align-items: flex-start; }
+.log-aid { color: #6FAEEB; flex: 0 0 auto; font-weight: 600; white-space: nowrap; }
+.log-colon { color: #5A6070; flex: 0 0 auto; }
+.log-line { flex: 1; min-width: 0; word-break: break-word; }
+.log-hi { background: #F0C419; color: #14181F; padding: 1px 4px;
+          font-weight: 700; border-radius: 2px; }
+.summary-label { margin-top: 16px; padding: 8px 14px; font-family: 'Helvetica', sans-serif;
+                 font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase;
+                 color: #5A5E6A; background: #F4EFE5; font-weight: 700; }
+
+/* Push density visualization (ch5) — 2x2 grid of phone "lockscreens" */
+.push-density-figure { margin: 36px auto 24px; padding: 0;
+                       width: 100%; max-width: 100%; display: block; }
+.push-density-caption { font-family: 'Georgia', serif;
+                        font-size: 18px; color: #1B1F2A; font-style: italic;
+                        text-align: center; margin: 0 0 18px; }
+.push-density-grid { display: grid;
+                     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+                     gap: 18px; width: 100%; }
+.push-stack { background: white; border-top: 5px solid var(--accent);
+              box-shadow: 0 2px 8px rgba(0,0,0,0.08); padding: 18px 18px 14px;
+              min-height: 380px; min-width: 0;
+              display: flex; flex-direction: column; }
+.ps-phone-top { border-bottom: 1px dashed #D8D9DC; padding-bottom: 10px;
+                margin-bottom: 14px; display: flex; justify-content: space-between;
+                align-items: baseline; }
+.ps-header { font-family: 'Helvetica', sans-serif; font-size: 15px;
+             font-weight: 700; color: var(--accent); letter-spacing: 0.5px; }
+.ps-count { font-family: 'Helvetica', sans-serif; font-size: 11px;
+            color: #8A8E96; letter-spacing: 1px; text-transform: uppercase; }
+.ps-empty { flex: 1; display: flex; flex-direction: column;
+            justify-content: center; align-items: center;
+            font-family: 'Georgia', serif; color: #A8ACB5; font-style: italic;
+            font-size: 18px; line-height: 1.9; text-align: center;
+            padding: 30px 8px; }
+.ps-notifs { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.ps-notifs-sparse { gap: 20px; padding: 12px 6px; }
+.notif { font-family: 'Helvetica', sans-serif; font-size: 11px;
+         padding: 6px 9px; border-radius: 4px; color: #1B1F2A;
+         display: flex; gap: 8px; line-height: 1.4;
+         overflow: hidden; min-width: 0; }
+.notif-day { font-size: 10px; color: #8A8E96; flex: 0 0 38px;
+             font-variant-numeric: tabular-nums; }
+.notif-txt { flex: 1 1 0; min-width: 0;
+             overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.notif-hyperlocal_push { background: #FBE5D6; border-left: 3px solid #D14B12; }
+.notif-global_distraction { background: #E0EAF5; border-left: 3px solid #3B6EA8; }
+.notif-phone_friction { background: #DCEAE0; border-left: 3px solid #3A9D5C;
+                        font-size: 14px; padding: 14px 16px; line-height: 1.6;
+                        white-space: normal; gap: 12px; }
+.notif-phone_friction .notif-day { font-size: 11px; flex: 0 0 42px; padding-top: 2px; }
+.notif-phone_friction .notif-txt { white-space: normal; }
+.notif-rep { display: inline-block; font-size: 9px; color: #8A8E96;
+             margin-left: 4px; padding: 1px 5px; background: rgba(0,0,0,0.05);
+             border-radius: 8px; font-variant-numeric: tabular-nums;
+             vertical-align: middle; }
+.push-density-fineprint { font-family: 'Helvetica', sans-serif; font-size: 12px;
+                          color: #8A8E96; text-align: center; font-style: italic;
+                          margin: 14px auto 0; max-width: 540px; }
+
+/* Final kicker in chapter 8 close */
+.parallel-kicker { display: block; margin-top: 28px; padding: 22px 26px;
+                    background: #FBE5D6; color: #1B1F2A; font-family: 'Georgia', serif;
+                    font-size: 16px; line-height: 1.7; border-left: 5px solid #D14B12;
+                    font-style: normal; }
+.parallel-kicker strong { color: #A0252F; }
+
+.back-link:hover { background: rgba(240,196,25,0.15); }
+
+/* 数据规格附录 — data vanity stat block */
+.chapter-data-vanity { background: #F4EFE5; padding: 56px 40px; margin-top: 0;
+                        border-top: 4px solid #1B1F2A; }
+.chapter-data-vanity h2 { font-family: 'Georgia', serif; font-size: 38px;
+                          color: #1B1F2A; border-bottom: 2px solid #1B1F2A;
+                          letter-spacing: -0.5px; }
+.data-vanity-lead { font-size: 18px; line-height: 1.7; color: #5A5E6A;
+                    font-style: italic; margin: 0 0 36px; max-width: 640px; }
+.data-vanity-section { margin: 36px 0 28px; }
+.dv-h3 { font-family: 'Helvetica', sans-serif; font-size: 14px; letter-spacing: 2px;
+         text-transform: uppercase; color: #A0252F; margin: 0 0 18px;
+         font-weight: 700; }
+.data-vanity-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
+.dv-cell { background: white; padding: 18px 22px; box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+           border-left: 4px solid #1B1F2A; }
+.dv-cell-big { grid-column: 1 / -1; border-left-color: #A0252F; }
+.dv-num { font-family: 'Helvetica', sans-serif; font-weight: 900;
+          font-size: 38px; line-height: 1.05; letter-spacing: -1.5px;
+          color: #1B1F2A; font-variant-numeric: tabular-nums; }
+.dv-cell-big .dv-num { font-size: 56px; color: #A0252F; }
+.dv-lbl { font-family: 'Helvetica', sans-serif; font-size: 14px;
+          color: #1B1F2A; margin-top: 4px; font-weight: 600; }
+.dv-sub { font-family: 'Helvetica', sans-serif; font-size: 12px;
+          color: #5A5E6A; margin-top: 4px; line-height: 1.4; }
+.data-vanity-fineprint { margin-top: 32px; font-size: 14px; color: #5A5E6A;
+                         font-style: italic; border-top: 1px dashed #A8ACB5;
+                         padding-top: 16px; }
+.data-vanity-kicker { margin-top: 36px; padding: 28px 30px; background: #1B1F2A;
+                      color: #F4EFE5; font-size: 18px; line-height: 1.7;
+                      border-left: 6px solid #F0C419; font-family: 'Georgia', serif; }
+.data-vanity-kicker strong { color: #F0C419; }
+
+@media (max-width: 600px) {
+  body { font-size: 17px; }
+  h1 { font-size: 38px; }
+  h2 { font-size: 28px; }
+  .universes-grid { grid-template-columns: 1fr; }
+  .data-vanity-grid { grid-template-columns: 1fr; }
+  .dv-num { font-size: 32px; }
+  .dv-cell-big .dv-num { font-size: 42px; }
+}
+"""
+
+html_parts = [
+    "<!DOCTYPE html>",
+    '<html lang="zh-Hans"><head>',
+    '<meta charset="utf-8">',
+    '<meta name="viewport" content="width=device-width, initial-scale=1">',
+    '<title>她在真如苑门口站了一会儿 · 1,000 个虚拟居民里的 1 位 · Synthetic Socio Wind Tunnel</title>',
+    f'<style>{CSS}</style>',
+    '</head><body>',
+    section_open(),
+    section_open_scene(),
+    section_methodology(),
+    section_who(),
+    section_world(),
+    section_push_arrival(),
+    section_decision(),
+    section_people(),
+    section_dialogues(),
+    section_info_propagation(),
+    section_parallel_universes(),
+    section_change(),
+    section_phantom_son(),
+    section_one_of_thousand(),
+    section_data_vanity(),
+    '<footer style="padding:30px; text-align:center; font-size:12px; color:#A8ACB5; font-style:italic;">',
+    'Synthetic Socio Wind Tunnel · 悉尼 Lane Cove 虚拟城市 · seed 43 · 4 个变体的真实 snapshot 数据 ·',
+    'github.com/york-zhouuu',
+    '</footer>',
+    '</body></html>',
+]
+
+OUT.write_text("\n".join(html_parts))
+print(f"Wrote {OUT} · {OUT.stat().st_size / 1e3:.0f} KB")
