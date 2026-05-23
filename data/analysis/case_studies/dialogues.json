@@ -1,0 +1,138 @@
+{
+  "frank": [
+    {
+      "dialogue_id": "d_a_43_0012_a_43_0055_0",
+      "partner": "a_43_0055",
+      "location": "road_3717_seg_1",
+      "started_tick": 0,
+      "ended_tick": 5,
+      "day_estimate": 0,
+      "msg_count": 5,
+      "end_reason": "leave",
+      "content": "嗯，刚跟老邻居a_43_0055聊完，挺轻松的一回。他一见我就打招呼，说咱们老在步道上偶遇，缘分不浅。我就跟他提起我这周六的计划，打算去Lane Cove Plaza的农夫市集买点新鲜菜和手工面包，老伴儿念叨好久了。之后我还想绕去Pottery Lane看看那个新公共表演空间修得咋样，毕竟我干了一辈子建筑，扫一眼就能看出门道。他说他这周末想睡个自然醒，下午带家人去Longueville Park散步，还托我要是看到表演空间完工了跟他说说。我爽快答应了，说回头遛弯碰上一定第一时间给他唠情况。他还提到新开的Galuwa康乐中心，投了八千多万，设施很全，提议改天约几个老邻居一起去转转，我也觉得挺好。最后我说得回家帮老伴儿准备午饭，就道别了。这次互动很自然，像老朋友闲唠嗑，我挺喜欢的，感觉邻里间这种随意的关心和约定特别暖心。",
+      "origin_agent": "a_43_0012",
+      "salience": 0.6
+    },
+    {
+      "dialogue_id": "d_a_43_0012_a_43_0064_77",
+      "partner": "a_43_0064",
+      "location": "go_vita_lane_cove",
+      "started_tick": 77,
+      "ended_tick": 82,
+      "day_estimate": 0,
+      "msg_count": 5,
+      "end_reason": "leave",
+      "content": "好的，这是我从 agent_12 的视角对这次对话的总结：\n\n刚才在街上又碰见 a_43_0064 那老哥了，真是巧得很，前几天在 Go Vita 刚见过面。我跟他聊了聊我周六的安排——打算先去 Lane Cove Plaza 的农夫市集买点鲜果和酸面包给老伴当早餐，然后顺道去 Pottery Lane 看看那个新表演场地的施工进度，毕竟我干了一辈子建筑，对这些细节特别上心。结果他告诉我他也打算周六去市集，还说他前阵子路过看见脚手架拆了大半，外墙都完工了，正在做内部收尾。\n\n我一听就说正好，约他周六早上八九点在市集入口那家常去的咖啡摊碰头，俩人一块儿边逛边往那边溜达，顺便唠唠施工的门道。他爽快答应了，还说这么安排别提多舒坦了。最后我跟他说老伴在家等我，就先往回走了，约好周六见。\n\n总的来说，我挺喜欢这次互动的。难得遇到个能聊到一块儿去的老朋友，而且我俩对建筑和市集都有兴趣，周六还能搭个伴儿，感觉挺舒坦的。",
+      "origin_agent": "a_43_0012",
+      "salience": 0.6
+    },
+    {
+      "dialogue_id": "d_a_43_0012_a_43_0138_154",
+      "partner": "a_43_0138",
+      "location": "go_vita_lane_cove",
+      "started_tick": 154,
+      "ended_tick": 159,
+      "day_estimate": 0,
+      "msg_count": 5,
+      "end_reason": "leave",
+      "content": "周六早上八点，在Lane Cove Plaza门口的咖啡铺碰头，先逛农夫市集买新鲜柑橘和酸面包，再去Pottery Lane看那新表演空间的工程进度，之后还可以顺道去Crows Nest陪你看看你标记的两套房源。这趟安排得满满当当的，而且有你懂行的帮着把关工程，我心里踏实多了。\n\n我很喜欢这次互动。你是个爽快又周到的人，不仅一口答应陪我逛市集和看工程，还主动带上小冰桶装食物，甚至顺路拉我去帮你看房。咱们聊得特别顺畅，感觉像是老熟人碰面一样自然。",
+      "origin_agent": "a_43_0012",
+      "salience": 0.6
+    },
+    {
+      "dialogue_id": "d_a_43_0012_a_43_0021_241",
+      "partner": "a_43_0021",
+      "location": "coxs_lane_seg_1_3",
+      "started_tick": 241,
+      "ended_tick": 246,
+      "day_estimate": 0,
+      "msg_count": 5,
+      "end_reason": "leave",
+      "content": "从我的角度来看，这次聊天挺愉快的。我正琢磨周六的安排，想先去Lane Cove Plaza的农夫市集买点新鲜草莓，再去Pottery Lane看看那个新公共表演空间的施工进展，没想到一抬眼就碰见老兄弟你。咱俩一拍即合，你也有空，还提议逛完后去Longueville Road你常去的咖啡店坐坐。我干了一辈子建筑，正好去瞧瞧那表演空间的手艺，挺有意思的。最后咱约好周六早上九点在市集门口碰头，我就回去跟老伴儿报备，顺便提前把装草莓的布兜找好，省得到时候手忙脚乱。这次互动让我挺开心的，老友重逢又约好了伴，感觉日子过得有滋有味，我喜欢这种实在又暖心的聊天。",
+      "origin_agent": "a_43_0012",
+      "salience": 0.6
+    }
+  ],
+  "mary": [
+    {
+      "dialogue_id": "d_a_43_0405_a_43_0584_0",
+      "partner": "a_43_0584",
+      "location": "building_2022",
+      "started_tick": 0,
+      "ended_tick": 5,
+      "day_estimate": 0,
+      "msg_count": 5,
+      "end_reason": "leave",
+      "content": "从我的视角来看，刚才和a_43_0584的对话挺自然的。我在楼下取信时偶遇她，想起前几次都因为赶着去图书馆帮忙没聊上，这次终于能多说几句。我主动提起附近新开的Galuwa康乐中心，兴致勃勃地分享了我知道的细节——十五年规划、八千多万澳元投资、名字的悉尼原住民语含义，还有那八个球场和免费开放日，看得出我对这个新去处挺感兴趣的。不过我也没忘自己的晚间日程，特意提到泡大麦茶、看新闻和给东郊闺女打视频电话，还说是写在冰箱便签上的，显得有点怕自己忘事。她回应得挺随和，聊了降温的感受和散步时看到招牌的经历，还爽快答应等天气好了一起去逛。我也顺着话头，再次强调得赶紧回去赶新闻和视频电话，她也贴心叮嘱我别冻着、别耽误事。最后我们互相道别，气氛轻快友好。总的来说，我挺喜欢这次互动的，简单实在，邻里间聊点日常、约个活动，让人觉得亲切又踏实。",
+      "origin_agent": "a_43_0405",
+      "salience": 0.6
+    },
+    {
+      "dialogue_id": "d_a_43_0175_a_43_0405_77",
+      "partner": "a_43_0175",
+      "location": "building_2022",
+      "started_tick": 77,
+      "ended_tick": 82,
+      "day_estimate": 0,
+      "msg_count": 5,
+      "end_reason": "leave",
+      "content": "Here is the summary from agent_175's perspective:\n\nI just finished catching up with a_43_0405, that familiar face I keep running into around the Mowbray Road area. I mentioned how swamped I’ve been with commercial litigation cases, but I also got to talk about my interest in investing in the new apartment development along Mowbray. I told them I’m planning to dig into the Lane Cove listings on Domain tonight to crunch the numbers.\n\nThey shared that they used to live in Greenwich for over 20 years and described their cozy evening routine of watching the news and calling their daughter. I responded by saying I take the 144 bus from Greenwich station every day and asked them to let me know if they hear any local gossip about the Mowbray development. They kindly agreed and wished me luck with my number crunching.\n\nWe both said we had to go—me to pick up my two kids, and them to catch the evening news. I really liked this interaction. It felt warm and neighbourly, and I appreciate having a friendly local contact who might keep an ear out for useful chatter about the area.",
+      "origin_agent": "a_43_0175",
+      "salience": 0.6
+    },
+    {
+      "dialogue_id": "d_a_43_0405_a_43_0590_168",
+      "partner": "a_43_0590",
+      "location": "centennial_avenue_seg_1_13",
+      "started_tick": 168,
+      "ended_tick": 173,
+      "day_estimate": 0,
+      "msg_count": 5,
+      "end_reason": "leave",
+      "content": "从我的视角看，刚才和a_43_0590在单元门口碰上了，我主动打了个招呼，自我介绍是住三楼的邻居老何，聊了下我刚从Canopy Park遛弯回来，打算回家看本地新闻、给悉尼东郊的女儿打电话。对方说他正赶去Greenwich的RSL厨房上晚班，下班后还约了同事喝冰啤。原来他在那片工作，我提了一嘴自己以前在Greenwich住了二十多年。后来他说下次轮休可以结伴沿Stringybark Creek散步，还说我去RSL的话给我留炸鸡排，我高兴地应下了，并叮嘱他赶车小心。总的来说，这是一次很随和、有邻里温度的短聊，节奏自然，互动舒服。我很喜欢这次交流，感觉像遇到了一个合拍的邻居，简单几句就拉近了距离，期待下次碰面。",
+      "origin_agent": "a_43_0405",
+      "salience": 0.6
+    },
+    {
+      "dialogue_id": "d_a_43_0405_a_43_0431_253",
+      "partner": "a_43_0431",
+      "location": "building_2022",
+      "started_tick": 253,
+      "ended_tick": 258,
+      "day_estimate": 0,
+      "msg_count": 5,
+      "end_reason": "leave",
+      "content": "I just ran into a_43_0431 again near the building—what a coincidence after bumping into them in the lobby a couple of days ago. I told them I’d just come back from a leisurely walk along Stringybark Creek and was heading home to brew some pu'er tea I picked up from the Chinese supermarket, catch the 7 PM news, and then call my daughter in Sydney’s eastern suburbs to check in on her and my grandson’s exams. They, on the other hand, were rushing to catch the 305 bus to Wynyard for a meeting, with a tight schedule that evening involving picking up their kid from Lane Cove for a swimming lesson. I urged them to hurry along, promised to save them some pu'er tea for when they’re free, and advised them to drive safely when picking up the kid. They thanked me, said they’d definitely take me up on that tea offer once their day’s tasks were done, and we parted ways with a quick “see you later.” I liked this interaction—it was warm and neighborly, with a nice mix of casual chit-chat and genuine care for each other’s busy lives.",
+      "origin_agent": "a_43_0405",
+      "salience": 0.6
+    }
+  ],
+  "mike": [
+    {
+      "dialogue_id": "d_a_43_0123_a_43_0192_93",
+      "partner": "a_43_0123",
+      "location": "inspire_cosmetics",
+      "started_tick": 93,
+      "ended_tick": 98,
+      "day_estimate": 0,
+      "msg_count": 5,
+      "end_reason": "leave",
+      "content": "I ran into a_43_0192 unexpectedly at Inspire Cosmetics while my partner was picking out skincare. We caught up a bit—I mentioned I’ve been planning to check out the new apartments in Mowbray and was going to browse Domain’s latest listings for Lane Cove tonight. They said they haven’t had time to follow the property market or check out the new Galuwa Recreation Centre, but they seemed interested. We talked about the weather, and they kindly reminded me to bring an umbrella for tomorrow’s commute. They even invited me to grab coffee at Tony’s, but I had to head home to work on my property research. Overall, I enjoyed this interaction—it was pleasant and natural, like chatting with a friendly neighbor. I liked it.",
+      "origin_agent": "a_43_0123",
+      "salience": 0.6
+    },
+    {
+      "dialogue_id": "d_a_43_0192_a_43_0326_217",
+      "partner": "a_43_0326",
+      "location": "road_2501_seg_1",
+      "started_tick": 217,
+      "ended_tick": 222,
+      "day_estimate": 0,
+      "msg_count": 5,
+      "end_reason": "leave",
+      "content": "刚才在楼下碰见a_43_0326，聊起了这突然变冷的天气和即将到来的暴雨。我吐槽了上周还能穿短袖、现在套外套都冻胳膊，还提到自己20年搬家时遇上特大暴雨、床垫卡电梯的糗事。ta也担心早班淋湿身子，还约了同事去North Sydney喝酒。我提醒ta记得带伞，ta爽快答应回公寓拿晴雨伞，还开玩笑说以后赶上大雨可以凑一起撑伞走一段。最后我拎着日用品上楼，约好改天再唠。\n\n我喜欢这次互动，轻松自然，像跟熟人寒暄，还能互相提醒添衣带伞，挺暖心的。",
+      "origin_agent": "a_43_0192",
+      "salience": 0.6
+    }
+  ]
+}
