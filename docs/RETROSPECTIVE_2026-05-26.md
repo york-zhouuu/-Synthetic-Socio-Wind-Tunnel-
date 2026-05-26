@@ -8,7 +8,7 @@
 ## TL;DR
 
 publishable run 1000 agent × 14 day × 4 variant × N seed 这条管线累计
-撞了 **3 类反复出现的故障模式 + 1 类工程文化问题**:
+撞了 **3 类反复出现的工程故障模式 + 2 类内容/科学问题 + 1 类文化问题**:
 
 | 类别 | 具体表现 | 发现频次 | 已 codified |
 |---|---|---|---|
@@ -16,9 +16,14 @@ publishable run 1000 agent × 14 day × 4 variant × N seed 这条管线累计
 | **并发自伤** | 错峰 spawn / LLM API burst self-DDoS / 守护脚本主动 kill | 4 次 | 是 |
 | **wiring gap 静默漂移** | `getattr(obj, "name", default)` 把字段重命名吞掉 | 4 次同晚 | 是 |
 | **测试覆盖盲区** | unit test 全绿 / integration 失败 / 真 worker 报废 | 7 个产线事故 | 部分 |
+| **agent 故事内容真实性** ⭐ | phantom 女儿 / retail_worker drift / 双重计数 / 物理 impossibility | 6+ 处 | 部分 (有约定无 audit 工具) |
+| **系统评测全缺** ⭐ | 4 个 finding · 0 个评测维度 · n=1 anecdotal evidence | **整个项目周期** | ❌ 完全空白 |
 
 外加 **publishing 侧** (portfolio 网站 + 对外文档) 几个独立教训, 跟仿真
 管线无关但属于同一项目交付的一部分, 也一起记下。
+
+⭐ 标记的两类是这次复盘新增, 之前散落在 commit message 跟 task list 里
+没有汇总; 第二个 (评测缺失) 是项目当前**最大的盲区**。
 
 ---
 
@@ -281,7 +286,173 @@ git 历史。
 
 ---
 
-## 9 · 对外写作 / 文档约定
+## 9 · Agent 故事生成 — 内容真实性 bug
+
+**核心矛盾**: longform / VN 故事重建用 LLM 把 simulator events JSONL
+转成可读 narrative。 LLM 会**自由发挥**, 产生**与真实数据不符的内容**,
+读者一眼看不出, 但严格审计就破。 数据再多 narrative 一编就垮 — 这是
+项目"信任度"的核心风险点。
+
+**实测撞过的 6 类内容 bug** (5 月 22-25 累计, 散在 #152-178 task series):
+
+### 9.1 Phantom 角色 / 信息 (凭空捏造)
+
+- Mary longform v1 LLM 加了"一个女儿"角色 — 实际 personality profile
+  里没有
+- a0290 v1 写了"零售业过往" — 实际 agent 是 ICU 护士, 跟 retail_worker
+  template 半残留
+- → 修: 每个 fact 严格 grounded in `agent.{personality,life_history,
+  relationships}`, prompt 显式列"可用 facts"
+- Reference: #158 phantom 女儿修复, #177 a0290 v2 磨平 retail_worker bug
+
+### 9.2 Identity drift across iterations
+
+a0290 v1 是 ICU 护士 → v2 表面修了但底层 retail_worker template 残留
+→ v3 才完全 ICU 化。 LLM 每次小修都可能引入新 inconsistency 不收敛。
+- → 修: identity statement 写在 prompt 顶, 每次 iter 复用 v0 grounding,
+  不让 LLM "重新理解" 角色
+- Reference: a0290 v1 → v2 → v3 (#176-178)
+
+### 9.3 物理 impossibility
+
+agent 同一 tick 出现在两个地点 (Mowbray Road + ICU 同时), 因为 LLM 把
+narrative-time 跟 simulation-tick 弄混。
+- → 修: "6 顶帽子物理隐身" 系列规则 — 每段叙述显式 anchor 一个 tick +
+  location, 同 tick 双 location 即报警
+- Reference: #178 a0290 v3 "6 顶帽子物理隐身"
+
+### 9.4 数字双重计数 / count 跟 distinct 混
+
+- "擦肩 467" 实际是单 seed 同框 count, 写法暗示"她遇到 467 个**不同**
+  的人" — count 跟 distinct 混了 → 后改"同框 / 看见 双层数字" 标注
+- "3972 dialogue" 实际是 4 variant × seed 求和, 在 ch7 + appendix
+  **双重计数** (一处 sum, 一处误以为是单 seed average)
+- → 修: 任何数字标 source (seed N / variant V / 是 sum 还是 mean), 绝
+  不写"她有 X" 暗示 distinct 的语言, 除非真是 distinct count
+- Reference: #156 (467 修复), #161 (3972 双重计数), #162 (push density
+  global dedupe)
+
+### 9.5 LLM 痕迹 / dialogue 单调
+
+5 段对话用同一句套话开头, LLM batch 生成时模板感未抹掉; 句尾 hedging
+"或许 / 也许" 高频出现; 段落结构机械 (5 句 → 转折 → 升华)。
+- → 修: **不掩盖, 标出来** — 加 highlight + 机制 note ("LLM 倾向于
+  ...") 让读者看见; 下次生成强制 voice variation
+- Reference: #152 抚平 LLM 痕迹, #158 NPC repetition 高亮, #164 system-log
+  对话 / whisper-game 视觉
+
+### 9.6 性别 / 身份冲突
+
+simulator 给 agent 分配的 gender 跟 LLM 生成 narrative 用的代词不匹配
+(personality JSON 里是 "她", LLM 写 "他")。
+- → 修: `clean_text` pass 强制代词跟 source 一致, 加 method note 说明
+- Reference: #152
+
+**已落地的内容真实性约定** (CLAUDE.md 强制规则):
+- LLM 痕迹**标出来不掩盖**: phantom 内容 / NPC repetition / 套话开头
+  → 加 highlight + 机制 note
+- 数据驱动语气 anchor: "她说" → "记录里她跟 agent_15 说...";
+  "她每天都会" → "在 14 天 BL 模拟里, 她去 X 次"
+- counting 双层: 当心 "擦肩" 这种隐含 distinct 含义的词, 用 "同框 /
+  抬头看见 / noticed" 双值并列
+- 角色 identity v0 固化 prompt header, 每次 iter 复用
+- 数字必须 verified, 不准为叙述好看而编 ([对外报告 9 原则](https://github.com/york-zhouuu/-Synthetic-Socio-Wind-Tunnel-/blob/main/CLAUDE.md) 第 8 条)
+
+**未做** (高优):
+- [ ] `tools/audit_longform_grounding.py` 自动 audit: 把 narrative 里
+      所有 fact-like claim 提出来, 跟 `agent.{personality,life_history,
+      relationships,events}` JSON 字段做 fuzzy match, flag "无源" claim
+- [ ] LLM 输出**结构化 grounding**: 每段附 ref `{tick: 1234, location:
+      "Mowbray Road", source: events.jsonl L4567}`, audit 变机械
+- [ ] **角色一致性 regression 套件**: 给 v3 加 test "提到 ICU 至少 N
+      次 / 不出现 retail 关键词 / 性别代词全 '她'", 防 v4 再 drift
+
+---
+
+## 10 · 系统评测彻底缺失 (the no-eval problem)
+
+**核心矛盾**: 项目跑了 14 天 × 1000 agent × 4 variant × N seed, 产出
+4 类核心 finding (siphon / friction / routine-cliff / 3 hero longform),
+但**从来没有任何 quantitative / qualitative evaluation** 告诉我们这些
+finding **是否成立**。
+
+**当前事实**:
+
+```
+✗ 没有 ground-truth          没人知道"真实 Lane Cove 居民 14 天会怎样"作为对照
+✗ 没有 seed-cross robustness  4 个 finding 在 seed 43/44/45 上一致吗? 没系统跑过
+✗ 没有 human plausibility     真人能区分 "simulator 生成" vs "真实 case study" 吗?
+✗ 没有 simulator fidelity     agent 的 personality 跟 14 天行为自洽吗? 没量化
+✗ 没有 counterfactual validity 4-universe 差异是干预贡献还是 LLM 噪声?
+✗ 没有 cross-version regression  longform v3 比 v2 好还是坏? 没指标
+✗ 没有 content grounding audit  narrative 每个 fact 都有 source 吗? 见 Section 9
+```
+
+**这是项目当前最大的盲区** — 所有 finding 都是 **n=1 anecdotal
+observation**, 没经过任何科学口径 validation。 报告写得再漂亮, 对
+学术读者 / paper reviewer 来说**等于零证据**。
+
+### 缺失的 8 个评测维度
+
+| 维度 | 问题 | 可行方法 |
+|---|---|---|
+| **Simulator fidelity** | agent 行为跟 personality+routine 自洽吗 | personality × action 互信息; perturbation test |
+| **Cross-seed robustness** | 4 finding 在 seed 43/44/45 上一致吗 | 重跑 seed 44/45, effect size + 95% CI |
+| **Cross-condition validity** | HP/PF/GD 跟 BL 差异显著吗 | bootstrap permutation test on noticed encounter |
+| **Narrative plausibility** | 真人能区分 simulator vs real 吗 | Turing-style A/B test (8-10 readers × 12 paired snippets) |
+| **LLM content grounding** | narrative 每个 fact 都有 source 吗 | `tools/audit_longform_grounding.py` (见 9.7) |
+| **Reader comprehension** | 真人读懂报告核心 finding 吗 | 8-12 reader interview "what's the main finding" |
+| **Counterfactual validity** | 4-universe 差异是干预 vs LLM 噪声 | hold seed fixed, 同 variant 重跑 5 次 LLM seed, 看 within-variant 方差 |
+| **Cross-version regression** | longform v3 vs v2 哪个好 | rubric scoring (5 criteria × Likert), pre-registered |
+
+### Why we haven't done this yet (诚实复盘)
+
+- **Cost 心理门槛**: publishable run ~$300 / 4 variant × 14 day × β=4
+  seed, 重跑做 cross-seed test 直觉上"贵"
+- **评测需要人 + 时间**: A/B test / reader interview 不是单纯加代码,
+  要找受访者
+- **anecdotal signal 太强**: finding "好像 work" 的直觉太强烈, 心理上
+  跳过 validation 直接进 narrative polish
+- **没人写 eval harness**: 现在写也得 1-2 周, 不写又永远没有
+
+### 风险 (诚实评估)
+
+不做评测就投出去, **reviewer / 严格读者一翻就发现 "这是 demo 不是
+evidence"**。 narrative quality 已经够高, 但**信任度上限完全卡在
+evaluation 这步** — 没评测, 故事再好 = 装饰; 有评测, 即使部分 finding
+不成立, **方法论本身仍然有价值**。
+
+### 排期建议 (从 cheapest 到 expensive)
+
+1. ⚡ **Cross-seed robustness** (1-2 天): 已有 seed 43/44 数据, 加跑
+   seed 45, 4 finding 各算 effect size + CI; 这是最便宜也最可能动摇 /
+   confirm finding 的一步
+2. ⚡ **Content grounding audit** (1 天): `tools/audit_longform_grounding.py`
+   规则式 string match, 把现有 3 篇 longform 过一遍, 看 phantom rate
+3. **Counterfactual within-variant 方差** (3-5 天): 同 variant 重跑 5
+   次同 sim seed 不同 LLM seed, 量化"4-universe 差异有多少来自干预 vs
+   LLM 噪声"
+4. **Turing A/B reader test** (1-2 周): 找 8-10 design researcher / 学
+   术读者, 12 段 snippet 区分, target accuracy ≤60% 才算 narrative-plausible
+5. **统一 eval harness** (`tools/eval_harness.py`, 2-3 周): 框架跑上述
+   所有 quant 评测, 持续 regression
+6. **学术 paper outline + reviewer-ready evidence** (1-2 月): 现有
+   报告全是 design-researcher 风格, 缺一份 paper reviewer 能看的 evidence
+   table + effect size + CI + ablation
+
+### Open questions (需要决定)
+
+- 评测优先级: **cross-seed robustness** vs **reader plausibility**
+  谁先? (个人倾向前者, 因为后者依赖前者 — 在不知道 finding 是否 robust
+  之前问 reader "可信吗" 是过早)
+- ground-truth 怎么办: 真实 Lane Cove 居民 14 天 attention data 不存在
+  → 是否接受"用 BL 仿真本身作为 ground-truth"的弱命题
+- pre-registration: 是否在跑 seed 45 之前先 freeze "4 finding 的预期
+  effect size 方向" — 避免事后挑数据
+
+---
+
+## 11 · 对外写作 / 文档约定
 
 (这一节跟仿真管线无关, 是 publishing 侧的累积约定 — 但属于同一项目
 交付)
@@ -311,7 +482,7 @@ git 历史。
 
 ---
 
-## 10 · Publishing 侧 (portfolio 网站) 教训
+## 12 · Publishing 侧 (portfolio 网站) 教训
 
 跟仿真无关但属于同一项目交付。 5 月 25-26 累计:
 
@@ -340,7 +511,7 @@ git 历史。
 
 ---
 
-## 11 · 横切观察 · 模式与下一步
+## 13 · 横切观察 · 模式与下一步
 
 ### 反复出现的元模式
 
@@ -359,22 +530,35 @@ git 历史。
 
 ### 下一步排期建议
 
-**高优** (publishable run 还可能再撞):
+**高优** — 信任度卡死, 这几条不做项目对外没法 defend:
+- [ ] ⭐ **Cross-seed robustness** (1-2 天): 跑 seed 45, 4 finding
+      effect size + 95% CI, 看是否 across seeds 一致 — 这是 cheapest
+      validation, 最值得先做
+- [ ] ⭐ **`tools/audit_longform_grounding.py`** (1 天): 把 3 篇
+      longform 过一遍, 量化 phantom rate
+- [ ] retry-network-blip-tolerance change tasks 落地 (proposal 已写好)
 - [ ] backlog 1.9 hot-path 之外的 LLM call 也加 `asyncio.wait_for`
-      硬超时兜底
-- [ ] retry-network-blip-tolerance change 的 tasks 落地 (proposal 已
-      写好)
-- [ ] 全 codebase audit `getattr(x, "...", default)` → 直接属性 + assert
+- [ ] 全 codebase audit `getattr(x, "...", default)` → 直接属性
 - [ ] CLAUDE.md 列的 4 个 high-priority test 补上
 
-**中优** (不影响 publishable run 但能减重复劳动):
-- [ ] backlog 1.7 A 进程间共享只读数据
-- [ ] backlog 1.7 D fork-based worker spawn
+**中优**:
+- [ ] **Counterfactual within-variant 方差** (3-5 天): 同 variant 同
+      sim seed × 5 个不同 LLM seed, 量化"4-universe 差异有多少来自
+      干预 vs LLM 噪声"
+- [ ] **Turing A/B reader test** (1-2 周): 8-10 reader × 12 paired
+      snippet, target ≤60% distinguish accuracy
+- [ ] **角色一致性 regression 套件**: prevent v4 longform iter 再
+      drift identity
+- [ ] backlog 1.7 A 进程间共享只读数据 / 1.7 D fork-based spawn
 - [ ] `tools/check_git_hygiene.py` pre-commit hook
-- [ ] backfill 早期报告的数据分析口径 (noticed vs 同框)
+- [ ] backfill 早期报告数据口径 (noticed vs 同框)
 
-**低优** (研究侧 nice-to-have):
-- [ ] backlog 1.14 单 worker 多核并行化 (Numba JIT / ProcessPoolExecutor)
+**低优**:
+- [ ] **统一 `tools/eval_harness.py`** (2-3 周): 持续 regression 跑上
+      述所有 quant 评测
+- [ ] **学术 paper outline** (1-2 月): reviewer-ready evidence table +
+      effect size + ablation, 跟现有 design-researcher 报告并行
+- [ ] backlog 1.14 单 worker 多核并行化
 - [ ] DialogueService 持久化 (backlog 1.12)
 - [ ] portfolio e2e visual regression test
 
