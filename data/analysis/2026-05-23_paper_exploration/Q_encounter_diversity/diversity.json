@@ -1,0 +1,62 @@
+{
+  "43|baseline": {
+    "total_encounters": 7513376.0,
+    "unique_pairs": 476244.0,
+    "diversity_ratio": 0.06338615290915828
+  },
+  "43|hyperlocal_push": {
+    "total_encounters": 41100491.0,
+    "unique_pairs": 566548.0,
+    "diversity_ratio": 0.013784458195402093
+  },
+  "43|global_distraction": {
+    "total_encounters": 9658114.0,
+    "unique_pairs": 461499.0,
+    "diversity_ratio": 0.047783552772311444
+  },
+  "43|phone_friction": {
+    "total_encounters": 35226875.0,
+    "unique_pairs": 534370.0,
+    "diversity_ratio": 0.01516938417046644
+  },
+  "44|baseline": {
+    "total_encounters": 7913095.0,
+    "unique_pairs": 475722.0,
+    "diversity_ratio": 0.060118322855974814
+  },
+  "44|hyperlocal_push": {
+    "total_encounters": 34038180.0,
+    "unique_pairs": 525258.0,
+    "diversity_ratio": 0.015431436110861391
+  },
+  "44|global_distraction": {
+    "total_encounters": 11524048.0,
+    "unique_pairs": 458893.0,
+    "diversity_ratio": 0.03982046933508087
+  },
+  "44|phone_friction": {
+    "total_encounters": 38114956.0,
+    "unique_pairs": 542165.0,
+    "diversity_ratio": 0.014224468736104535
+  },
+  "45|baseline": {
+    "total_encounters": 8734049.0,
+    "unique_pairs": 450290.0,
+    "diversity_ratio": 0.05155569885170097
+  },
+  "45|hyperlocal_push": {
+    "total_encounters": 40094386.0,
+    "unique_pairs": 527864.0,
+    "diversity_ratio": 0.013165533947820026
+  },
+  "45|global_distraction": {
+    "total_encounters": 11063468.0,
+    "unique_pairs": 437102.0,
+    "diversity_ratio": 0.03950858808467652
+  },
+  "45|phone_friction": {
+    "total_encounters": 36863564.0,
+    "unique_pairs": 519415.0,
+    "diversity_ratio": 0.014090200285571954
+  }
+}

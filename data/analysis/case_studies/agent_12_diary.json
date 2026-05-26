@@ -1,0 +1,1392 @@
+{
+  "agent_id": "a_43_0012",
+  "label": "agent_12",
+  "profile": {
+    "agent_id": "a_43_0012",
+    "name": "agent_12",
+    "age": 64,
+    "occupation": "construction",
+    "household": "couple",
+    "home_location": "building_1712",
+    "workplace": "go_vita_lane_cove",
+    "walking_speed_m_per_min": 150.0,
+    "prefer_driving": true,
+    "household_id": "hh_43_00347",
+    "household_role": "parent",
+    "personality": {
+      "openness": 0.5068414296966705,
+      "conscientiousness": 0.23499769961450095,
+      "extraversion": 0.39608041906141356,
+      "agreeableness": 0.39725655452421277,
+      "neuroticism": 0.5372591153888363,
+      "curiosity": 0.6154854200102371,
+      "routine_adherence": 0.4148463314421911,
+      "risk_tolerance": 0.6379242864417685
+    },
+    "preferred_social_size": 2,
+    "interests": [],
+    "languages": [
+      "other"
+    ],
+    "wake_time": "7:00",
+    "sleep_time": "23:00",
+    "is_protagonist": true,
+    "base_model": "claude-sonnet-4-6",
+    "identity_text": "agent_12 是一位 64 岁的 construction，3 年前买下 Lane Cove 的房子后再没搬过。内敛少言。喜欢bushcare_volunteer、council_news、harbor_walks，对 Council 议程比对手机推送上心得多，常在 Plaza 碰到几十年前就认识的老邻居。",
+    "plan_text": "周六去 Lane Cove Plaza 的 Farmers Market，再到 Pottery Lane 看看新的 performance space 进度。",
+    "ethnicity_group": "other",
+    "migration_tenure_years": null,
+    "housing_tenure": "owner_occupier",
+    "income_tier": "mid",
+    "work_mode": "commute",
+    "gender": "male",
+    "digital": {
+      "daily_screen_hours": 1.0134445128554117,
+      "feed_bias": "global",
+      "headphones_hours": 1.9008821590634097,
+      "notification_responsiveness": 0.5289179145058892,
+      "primary_apps": [
+        "linkedin",
+        "nextdoor",
+        "tiktok"
+      ]
+    },
+    "community_tenure_5yr": "recent_1_5yr",
+    "unpaid_child_care_hours": "none",
+    "unpaid_domestic_hours": "1_14",
+    "unpaid_disability_care_hours": "yes",
+    "volunteer_status": "non_volunteer",
+    "english_proficiency": "english_only",
+    "family_composition": "couple_no_kids",
+    "dwelling_structure": "flat_apartment",
+    "vehicles_at_dwelling": "1",
+    "year_of_arrival_bucket": "australian_born",
+    "indigenous_status": "non_indigenous",
+    "disability_status": "no_assistance",
+    "education_level": "bachelor",
+    "life_pattern": {
+      "preferred_cafe": "wild_bean_cafe",
+      "preferred_leisure_park": "nichols_reserve",
+      "preferred_errand_destination": "riverview_1st_field",
+      "morning_commute_minute": 21,
+      "evening_return_minute": 19,
+      "weekend_outing_destination": "central_arcade"
+    }
+  },
+  "days": [
+    {
+      "day": 6,
+      "bl_stays": [],
+      "hp_stays": [
+        {
+          "loc": "landers_road_seg_1",
+          "name": "Landers Road (1)",
+          "type": "street",
+          "kind": "outdoor",
+          "arrived_tick": 220,
+          "arrived_time": "18:20",
+          "duration_ticks": 4,
+          "duration_min": 20,
+          "x": -48.48359554810849,
+          "y": -887.749634209163
+        },
+        {
+          "loc": "area_124",
+          "name": "area_124",
+          "type": "playground",
+          "kind": "outdoor",
+          "arrived_tick": 230,
+          "arrived_time": "19:10",
+          "duration_ticks": 8,
+          "duration_min": 40,
+          "x": -372.251667399991,
+          "y": -804.6325562092466
+        },
+        {
+          "loc": "mowbray_road_seg_5",
+          "name": "Mowbray Road (5)",
+          "type": "street",
+          "kind": "outdoor",
+          "arrived_tick": 238,
+          "arrived_time": "19:50",
+          "duration_ticks": 8,
+          "duration_min": 40,
+          "x": -71.90081803391723,
+          "y": -1381.0642142090553
+        },
+        {
+          "loc": "area_124",
+          "name": "area_124",
+          "type": "playground",
+          "kind": "outdoor",
+          "arrived_tick": 250,
+          "arrived_time": "20:50",
+          "duration_ticks": 8,
+          "duration_min": 40,
+          "x": -372.251667399991,
+          "y": -804.6325562092466
+        },
+        {
+          "loc": "area_124",
+          "name": "area_124",
+          "type": "playground",
+          "kind": "outdoor",
+          "arrived_tick": 268,
+          "arrived_time": "22:20",
+          "duration_ticks": 4,
+          "duration_min": 20,
+          "x": -372.251667399991,
+          "y": -804.6325562092466
+        },
+        {
+          "loc": "area_124",
+          "name": "area_124",
+          "type": "playground",
+          "kind": "outdoor",
+          "arrived_tick": 286,
+          "arrived_time": "23:50",
+          "duration_ticks": 24,
+          "duration_min": 120,
+          "x": -372.251667399991,
+          "y": -804.6325562092466
+        }
+      ],
+      "n_bl_stays": 0,
+      "n_hp_stays": 6,
+      "bl_distance_m": 0.0,
+      "hp_distance_m": 15443.5,
+      "new_locations_today": [
+        {
+          "loc": "area_124",
+          "name": "area_124",
+          "type": "playground"
+        },
+        {
+          "loc": "landers_road_seg_1",
+          "name": "Landers Road (1)",
+          "type": "street"
+        },
+        {
+          "loc": "mowbray_road_seg_5",
+          "name": "Mowbray Road (5)",
+          "type": "street"
+        }
+      ]
+    },
+    {
+      "day": 7,
+      "bl_stays": [
+        {
+          "loc": "building_1712",
+          "name": "building_1712",
+          "type": "residential",
+          "kind": "building",
+          "arrived_tick": 253,
+          "arrived_time": "21:05",
+          "duration_ticks": 24,
+          "duration_min": 120,
+          "x": -1257.7685716042538,
+          "y": -204.47526660901931
+        }
+      ],
+      "hp_stays": [
+        {
+          "loc": "shinnyo_australia",
+          "name": "Shinnyo Australia",
+          "type": "worship",
+          "kind": "building",
+          "arrived_tick": 3,
+          "arrived_time": "00:15",
+          "duration_ticks": 166,
+          "duration_min": 830,
+          "x": 432.2168221716397,
+          "y": 414.6438809905673
+        },
+        {
+          "loc": "area_117",
+          "name": "area_117",
+          "type": "playground",
+          "kind": "outdoor",
+          "arrived_tick": 181,
+          "arrived_time": "15:05",
+          "duration_ticks": 6,
+          "duration_min": 30,
+          "x": -353.92297406534533,
+          "y": -1472.089465009239
+        },
+        {
+          "loc": "area_124",
+          "name": "area_124",
+          "type": "playground",
+          "kind": "outdoor",
+          "arrived_tick": 189,
+          "arrived_time": "15:45",
+          "duration_ticks": 6,
+          "duration_min": 30,
+          "x": -372.251667399991,
+          "y": -804.6325562092466
+        },
+        {
+          "loc": "area_124",
+          "name": "area_124",
+          "type": "playground",
+          "kind": "outdoor",
+          "arrived_tick": 197,
+          "arrived_time": "16:25",
+          "duration_ticks": 8,
+          "duration_min": 40,
+          "x": -372.251667399991,
+          "y": -804.6325562092466
+        },
+        {
+          "loc": "area_124",
+          "name": "area_124",
+          "type": "playground",
+          "kind": "outdoor",
+          "arrived_tick": 207,
+          "arrived_time": "17:15",
+          "duration_ticks": 4,
+          "duration_min": 20,
+          "x": -372.251667399991,
+          "y": -804.6325562092466
+        },
+        {
+          "loc": "mowbray_road_seg_5",
+          "name": "Mowbray Road (5)",
+          "type": "street",
+          "kind": "outdoor",
+          "arrived_tick": 211,
+          "arrived_time": "17:35",
+          "duration_ticks": 4,
+          "duration_min": 20,
+          "x": -71.90081803391723,
+          "y": -1381.0642142090553
+        },
+        {
+          "loc": "area_124",
+          "name": "area_124",
+          "type": "playground",
+          "kind": "outdoor",
+          "arrived_tick": 215,
+          "arrived_time": "17:55",
+          "duration_ticks": 6,
+          "duration_min": 30,
+          "x": -372.251667399991,
+          "y": -804.6325562092466
+        },
+        {
+          "loc": "area_124",
+          "name": "area_124",
+          "type": "playground",
+          "kind": "outdoor",
+          "arrived_tick": 223,
+          "arrived_time": "18:35",
+          "duration_ticks": 4,
+          "duration_min": 20,
+          "x": -372.251667399991,
+          "y": -804.6325562092466
+        },
+        {
+          "loc": "mowbray_road_seg_5",
+          "name": "Mowbray Road (5)",
+          "type": "street",
+          "kind": "outdoor",
+          "arrived_tick": 227,
+          "arrived_time": "18:55",
+          "duration_ticks": 8,
+          "duration_min": 40,
+          "x": -71.90081803391723,
+          "y": -1381.0642142090553
+        },
+        {
+          "loc": "area_124",
+          "name": "area_124",
+          "type": "playground",
+          "kind": "outdoor",
+          "arrived_tick": 235,
+          "arrived_time": "19:35",
+          "duration_ticks": 4,
+          "duration_min": 20,
+          "x": -372.251667399991,
+          "y": -804.6325562092466
+        },
+        {
+          "loc": "area_124",
+          "name": "area_124",
+          "type": "playground",
+          "kind": "outdoor",
+          "arrived_tick": 241,
+          "arrived_time": "20:05",
+          "duration_ticks": 10,
+          "duration_min": 50,
+          "x": -372.251667399991,
+          "y": -804.6325562092466
+        },
+        {
+          "loc": "mowbray_road_seg_5",
+          "name": "Mowbray Road (5)",
+          "type": "street",
+          "kind": "outdoor",
+          "arrived_tick": 259,
+          "arrived_time": "21:35",
+          "duration_ticks": 8,
+          "duration_min": 40,
+          "x": -71.90081803391723,
+          "y": -1381.0642142090553
+        },
+        {
+          "loc": "area_124",
+          "name": "area_124",
+          "type": "playground",
+          "kind": "outdoor",
+          "arrived_tick": 267,
+          "arrived_time": "22:15",
+          "duration_ticks": 8,
+          "duration_min": 40,
+          "x": -372.251667399991,
+          "y": -804.6325562092466
+        },
+        {
+          "loc": "mowbray_road_seg_5",
+          "name": "Mowbray Road (5)",
+          "type": "street",
+          "kind": "outdoor",
+          "arrived_tick": 279,
+          "arrived_time": "23:15",
+          "duration_ticks": 4,
+          "duration_min": 20,
+          "x": -71.90081803391723,
+          "y": -1381.0642142090553
+        },
+        {
+          "loc": "area_124",
+          "name": "area_124",
+          "type": "playground",
+          "kind": "outdoor",
+          "arrived_tick": 283,
+          "arrived_time": "23:35",
+          "duration_ticks": 24,
+          "duration_min": 120,
+          "x": -372.251667399991,
+          "y": -804.6325562092466
+        }
+      ],
+      "n_bl_stays": 1,
+      "n_hp_stays": 15,
+      "bl_distance_m": 0.0,
+      "hp_distance_m": 24451.1,
+      "new_locations_today": [
+        {
+          "loc": "shinnyo_australia",
+          "name": "Shinnyo Australia",
+          "type": "worship"
+        },
+        {
+          "loc": "area_124",
+          "name": "area_124",
+          "type": "playground"
+        },
+        {
+          "loc": "area_117",
+          "name": "area_117",
+          "type": "playground"
+        },
+        {
+          "loc": "mowbray_road_seg_5",
+          "name": "Mowbray Road (5)",
+          "type": "street"
+        }
+      ]
+    },
+    {
+      "day": 8,
+      "bl_stays": [
+        {
+          "loc": "go_vita_lane_cove",
+          "name": "Go Vita Lane Cove",
+          "type": "commercial",
+          "kind": "building",
+          "arrived_tick": 90,
+          "arrived_time": "07:30",
+          "duration_ticks": 107,
+          "duration_min": 535,
+          "x": 209.60681266260417,
+          "y": -472.8154662092813
+        },
+        {
+          "loc": "building_1712",
+          "name": "building_1712",
+          "type": "residential",
+          "kind": "building",
+          "arrived_tick": 199,
+          "arrived_time": "16:35",
+          "duration_ticks": 32,
+          "duration_min": 160,
+          "x": -1257.7685716042538,
+          "y": -204.47526660901931
+        },
+        {
+          "loc": "wild_bean_cafe",
+          "name": "Wild Bean Cafe",
+          "type": "cafe",
+          "kind": "building",
+          "arrived_tick": 234,
+          "arrived_time": "19:30",
+          "duration_ticks": 6,
+          "duration_min": 30,
+          "x": 802.4623854132187,
+          "y": -829.4747274091081
+        },
+        {
+          "loc": "building_1712",
+          "name": "building_1712",
+          "type": "residential",
+          "kind": "building",
+          "arrived_tick": 243,
+          "arrived_time": "20:15",
+          "duration_ticks": 24,
+          "duration_min": 120,
+          "x": -1257.7685716042538,
+          "y": -204.47526660901931
+        }
+      ],
+      "hp_stays": [
+        {
+          "loc": "shinnyo_australia",
+          "name": "Shinnyo Australia",
+          "type": "worship",
+          "kind": "building",
+          "arrived_tick": 3,
+          "arrived_time": "00:15",
+          "duration_ticks": 178,
+          "duration_min": 890,
+          "x": 432.2168221716397,
+          "y": 414.6438809905673
+        },
+        {
+          "loc": "anglican_church_of_australia_lane_cove",
+          "name": "Anglican Church of Australia Lane Cove",
+          "type": "worship",
+          "kind": "building",
+          "arrived_tick": 183,
+          "arrived_time": "15:15",
+          "duration_ticks": 10,
+          "duration_min": 50,
+          "x": 135.21809781964637,
+          "y": -531.8000808246605
+        },
+        {
+          "loc": "lane_cove_plaza_seg_1",
+          "name": "Lane Cove Plaza (1)",
+          "type": "street",
+          "kind": "outdoor",
+          "arrived_tick": 193,
+          "arrived_time": "16:05",
+          "duration_ticks": 8,
+          "duration_min": 40,
+          "x": 204.01454810340203,
+          "y": -442.39171020929007
+        },
+        {
+          "loc": "landers_road_seg_1_2",
+          "name": "Landers Road (1)",
+          "type": "street",
+          "kind": "outdoor",
+          "arrived_tick": 201,
+          "arrived_time": "16:45",
+          "duration_ticks": 8,
+          "duration_min": 40,
+          "x": -148.45534375980205,
+          "y": -913.2085182088755
+        },
+        {
+          "loc": "coxs_lane_seg_1",
+          "name": "Coxs Lane (1)",
+          "type": "street",
+          "kind": "outdoor",
+          "arrived_tick": 209,
+          "arrived_time": "17:25",
+          "duration_ticks": 4,
+          "duration_min": 20,
+          "x": 15.571571492050566,
+          "y": -639.2221682093113
+        },
+        {
+          "loc": "river_road_west_seg_1_3",
+          "name": "River Road West (1)",
+          "type": "street",
+          "kind": "outdoor",
+          "arrived_tick": 213,
+          "arrived_time": "17:45",
+          "duration_ticks": 12,
+          "duration_min": 60,
+          "x": -158.2263925576355,
+          "y": 121.27710979094459
+        },
+        {
+          "loc": "finlayson_street_seg_1_1",
+          "name": "Finlayson Street (1)",
+          "type": "street",
+          "kind": "outdoor",
+          "arrived_tick": 225,
+          "arrived_time": "18:45",
+          "duration_ticks": 16,
+          "duration_min": 80,
+          "x": -197.05625377710433,
+          "y": -678.6851082093399
+        },
+        {
+          "loc": "anglican_church_of_australia_lane_cove",
+          "name": "Anglican Church of Australia Lane Cove",
+          "type": "worship",
+          "kind": "building",
+          "arrived_tick": 241,
+          "arrived_time": "20:05",
+          "duration_ticks": 14,
+          "duration_min": 70,
+          "x": 135.21809781964637,
+          "y": -531.8000808246605
+        },
+        {
+          "loc": "akira_sushi",
+          "name": "Akira Sushi",
+          "type": "restaurant",
+          "kind": "building",
+          "arrived_tick": 255,
+          "arrived_time": "21:15",
+          "duration_ticks": 32,
+          "duration_min": 160,
+          "x": 184.8480426968982,
+          "y": -472.2149566537389
+        },
+        {
+          "loc": "anglican_church_of_australia_lane_cove",
+          "name": "Anglican Church of Australia Lane Cove",
+          "type": "worship",
+          "kind": "building",
+          "arrived_tick": 287,
+          "arrived_time": "23:55",
+          "duration_ticks": 24,
+          "duration_min": 120,
+          "x": 135.21809781964637,
+          "y": -531.8000808246605
+        }
+      ],
+      "n_bl_stays": 4,
+      "n_hp_stays": 10,
+      "bl_distance_m": 7060.4,
+      "hp_distance_m": 6786.2,
+      "new_locations_today": [
+        {
+          "loc": "shinnyo_australia",
+          "name": "Shinnyo Australia",
+          "type": "worship"
+        },
+        {
+          "loc": "river_road_west_seg_1_3",
+          "name": "River Road West (1)",
+          "type": "street"
+        },
+        {
+          "loc": "anglican_church_of_australia_lane_cove",
+          "name": "Anglican Church of Australia Lane Cove",
+          "type": "worship"
+        },
+        {
+          "loc": "lane_cove_plaza_seg_1",
+          "name": "Lane Cove Plaza (1)",
+          "type": "street"
+        },
+        {
+          "loc": "landers_road_seg_1_2",
+          "name": "Landers Road (1)",
+          "type": "street"
+        }
+      ]
+    },
+    {
+      "day": 9,
+      "bl_stays": [
+        {
+          "loc": "go_vita_lane_cove",
+          "name": "Go Vita Lane Cove",
+          "type": "commercial",
+          "kind": "building",
+          "arrived_tick": 99,
+          "arrived_time": "08:15",
+          "duration_ticks": 98,
+          "duration_min": 490,
+          "x": 209.60681266260417,
+          "y": -472.8154662092813
+        },
+        {
+          "loc": "building_1712",
+          "name": "building_1712",
+          "type": "residential",
+          "kind": "building",
+          "arrived_tick": 199,
+          "arrived_time": "16:35",
+          "duration_ticks": 13,
+          "duration_min": 65,
+          "x": -1257.7685716042538,
+          "y": -204.47526660901931
+        },
+        {
+          "loc": "mings_massage",
+          "name": "Ming's Massage",
+          "type": "restaurant",
+          "kind": "building",
+          "arrived_tick": 214,
+          "arrived_time": "17:50",
+          "duration_ticks": 17,
+          "duration_min": 85,
+          "x": 264.11597793317804,
+          "y": -566.7899548760043
+        },
+        {
+          "loc": "wild_bean_cafe",
+          "name": "Wild Bean Cafe",
+          "type": "cafe",
+          "kind": "building",
+          "arrived_tick": 232,
+          "arrived_time": "19:20",
+          "duration_ticks": 20,
+          "duration_min": 100,
+          "x": 802.4623854132187,
+          "y": -829.4747274091081
+        },
+        {
+          "loc": "building_1712",
+          "name": "building_1712",
+          "type": "residential",
+          "kind": "building",
+          "arrived_tick": 255,
+          "arrived_time": "21:15",
+          "duration_ticks": 24,
+          "duration_min": 120,
+          "x": -1257.7685716042538,
+          "y": -204.47526660901931
+        }
+      ],
+      "hp_stays": [
+        {
+          "loc": "shinnyo_australia",
+          "name": "Shinnyo Australia",
+          "type": "worship",
+          "kind": "building",
+          "arrived_tick": 3,
+          "arrived_time": "00:15",
+          "duration_ticks": 189,
+          "duration_min": 945,
+          "x": 432.2168221716397,
+          "y": 414.6438809905673
+        },
+        {
+          "loc": "longueville_road_seg_1_35",
+          "name": "Longueville Road (1)",
+          "type": "street",
+          "kind": "outdoor",
+          "arrived_tick": 192,
+          "arrived_time": "16:00",
+          "duration_ticks": 6,
+          "duration_min": 30,
+          "x": 283.32975349357645,
+          "y": -330.6653922095471
+        },
+        {
+          "loc": "lane_cove_plaza_seg_1",
+          "name": "Lane Cove Plaza (1)",
+          "type": "street",
+          "kind": "outdoor",
+          "arrived_tick": 200,
+          "arrived_time": "16:40",
+          "duration_ticks": 38,
+          "duration_min": 190,
+          "x": 204.01454810340203,
+          "y": -442.39171020929007
+        },
+        {
+          "loc": "dorritt_street_seg_1_1",
+          "name": "Dorritt Street (1)",
+          "type": "street",
+          "kind": "outdoor",
+          "arrived_tick": 240,
+          "arrived_time": "20:00",
+          "duration_ticks": 12,
+          "duration_min": 60,
+          "x": 687.6606544771892,
+          "y": -233.6444462092197
+        },
+        {
+          "loc": "road_5070_seg_4",
+          "name": "road_5070 (4)",
+          "type": "street",
+          "kind": "outdoor",
+          "arrived_tick": 252,
+          "arrived_time": "21:00",
+          "duration_ticks": 16,
+          "duration_min": 80,
+          "x": 259.7506821152666,
+          "y": -854.9269322092171
+        },
+        {
+          "loc": "finlayson_street_seg_2_1",
+          "name": "Finlayson Street (2)",
+          "type": "street",
+          "kind": "outdoor",
+          "arrived_tick": 268,
+          "arrived_time": "22:20",
+          "duration_ticks": 4,
+          "duration_min": 20,
+          "x": -389.94776278037955,
+          "y": -793.756592209417
+        },
+        {
+          "loc": "area_124",
+          "name": "area_124",
+          "type": "playground",
+          "kind": "outdoor",
+          "arrived_tick": 272,
+          "arrived_time": "22:40",
+          "duration_ticks": 8,
+          "duration_min": 40,
+          "x": -372.251667399991,
+          "y": -804.6325562092466
+        },
+        {
+          "loc": "area_124",
+          "name": "area_124",
+          "type": "playground",
+          "kind": "outdoor",
+          "arrived_tick": 282,
+          "arrived_time": "23:30",
+          "duration_ticks": 4,
+          "duration_min": 20,
+          "x": -372.251667399991,
+          "y": -804.6325562092466
+        },
+        {
+          "loc": "anglican_church_of_australia_lane_cove",
+          "name": "Anglican Church of Australia Lane Cove",
+          "type": "worship",
+          "kind": "building",
+          "arrived_tick": 286,
+          "arrived_time": "23:50",
+          "duration_ticks": 24,
+          "duration_min": 120,
+          "x": 135.21809781964637,
+          "y": -531.8000808246605
+        }
+      ],
+      "n_bl_stays": 5,
+      "n_hp_stays": 9,
+      "bl_distance_m": 6980.5,
+      "hp_distance_m": 8227.7,
+      "new_locations_today": [
+        {
+          "loc": "shinnyo_australia",
+          "name": "Shinnyo Australia",
+          "type": "worship"
+        },
+        {
+          "loc": "dorritt_street_seg_1_1",
+          "name": "Dorritt Street (1)",
+          "type": "street"
+        },
+        {
+          "loc": "anglican_church_of_australia_lane_cove",
+          "name": "Anglican Church of Australia Lane Cove",
+          "type": "worship"
+        },
+        {
+          "loc": "road_5070_seg_4",
+          "name": "road_5070 (4)",
+          "type": "street"
+        },
+        {
+          "loc": "area_124",
+          "name": "area_124",
+          "type": "playground"
+        },
+        {
+          "loc": "lane_cove_plaza_seg_1",
+          "name": "Lane Cove Plaza (1)",
+          "type": "street"
+        }
+      ]
+    },
+    {
+      "day": 10,
+      "bl_stays": [
+        {
+          "loc": "loyola_drive_seg_3_1",
+          "name": "Loyola Drive (3)",
+          "type": "street",
+          "kind": "outdoor",
+          "arrived_tick": 128,
+          "arrived_time": "10:40",
+          "duration_ticks": 28,
+          "duration_min": 140,
+          "x": -810.6300260710045,
+          "y": 693.0221957906421
+        },
+        {
+          "loc": "nichols_reserve",
+          "name": "Nichols Reserve",
+          "type": "park",
+          "kind": "outdoor",
+          "arrived_tick": 161,
+          "arrived_time": "13:25",
+          "duration_ticks": 73,
+          "duration_min": 365,
+          "x": -565.3364702222648,
+          "y": -607.6643397092171
+        },
+        {
+          "loc": "building_1712",
+          "name": "building_1712",
+          "type": "residential",
+          "kind": "building",
+          "arrived_tick": 236,
+          "arrived_time": "19:40",
+          "duration_ticks": 24,
+          "duration_min": 120,
+          "x": -1257.7685716042538,
+          "y": -204.47526660901931
+        }
+      ],
+      "hp_stays": [
+        {
+          "loc": "shinnyo_australia",
+          "name": "Shinnyo Australia",
+          "type": "worship",
+          "kind": "building",
+          "arrived_tick": 3,
+          "arrived_time": "00:15",
+          "duration_ticks": 153,
+          "duration_min": 765,
+          "x": 432.2168221716397,
+          "y": 414.6438809905673
+        },
+        {
+          "loc": "lane_cove_plaza_seg_1",
+          "name": "Lane Cove Plaza (1)",
+          "type": "street",
+          "kind": "outdoor",
+          "arrived_tick": 160,
+          "arrived_time": "13:20",
+          "duration_ticks": 4,
+          "duration_min": 20,
+          "x": 204.01454810340203,
+          "y": -442.39171020929007
+        },
+        {
+          "loc": "lane_cove_plaza_seg_1",
+          "name": "Lane Cove Plaza (1)",
+          "type": "street",
+          "kind": "outdoor",
+          "arrived_tick": 166,
+          "arrived_time": "13:50",
+          "duration_ticks": 12,
+          "duration_min": 60,
+          "x": 204.01454810340203,
+          "y": -442.39171020929007
+        },
+        {
+          "loc": "lane_cove_plaza_seg_1",
+          "name": "Lane Cove Plaza (1)",
+          "type": "street",
+          "kind": "outdoor",
+          "arrived_tick": 182,
+          "arrived_time": "15:10",
+          "duration_ticks": 28,
+          "duration_min": 140,
+          "x": 204.01454810340203,
+          "y": -442.39171020929007
+        },
+        {
+          "loc": "area_124",
+          "name": "area_124",
+          "type": "playground",
+          "kind": "outdoor",
+          "arrived_tick": 210,
+          "arrived_time": "17:30",
+          "duration_ticks": 34,
+          "duration_min": 170,
+          "x": -372.251667399991,
+          "y": -804.6325562092466
+        },
+        {
+          "loc": "mowbray_road_seg_3",
+          "name": "Mowbray Road (3)",
+          "type": "street",
+          "kind": "outdoor",
+          "arrived_tick": 254,
+          "arrived_time": "21:10",
+          "duration_ticks": 8,
+          "duration_min": 40,
+          "x": -335.2983284717409,
+          "y": -1430.6405762094148
+        },
+        {
+          "loc": "mowbray_road_seg_3",
+          "name": "Mowbray Road (3)",
+          "type": "street",
+          "kind": "outdoor",
+          "arrived_tick": 264,
+          "arrived_time": "22:00",
+          "duration_ticks": 12,
+          "duration_min": 60,
+          "x": -335.2983284717409,
+          "y": -1430.6405762094148
+        },
+        {
+          "loc": "landers_road_seg_1_1",
+          "name": "Landers Road (1)",
+          "type": "street",
+          "kind": "outdoor",
+          "arrived_tick": 276,
+          "arrived_time": "23:00",
+          "duration_ticks": 8,
+          "duration_min": 40,
+          "x": -209.7914494196109,
+          "y": -926.9899342089627
+        },
+        {
+          "loc": "road_3200_seg_2",
+          "name": "road_3200 (2)",
+          "type": "street",
+          "kind": "outdoor",
+          "arrived_tick": 284,
+          "arrived_time": "23:40",
+          "duration_ticks": 24,
+          "duration_min": 120,
+          "x": 388.0506106093979,
+          "y": -519.0633602091065
+        }
+      ],
+      "n_bl_stays": 3,
+      "n_hp_stays": 9,
+      "bl_distance_m": 6188.6,
+      "hp_distance_m": 15190.4,
+      "new_locations_today": [
+        {
+          "loc": "shinnyo_australia",
+          "name": "Shinnyo Australia",
+          "type": "worship"
+        },
+        {
+          "loc": "mowbray_road_seg_3",
+          "name": "Mowbray Road (3)",
+          "type": "street"
+        },
+        {
+          "loc": "landers_road_seg_1_1",
+          "name": "Landers Road (1)",
+          "type": "street"
+        },
+        {
+          "loc": "area_124",
+          "name": "area_124",
+          "type": "playground"
+        },
+        {
+          "loc": "road_3200_seg_2",
+          "name": "road_3200 (2)",
+          "type": "street"
+        },
+        {
+          "loc": "lane_cove_plaza_seg_1",
+          "name": "Lane Cove Plaza (1)",
+          "type": "street"
+        }
+      ]
+    },
+    {
+      "day": 11,
+      "bl_stays": [
+        {
+          "loc": "akira_sushi",
+          "name": "Akira Sushi",
+          "type": "restaurant",
+          "kind": "building",
+          "arrived_tick": 128,
+          "arrived_time": "10:40",
+          "duration_ticks": 28,
+          "duration_min": 140,
+          "x": 184.8480426968982,
+          "y": -472.2149566537389
+        },
+        {
+          "loc": "area_52",
+          "name": "area_52",
+          "type": "playground",
+          "kind": "outdoor",
+          "arrived_tick": 158,
+          "arrived_time": "13:10",
+          "duration_ticks": 76,
+          "duration_min": 380,
+          "x": 407.5880839528709,
+          "y": 566.5559965906848
+        },
+        {
+          "loc": "building_1712",
+          "name": "building_1712",
+          "type": "residential",
+          "kind": "building",
+          "arrived_tick": 236,
+          "arrived_time": "19:40",
+          "duration_ticks": 24,
+          "duration_min": 120,
+          "x": -1257.7685716042538,
+          "y": -204.47526660901931
+        }
+      ],
+      "hp_stays": [
+        {
+          "loc": "shinnyo_australia",
+          "name": "Shinnyo Australia",
+          "type": "worship",
+          "kind": "building",
+          "arrived_tick": 3,
+          "arrived_time": "00:15",
+          "duration_ticks": 166,
+          "duration_min": 830,
+          "x": 432.2168221716397,
+          "y": 414.6438809905673
+        },
+        {
+          "loc": "lane_cove_plaza_seg_1",
+          "name": "Lane Cove Plaza (1)",
+          "type": "street",
+          "kind": "outdoor",
+          "arrived_tick": 173,
+          "arrived_time": "14:25",
+          "duration_ticks": 10,
+          "duration_min": 50,
+          "x": 204.01454810340203,
+          "y": -442.39171020929007
+        },
+        {
+          "loc": "area_124",
+          "name": "area_124",
+          "type": "playground",
+          "kind": "outdoor",
+          "arrived_tick": 185,
+          "arrived_time": "15:25",
+          "duration_ticks": 6,
+          "duration_min": 30,
+          "x": -372.251667399991,
+          "y": -804.6325562092466
+        },
+        {
+          "loc": "area_124",
+          "name": "area_124",
+          "type": "playground",
+          "kind": "outdoor",
+          "arrived_tick": 193,
+          "arrived_time": "16:05",
+          "duration_ticks": 4,
+          "duration_min": 20,
+          "x": -372.251667399991,
+          "y": -804.6325562092466
+        },
+        {
+          "loc": "area_124",
+          "name": "area_124",
+          "type": "playground",
+          "kind": "outdoor",
+          "arrived_tick": 199,
+          "arrived_time": "16:35",
+          "duration_ticks": 8,
+          "duration_min": 40,
+          "x": -372.251667399991,
+          "y": -804.6325562092466
+        },
+        {
+          "loc": "area_124",
+          "name": "area_124",
+          "type": "playground",
+          "kind": "outdoor",
+          "arrived_tick": 209,
+          "arrived_time": "17:25",
+          "duration_ticks": 4,
+          "duration_min": 20,
+          "x": -372.251667399991,
+          "y": -804.6325562092466
+        },
+        {
+          "loc": "area_124",
+          "name": "area_124",
+          "type": "playground",
+          "kind": "outdoor",
+          "arrived_tick": 215,
+          "arrived_time": "17:55",
+          "duration_ticks": 42,
+          "duration_min": 210,
+          "x": -372.251667399991,
+          "y": -804.6325562092466
+        },
+        {
+          "loc": "area_124",
+          "name": "area_124",
+          "type": "playground",
+          "kind": "outdoor",
+          "arrived_tick": 259,
+          "arrived_time": "21:35",
+          "duration_ticks": 18,
+          "duration_min": 90,
+          "x": -372.251667399991,
+          "y": -804.6325562092466
+        },
+        {
+          "loc": "area_124",
+          "name": "area_124",
+          "type": "playground",
+          "kind": "outdoor",
+          "arrived_tick": 279,
+          "arrived_time": "23:15",
+          "duration_ticks": 24,
+          "duration_min": 120,
+          "x": -372.251667399991,
+          "y": -804.6325562092466
+        }
+      ],
+      "n_bl_stays": 3,
+      "n_hp_stays": 9,
+      "bl_distance_m": 4661.1,
+      "hp_distance_m": 12419.8,
+      "new_locations_today": [
+        {
+          "loc": "shinnyo_australia",
+          "name": "Shinnyo Australia",
+          "type": "worship"
+        },
+        {
+          "loc": "area_124",
+          "name": "area_124",
+          "type": "playground"
+        },
+        {
+          "loc": "lane_cove_plaza_seg_1",
+          "name": "Lane Cove Plaza (1)",
+          "type": "street"
+        }
+      ]
+    },
+    {
+      "day": 12,
+      "bl_stays": [
+        {
+          "loc": "go_vita_lane_cove",
+          "name": "Go Vita Lane Cove",
+          "type": "commercial",
+          "kind": "building",
+          "arrived_tick": 105,
+          "arrived_time": "08:45",
+          "duration_ticks": 92,
+          "duration_min": 460,
+          "x": 209.60681266260417,
+          "y": -472.8154662092813
+        },
+        {
+          "loc": "building_1712",
+          "name": "building_1712",
+          "type": "residential",
+          "kind": "building",
+          "arrived_tick": 199,
+          "arrived_time": "16:35",
+          "duration_ticks": 13,
+          "duration_min": 65,
+          "x": -1257.7685716042538,
+          "y": -204.47526660901931
+        },
+        {
+          "loc": "masala_kitchen_lane_cove",
+          "name": "Masala Kitchen Lane Cove",
+          "type": "restaurant",
+          "kind": "building",
+          "arrived_tick": 214,
+          "arrived_time": "17:50",
+          "duration_ticks": 32,
+          "duration_min": 160,
+          "x": 217.92527471327838,
+          "y": -590.0347038092705
+        },
+        {
+          "loc": "building_1712",
+          "name": "building_1712",
+          "type": "residential",
+          "kind": "building",
+          "arrived_tick": 248,
+          "arrived_time": "20:40",
+          "duration_ticks": 24,
+          "duration_min": 120,
+          "x": -1257.7685716042538,
+          "y": -204.47526660901931
+        }
+      ],
+      "hp_stays": [
+        {
+          "loc": "shinnyo_australia",
+          "name": "Shinnyo Australia",
+          "type": "worship",
+          "kind": "building",
+          "arrived_tick": 3,
+          "arrived_time": "00:15",
+          "duration_ticks": 152,
+          "duration_min": 760,
+          "x": 432.2168221716397,
+          "y": 414.6438809905673
+        },
+        {
+          "loc": "longueville_road_seg_1_35",
+          "name": "Longueville Road (1)",
+          "type": "street",
+          "kind": "outdoor",
+          "arrived_tick": 155,
+          "arrived_time": "12:55",
+          "duration_ticks": 24,
+          "duration_min": 120,
+          "x": 283.32975349357645,
+          "y": -330.6653922095471
+        },
+        {
+          "loc": "anglican_church_of_australia_lane_cove",
+          "name": "Anglican Church of Australia Lane Cove",
+          "type": "worship",
+          "kind": "building",
+          "arrived_tick": 179,
+          "arrived_time": "14:55",
+          "duration_ticks": 24,
+          "duration_min": 120,
+          "x": 135.21809781964637,
+          "y": -531.8000808246605
+        }
+      ],
+      "n_bl_stays": 4,
+      "n_hp_stays": 3,
+      "bl_distance_m": 5442.8,
+      "hp_distance_m": 3173.6,
+      "new_locations_today": [
+        {
+          "loc": "anglican_church_of_australia_lane_cove",
+          "name": "Anglican Church of Australia Lane Cove",
+          "type": "worship"
+        },
+        {
+          "loc": "shinnyo_australia",
+          "name": "Shinnyo Australia",
+          "type": "worship"
+        }
+      ]
+    },
+    {
+      "day": 13,
+      "bl_stays": [
+        {
+          "loc": "go_vita_lane_cove",
+          "name": "Go Vita Lane Cove",
+          "type": "commercial",
+          "kind": "building",
+          "arrived_tick": 99,
+          "arrived_time": "08:15",
+          "duration_ticks": 98,
+          "duration_min": 490,
+          "x": 209.60681266260417,
+          "y": -472.8154662092813
+        },
+        {
+          "loc": "building_1712",
+          "name": "building_1712",
+          "type": "residential",
+          "kind": "building",
+          "arrived_tick": 199,
+          "arrived_time": "16:35",
+          "duration_ticks": 41,
+          "duration_min": 205,
+          "x": -1257.7685716042538,
+          "y": -204.47526660901931
+        },
+        {
+          "loc": "area_157",
+          "name": "area_157",
+          "type": "playground",
+          "kind": "outdoor",
+          "arrived_tick": 243,
+          "arrived_time": "20:15",
+          "duration_ticks": 9,
+          "duration_min": 45,
+          "x": 290.4094864365775,
+          "y": 817.713954190745
+        },
+        {
+          "loc": "building_1712",
+          "name": "building_1712",
+          "type": "residential",
+          "kind": "building",
+          "arrived_tick": 254,
+          "arrived_time": "21:10",
+          "duration_ticks": 24,
+          "duration_min": 120,
+          "x": -1257.7685716042538,
+          "y": -204.47526660901931
+        }
+      ],
+      "hp_stays": [
+        {
+          "loc": "shinnyo_australia",
+          "name": "Shinnyo Australia",
+          "type": "worship",
+          "kind": "building",
+          "arrived_tick": 3,
+          "arrived_time": "00:15",
+          "duration_ticks": 163,
+          "duration_min": 815,
+          "x": 432.2168221716397,
+          "y": 414.6438809905673
+        },
+        {
+          "loc": "longueville_road_seg_1_35",
+          "name": "Longueville Road (1)",
+          "type": "street",
+          "kind": "outdoor",
+          "arrived_tick": 166,
+          "arrived_time": "13:50",
+          "duration_ticks": 80,
+          "duration_min": 400,
+          "x": 283.32975349357645,
+          "y": -330.6653922095471
+        },
+        {
+          "loc": "anglican_church_of_australia_lane_cove",
+          "name": "Anglican Church of Australia Lane Cove",
+          "type": "worship",
+          "kind": "building",
+          "arrived_tick": 246,
+          "arrived_time": "20:30",
+          "duration_ticks": 24,
+          "duration_min": 120,
+          "x": 135.21809781964637,
+          "y": -531.8000808246605
+        }
+      ],
+      "n_bl_stays": 4,
+      "n_hp_stays": 3,
+      "bl_distance_m": 6991.6,
+      "hp_distance_m": 3173.6,
+      "new_locations_today": [
+        {
+          "loc": "anglican_church_of_australia_lane_cove",
+          "name": "Anglican Church of Australia Lane Cove",
+          "type": "worship"
+        },
+        {
+          "loc": "shinnyo_australia",
+          "name": "Shinnyo Australia",
+          "type": "worship"
+        }
+      ]
+    }
+  ]
+}

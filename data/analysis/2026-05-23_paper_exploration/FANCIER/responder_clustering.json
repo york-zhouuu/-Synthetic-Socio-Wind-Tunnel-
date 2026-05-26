@@ -1,0 +1,23 @@
+{
+  "43": {
+    "n_responders": 490,
+    "observed_mean_nn_m": 18.988396085300014,
+    "expected_random_nn_m": 70.48143285804379,
+    "clark_evans_index": 0.2694099043579949,
+    "interpretation": "clustered"
+  },
+  "44": {
+    "n_responders": 112,
+    "observed_mean_nn_m": 117.68336026177711,
+    "expected_random_nn_m": 147.79056765530962,
+    "clark_evans_index": 0.7962846488028165,
+    "interpretation": "clustered"
+  },
+  "45": {
+    "n_responders": 63,
+    "observed_mean_nn_m": 166.7716305281529,
+    "expected_random_nn_m": 196.79804389484593,
+    "clark_evans_index": 0.8474252448223679,
+    "interpretation": "clustered"
+  }
+}

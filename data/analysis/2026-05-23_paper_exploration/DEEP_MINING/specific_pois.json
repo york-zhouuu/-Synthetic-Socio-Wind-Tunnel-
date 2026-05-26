@@ -1,0 +1,506 @@
+{
+  "top_activated": [
+    {
+      "loc_id": "shinnyo_australia",
+      "name": "Shinnyo Australia",
+      "type": "worship",
+      "kind": "building",
+      "bl_dwell_ticks": 3995,
+      "hp_dwell_ticks": 144885,
+      "abs_delta_ticks": 140889,
+      "activation_pct": 3526.0615666972562
+    },
+    {
+      "loc_id": "st_aidans_anglican_church",
+      "name": "St Aidan's Anglican Church",
+      "type": "worship",
+      "kind": "building",
+      "bl_dwell_ticks": 4105,
+      "hp_dwell_ticks": 144259,
+      "abs_delta_ticks": 140154,
+      "activation_pct": 3413.6721604286754
+    },
+    {
+      "loc_id": "plc_sydney_preschool,_lane_cove_campus",
+      "name": "PLC Sydney Preschool, Lane Cove Campus",
+      "type": "worship",
+      "kind": "building",
+      "bl_dwell_ticks": 4753,
+      "hp_dwell_ticks": 131071,
+      "abs_delta_ticks": 126318,
+      "activation_pct": 2657.468443197756
+    },
+    {
+      "loc_id": "anytime_fitness_australia",
+      "name": "Anytime Fitness Australia",
+      "type": "entertainment",
+      "kind": "building",
+      "bl_dwell_ticks": 5910,
+      "hp_dwell_ticks": 41721,
+      "abs_delta_ticks": 35810,
+      "activation_pct": 605.8651026392963
+    },
+    {
+      "loc_id": "1021_mediterranean",
+      "name": "1021 Mediterranean",
+      "type": "restaurant",
+      "kind": "building",
+      "bl_dwell_ticks": 8463,
+      "hp_dwell_ticks": 37234,
+      "abs_delta_ticks": 28771,
+      "activation_pct": 339.9527372981488
+    },
+    {
+      "loc_id": "longueville_park",
+      "name": "Longueville Park",
+      "type": "residential",
+      "kind": "building",
+      "bl_dwell_ticks": 11,
+      "hp_dwell_ticks": 21144,
+      "abs_delta_ticks": 21133,
+      "activation_pct": 192121.2121212121
+    },
+    {
+      "loc_id": "anglican_church_of_australia_lane_cove",
+      "name": "Anglican Church of Australia Lane Cove",
+      "type": "worship",
+      "kind": "building",
+      "bl_dwell_ticks": 8671,
+      "hp_dwell_ticks": 28102,
+      "abs_delta_ticks": 19431,
+      "activation_pct": 224.0918002537193
+    },
+    {
+      "loc_id": "area_105",
+      "name": "area_105",
+      "type": "playground",
+      "kind": "outdoor",
+      "bl_dwell_ticks": 1293,
+      "hp_dwell_ticks": 12317,
+      "abs_delta_ticks": 11024,
+      "activation_pct": 852.1515073434681
+    },
+    {
+      "loc_id": "anz",
+      "name": "ANZ",
+      "type": "cafe",
+      "kind": "building",
+      "bl_dwell_ticks": 6309,
+      "hp_dwell_ticks": 16293,
+      "abs_delta_ticks": 9984,
+      "activation_pct": 158.2606857927828
+    },
+    {
+      "loc_id": "longueville_road_seg_1_35",
+      "name": "Longueville Road (1)",
+      "type": "street",
+      "kind": "outdoor",
+      "bl_dwell_ticks": 139,
+      "hp_dwell_ticks": 9373,
+      "abs_delta_ticks": 9234,
+      "activation_pct": 6643.645083932853
+    },
+    {
+      "loc_id": "road_4504_seg_2",
+      "name": "road_4504 (2)",
+      "type": "street",
+      "kind": "outdoor",
+      "bl_dwell_ticks": 880,
+      "hp_dwell_ticks": 9644,
+      "abs_delta_ticks": 8764,
+      "activation_pct": 995.5319954562665
+    },
+    {
+      "loc_id": "mowbray_road_seg_4",
+      "name": "Mowbray Road (4)",
+      "type": "street",
+      "kind": "outdoor",
+      "bl_dwell_ticks": 237,
+      "hp_dwell_ticks": 8670,
+      "abs_delta_ticks": 8432,
+      "activation_pct": 3548.1065918653585
+    },
+    {
+      "loc_id": "7-eleven",
+      "name": "7-Eleven",
+      "type": "shop",
+      "kind": "building",
+      "bl_dwell_ticks": 5312,
+      "hp_dwell_ticks": 12789,
+      "abs_delta_ticks": 7476,
+      "activation_pct": 140.73283975404692
+    },
+    {
+      "loc_id": "akira_sushi",
+      "name": "Akira Sushi",
+      "type": "restaurant",
+      "kind": "building",
+      "bl_dwell_ticks": 5387,
+      "hp_dwell_ticks": 10769,
+      "abs_delta_ticks": 5382,
+      "activation_pct": 99.91955943320337
+    },
+    {
+      "loc_id": "gallery_lane_cove",
+      "name": "Gallery Lane Cove",
+      "type": "entertainment",
+      "kind": "building",
+      "bl_dwell_ticks": 5058,
+      "hp_dwell_ticks": 10000,
+      "abs_delta_ticks": 4941,
+      "activation_pct": 97.69357495881385
+    },
+    {
+      "loc_id": "area_124",
+      "name": "area_124",
+      "type": "playground",
+      "kind": "outdoor",
+      "bl_dwell_ticks": 2506,
+      "hp_dwell_ticks": 7442,
+      "abs_delta_ticks": 4936,
+      "activation_pct": 196.91489361702128
+    },
+    {
+      "loc_id": "area_114",
+      "name": "area_114",
+      "type": "playground",
+      "kind": "outdoor",
+      "bl_dwell_ticks": 1423,
+      "hp_dwell_ticks": 6029,
+      "abs_delta_ticks": 4605,
+      "activation_pct": 323.58313817330213
+    },
+    {
+      "loc_id": "centennial_avenue_seg_2_1",
+      "name": "Centennial Avenue (2)",
+      "type": "street",
+      "kind": "outdoor",
+      "bl_dwell_ticks": 234,
+      "hp_dwell_ticks": 4586,
+      "abs_delta_ticks": 4352,
+      "activation_pct": 1859.82905982906
+    },
+    {
+      "loc_id": "area_130",
+      "name": "area_130",
+      "type": "playground",
+      "kind": "outdoor",
+      "bl_dwell_ticks": 2989,
+      "hp_dwell_ticks": 7116,
+      "abs_delta_ticks": 4126,
+      "activation_pct": 138.04638715432645
+    },
+    {
+      "loc_id": "karilla_avenue_seg_1_1",
+      "name": "Karilla Avenue (1)",
+      "type": "street",
+      "kind": "outdoor",
+      "bl_dwell_ticks": 816,
+      "hp_dwell_ticks": 4265,
+      "abs_delta_ticks": 3448,
+      "activation_pct": 422.45814618211506
+    },
+    {
+      "loc_id": "area_117",
+      "name": "area_117",
+      "type": "playground",
+      "kind": "outdoor",
+      "bl_dwell_ticks": 2389,
+      "hp_dwell_ticks": 5800,
+      "abs_delta_ticks": 3410,
+      "activation_pct": 142.72562421537174
+    },
+    {
+      "loc_id": "richardson_street_east_seg_1",
+      "name": "Richardson Street East (1)",
+      "type": "street",
+      "kind": "outdoor",
+      "bl_dwell_ticks": 7,
+      "hp_dwell_ticks": 2944,
+      "abs_delta_ticks": 2936,
+      "activation_pct": 38304.34782608696
+    },
+    {
+      "loc_id": "road_4510_seg_4",
+      "name": "road_4510 (4)",
+      "type": "street",
+      "kind": "outdoor",
+      "bl_dwell_ticks": 153,
+      "hp_dwell_ticks": 2902,
+      "abs_delta_ticks": 2748,
+      "activation_pct": 1792.6086956521735
+    },
+    {
+      "loc_id": "lane_cove_library",
+      "name": "Lane Cove Library",
+      "type": "community",
+      "kind": "building",
+      "bl_dwell_ticks": 337,
+      "hp_dwell_ticks": 2988,
+      "abs_delta_ticks": 2650,
+      "activation_pct": 784.8963474827245
+    },
+    {
+      "loc_id": "road_4510_seg_1",
+      "name": "road_4510 (1)",
+      "type": "street",
+      "kind": "outdoor",
+      "bl_dwell_ticks": 265,
+      "hp_dwell_ticks": 2670,
+      "abs_delta_ticks": 2404,
+      "activation_pct": 905.1442910915935
+    },
+    {
+      "loc_id": "river_road_west_seg_1_14",
+      "name": "River Road West (1)",
+      "type": "street",
+      "kind": "outdoor",
+      "bl_dwell_ticks": 189,
+      "hp_dwell_ticks": 2433,
+      "abs_delta_ticks": 2244,
+      "activation_pct": 1185.3873239436618
+    },
+    {
+      "loc_id": "road_4510_seg_5",
+      "name": "road_4510 (5)",
+      "type": "street",
+      "kind": "outdoor",
+      "bl_dwell_ticks": 187,
+      "hp_dwell_ticks": 2363,
+      "abs_delta_ticks": 2176,
+      "activation_pct": 1161.5658362989325
+    },
+    {
+      "loc_id": "river_road_west_seg_1_2",
+      "name": "River Road West (1)",
+      "type": "street",
+      "kind": "outdoor",
+      "bl_dwell_ticks": 85,
+      "hp_dwell_ticks": 2195,
+      "abs_delta_ticks": 2109,
+      "activation_pct": 2462.6459143968873
+    },
+    {
+      "loc_id": "road_4510_seg_3",
+      "name": "road_4510 (3)",
+      "type": "street",
+      "kind": "outdoor",
+      "bl_dwell_ticks": 468,
+      "hp_dwell_ticks": 2465,
+      "abs_delta_ticks": 1997,
+      "activation_pct": 426.7806267806268
+    },
+    {
+      "loc_id": "austin_street_seg_1",
+      "name": "Austin Street (1)",
+      "type": "street",
+      "kind": "outdoor",
+      "bl_dwell_ticks": 173,
+      "hp_dwell_ticks": 1940,
+      "abs_delta_ticks": 1767,
+      "activation_pct": 1021.5799614643546
+    }
+  ],
+  "top_deactivated": [
+    {
+      "loc_id": "go_vita_lane_cove",
+      "name": "Go Vita Lane Cove",
+      "type": "commercial",
+      "kind": "building",
+      "bl_dwell_ticks": 69015,
+      "hp_dwell_ticks": 56034,
+      "abs_delta_ticks": -12981,
+      "activation_pct": -18.80877288731545
+    },
+    {
+      "loc_id": "building_879",
+      "name": "building_879",
+      "type": "commercial",
+      "kind": "building",
+      "bl_dwell_ticks": 34614,
+      "hp_dwell_ticks": 28400,
+      "abs_delta_ticks": -6213,
+      "activation_pct": -17.9513106450184
+    },
+    {
+      "loc_id": "lane_cove_swim_club",
+      "name": "Lane Cove Swim Club",
+      "type": "commercial",
+      "kind": "building",
+      "bl_dwell_ticks": 25243,
+      "hp_dwell_ticks": 21373,
+      "abs_delta_ticks": -3870,
+      "activation_pct": -15.333218893187734
+    },
+    {
+      "loc_id": "standen_-_lower_north_shore",
+      "name": "Standen - Lower North Shore",
+      "type": "office",
+      "kind": "building",
+      "bl_dwell_ticks": 19962,
+      "hp_dwell_ticks": 16260,
+      "abs_delta_ticks": -3701,
+      "activation_pct": -18.54325646634495
+    },
+    {
+      "loc_id": "building_4540",
+      "name": "building_4540",
+      "type": "residential",
+      "kind": "building",
+      "bl_dwell_ticks": 8256,
+      "hp_dwell_ticks": 5155,
+      "abs_delta_ticks": -3100,
+      "activation_pct": -37.55500827647463
+    },
+    {
+      "loc_id": "building_1122",
+      "name": "building_1122",
+      "type": "residential",
+      "kind": "building",
+      "bl_dwell_ticks": 8246,
+      "hp_dwell_ticks": 5367,
+      "abs_delta_ticks": -2879,
+      "activation_pct": -34.91511721907841
+    },
+    {
+      "loc_id": "building_889",
+      "name": "building_889",
+      "type": "residential",
+      "kind": "building",
+      "bl_dwell_ticks": 6572,
+      "hp_dwell_ticks": 4136,
+      "abs_delta_ticks": -2436,
+      "activation_pct": -37.06446213927068
+    },
+    {
+      "loc_id": "building_5101",
+      "name": "building_5101",
+      "type": "residential",
+      "kind": "building",
+      "bl_dwell_ticks": 9676,
+      "hp_dwell_ticks": 7286,
+      "abs_delta_ticks": -2389,
+      "activation_pct": -24.696844426071383
+    },
+    {
+      "loc_id": "building_2939",
+      "name": "building_2939",
+      "type": "residential",
+      "kind": "building",
+      "bl_dwell_ticks": 5285,
+      "hp_dwell_ticks": 2928,
+      "abs_delta_ticks": -2356,
+      "activation_pct": -44.595105953582234
+    },
+    {
+      "loc_id": "building_1648",
+      "name": "building_1648",
+      "type": "residential",
+      "kind": "building",
+      "bl_dwell_ticks": 10557,
+      "hp_dwell_ticks": 8245,
+      "abs_delta_ticks": -2312,
+      "activation_pct": -21.89946956302096
+    },
+    {
+      "loc_id": "building_2333",
+      "name": "building_2333",
+      "type": "residential",
+      "kind": "building",
+      "bl_dwell_ticks": 5508,
+      "hp_dwell_ticks": 3279,
+      "abs_delta_ticks": -2228,
+      "activation_pct": -40.4563059791818
+    },
+    {
+      "loc_id": "palin_communications",
+      "name": "Palin Communications",
+      "type": "office",
+      "kind": "building",
+      "bl_dwell_ticks": 7917,
+      "hp_dwell_ticks": 5724,
+      "abs_delta_ticks": -2192,
+      "activation_pct": -27.694509936005385
+    },
+    {
+      "loc_id": "building_2382",
+      "name": "building_2382",
+      "type": "residential",
+      "kind": "building",
+      "bl_dwell_ticks": 5875,
+      "hp_dwell_ticks": 3705,
+      "abs_delta_ticks": -2169,
+      "activation_pct": -36.93049645390071
+    },
+    {
+      "loc_id": "vertical_property™",
+      "name": "Vertical Property™",
+      "type": "office",
+      "kind": "building",
+      "bl_dwell_ticks": 10977,
+      "hp_dwell_ticks": 8815,
+      "abs_delta_ticks": -2161,
+      "activation_pct": -19.689654125292282
+    },
+    {
+      "loc_id": "building_3988",
+      "name": "building_3988",
+      "type": "residential",
+      "kind": "building",
+      "bl_dwell_ticks": 5783,
+      "hp_dwell_ticks": 3640,
+      "abs_delta_ticks": -2142,
+      "activation_pct": -37.04899135446686
+    },
+    {
+      "loc_id": "building_2725",
+      "name": "building_2725",
+      "type": "residential",
+      "kind": "building",
+      "bl_dwell_ticks": 11083,
+      "hp_dwell_ticks": 9017,
+      "abs_delta_ticks": -2066,
+      "activation_pct": -18.640040901025536
+    },
+    {
+      "loc_id": "building_3944",
+      "name": "building_3944",
+      "type": "residential",
+      "kind": "building",
+      "bl_dwell_ticks": 7993,
+      "hp_dwell_ticks": 5940,
+      "abs_delta_ticks": -2052,
+      "activation_pct": -25.679733110925767
+    },
+    {
+      "loc_id": "building_652",
+      "name": "building_652",
+      "type": "residential",
+      "kind": "building",
+      "bl_dwell_ticks": 6069,
+      "hp_dwell_ticks": 4035,
+      "abs_delta_ticks": -2034,
+      "activation_pct": -33.51639299247625
+    },
+    {
+      "loc_id": "building_708",
+      "name": "building_708",
+      "type": "residential",
+      "kind": "building",
+      "bl_dwell_ticks": 3920,
+      "hp_dwell_ticks": 1905,
+      "abs_delta_ticks": -2015,
+      "activation_pct": -51.40282264920933
+    },
+    {
+      "loc_id": "building_4068",
+      "name": "building_4068",
+      "type": "residential",
+      "kind": "building",
+      "bl_dwell_ticks": 4120,
+      "hp_dwell_ticks": 2115,
+      "abs_delta_ticks": -2005,
+      "activation_pct": -48.67335382624171
+    }
+  ]
+}

@@ -1,0 +1,122 @@
+{
+  "43|baseline": {
+    "encounter_total": 7513376.0,
+    "unique_pairs": 476244.0,
+    "peak_dialogues_started": 823,
+    "end_dialogues_inventory": 823,
+    "live_at_end": 74,
+    "evicted_at_end": 749,
+    "dialogues_per_1000_encounters": 0.10953797600439537,
+    "dialogues_per_pair": 0.0017281057609124734
+  },
+  "43|hyperlocal_push": {
+    "encounter_total": 41100491.0,
+    "unique_pairs": 566548.0,
+    "peak_dialogues_started": 965,
+    "end_dialogues_inventory": 965,
+    "live_at_end": 213,
+    "evicted_at_end": 752,
+    "dialogues_per_1000_encounters": 0.02347903824311977,
+    "dialogues_per_pair": 0.0017032978670827538
+  },
+  "43|global_distraction": {
+    "encounter_total": 9658114.0,
+    "unique_pairs": 461499.0,
+    "peak_dialogues_started": 868,
+    "end_dialogues_inventory": 868,
+    "live_at_end": 118,
+    "evicted_at_end": 750,
+    "dialogues_per_1000_encounters": 0.08987261902272017,
+    "dialogues_per_pair": 0.0018808274774159857
+  },
+  "43|phone_friction": {
+    "encounter_total": 35226875.0,
+    "unique_pairs": 534370.0,
+    "peak_dialogues_started": 993,
+    "end_dialogues_inventory": 993,
+    "live_at_end": 243,
+    "evicted_at_end": 750,
+    "dialogues_per_1000_encounters": 0.028188705356350797,
+    "dialogues_per_pair": 0.00185826300129124
+  },
+  "44|baseline": {
+    "encounter_total": 7913095.0,
+    "unique_pairs": 475722.0,
+    "peak_dialogues_started": 818,
+    "end_dialogues_inventory": 818,
+    "live_at_end": 65,
+    "evicted_at_end": 752,
+    "dialogues_per_1000_encounters": 0.10337295331346331,
+    "dialogues_per_pair": 0.0017194916358713702
+  },
+  "44|hyperlocal_push": {
+    "encounter_total": 34038180.0,
+    "unique_pairs": 525258.0,
+    "peak_dialogues_started": 937,
+    "end_dialogues_inventory": 937,
+    "live_at_end": 179,
+    "evicted_at_end": 757,
+    "dialogues_per_1000_encounters": 0.02752791130430593,
+    "dialogues_per_pair": 0.0017838852525806366
+  },
+  "44|global_distraction": {
+    "encounter_total": 11524048.0,
+    "unique_pairs": 458893.0,
+    "peak_dialogues_started": 856,
+    "end_dialogues_inventory": 856,
+    "live_at_end": 102,
+    "evicted_at_end": 753,
+    "dialogues_per_1000_encounters": 0.07427945458054322,
+    "dialogues_per_pair": 0.0018653585912184322
+  },
+  "44|phone_friction": {
+    "encounter_total": 38114956.0,
+    "unique_pairs": 542165.0,
+    "peak_dialogues_started": 987,
+    "end_dialogues_inventory": 987,
+    "live_at_end": 226,
+    "evicted_at_end": 761,
+    "dialogues_per_1000_encounters": 0.025895346698025838,
+    "dialogues_per_pair": 0.001820479005468815
+  },
+  "45|baseline": {
+    "encounter_total": 8734049.0,
+    "unique_pairs": 450290.0,
+    "peak_dialogues_started": 823,
+    "end_dialogues_inventory": 823,
+    "live_at_end": 79,
+    "evicted_at_end": 744,
+    "dialogues_per_1000_encounters": 0.09422891948510936,
+    "dialogues_per_pair": 0.0018277110306691242
+  },
+  "45|hyperlocal_push": {
+    "encounter_total": 40094386.0,
+    "unique_pairs": 527864.0,
+    "peak_dialogues_started": 974,
+    "end_dialogues_inventory": 974,
+    "live_at_end": 228,
+    "evicted_at_end": 746,
+    "dialogues_per_1000_encounters": 0.024292677782869653,
+    "dialogues_per_pair": 0.0018451722413348893
+  },
+  "45|global_distraction": {
+    "encounter_total": 11063468.0,
+    "unique_pairs": 437102.0,
+    "peak_dialogues_started": 852,
+    "end_dialogues_inventory": 852,
+    "live_at_end": 108,
+    "evicted_at_end": 744,
+    "dialogues_per_1000_encounters": 0.07701021054157701,
+    "dialogues_per_pair": 0.001949201788140983
+  },
+  "45|phone_friction": {
+    "encounter_total": 36863564.0,
+    "unique_pairs": 519415.0,
+    "peak_dialogues_started": 1012,
+    "end_dialogues_inventory": 1012,
+    "live_at_end": 262,
+    "evicted_at_end": 750,
+    "dialogues_per_1000_encounters": 0.02745258163318121,
+    "dialogues_per_pair": 0.0019483457351058403
+  }
+}

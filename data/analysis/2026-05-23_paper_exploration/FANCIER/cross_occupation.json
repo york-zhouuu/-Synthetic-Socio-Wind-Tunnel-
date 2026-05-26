@@ -1,0 +1,142 @@
+[
+  {
+    "pair": "student/tradesperson",
+    "bl": 0,
+    "hp": 1029,
+    "delta": 1029,
+    "fold": Infinity
+  },
+  {
+    "pair": "retired/student",
+    "bl": 579,
+    "hp": 1504,
+    "delta": 925,
+    "fold": 2.597582037996546
+  },
+  {
+    "pair": "construction/student",
+    "bl": 0,
+    "hp": 709,
+    "delta": 709,
+    "fold": Infinity
+  },
+  {
+    "pair": "student/unemployed",
+    "bl": 331,
+    "hp": 1025,
+    "delta": 694,
+    "fold": 3.096676737160121
+  },
+  {
+    "pair": "engineer/student",
+    "bl": 0,
+    "hp": 580,
+    "delta": 580,
+    "fold": Infinity
+  },
+  {
+    "pair": "software_dev/student",
+    "bl": 362,
+    "hp": 890,
+    "delta": 528,
+    "fold": 2.458563535911602
+  },
+  {
+    "pair": "student/teacher",
+    "bl": 261,
+    "hp": 777,
+    "delta": 516,
+    "fold": 2.9770114942528734
+  },
+  {
+    "pair": "manager/student",
+    "bl": 0,
+    "hp": 514,
+    "delta": 514,
+    "fold": Infinity
+  },
+  {
+    "pair": "lawyer/student",
+    "bl": 0,
+    "hp": 490,
+    "delta": 490,
+    "fold": Infinity
+  },
+  {
+    "pair": "nurse/student",
+    "bl": 328,
+    "hp": 735,
+    "delta": 407,
+    "fold": 2.2408536585365852
+  },
+  {
+    "pair": "consultant/student",
+    "bl": 430,
+    "hp": 785,
+    "delta": 355,
+    "fold": 1.8255813953488371
+  },
+  {
+    "pair": "retail_worker/student",
+    "bl": 292,
+    "hp": 633,
+    "delta": 341,
+    "fold": 2.1678082191780823
+  },
+  {
+    "pair": "designer/student",
+    "bl": 298,
+    "hp": 620,
+    "delta": 322,
+    "fold": 2.0805369127516777
+  },
+  {
+    "pair": "accountant/student",
+    "bl": 375,
+    "hp": 680,
+    "delta": 305,
+    "fold": 1.8133333333333332
+  },
+  {
+    "pair": "designer/retired",
+    "bl": 351,
+    "hp": 477,
+    "delta": 126,
+    "fold": 1.358974358974359
+  },
+  {
+    "pair": "retired/tradesperson",
+    "bl": 267,
+    "hp": 0,
+    "delta": -267,
+    "fold": 0.0
+  },
+  {
+    "pair": "retail_worker/retired",
+    "bl": 284,
+    "hp": 0,
+    "delta": -284,
+    "fold": 0.0
+  },
+  {
+    "pair": "retired/software_dev",
+    "bl": 287,
+    "hp": 0,
+    "delta": -287,
+    "fold": 0.0
+  },
+  {
+    "pair": "nurse/retired",
+    "bl": 337,
+    "hp": 0,
+    "delta": -337,
+    "fold": 0.0
+  },
+  {
+    "pair": "consultant/retired",
+    "bl": 346,
+    "hp": 0,
+    "delta": -346,
+    "fold": 0.0
+  }
+]

@@ -1,0 +1,629 @@
+{
+  "agent_id": "a_43_0192",
+  "label": "mike",
+  "profile": {
+    "agent_id": "a_43_0192",
+    "name": "agent_192",
+    "age": 26,
+    "occupation": "engineer",
+    "household": "single",
+    "home_location": "building_530",
+    "workplace": "inspire_cosmetics",
+    "walking_speed_m_per_min": 150.0,
+    "prefer_driving": true,
+    "household_id": "hh_43_00033",
+    "household_role": "lone",
+    "personality": {
+      "openness": 0.48653625412875967,
+      "conscientiousness": 0.5232074078157961,
+      "extraversion": 0.688697485644377,
+      "agreeableness": 0.30951114418339304,
+      "neuroticism": 0.521856933711712,
+      "curiosity": 0.5817098348331557,
+      "routine_adherence": 0.6248833561430116,
+      "risk_tolerance": 0.26219654406808746
+    },
+    "preferred_social_size": 2,
+    "interests": [],
+    "languages": [
+      "English"
+    ],
+    "wake_time": "7:00",
+    "sleep_time": "23:00",
+    "is_protagonist": true,
+    "base_model": "claude-sonnet-4-6",
+    "identity_text": "agent_192 是一位 26 岁的 engineer，住在 Lane Cove。外向健谈。日常生活在 Lane Cove Plaza、St Leonards 和家之间往返，没有特别戏剧化的故事。",
+    "plan_text": "晚上和邻居在公寓楼下聊几句天气。",
+    "ethnicity_group": "England",
+    "migration_tenure_years": 0.0,
+    "housing_tenure": "owner_occupier",
+    "income_tier": "mid",
+    "work_mode": "commute",
+    "gender": "female",
+    "digital": {
+      "daily_screen_hours": 2.071220026308148,
+      "feed_bias": "local",
+      "headphones_hours": 1.7328799748541557,
+      "notification_responsiveness": 0.676906192604516,
+      "primary_apps": [
+        "nextdoor",
+        "instagram",
+        "linkedin"
+      ]
+    },
+    "community_tenure_5yr": "established_5plus",
+    "unpaid_child_care_hours": "none",
+    "unpaid_domestic_hours": "1_14",
+    "unpaid_disability_care_hours": "none",
+    "volunteer_status": "non_volunteer",
+    "english_proficiency": "english_only",
+    "family_composition": "lone_person",
+    "dwelling_structure": "separate_house",
+    "vehicles_at_dwelling": "1",
+    "year_of_arrival_bucket": "pre_2000",
+    "indigenous_status": "non_indigenous",
+    "disability_status": "no_assistance",
+    "education_level": "diploma",
+    "life_pattern": {
+      "preferred_cafe": "building_1219",
+      "preferred_leisure_park": "james_bennett_-_belle_property_lane_cove",
+      "preferred_errand_destination": "michael_chetham_photography",
+      "morning_commute_minute": 28,
+      "evening_return_minute": 37,
+      "weekend_outing_destination": "lane_cove_bowling_and_recreation_club"
+    }
+  },
+  "days": [
+    {
+      "day": 6,
+      "bl_stays": [],
+      "hp_stays": [
+        {
+          "loc": "1021_mediterranean",
+          "name": "1021 Mediterranean",
+          "type": "restaurant",
+          "kind": "building",
+          "arrived_tick": 217,
+          "arrived_time": "18:05",
+          "duration_ticks": 24,
+          "duration_min": 120,
+          "x": 409.4192885545047,
+          "y": 513.4786205908592
+        }
+      ],
+      "n_bl_stays": 0,
+      "n_hp_stays": 1,
+      "bl_distance_m": 0.0,
+      "hp_distance_m": 0.0,
+      "new_locations_today": [
+        {
+          "loc": "1021_mediterranean",
+          "name": "1021 Mediterranean",
+          "type": "restaurant"
+        }
+      ]
+    },
+    {
+      "day": 7,
+      "bl_stays": [
+        {
+          "loc": "building_530",
+          "name": "building_530",
+          "type": "residential",
+          "kind": "building",
+          "arrived_tick": 253,
+          "arrived_time": "21:05",
+          "duration_ticks": 24,
+          "duration_min": 120,
+          "x": 576.04780913146,
+          "y": -2124.4625138091887
+        }
+      ],
+      "hp_stays": [
+        {
+          "loc": "1021_mediterranean",
+          "name": "1021 Mediterranean",
+          "type": "restaurant",
+          "kind": "building",
+          "arrived_tick": 4,
+          "arrived_time": "00:20",
+          "duration_ticks": 24,
+          "duration_min": 120,
+          "x": 409.4192885545047,
+          "y": 513.4786205908592
+        }
+      ],
+      "n_bl_stays": 1,
+      "n_hp_stays": 1,
+      "bl_distance_m": 0.0,
+      "hp_distance_m": 3653.2,
+      "new_locations_today": [
+        {
+          "loc": "1021_mediterranean",
+          "name": "1021 Mediterranean",
+          "type": "restaurant"
+        }
+      ]
+    },
+    {
+      "day": 8,
+      "bl_stays": [
+        {
+          "loc": "inspire_cosmetics",
+          "name": "Inspire Cosmetics",
+          "type": "office",
+          "kind": "building",
+          "arrived_tick": 2,
+          "arrived_time": "00:10",
+          "duration_ticks": 196,
+          "duration_min": 980,
+          "x": 830.5353068730371,
+          "y": -890.9678954092005
+        },
+        {
+          "loc": "building_530",
+          "name": "building_530",
+          "type": "residential",
+          "kind": "building",
+          "arrived_tick": 200,
+          "arrived_time": "16:40",
+          "duration_ticks": 31,
+          "duration_min": 155,
+          "x": 576.04780913146,
+          "y": -2124.4625138091887
+        },
+        {
+          "loc": "mings_massage",
+          "name": "Ming's Massage",
+          "type": "restaurant",
+          "kind": "building",
+          "arrived_tick": 234,
+          "arrived_time": "19:30",
+          "duration_ticks": 18,
+          "duration_min": 90,
+          "x": 264.11597793317804,
+          "y": -566.7899548760043
+        },
+        {
+          "loc": "building_530",
+          "name": "building_530",
+          "type": "residential",
+          "kind": "building",
+          "arrived_tick": 255,
+          "arrived_time": "21:15",
+          "duration_ticks": 24,
+          "duration_min": 120,
+          "x": 576.04780913146,
+          "y": -2124.4625138091887
+        }
+      ],
+      "hp_stays": [
+        {
+          "loc": "1021_mediterranean",
+          "name": "1021 Mediterranean",
+          "type": "restaurant",
+          "kind": "building",
+          "arrived_tick": 4,
+          "arrived_time": "00:20",
+          "duration_ticks": 24,
+          "duration_min": 120,
+          "x": 409.4192885545047,
+          "y": 513.4786205908592
+        }
+      ],
+      "n_bl_stays": 4,
+      "n_hp_stays": 1,
+      "bl_distance_m": 8873.5,
+      "hp_distance_m": 3653.2,
+      "new_locations_today": [
+        {
+          "loc": "1021_mediterranean",
+          "name": "1021 Mediterranean",
+          "type": "restaurant"
+        }
+      ]
+    },
+    {
+      "day": 9,
+      "bl_stays": [
+        {
+          "loc": "inspire_cosmetics",
+          "name": "Inspire Cosmetics",
+          "type": "office",
+          "kind": "building",
+          "arrived_tick": 99,
+          "arrived_time": "08:15",
+          "duration_ticks": 99,
+          "duration_min": 495,
+          "x": 830.5353068730371,
+          "y": -890.9678954092005
+        },
+        {
+          "loc": "building_530",
+          "name": "building_530",
+          "type": "residential",
+          "kind": "building",
+          "arrived_tick": 200,
+          "arrived_time": "16:40",
+          "duration_ticks": 16,
+          "duration_min": 80,
+          "x": 576.04780913146,
+          "y": -2124.4625138091887
+        },
+        {
+          "loc": "stringybark_reserve",
+          "name": "Stringybark Reserve",
+          "type": "park",
+          "kind": "outdoor",
+          "arrived_tick": 220,
+          "arrived_time": "18:20",
+          "duration_ticks": 11,
+          "duration_min": 55,
+          "x": 340.95322840012074,
+          "y": -1061.2681309069426
+        },
+        {
+          "loc": "building_530",
+          "name": "building_530",
+          "type": "residential",
+          "kind": "building",
+          "arrived_tick": 234,
+          "arrived_time": "19:30",
+          "duration_ticks": 24,
+          "duration_min": 120,
+          "x": 576.04780913146,
+          "y": -2124.4625138091887
+        }
+      ],
+      "hp_stays": [
+        {
+          "loc": "1021_mediterranean",
+          "name": "1021 Mediterranean",
+          "type": "restaurant",
+          "kind": "building",
+          "arrived_tick": 4,
+          "arrived_time": "00:20",
+          "duration_ticks": 24,
+          "duration_min": 120,
+          "x": 409.4192885545047,
+          "y": 513.4786205908592
+        }
+      ],
+      "n_bl_stays": 4,
+      "n_hp_stays": 1,
+      "bl_distance_m": 9122.0,
+      "hp_distance_m": 3653.2,
+      "new_locations_today": [
+        {
+          "loc": "1021_mediterranean",
+          "name": "1021 Mediterranean",
+          "type": "restaurant"
+        }
+      ]
+    },
+    {
+      "day": 10,
+      "bl_stays": [
+        {
+          "loc": "inspire_cosmetics",
+          "name": "Inspire Cosmetics",
+          "type": "office",
+          "kind": "building",
+          "arrived_tick": 158,
+          "arrived_time": "13:10",
+          "duration_ticks": 7,
+          "duration_min": 35,
+          "x": 830.5353068730371,
+          "y": -890.9678954092005
+        },
+        {
+          "loc": "hair_at_bailey",
+          "name": "Hair At Bailey",
+          "type": "shop",
+          "kind": "building",
+          "arrived_tick": 168,
+          "arrived_time": "14:00",
+          "duration_ticks": 66,
+          "duration_min": 330,
+          "x": -674.0127678337473,
+          "y": -1790.638715008994
+        },
+        {
+          "loc": "building_1219",
+          "name": "building_1219",
+          "type": "shop",
+          "kind": "building",
+          "arrived_tick": 237,
+          "arrived_time": "19:45",
+          "duration_ticks": 9,
+          "duration_min": 45,
+          "x": 283.1512572869739,
+          "y": -484.08438980919436
+        },
+        {
+          "loc": "building_530",
+          "name": "building_530",
+          "type": "residential",
+          "kind": "building",
+          "arrived_tick": 249,
+          "arrived_time": "20:45",
+          "duration_ticks": 24,
+          "duration_min": 120,
+          "x": 576.04780913146,
+          "y": -2124.4625138091887
+        }
+      ],
+      "hp_stays": [
+        {
+          "loc": "1021_mediterranean",
+          "name": "1021 Mediterranean",
+          "type": "restaurant",
+          "kind": "building",
+          "arrived_tick": 4,
+          "arrived_time": "00:20",
+          "duration_ticks": 24,
+          "duration_min": 120,
+          "x": 409.4192885545047,
+          "y": 513.4786205908592
+        }
+      ],
+      "n_bl_stays": 4,
+      "n_hp_stays": 1,
+      "bl_distance_m": 9198.5,
+      "hp_distance_m": 3653.2,
+      "new_locations_today": [
+        {
+          "loc": "1021_mediterranean",
+          "name": "1021 Mediterranean",
+          "type": "restaurant"
+        }
+      ]
+    },
+    {
+      "day": 11,
+      "bl_stays": [
+        {
+          "loc": "new_apostolic_church",
+          "name": "New Apostolic Church",
+          "type": "worship",
+          "kind": "building",
+          "arrived_tick": 129,
+          "arrived_time": "10:45",
+          "duration_ticks": 27,
+          "duration_min": 135,
+          "x": 326.86895503500494,
+          "y": -724.8851346090803
+        },
+        {
+          "loc": "inspire_cosmetics",
+          "name": "Inspire Cosmetics",
+          "type": "office",
+          "kind": "building",
+          "arrived_tick": 156,
+          "arrived_time": "13:00",
+          "duration_ticks": 9,
+          "duration_min": 45,
+          "x": 830.5353068730371,
+          "y": -890.9678954092005
+        },
+        {
+          "loc": "lane_cove_bowling_and_recreation_club",
+          "name": "Lane Cove Bowling and Recreation Club",
+          "type": "playground",
+          "kind": "outdoor",
+          "arrived_tick": 169,
+          "arrived_time": "14:05",
+          "duration_ticks": 35,
+          "duration_min": 175,
+          "x": -766.5157985389085,
+          "y": -545.7245002091254
+        },
+        {
+          "loc": "building_1219",
+          "name": "building_1219",
+          "type": "shop",
+          "kind": "building",
+          "arrived_tick": 206,
+          "arrived_time": "17:10",
+          "duration_ticks": 40,
+          "duration_min": 200,
+          "x": 283.1512572869739,
+          "y": -484.08438980919436
+        },
+        {
+          "loc": "building_530",
+          "name": "building_530",
+          "type": "residential",
+          "kind": "building",
+          "arrived_tick": 249,
+          "arrived_time": "20:45",
+          "duration_ticks": 24,
+          "duration_min": 120,
+          "x": 576.04780913146,
+          "y": -2124.4625138091887
+        }
+      ],
+      "hp_stays": [
+        {
+          "loc": "1021_mediterranean",
+          "name": "1021 Mediterranean",
+          "type": "restaurant",
+          "kind": "building",
+          "arrived_tick": 4,
+          "arrived_time": "00:20",
+          "duration_ticks": 24,
+          "duration_min": 120,
+          "x": 409.4192885545047,
+          "y": 513.4786205908592
+        }
+      ],
+      "n_bl_stays": 5,
+      "n_hp_stays": 1,
+      "bl_distance_m": 9149.6,
+      "hp_distance_m": 3653.2,
+      "new_locations_today": [
+        {
+          "loc": "1021_mediterranean",
+          "name": "1021 Mediterranean",
+          "type": "restaurant"
+        }
+      ]
+    },
+    {
+      "day": 12,
+      "bl_stays": [
+        {
+          "loc": "inspire_cosmetics",
+          "name": "Inspire Cosmetics",
+          "type": "office",
+          "kind": "building",
+          "arrived_tick": 93,
+          "arrived_time": "07:45",
+          "duration_ticks": 105,
+          "duration_min": 525,
+          "x": 830.5353068730371,
+          "y": -890.9678954092005
+        },
+        {
+          "loc": "building_530",
+          "name": "building_530",
+          "type": "residential",
+          "kind": "building",
+          "arrived_tick": 200,
+          "arrived_time": "16:40",
+          "duration_ticks": 16,
+          "duration_min": 80,
+          "x": 576.04780913146,
+          "y": -2124.4625138091887
+        },
+        {
+          "loc": "building_1219",
+          "name": "building_1219",
+          "type": "shop",
+          "kind": "building",
+          "arrived_tick": 219,
+          "arrived_time": "18:15",
+          "duration_ticks": 21,
+          "duration_min": 105,
+          "x": 283.1512572869739,
+          "y": -484.08438980919436
+        },
+        {
+          "loc": "building_530",
+          "name": "building_530",
+          "type": "residential",
+          "kind": "building",
+          "arrived_tick": 243,
+          "arrived_time": "20:15",
+          "duration_ticks": 24,
+          "duration_min": 120,
+          "x": 576.04780913146,
+          "y": -2124.4625138091887
+        }
+      ],
+      "hp_stays": [
+        {
+          "loc": "1021_mediterranean",
+          "name": "1021 Mediterranean",
+          "type": "restaurant",
+          "kind": "building",
+          "arrived_tick": 4,
+          "arrived_time": "00:20",
+          "duration_ticks": 24,
+          "duration_min": 120,
+          "x": 409.4192885545047,
+          "y": 513.4786205908592
+        }
+      ],
+      "n_bl_stays": 4,
+      "n_hp_stays": 1,
+      "bl_distance_m": 8955.3,
+      "hp_distance_m": 3653.2,
+      "new_locations_today": [
+        {
+          "loc": "1021_mediterranean",
+          "name": "1021 Mediterranean",
+          "type": "restaurant"
+        }
+      ]
+    },
+    {
+      "day": 13,
+      "bl_stays": [
+        {
+          "loc": "inspire_cosmetics",
+          "name": "Inspire Cosmetics",
+          "type": "office",
+          "kind": "building",
+          "arrived_tick": 102,
+          "arrived_time": "08:30",
+          "duration_ticks": 96,
+          "duration_min": 480,
+          "x": 830.5353068730371,
+          "y": -890.9678954092005
+        },
+        {
+          "loc": "building_530",
+          "name": "building_530",
+          "type": "residential",
+          "kind": "building",
+          "arrived_tick": 200,
+          "arrived_time": "16:40",
+          "duration_ticks": 34,
+          "duration_min": 170,
+          "x": 576.04780913146,
+          "y": -2124.4625138091887
+        },
+        {
+          "loc": "building_1805",
+          "name": "building_1805",
+          "type": "shop",
+          "kind": "building",
+          "arrived_tick": 238,
+          "arrived_time": "19:50",
+          "duration_ticks": 14,
+          "duration_min": 70,
+          "x": 168.4232061330411,
+          "y": -410.82506887579257
+        },
+        {
+          "loc": "building_530",
+          "name": "building_530",
+          "type": "residential",
+          "kind": "building",
+          "arrived_tick": 255,
+          "arrived_time": "21:15",
+          "duration_ticks": 24,
+          "duration_min": 120,
+          "x": 576.04780913146,
+          "y": -2124.4625138091887
+        }
+      ],
+      "hp_stays": [
+        {
+          "loc": "1021_mediterranean",
+          "name": "1021 Mediterranean",
+          "type": "restaurant",
+          "kind": "building",
+          "arrived_tick": 4,
+          "arrived_time": "00:20",
+          "duration_ticks": 24,
+          "duration_min": 120,
+          "x": 409.4192885545047,
+          "y": 513.4786205908592
+        }
+      ],
+      "n_bl_stays": 4,
+      "n_hp_stays": 1,
+      "bl_distance_m": 9285.6,
+      "hp_distance_m": 3653.2,
+      "new_locations_today": [
+        {
+          "loc": "1021_mediterranean",
+          "name": "1021 Mediterranean",
+          "type": "restaurant"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,617 @@
+{
+  "agent_id": "a_43_0405",
+  "label": "mary",
+  "profile": {
+    "agent_id": "a_43_0405",
+    "name": "agent_405",
+    "age": 75,
+    "occupation": "retired",
+    "household": "family_with_kids",
+    "home_location": "building_2022",
+    "workplace": null,
+    "walking_speed_m_per_min": 280.0,
+    "prefer_driving": true,
+    "household_id": "hh_43_00367",
+    "household_role": "parent",
+    "personality": {
+      "openness": 0.5179616477778337,
+      "conscientiousness": 0.213618549050488,
+      "extraversion": 0.39035391701947175,
+      "agreeableness": 0.7024720775662165,
+      "neuroticism": 0.8297764766630655,
+      "curiosity": 0.46884795178317906,
+      "routine_adherence": 0.2783822137254508,
+      "risk_tolerance": 0.4767286756089978
+    },
+    "preferred_social_size": 2,
+    "interests": [],
+    "languages": [
+      "other"
+    ],
+    "wake_time": "7:00",
+    "sleep_time": "23:00",
+    "is_protagonist": true,
+    "base_model": "claude-sonnet-4-6",
+    "identity_text": "agent_405 是一位 75 岁的 retired，前几年卖了 Greenwich 的老房，现在在 Lane Cove 一个 2 居室公寓租住，靠养老金 + small jobs 度日。内敛少言、不太按计划过日子。每周二在 Lane Cove Library 帮忙整理书目，能见到一些老熟人。",
+    "plan_text": "晚上看新闻 + 给悉尼东郊女儿打电话。",
+    "ethnicity_group": "other",
+    "migration_tenure_years": null,
+    "housing_tenure": "renter",
+    "income_tier": "low",
+    "work_mode": "nonworking",
+    "gender": "female",
+    "digital": {
+      "daily_screen_hours": 4.643033892187417,
+      "feed_bias": "local",
+      "headphones_hours": 2.226569982144689,
+      "notification_responsiveness": 0.32620588347928414,
+      "primary_apps": [
+        "xhs",
+        "instagram",
+        "nextdoor"
+      ]
+    },
+    "community_tenure_5yr": "established_5plus",
+    "unpaid_child_care_hours": "none",
+    "unpaid_domestic_hours": "1_14",
+    "unpaid_disability_care_hours": "none",
+    "volunteer_status": "non_volunteer",
+    "english_proficiency": "well",
+    "family_composition": "couple_kids_under_15",
+    "dwelling_structure": "separate_house",
+    "vehicles_at_dwelling": "3plus",
+    "year_of_arrival_bucket": "australian_born",
+    "indigenous_status": "non_indigenous",
+    "disability_status": "no_assistance",
+    "education_level": "postgrad",
+    "life_pattern": {
+      "preferred_cafe": "peanut_butter_jelly_lane_cove",
+      "preferred_leisure_park": "area_17",
+      "preferred_errand_destination": "toni&guy",
+      "morning_commute_minute": 16,
+      "evening_return_minute": 49,
+      "weekend_outing_destination": "garfish_restaurant_crowsnest"
+    }
+  },
+  "days": [
+    {
+      "day": 6,
+      "bl_stays": [],
+      "hp_stays": [
+        {
+          "loc": "shinnyo_australia",
+          "name": "Shinnyo Australia",
+          "type": "worship",
+          "kind": "building",
+          "arrived_tick": 217,
+          "arrived_time": "18:05",
+          "duration_ticks": 24,
+          "duration_min": 120,
+          "x": 432.2168221716397,
+          "y": 414.6438809905673
+        }
+      ],
+      "n_bl_stays": 0,
+      "n_hp_stays": 1,
+      "bl_distance_m": 0.0,
+      "hp_distance_m": 0.0,
+      "new_locations_today": [
+        {
+          "loc": "shinnyo_australia",
+          "name": "Shinnyo Australia",
+          "type": "worship"
+        }
+      ]
+    },
+    {
+      "day": 7,
+      "bl_stays": [
+        {
+          "loc": "building_2022",
+          "name": "building_2022",
+          "type": "residential",
+          "kind": "building",
+          "arrived_tick": 253,
+          "arrived_time": "21:05",
+          "duration_ticks": 24,
+          "duration_min": 120,
+          "x": -1345.4111336797735,
+          "y": -1197.9394746092653
+        }
+      ],
+      "hp_stays": [
+        {
+          "loc": "shinnyo_australia",
+          "name": "Shinnyo Australia",
+          "type": "worship",
+          "kind": "building",
+          "arrived_tick": 2,
+          "arrived_time": "00:10",
+          "duration_ticks": 24,
+          "duration_min": 120,
+          "x": 432.2168221716397,
+          "y": 414.6438809905673
+        }
+      ],
+      "n_bl_stays": 1,
+      "n_hp_stays": 1,
+      "bl_distance_m": 0.0,
+      "hp_distance_m": 2694.1,
+      "new_locations_today": [
+        {
+          "loc": "shinnyo_australia",
+          "name": "Shinnyo Australia",
+          "type": "worship"
+        }
+      ]
+    },
+    {
+      "day": 8,
+      "bl_stays": [
+        {
+          "loc": "toni&guy",
+          "name": "TONI&GUY",
+          "type": "shop",
+          "kind": "building",
+          "arrived_tick": 104,
+          "arrived_time": "08:40",
+          "duration_ticks": 25,
+          "duration_min": 125,
+          "x": 273.5291472672305,
+          "y": -497.28621940927735
+        },
+        {
+          "loc": "nichols_reserve",
+          "name": "Nichols Reserve",
+          "type": "park",
+          "kind": "outdoor",
+          "arrived_tick": 129,
+          "arrived_time": "10:45",
+          "duration_ticks": 39,
+          "duration_min": 195,
+          "x": -565.3364702222648,
+          "y": -607.6643397092171
+        },
+        {
+          "loc": "area_196",
+          "name": "area_196",
+          "type": "playground",
+          "kind": "outdoor",
+          "arrived_tick": 170,
+          "arrived_time": "14:10",
+          "duration_ticks": 73,
+          "duration_min": 365,
+          "x": -1211.8645265455202,
+          "y": 281.67030539070157
+        },
+        {
+          "loc": "building_2022",
+          "name": "building_2022",
+          "type": "residential",
+          "kind": "building",
+          "arrived_tick": 245,
+          "arrived_time": "20:25",
+          "duration_ticks": 24,
+          "duration_min": 120,
+          "x": -1345.4111336797735,
+          "y": -1197.9394746092653
+        }
+      ],
+      "hp_stays": [
+        {
+          "loc": "shinnyo_australia",
+          "name": "Shinnyo Australia",
+          "type": "worship",
+          "kind": "building",
+          "arrived_tick": 2,
+          "arrived_time": "00:10",
+          "duration_ticks": 24,
+          "duration_min": 120,
+          "x": 432.2168221716397,
+          "y": 414.6438809905673
+        }
+      ],
+      "n_bl_stays": 4,
+      "n_hp_stays": 1,
+      "bl_distance_m": 8114.4,
+      "hp_distance_m": 2694.1,
+      "new_locations_today": [
+        {
+          "loc": "shinnyo_australia",
+          "name": "Shinnyo Australia",
+          "type": "worship"
+        }
+      ]
+    },
+    {
+      "day": 9,
+      "bl_stays": [
+        {
+          "loc": "north_shore_running_and_outdoor_fitness",
+          "name": "North Shore Running and Outdoor Fitness",
+          "type": "entertainment",
+          "kind": "building",
+          "arrived_tick": 95,
+          "arrived_time": "07:55",
+          "duration_ticks": 70,
+          "duration_min": 350,
+          "x": 454.1432239814711,
+          "y": -493.3217234090954
+        },
+        {
+          "loc": "peanut_butter_jelly_lane_cove",
+          "name": "Peanut Butter Jelly Lane Cove",
+          "type": "restaurant",
+          "kind": "building",
+          "arrived_tick": 166,
+          "arrived_time": "13:50",
+          "duration_ticks": 35,
+          "duration_min": 175,
+          "x": 220.55685320533135,
+          "y": -580.1362407142954
+        },
+        {
+          "loc": "flight_centre_lane_cove",
+          "name": "Flight Centre Lane Cove",
+          "type": "restaurant",
+          "kind": "building",
+          "arrived_tick": 201,
+          "arrived_time": "16:45",
+          "duration_ticks": 33,
+          "duration_min": 165,
+          "x": 280.2282002445636,
+          "y": -594.7116613520811
+        },
+        {
+          "loc": "building_2022",
+          "name": "building_2022",
+          "type": "residential",
+          "kind": "building",
+          "arrived_tick": 235,
+          "arrived_time": "19:35",
+          "duration_ticks": 24,
+          "duration_min": 120,
+          "x": -1345.4111336797735,
+          "y": -1197.9394746092653
+        }
+      ],
+      "hp_stays": [
+        {
+          "loc": "shinnyo_australia",
+          "name": "Shinnyo Australia",
+          "type": "worship",
+          "kind": "building",
+          "arrived_tick": 2,
+          "arrived_time": "00:10",
+          "duration_ticks": 24,
+          "duration_min": 120,
+          "x": 432.2168221716397,
+          "y": 414.6438809905673
+        }
+      ],
+      "n_bl_stays": 4,
+      "n_hp_stays": 1,
+      "bl_distance_m": 4424.6,
+      "hp_distance_m": 2694.1,
+      "new_locations_today": [
+        {
+          "loc": "shinnyo_australia",
+          "name": "Shinnyo Australia",
+          "type": "worship"
+        }
+      ]
+    },
+    {
+      "day": 10,
+      "bl_stays": [
+        {
+          "loc": "toni&guy",
+          "name": "TONI&GUY",
+          "type": "shop",
+          "kind": "building",
+          "arrived_tick": 127,
+          "arrived_time": "10:35",
+          "duration_ticks": 29,
+          "duration_min": 145,
+          "x": 273.5291472672305,
+          "y": -497.28621940927735
+        },
+        {
+          "loc": "lane_cove_market_square",
+          "name": "Lane Cove Market Square",
+          "type": "cafe",
+          "kind": "building",
+          "arrived_tick": 156,
+          "arrived_time": "13:00",
+          "duration_ticks": 24,
+          "duration_min": 120,
+          "x": 189.59738514978042,
+          "y": -408.3363922092133
+        },
+        {
+          "loc": "1021_mediterranean",
+          "name": "1021 Mediterranean",
+          "type": "restaurant",
+          "kind": "building",
+          "arrived_tick": 180,
+          "arrived_time": "15:00",
+          "duration_ticks": 54,
+          "duration_min": 270,
+          "x": 409.4192885545047,
+          "y": 513.4786205908592
+        },
+        {
+          "loc": "building_2022",
+          "name": "building_2022",
+          "type": "residential",
+          "kind": "building",
+          "arrived_tick": 236,
+          "arrived_time": "19:40",
+          "duration_ticks": 24,
+          "duration_min": 120,
+          "x": -1345.4111336797735,
+          "y": -1197.9394746092653
+        }
+      ],
+      "hp_stays": [
+        {
+          "loc": "shinnyo_australia",
+          "name": "Shinnyo Australia",
+          "type": "worship",
+          "kind": "building",
+          "arrived_tick": 2,
+          "arrived_time": "00:10",
+          "duration_ticks": 24,
+          "duration_min": 120,
+          "x": 432.2168221716397,
+          "y": 414.6438809905673
+        }
+      ],
+      "n_bl_stays": 4,
+      "n_hp_stays": 1,
+      "bl_distance_m": 5500.3,
+      "hp_distance_m": 2694.1,
+      "new_locations_today": [
+        {
+          "loc": "shinnyo_australia",
+          "name": "Shinnyo Australia",
+          "type": "worship"
+        }
+      ]
+    },
+    {
+      "day": 11,
+      "bl_stays": [
+        {
+          "loc": "area_54",
+          "name": "area_54",
+          "type": "playground",
+          "kind": "outdoor",
+          "arrived_tick": 128,
+          "arrived_time": "10:40",
+          "duration_ticks": 28,
+          "duration_min": 140,
+          "x": 430.37455818724527,
+          "y": 531.959966990581
+        },
+        {
+          "loc": "oliver_brown",
+          "name": "Oliver Brown",
+          "type": "cafe",
+          "kind": "building",
+          "arrived_tick": 156,
+          "arrived_time": "13:00",
+          "duration_ticks": 87,
+          "duration_min": 435,
+          "x": 193.68267858789673,
+          "y": -434.4754241749168
+        },
+        {
+          "loc": "building_2022",
+          "name": "building_2022",
+          "type": "residential",
+          "kind": "building",
+          "arrived_tick": 244,
+          "arrived_time": "20:20",
+          "duration_ticks": 24,
+          "duration_min": 120,
+          "x": -1345.4111336797735,
+          "y": -1197.9394746092653
+        }
+      ],
+      "hp_stays": [
+        {
+          "loc": "shinnyo_australia",
+          "name": "Shinnyo Australia",
+          "type": "worship",
+          "kind": "building",
+          "arrived_tick": 2,
+          "arrived_time": "00:10",
+          "duration_ticks": 24,
+          "duration_min": 120,
+          "x": 432.2168221716397,
+          "y": 414.6438809905673
+        }
+      ],
+      "n_bl_stays": 3,
+      "n_hp_stays": 1,
+      "bl_distance_m": 5458.0,
+      "hp_distance_m": 2694.1,
+      "new_locations_today": [
+        {
+          "loc": "shinnyo_australia",
+          "name": "Shinnyo Australia",
+          "type": "worship"
+        }
+      ]
+    },
+    {
+      "day": 12,
+      "bl_stays": [
+        {
+          "loc": "cafe_osheare",
+          "name": "Cafe Osheare",
+          "type": "cafe",
+          "kind": "building",
+          "arrived_tick": 108,
+          "arrived_time": "09:00",
+          "duration_ticks": 60,
+          "duration_min": 300,
+          "x": -1155.0517381787836,
+          "y": -1571.4407294095552
+        },
+        {
+          "loc": "area_17",
+          "name": "area_17",
+          "type": "playground",
+          "kind": "outdoor",
+          "arrived_tick": 169,
+          "arrived_time": "14:05",
+          "duration_ticks": 56,
+          "duration_min": 280,
+          "x": -805.509127140027,
+          "y": -558.0431714091052
+        },
+        {
+          "loc": "toni&guy",
+          "name": "TONI&GUY",
+          "type": "shop",
+          "kind": "building",
+          "arrived_tick": 225,
+          "arrived_time": "18:45",
+          "duration_ticks": 18,
+          "duration_min": 90,
+          "x": 273.5291472672305,
+          "y": -497.28621940927735
+        },
+        {
+          "loc": "building_2022",
+          "name": "building_2022",
+          "type": "residential",
+          "kind": "building",
+          "arrived_tick": 244,
+          "arrived_time": "20:20",
+          "duration_ticks": 24,
+          "duration_min": 120,
+          "x": -1345.4111336797735,
+          "y": -1197.9394746092653
+        }
+      ],
+      "hp_stays": [
+        {
+          "loc": "shinnyo_australia",
+          "name": "Shinnyo Australia",
+          "type": "worship",
+          "kind": "building",
+          "arrived_tick": 2,
+          "arrived_time": "00:10",
+          "duration_ticks": 24,
+          "duration_min": 120,
+          "x": 432.2168221716397,
+          "y": 414.6438809905673
+        }
+      ],
+      "n_bl_stays": 4,
+      "n_hp_stays": 1,
+      "bl_distance_m": 5534.7,
+      "hp_distance_m": 2694.1,
+      "new_locations_today": [
+        {
+          "loc": "shinnyo_australia",
+          "name": "Shinnyo Australia",
+          "type": "worship"
+        }
+      ]
+    },
+    {
+      "day": 13,
+      "bl_stays": [
+        {
+          "loc": "building_5261",
+          "name": "building_5261",
+          "type": "shop",
+          "kind": "building",
+          "arrived_tick": 169,
+          "arrived_time": "14:05",
+          "duration_ticks": 20,
+          "duration_min": 100,
+          "x": 867.9272893284794,
+          "y": -543.6157813520438
+        },
+        {
+          "loc": "fit",
+          "name": "FIT",
+          "type": "entertainment",
+          "kind": "building",
+          "arrived_tick": 189,
+          "arrived_time": "15:45",
+          "duration_ticks": 12,
+          "duration_min": 60,
+          "x": 209.08016150757396,
+          "y": -415.62728998695155
+        },
+        {
+          "loc": "lane_cove_bowling_and_recreation_club",
+          "name": "Lane Cove Bowling and Recreation Club",
+          "type": "playground",
+          "kind": "outdoor",
+          "arrived_tick": 203,
+          "arrived_time": "16:55",
+          "duration_ticks": 34,
+          "duration_min": 170,
+          "x": -766.5157985389085,
+          "y": -545.7245002091254
+        },
+        {
+          "loc": "pc",
+          "name": "PC",
+          "type": "restaurant",
+          "kind": "building",
+          "arrived_tick": 237,
+          "arrived_time": "19:45",
+          "duration_ticks": 9,
+          "duration_min": 45,
+          "x": -1396.6280556773097,
+          "y": -349.70894313906757
+        },
+        {
+          "loc": "building_2022",
+          "name": "building_2022",
+          "type": "residential",
+          "kind": "building",
+          "arrived_tick": 246,
+          "arrived_time": "20:30",
+          "duration_ticks": 24,
+          "duration_min": 120,
+          "x": -1345.4111336797735,
+          "y": -1197.9394746092653
+        }
+      ],
+      "hp_stays": [
+        {
+          "loc": "shinnyo_australia",
+          "name": "Shinnyo Australia",
+          "type": "worship",
+          "kind": "building",
+          "arrived_tick": 2,
+          "arrived_time": "00:10",
+          "duration_ticks": 24,
+          "duration_min": 120,
+          "x": 432.2168221716397,
+          "y": 414.6438809905673
+        }
+      ],
+      "n_bl_stays": 5,
+      "n_hp_stays": 1,
+      "bl_distance_m": 6577.2,
+      "hp_distance_m": 2694.1,
+      "new_locations_today": [
+        {
+          "loc": "shinnyo_australia",
+          "name": "Shinnyo Australia",
+          "type": "worship"
+        }
+      ]
+    }
+  ]
+}

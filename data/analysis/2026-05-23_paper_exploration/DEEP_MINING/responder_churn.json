@@ -1,0 +1,17 @@
+{
+  "by_intervention_days_responded": {
+    "0": 2318,
+    "6": 682
+  },
+  "response_rate_per_day": {
+    "4": 0.22733333333333333,
+    "5": 0.22733333333333333,
+    "6": 0.22733333333333333,
+    "7": 0.22733333333333333,
+    "8": 0.22733333333333333,
+    "9": 0.22733333333333333
+  },
+  "total_unique_responders_at_least_once": 682,
+  "total_persistent_responders_all_6_days": 682,
+  "n_agents_pooled": 3000
+}

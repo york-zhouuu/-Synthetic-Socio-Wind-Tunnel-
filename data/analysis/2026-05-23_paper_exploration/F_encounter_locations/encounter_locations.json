@@ -1,0 +1,86 @@
+{
+  "43|baseline": {
+    "unknown": 0.03893973214285714,
+    "street": 0.021856646825396824,
+    "residential": 0.6114206349206349,
+    "commercial": 0.2779375,
+    "public_outdoor": 0.04984548611111111
+  },
+  "43|hyperlocal_push": {
+    "unknown": 0.03240625,
+    "street": 0.03521106150793651,
+    "residential": 0.5152224702380952,
+    "commercial": 0.3684151785714286,
+    "public_outdoor": 0.04874503968253968
+  },
+  "43|global_distraction": {
+    "unknown": 0.03840104166666667,
+    "street": 0.027020833333333334,
+    "residential": 0.5845749007936508,
+    "commercial": 0.2988663194444444,
+    "public_outdoor": 0.051136904761904765
+  },
+  "43|phone_friction": {
+    "unknown": 0.03270089285714286,
+    "street": 0.0408764880952381,
+    "residential": 0.5170007440476191,
+    "commercial": 0.3582710813492063,
+    "public_outdoor": 0.05115079365079365
+  },
+  "44|baseline": {
+    "unknown": 0.04924925595238095,
+    "residential": 0.6001277281746031,
+    "street": 0.022883680555555556,
+    "commercial": 0.2772279265873016,
+    "public_outdoor": 0.05051140873015873
+  },
+  "44|hyperlocal_push": {
+    "unknown": 0.04139831349206349,
+    "residential": 0.5157405753968254,
+    "street": 0.03784350198412698,
+    "commercial": 0.35441617063492065,
+    "public_outdoor": 0.05060143849206349
+  },
+  "44|global_distraction": {
+    "unknown": 0.04678521825396825,
+    "residential": 0.5684712301587301,
+    "street": 0.02774751984126984,
+    "commercial": 0.26887425595238096,
+    "public_outdoor": 0.0881217757936508
+  },
+  "44|phone_friction": {
+    "unknown": 0.039669890873015874,
+    "residential": 0.5174437003968254,
+    "street": 0.03791195436507937,
+    "commercial": 0.3548856646825397,
+    "public_outdoor": 0.05008878968253968
+  },
+  "45|baseline": {
+    "residential": 0.5989583333333334,
+    "unknown": 0.05338888888888889,
+    "street": 0.02157465277777778,
+    "commercial": 0.2722571924603175,
+    "public_outdoor": 0.05382093253968254
+  },
+  "45|hyperlocal_push": {
+    "residential": 0.5008137400793651,
+    "unknown": 0.04463665674603175,
+    "street": 0.041000744047619046,
+    "commercial": 0.3603402777777778,
+    "public_outdoor": 0.05320858134920635
+  },
+  "45|global_distraction": {
+    "residential": 0.5719866071428571,
+    "unknown": 0.050037698412698416,
+    "street": 0.024219742063492065,
+    "commercial": 0.269171626984127,
+    "public_outdoor": 0.0845843253968254
+  },
+  "45|phone_friction": {
+    "residential": 0.5085079365079365,
+    "unknown": 0.04448611111111111,
+    "street": 0.0436609623015873,
+    "commercial": 0.3504422123015873,
+    "public_outdoor": 0.05290277777777778
+  }
+}

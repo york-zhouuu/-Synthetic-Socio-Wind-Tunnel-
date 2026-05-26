@@ -1,0 +1,2027 @@
+[
+  {
+    "label": "HIGH responder (protag, biggest deviation)",
+    "source_variant": "hyperlocal_push",
+    "seed": 44,
+    "agent_id": "a_44_0048",
+    "deviation_m": 3120.734661304895,
+    "is_responder": true,
+    "profile": {
+      "name": "agent_48",
+      "age": 29,
+      "gender": "female",
+      "occupation": "unemployed",
+      "household": "couple",
+      "role": "parent",
+      "income_tier": "high",
+      "is_protagonist": true,
+      "home_location": "building_4912",
+      "workplace": null,
+      "personality": {
+        "openness": 0.6931306878113191,
+        "conscientiousness": 0.667207570657641,
+        "extraversion": 0.25746007133944815,
+        "agreeableness": 0.5440446138364728,
+        "neuroticism": 0.6089604277238512,
+        "curiosity": 0.8508826878912337,
+        "routine_adherence": 0.3200952024863805,
+        "risk_tolerance": 0.38478776838408474
+      },
+      "identity_text": "agent_48 是一位 29 岁的 unemployed，住在 Lane Cove。内敛少言、不太按计划过日子、好奇新事物。日常生活在 Lane Cove Plaza、St Leonards 和家之间往返，没有特别戏剧化的故事。",
+      "life_pattern": {
+        "preferred_cafe": "artarmon",
+        "preferred_leisure_park": "akira_sushi",
+        "preferred_errand_destination": "stratford_manor",
+        "morning_commute_minute": 22,
+        "evening_return_minute": 43,
+        "weekend_outing_destination": "pottery_green_oval"
+      }
+    },
+    "n_var_changes": 230,
+    "n_bl_changes": 1138,
+    "var_changes_sample": [
+      {
+        "tick": 265,
+        "day": 3,
+        "agent_id": "a_44_0048",
+        "location_id": "building_4912"
+      },
+      {
+        "tick": 126,
+        "day": 4,
+        "agent_id": "a_44_0048",
+        "location_id": "melrose_street_seg_3"
+      },
+      {
+        "tick": 126,
+        "day": 4,
+        "agent_id": "a_44_0048",
+        "location_id": "melrose_street_seg_2"
+      },
+      {
+        "tick": 126,
+        "day": 4,
+        "agent_id": "a_44_0048",
+        "location_id": "melrose_street_seg_1"
+      },
+      {
+        "tick": 126,
+        "day": 4,
+        "agent_id": "a_44_0048",
+        "location_id": "mooney_street_seg_1"
+      },
+      {
+        "tick": 126,
+        "day": 4,
+        "agent_id": "a_44_0048",
+        "location_id": "mooney_street_seg_2_1"
+      },
+      {
+        "tick": 126,
+        "day": 4,
+        "agent_id": "a_44_0048",
+        "location_id": "mooney_street_seg_1_1"
+      },
+      {
+        "tick": 126,
+        "day": 4,
+        "agent_id": "a_44_0048",
+        "location_id": "mowbray_road_seg_2_1"
+      },
+      {
+        "tick": 126,
+        "day": 4,
+        "agent_id": "a_44_0048",
+        "location_id": "mowbray_road_seg_3"
+      },
+      {
+        "tick": 127,
+        "day": 4,
+        "agent_id": "a_44_0048",
+        "location_id": "mowbray_road_seg_4"
+      },
+      {
+        "tick": 127,
+        "day": 4,
+        "agent_id": "a_44_0048",
+        "location_id": "mowbray_road_seg_5"
+      },
+      {
+        "tick": 127,
+        "day": 4,
+        "agent_id": "a_44_0048",
+        "location_id": "centennial_avenue_seg_1_22"
+      },
+      {
+        "tick": 127,
+        "day": 4,
+        "agent_id": "a_44_0048",
+        "location_id": "centennial_avenue_seg_2_5"
+      },
+      {
+        "tick": 127,
+        "day": 4,
+        "agent_id": "a_44_0048",
+        "location_id": "centennial_avenue_seg_1_21"
+      },
+      {
+        "tick": 127,
+        "day": 4,
+        "agent_id": "a_44_0048",
+        "location_id": "centennial_avenue_seg_1_7"
+      },
+      {
+        "tick": 127,
+        "day": 4,
+        "agent_id": "a_44_0048",
+        "location_id": "centennial_avenue_seg_2_1"
+      },
+      {
+        "tick": 127,
+        "day": 4,
+        "agent_id": "a_44_0048",
+        "location_id": "centennial_avenue_seg_3_1"
+      },
+      {
+        "tick": 127,
+        "day": 4,
+        "agent_id": "a_44_0048",
+        "location_id": "landers_road_seg_1_1"
+      },
+      {
+        "tick": 128,
+        "day": 4,
+        "agent_id": "a_44_0048",
+        "location_id": "landers_road_seg_1_2"
+      },
+      {
+        "tick": 128,
+        "day": 4,
+        "agent_id": "a_44_0048",
+        "location_id": "landers_road_seg_1"
+      },
+      {
+        "tick": 128,
+        "day": 4,
+        "agent_id": "a_44_0048",
+        "location_id": "landers_road_seg_2"
+      },
+      {
+        "tick": 128,
+        "day": 4,
+        "agent_id": "a_44_0048",
+        "location_id": "landers_road_seg_3"
+      },
+      {
+        "tick": 128,
+        "day": 4,
+        "agent_id": "a_44_0048",
+        "location_id": "road_5074_seg_1"
+      },
+      {
+        "tick": 128,
+        "day": 4,
+        "agent_id": "a_44_0048",
+        "location_id": "road_5075_seg_1"
+      },
+      {
+        "tick": 128,
+        "day": 4,
+        "agent_id": "a_44_0048",
+        "location_id": "parklands_avenue_seg_1_4"
+      },
+      {
+        "tick": 128,
+        "day": 4,
+        "agent_id": "a_44_0048",
+        "location_id": "longueville_road_seg_1_19"
+      },
+      {
+        "tick": 128,
+        "day": 4,
+        "agent_id": "a_44_0048",
+        "location_id": "road_2073_seg_1"
+      },
+      {
+        "tick": 128,
+        "day": 4,
+        "agent_id": "a_44_0048",
+        "location_id": "road_2113_seg_1"
+      },
+      {
+        "tick": 128,
+        "day": 4,
+        "agent_id": "a_44_0048",
+        "location_id": "road_3200_seg_1"
+      },
+      {
+        "tick": 128,
+        "day": 4,
+        "agent_id": "a_44_0048",
+        "location_id": "road_3200_seg_2"
+      }
+    ],
+    "bl_changes_sample": [
+      {
+        "tick": 265,
+        "day": 3,
+        "agent_id": "a_44_0048",
+        "location_id": "building_4912"
+      },
+      {
+        "tick": 126,
+        "day": 4,
+        "agent_id": "a_44_0048",
+        "location_id": "melrose_street_seg_3"
+      },
+      {
+        "tick": 126,
+        "day": 4,
+        "agent_id": "a_44_0048",
+        "location_id": "melrose_street_seg_2"
+      },
+      {
+        "tick": 126,
+        "day": 4,
+        "agent_id": "a_44_0048",
+        "location_id": "melrose_street_seg_1"
+      },
+      {
+        "tick": 126,
+        "day": 4,
+        "agent_id": "a_44_0048",
+        "location_id": "mooney_street_seg_1"
+      },
+      {
+        "tick": 126,
+        "day": 4,
+        "agent_id": "a_44_0048",
+        "location_id": "mooney_street_seg_2_1"
+      },
+      {
+        "tick": 126,
+        "day": 4,
+        "agent_id": "a_44_0048",
+        "location_id": "mooney_street_seg_1_1"
+      },
+      {
+        "tick": 126,
+        "day": 4,
+        "agent_id": "a_44_0048",
+        "location_id": "mowbray_road_seg_2_1"
+      },
+      {
+        "tick": 126,
+        "day": 4,
+        "agent_id": "a_44_0048",
+        "location_id": "mowbray_road_seg_3"
+      },
+      {
+        "tick": 127,
+        "day": 4,
+        "agent_id": "a_44_0048",
+        "location_id": "mowbray_road_seg_4"
+      },
+      {
+        "tick": 127,
+        "day": 4,
+        "agent_id": "a_44_0048",
+        "location_id": "mowbray_road_seg_5"
+      },
+      {
+        "tick": 127,
+        "day": 4,
+        "agent_id": "a_44_0048",
+        "location_id": "centennial_avenue_seg_1_22"
+      },
+      {
+        "tick": 127,
+        "day": 4,
+        "agent_id": "a_44_0048",
+        "location_id": "centennial_avenue_seg_2_5"
+      },
+      {
+        "tick": 127,
+        "day": 4,
+        "agent_id": "a_44_0048",
+        "location_id": "centennial_avenue_seg_1_21"
+      },
+      {
+        "tick": 127,
+        "day": 4,
+        "agent_id": "a_44_0048",
+        "location_id": "centennial_avenue_seg_1_7"
+      },
+      {
+        "tick": 127,
+        "day": 4,
+        "agent_id": "a_44_0048",
+        "location_id": "centennial_avenue_seg_2_1"
+      },
+      {
+        "tick": 127,
+        "day": 4,
+        "agent_id": "a_44_0048",
+        "location_id": "centennial_avenue_seg_3_1"
+      },
+      {
+        "tick": 127,
+        "day": 4,
+        "agent_id": "a_44_0048",
+        "location_id": "landers_road_seg_1_1"
+      },
+      {
+        "tick": 128,
+        "day": 4,
+        "agent_id": "a_44_0048",
+        "location_id": "landers_road_seg_1_2"
+      },
+      {
+        "tick": 128,
+        "day": 4,
+        "agent_id": "a_44_0048",
+        "location_id": "landers_road_seg_1"
+      },
+      {
+        "tick": 128,
+        "day": 4,
+        "agent_id": "a_44_0048",
+        "location_id": "landers_road_seg_2"
+      },
+      {
+        "tick": 128,
+        "day": 4,
+        "agent_id": "a_44_0048",
+        "location_id": "landers_road_seg_3"
+      },
+      {
+        "tick": 128,
+        "day": 4,
+        "agent_id": "a_44_0048",
+        "location_id": "road_5074_seg_1"
+      },
+      {
+        "tick": 128,
+        "day": 4,
+        "agent_id": "a_44_0048",
+        "location_id": "road_5075_seg_1"
+      },
+      {
+        "tick": 128,
+        "day": 4,
+        "agent_id": "a_44_0048",
+        "location_id": "parklands_avenue_seg_1_4"
+      },
+      {
+        "tick": 128,
+        "day": 4,
+        "agent_id": "a_44_0048",
+        "location_id": "longueville_road_seg_1_19"
+      },
+      {
+        "tick": 128,
+        "day": 4,
+        "agent_id": "a_44_0048",
+        "location_id": "road_2073_seg_1"
+      },
+      {
+        "tick": 128,
+        "day": 4,
+        "agent_id": "a_44_0048",
+        "location_id": "road_2113_seg_1"
+      },
+      {
+        "tick": 128,
+        "day": 4,
+        "agent_id": "a_44_0048",
+        "location_id": "road_3200_seg_1"
+      },
+      {
+        "tick": 128,
+        "day": 4,
+        "agent_id": "a_44_0048",
+        "location_id": "road_3200_seg_2"
+      }
+    ]
+  },
+  {
+    "label": "MEDIAN responder (protag)",
+    "source_variant": "hyperlocal_push",
+    "seed": 43,
+    "agent_id": "a_43_0348",
+    "deviation_m": 610.6491907910344,
+    "is_responder": true,
+    "profile": {
+      "name": "agent_348",
+      "age": 50,
+      "gender": "female",
+      "occupation": "designer",
+      "household": "couple",
+      "role": "partner",
+      "income_tier": "mid",
+      "is_protagonist": true,
+      "home_location": "building_5202",
+      "workplace": "building_5260",
+      "personality": {
+        "openness": 0.4513075045188353,
+        "conscientiousness": 0.53281540879815,
+        "extraversion": 0.7440521778057803,
+        "agreeableness": 0.5510599279163821,
+        "neuroticism": 0.4741547932300859,
+        "curiosity": 0.5036118844896181,
+        "routine_adherence": 0.4984327370301356,
+        "risk_tolerance": 0.5410625795835783
+      },
+      "identity_text": "agent_348 是一位 50 岁的 designer，和伴侣 + 2 个孩子在 Lane Cove 一栋新公寓 3 居室租住 4 年了，租金每年涨让人头疼但学区不舍得换。外向健谈。最忙的事是早 8:30 送两个娃到 Lane Cove West Public School，再赶去 St Leonards 上班。",
+      "life_pattern": {
+        "preferred_cafe": "jack_and_co_1",
+        "preferred_leisure_park": "ferndale_park",
+        "preferred_errand_destination": "the_village_shopping_centre",
+        "morning_commute_minute": 32,
+        "evening_return_minute": 19,
+        "weekend_outing_destination": "flight_centre_lane_cove"
+      }
+    },
+    "n_var_changes": 447,
+    "n_bl_changes": 572,
+    "var_changes_sample": [
+      {
+        "tick": 217,
+        "day": 6,
+        "agent_id": "a_43_0348",
+        "location_id": "building_5202"
+      },
+      {
+        "tick": 228,
+        "day": 6,
+        "agent_id": "a_43_0348",
+        "location_id": "road_5141_seg_1"
+      },
+      {
+        "tick": 228,
+        "day": 6,
+        "agent_id": "a_43_0348",
+        "location_id": "fourth_avenue_seg_1"
+      },
+      {
+        "tick": 228,
+        "day": 6,
+        "agent_id": "a_43_0348",
+        "location_id": "first_avenue_seg_2_1"
+      },
+      {
+        "tick": 228,
+        "day": 6,
+        "agent_id": "a_43_0348",
+        "location_id": "first_avenue_seg_1_1"
+      },
+      {
+        "tick": 228,
+        "day": 6,
+        "agent_id": "a_43_0348",
+        "location_id": "phoenix_street_seg_2"
+      },
+      {
+        "tick": 228,
+        "day": 6,
+        "agent_id": "a_43_0348",
+        "location_id": "phoenix_street_seg_1"
+      },
+      {
+        "tick": 228,
+        "day": 6,
+        "agent_id": "a_43_0348",
+        "location_id": "phoenix_street_seg_3"
+      },
+      {
+        "tick": 228,
+        "day": 6,
+        "agent_id": "a_43_0348",
+        "location_id": "phoenix_street_seg_2_1"
+      },
+      {
+        "tick": 228,
+        "day": 6,
+        "agent_id": "a_43_0348",
+        "location_id": "phoenix_street_seg_1_2"
+      },
+      {
+        "tick": 228,
+        "day": 6,
+        "agent_id": "a_43_0348",
+        "location_id": "phoenix_street_seg_1_5"
+      },
+      {
+        "tick": 229,
+        "day": 6,
+        "agent_id": "a_43_0348",
+        "location_id": "phoenix_street_seg_1_4"
+      },
+      {
+        "tick": 229,
+        "day": 6,
+        "agent_id": "a_43_0348",
+        "location_id": "phoenix_street_seg_1_3"
+      },
+      {
+        "tick": 229,
+        "day": 6,
+        "agent_id": "a_43_0348",
+        "location_id": "phoenix_street_seg_1_1"
+      },
+      {
+        "tick": 229,
+        "day": 6,
+        "agent_id": "a_43_0348",
+        "location_id": "lane_cove_tunnel_seg_1_3"
+      },
+      {
+        "tick": 229,
+        "day": 6,
+        "agent_id": "a_43_0348",
+        "location_id": "road_3077_seg_1"
+      },
+      {
+        "tick": 229,
+        "day": 6,
+        "agent_id": "a_43_0348",
+        "location_id": "road_3077_seg_2"
+      },
+      {
+        "tick": 229,
+        "day": 6,
+        "agent_id": "a_43_0348",
+        "location_id": "epping_road_seg_4_4"
+      },
+      {
+        "tick": 229,
+        "day": 6,
+        "agent_id": "a_43_0348",
+        "location_id": "coxs_lane_seg_3"
+      },
+      {
+        "tick": 229,
+        "day": 6,
+        "agent_id": "a_43_0348",
+        "location_id": "coxs_lane_seg_2"
+      },
+      {
+        "tick": 229,
+        "day": 6,
+        "agent_id": "a_43_0348",
+        "location_id": "coxs_lane_seg_1"
+      },
+      {
+        "tick": 229,
+        "day": 6,
+        "agent_id": "a_43_0348",
+        "location_id": "finlayson_street_seg_1_1"
+      },
+      {
+        "tick": 230,
+        "day": 6,
+        "agent_id": "a_43_0348",
+        "location_id": "finlayson_street_seg_2_1"
+      },
+      {
+        "tick": 230,
+        "day": 6,
+        "agent_id": "a_43_0348",
+        "location_id": "finlayson_street_seg_1_2"
+      },
+      {
+        "tick": 230,
+        "day": 6,
+        "agent_id": "a_43_0348",
+        "location_id": "centennial_avenue_seg_1_20"
+      },
+      {
+        "tick": 230,
+        "day": 6,
+        "agent_id": "a_43_0348",
+        "location_id": "centennial_avenue_seg_1_12"
+      },
+      {
+        "tick": 230,
+        "day": 6,
+        "agent_id": "a_43_0348",
+        "location_id": "centennial_avenue_seg_1_2"
+      },
+      {
+        "tick": 230,
+        "day": 6,
+        "agent_id": "a_43_0348",
+        "location_id": "centennial_avenue_seg_2"
+      },
+      {
+        "tick": 230,
+        "day": 6,
+        "agent_id": "a_43_0348",
+        "location_id": "centennial_avenue_seg_3"
+      },
+      {
+        "tick": 231,
+        "day": 6,
+        "agent_id": "a_43_0348",
+        "location_id": "road_4098_seg_1"
+      }
+    ],
+    "bl_changes_sample": [
+      {
+        "tick": 253,
+        "day": 7,
+        "agent_id": "a_43_0348",
+        "location_id": "finlayson_street_seg_1_2"
+      },
+      {
+        "tick": 253,
+        "day": 7,
+        "agent_id": "a_43_0348",
+        "location_id": "finlayson_street_seg_2_1"
+      },
+      {
+        "tick": 253,
+        "day": 7,
+        "agent_id": "a_43_0348",
+        "location_id": "finlayson_street_seg_1_1"
+      },
+      {
+        "tick": 253,
+        "day": 7,
+        "agent_id": "a_43_0348",
+        "location_id": "coxs_lane_seg_1"
+      },
+      {
+        "tick": 253,
+        "day": 7,
+        "agent_id": "a_43_0348",
+        "location_id": "coxs_lane_seg_2"
+      },
+      {
+        "tick": 253,
+        "day": 7,
+        "agent_id": "a_43_0348",
+        "location_id": "coxs_lane_seg_3"
+      },
+      {
+        "tick": 253,
+        "day": 7,
+        "agent_id": "a_43_0348",
+        "location_id": "lane_cove_tunnel_seg_4_1"
+      },
+      {
+        "tick": 254,
+        "day": 7,
+        "agent_id": "a_43_0348",
+        "location_id": "lane_cove_tunnel_seg_3_1"
+      },
+      {
+        "tick": 254,
+        "day": 7,
+        "agent_id": "a_43_0348",
+        "location_id": "lane_cove_tunnel_seg_2_3"
+      },
+      {
+        "tick": 254,
+        "day": 7,
+        "agent_id": "a_43_0348",
+        "location_id": "lane_cove_tunnel_seg_1_3"
+      },
+      {
+        "tick": 254,
+        "day": 7,
+        "agent_id": "a_43_0348",
+        "location_id": "phoenix_street_seg_1_1"
+      },
+      {
+        "tick": 254,
+        "day": 7,
+        "agent_id": "a_43_0348",
+        "location_id": "phoenix_street_seg_1_3"
+      },
+      {
+        "tick": 254,
+        "day": 7,
+        "agent_id": "a_43_0348",
+        "location_id": "phoenix_street_seg_1_4"
+      },
+      {
+        "tick": 254,
+        "day": 7,
+        "agent_id": "a_43_0348",
+        "location_id": "phoenix_street_seg_1_5"
+      },
+      {
+        "tick": 254,
+        "day": 7,
+        "agent_id": "a_43_0348",
+        "location_id": "phoenix_street_seg_1_2"
+      },
+      {
+        "tick": 254,
+        "day": 7,
+        "agent_id": "a_43_0348",
+        "location_id": "phoenix_street_seg_2_1"
+      },
+      {
+        "tick": 254,
+        "day": 7,
+        "agent_id": "a_43_0348",
+        "location_id": "phoenix_street_seg_3"
+      },
+      {
+        "tick": 254,
+        "day": 7,
+        "agent_id": "a_43_0348",
+        "location_id": "phoenix_street_seg_1"
+      },
+      {
+        "tick": 255,
+        "day": 7,
+        "agent_id": "a_43_0348",
+        "location_id": "phoenix_street_seg_2"
+      },
+      {
+        "tick": 255,
+        "day": 7,
+        "agent_id": "a_43_0348",
+        "location_id": "first_avenue_seg_1_1"
+      },
+      {
+        "tick": 255,
+        "day": 7,
+        "agent_id": "a_43_0348",
+        "location_id": "first_avenue_seg_2_1"
+      },
+      {
+        "tick": 255,
+        "day": 7,
+        "agent_id": "a_43_0348",
+        "location_id": "fourth_avenue_seg_1"
+      },
+      {
+        "tick": 255,
+        "day": 7,
+        "agent_id": "a_43_0348",
+        "location_id": "road_5141_seg_1"
+      },
+      {
+        "tick": 255,
+        "day": 7,
+        "agent_id": "a_43_0348",
+        "location_id": "building_5202"
+      },
+      {
+        "tick": 103,
+        "day": 8,
+        "agent_id": "a_43_0348",
+        "location_id": "road_5141_seg_1"
+      },
+      {
+        "tick": 103,
+        "day": 8,
+        "agent_id": "a_43_0348",
+        "location_id": "fourth_avenue_seg_1"
+      },
+      {
+        "tick": 103,
+        "day": 8,
+        "agent_id": "a_43_0348",
+        "location_id": "road_4752_seg_4"
+      },
+      {
+        "tick": 103,
+        "day": 8,
+        "agent_id": "a_43_0348",
+        "location_id": "joseph_street_seg_1"
+      },
+      {
+        "tick": 103,
+        "day": 8,
+        "agent_id": "a_43_0348",
+        "location_id": "joseph_street_seg_2"
+      },
+      {
+        "tick": 103,
+        "day": 8,
+        "agent_id": "a_43_0348",
+        "location_id": "joseph_street_seg_3"
+      }
+    ]
+  },
+  {
+    "label": "SPILLOVER responder (non-protag)",
+    "source_variant": "hyperlocal_push",
+    "seed": 43,
+    "agent_id": "a_43_0793",
+    "deviation_m": 2829.321565895289,
+    "is_responder": true,
+    "profile": {
+      "name": "agent_793",
+      "age": 6,
+      "gender": "male",
+      "occupation": "student",
+      "household": "family_with_kids",
+      "role": "child",
+      "income_tier": "low",
+      "is_protagonist": false,
+      "home_location": "building_711",
+      "workplace": null,
+      "personality": {
+        "openness": 0.33028575868961607,
+        "conscientiousness": 0.2662934763731214,
+        "extraversion": 0.1800365856986914,
+        "agreeableness": 0.3499767428137077,
+        "neuroticism": 0.30860228118223804,
+        "curiosity": 0.535894300961668,
+        "routine_adherence": 0.579557470833659,
+        "risk_tolerance": 0.6023464535114164
+      },
+      "identity_text": "",
+      "life_pattern": {
+        "preferred_cafe": "uniting_church_in_australia_longueville",
+        "preferred_leisure_park": "area_189",
+        "preferred_errand_destination": "building_1005",
+        "morning_commute_minute": 27,
+        "evening_return_minute": 15,
+        "weekend_outing_destination": "the_charrington_of_chatswood"
+      }
+    },
+    "n_var_changes": 154,
+    "n_bl_changes": 153,
+    "var_changes_sample": [
+      {
+        "tick": 217,
+        "day": 6,
+        "agent_id": "a_43_0793",
+        "location_id": "area_189"
+      },
+      {
+        "tick": 0,
+        "day": 7,
+        "agent_id": "a_43_0793",
+        "location_id": "building_711"
+      },
+      {
+        "tick": 129,
+        "day": 8,
+        "agent_id": "a_43_0793",
+        "location_id": "road_2717_seg_2"
+      },
+      {
+        "tick": 129,
+        "day": 8,
+        "agent_id": "a_43_0793",
+        "location_id": "road_3271_seg_2"
+      },
+      {
+        "tick": 129,
+        "day": 8,
+        "agent_id": "a_43_0793",
+        "location_id": "road_3271_seg_1"
+      },
+      {
+        "tick": 129,
+        "day": 8,
+        "agent_id": "a_43_0793",
+        "location_id": "road_2966_seg_1"
+      },
+      {
+        "tick": 129,
+        "day": 8,
+        "agent_id": "a_43_0793",
+        "location_id": "road_2966_seg_2"
+      },
+      {
+        "tick": 129,
+        "day": 8,
+        "agent_id": "a_43_0793",
+        "location_id": "road_957_seg_1"
+      },
+      {
+        "tick": 129,
+        "day": 8,
+        "agent_id": "a_43_0793",
+        "location_id": "road_3215_seg_3"
+      },
+      {
+        "tick": 129,
+        "day": 8,
+        "agent_id": "a_43_0793",
+        "location_id": "road_3215_seg_2"
+      },
+      {
+        "tick": 129,
+        "day": 8,
+        "agent_id": "a_43_0793",
+        "location_id": "road_3215_seg_1"
+      },
+      {
+        "tick": 129,
+        "day": 8,
+        "agent_id": "a_43_0793",
+        "location_id": "road_2501_seg_1"
+      },
+      {
+        "tick": 130,
+        "day": 8,
+        "agent_id": "a_43_0793",
+        "location_id": "mowbray_road_seg_1_29"
+      },
+      {
+        "tick": 130,
+        "day": 8,
+        "agent_id": "a_43_0793",
+        "location_id": "road_3022_seg_1"
+      },
+      {
+        "tick": 130,
+        "day": 8,
+        "agent_id": "a_43_0793",
+        "location_id": "roslyn_street_seg_2"
+      },
+      {
+        "tick": 130,
+        "day": 8,
+        "agent_id": "a_43_0793",
+        "location_id": "road_3416_seg_1"
+      },
+      {
+        "tick": 130,
+        "day": 8,
+        "agent_id": "a_43_0793",
+        "location_id": "road_1274_seg_1"
+      },
+      {
+        "tick": 130,
+        "day": 8,
+        "agent_id": "a_43_0793",
+        "location_id": "road_3167_seg_4"
+      },
+      {
+        "tick": 130,
+        "day": 8,
+        "agent_id": "a_43_0793",
+        "location_id": "road_3167_seg_3"
+      },
+      {
+        "tick": 130,
+        "day": 8,
+        "agent_id": "a_43_0793",
+        "location_id": "road_3167_seg_2"
+      },
+      {
+        "tick": 131,
+        "day": 8,
+        "agent_id": "a_43_0793",
+        "location_id": "road_3167_seg_1"
+      },
+      {
+        "tick": 131,
+        "day": 8,
+        "agent_id": "a_43_0793",
+        "location_id": "landers_road_seg_1_2"
+      },
+      {
+        "tick": 131,
+        "day": 8,
+        "agent_id": "a_43_0793",
+        "location_id": "landers_road_seg_1"
+      },
+      {
+        "tick": 131,
+        "day": 8,
+        "agent_id": "a_43_0793",
+        "location_id": "landers_road_seg_2"
+      },
+      {
+        "tick": 131,
+        "day": 8,
+        "agent_id": "a_43_0793",
+        "location_id": "coxs_lane_seg_1_1"
+      },
+      {
+        "tick": 131,
+        "day": 8,
+        "agent_id": "a_43_0793",
+        "location_id": "road_3195_seg_1"
+      },
+      {
+        "tick": 131,
+        "day": 8,
+        "agent_id": "a_43_0793",
+        "location_id": "road_2063_seg_1"
+      },
+      {
+        "tick": 131,
+        "day": 8,
+        "agent_id": "a_43_0793",
+        "location_id": "road_3194_seg_1"
+      },
+      {
+        "tick": 131,
+        "day": 8,
+        "agent_id": "a_43_0793",
+        "location_id": "coxs_lane_seg_2"
+      },
+      {
+        "tick": 131,
+        "day": 8,
+        "agent_id": "a_43_0793",
+        "location_id": "coxs_lane_seg_1"
+      }
+    ],
+    "bl_changes_sample": [
+      {
+        "tick": 253,
+        "day": 7,
+        "agent_id": "a_43_0793",
+        "location_id": "building_711"
+      },
+      {
+        "tick": 129,
+        "day": 8,
+        "agent_id": "a_43_0793",
+        "location_id": "road_2717_seg_2"
+      },
+      {
+        "tick": 129,
+        "day": 8,
+        "agent_id": "a_43_0793",
+        "location_id": "road_3271_seg_2"
+      },
+      {
+        "tick": 129,
+        "day": 8,
+        "agent_id": "a_43_0793",
+        "location_id": "road_3271_seg_1"
+      },
+      {
+        "tick": 129,
+        "day": 8,
+        "agent_id": "a_43_0793",
+        "location_id": "road_2966_seg_1"
+      },
+      {
+        "tick": 129,
+        "day": 8,
+        "agent_id": "a_43_0793",
+        "location_id": "road_2966_seg_2"
+      },
+      {
+        "tick": 129,
+        "day": 8,
+        "agent_id": "a_43_0793",
+        "location_id": "road_957_seg_1"
+      },
+      {
+        "tick": 129,
+        "day": 8,
+        "agent_id": "a_43_0793",
+        "location_id": "road_3215_seg_3"
+      },
+      {
+        "tick": 129,
+        "day": 8,
+        "agent_id": "a_43_0793",
+        "location_id": "road_3215_seg_2"
+      },
+      {
+        "tick": 129,
+        "day": 8,
+        "agent_id": "a_43_0793",
+        "location_id": "road_3215_seg_1"
+      },
+      {
+        "tick": 129,
+        "day": 8,
+        "agent_id": "a_43_0793",
+        "location_id": "road_2501_seg_1"
+      },
+      {
+        "tick": 130,
+        "day": 8,
+        "agent_id": "a_43_0793",
+        "location_id": "mowbray_road_seg_1_29"
+      },
+      {
+        "tick": 130,
+        "day": 8,
+        "agent_id": "a_43_0793",
+        "location_id": "road_3022_seg_1"
+      },
+      {
+        "tick": 130,
+        "day": 8,
+        "agent_id": "a_43_0793",
+        "location_id": "roslyn_street_seg_2"
+      },
+      {
+        "tick": 130,
+        "day": 8,
+        "agent_id": "a_43_0793",
+        "location_id": "road_3416_seg_1"
+      },
+      {
+        "tick": 130,
+        "day": 8,
+        "agent_id": "a_43_0793",
+        "location_id": "road_1274_seg_1"
+      },
+      {
+        "tick": 130,
+        "day": 8,
+        "agent_id": "a_43_0793",
+        "location_id": "road_3167_seg_4"
+      },
+      {
+        "tick": 130,
+        "day": 8,
+        "agent_id": "a_43_0793",
+        "location_id": "road_3167_seg_3"
+      },
+      {
+        "tick": 130,
+        "day": 8,
+        "agent_id": "a_43_0793",
+        "location_id": "road_3167_seg_2"
+      },
+      {
+        "tick": 131,
+        "day": 8,
+        "agent_id": "a_43_0793",
+        "location_id": "road_3167_seg_1"
+      },
+      {
+        "tick": 131,
+        "day": 8,
+        "agent_id": "a_43_0793",
+        "location_id": "landers_road_seg_1_2"
+      },
+      {
+        "tick": 131,
+        "day": 8,
+        "agent_id": "a_43_0793",
+        "location_id": "landers_road_seg_1"
+      },
+      {
+        "tick": 131,
+        "day": 8,
+        "agent_id": "a_43_0793",
+        "location_id": "landers_road_seg_2"
+      },
+      {
+        "tick": 131,
+        "day": 8,
+        "agent_id": "a_43_0793",
+        "location_id": "coxs_lane_seg_1_1"
+      },
+      {
+        "tick": 131,
+        "day": 8,
+        "agent_id": "a_43_0793",
+        "location_id": "road_3195_seg_1"
+      },
+      {
+        "tick": 131,
+        "day": 8,
+        "agent_id": "a_43_0793",
+        "location_id": "road_2063_seg_1"
+      },
+      {
+        "tick": 131,
+        "day": 8,
+        "agent_id": "a_43_0793",
+        "location_id": "road_3194_seg_1"
+      },
+      {
+        "tick": 131,
+        "day": 8,
+        "agent_id": "a_43_0793",
+        "location_id": "coxs_lane_seg_2"
+      },
+      {
+        "tick": 131,
+        "day": 8,
+        "agent_id": "a_43_0793",
+        "location_id": "coxs_lane_seg_1"
+      },
+      {
+        "tick": 131,
+        "day": 8,
+        "agent_id": "a_43_0793",
+        "location_id": "coxs_lane_seg_1_3"
+      }
+    ]
+  },
+  {
+    "label": "NON-responder (protag)",
+    "source_variant": "hyperlocal_push",
+    "seed": 43,
+    "agent_id": "a_43_0316",
+    "deviation_m": 0.0,
+    "is_responder": false,
+    "profile": {
+      "name": "agent_316",
+      "age": 54,
+      "gender": "female",
+      "occupation": "consultant",
+      "household": "couple",
+      "role": "parent",
+      "income_tier": "mid",
+      "is_protagonist": true,
+      "home_location": "building_4980",
+      "workplace": "lane_cove_council_chambers",
+      "personality": {
+        "openness": 0.5005027020750102,
+        "conscientiousness": 0.454801296873132,
+        "extraversion": 0.11188854061213244,
+        "agreeableness": 0.5294892946465845,
+        "neuroticism": 0.4998253813942859,
+        "curiosity": 0.2728992334156572,
+        "routine_adherence": 0.5433394188768396,
+        "risk_tolerance": 0.6611239149645012
+      },
+      "identity_text": "agent_316 是一位 54 岁的 consultant，住在 Lane Cove。内敛少言。日常生活在 Lane Cove Plaza、St Leonards 和家之间往返，没有特别戏剧化的故事。",
+      "life_pattern": {
+        "preferred_cafe": "area_91",
+        "preferred_leisure_park": "decadent_delicacies",
+        "preferred_errand_destination": "peanut_butter_jelly_lane_cove",
+        "morning_commute_minute": 42,
+        "evening_return_minute": 29,
+        "weekend_outing_destination": "alto"
+      }
+    },
+    "n_var_changes": 338,
+    "n_bl_changes": 576,
+    "var_changes_sample": [
+      {
+        "tick": 217,
+        "day": 6,
+        "agent_id": "a_43_0316",
+        "location_id": "i_love_pizza_lane_cove"
+      },
+      {
+        "tick": 228,
+        "day": 6,
+        "agent_id": "a_43_0316",
+        "location_id": "road_4575_seg_1"
+      },
+      {
+        "tick": 228,
+        "day": 6,
+        "agent_id": "a_43_0316",
+        "location_id": "road_4575_seg_2"
+      },
+      {
+        "tick": 228,
+        "day": 6,
+        "agent_id": "a_43_0316",
+        "location_id": "road_1912_seg_1"
+      },
+      {
+        "tick": 228,
+        "day": 6,
+        "agent_id": "a_43_0316",
+        "location_id": "road_4272_seg_1"
+      },
+      {
+        "tick": 228,
+        "day": 6,
+        "agent_id": "a_43_0316",
+        "location_id": "longueville_road_seg_1_36"
+      },
+      {
+        "tick": 228,
+        "day": 6,
+        "agent_id": "a_43_0316",
+        "location_id": "road_4510_seg_1"
+      },
+      {
+        "tick": 228,
+        "day": 6,
+        "agent_id": "a_43_0316",
+        "location_id": "road_4510_seg_2"
+      },
+      {
+        "tick": 228,
+        "day": 6,
+        "agent_id": "a_43_0316",
+        "location_id": "road_4510_seg_3"
+      },
+      {
+        "tick": 228,
+        "day": 6,
+        "agent_id": "a_43_0316",
+        "location_id": "road_4510_seg_4"
+      },
+      {
+        "tick": 228,
+        "day": 6,
+        "agent_id": "a_43_0316",
+        "location_id": "road_4510_seg_5"
+      },
+      {
+        "tick": 228,
+        "day": 6,
+        "agent_id": "a_43_0316",
+        "location_id": "road_4508_seg_1"
+      },
+      {
+        "tick": 228,
+        "day": 6,
+        "agent_id": "a_43_0316",
+        "location_id": "road_4507_seg_1"
+      },
+      {
+        "tick": 228,
+        "day": 6,
+        "agent_id": "a_43_0316",
+        "location_id": "austin_street_seg_1"
+      },
+      {
+        "tick": 228,
+        "day": 6,
+        "agent_id": "a_43_0316",
+        "location_id": "river_road_west_seg_2_1"
+      },
+      {
+        "tick": 228,
+        "day": 6,
+        "agent_id": "a_43_0316",
+        "location_id": "river_road_west_seg_3_1"
+      },
+      {
+        "tick": 228,
+        "day": 6,
+        "agent_id": "a_43_0316",
+        "location_id": "river_road_west_seg_4_1"
+      },
+      {
+        "tick": 228,
+        "day": 6,
+        "agent_id": "a_43_0316",
+        "location_id": "warraroon_road_seg_3"
+      },
+      {
+        "tick": 228,
+        "day": 6,
+        "agent_id": "a_43_0316",
+        "location_id": "road_3586_seg_1"
+      },
+      {
+        "tick": 228,
+        "day": 6,
+        "agent_id": "a_43_0316",
+        "location_id": "road_3894_seg_7"
+      },
+      {
+        "tick": 229,
+        "day": 6,
+        "agent_id": "a_43_0316",
+        "location_id": "road_3894_seg_6"
+      },
+      {
+        "tick": 229,
+        "day": 6,
+        "agent_id": "a_43_0316",
+        "location_id": "road_3894_seg_5"
+      },
+      {
+        "tick": 229,
+        "day": 6,
+        "agent_id": "a_43_0316",
+        "location_id": "road_3894_seg_4"
+      },
+      {
+        "tick": 229,
+        "day": 6,
+        "agent_id": "a_43_0316",
+        "location_id": "building_4980"
+      },
+      {
+        "tick": 1,
+        "day": 7,
+        "agent_id": "a_43_0316",
+        "location_id": "road_3894_seg_4"
+      },
+      {
+        "tick": 1,
+        "day": 7,
+        "agent_id": "a_43_0316",
+        "location_id": "road_3894_seg_5"
+      },
+      {
+        "tick": 1,
+        "day": 7,
+        "agent_id": "a_43_0316",
+        "location_id": "road_3894_seg_6"
+      },
+      {
+        "tick": 1,
+        "day": 7,
+        "agent_id": "a_43_0316",
+        "location_id": "road_3894_seg_7"
+      },
+      {
+        "tick": 1,
+        "day": 7,
+        "agent_id": "a_43_0316",
+        "location_id": "road_3586_seg_1"
+      },
+      {
+        "tick": 1,
+        "day": 7,
+        "agent_id": "a_43_0316",
+        "location_id": "road_3586_seg_2"
+      }
+    ],
+    "bl_changes_sample": [
+      {
+        "tick": 253,
+        "day": 7,
+        "agent_id": "a_43_0316",
+        "location_id": "road_3586_seg_1"
+      },
+      {
+        "tick": 253,
+        "day": 7,
+        "agent_id": "a_43_0316",
+        "location_id": "road_3894_seg_7"
+      },
+      {
+        "tick": 253,
+        "day": 7,
+        "agent_id": "a_43_0316",
+        "location_id": "road_3894_seg_6"
+      },
+      {
+        "tick": 253,
+        "day": 7,
+        "agent_id": "a_43_0316",
+        "location_id": "road_3894_seg_5"
+      },
+      {
+        "tick": 253,
+        "day": 7,
+        "agent_id": "a_43_0316",
+        "location_id": "road_3894_seg_4"
+      },
+      {
+        "tick": 253,
+        "day": 7,
+        "agent_id": "a_43_0316",
+        "location_id": "building_4980"
+      },
+      {
+        "tick": 0,
+        "day": 8,
+        "agent_id": "a_43_0316",
+        "location_id": "road_3894_seg_4"
+      },
+      {
+        "tick": 0,
+        "day": 8,
+        "agent_id": "a_43_0316",
+        "location_id": "road_3894_seg_5"
+      },
+      {
+        "tick": 0,
+        "day": 8,
+        "agent_id": "a_43_0316",
+        "location_id": "road_3894_seg_6"
+      },
+      {
+        "tick": 0,
+        "day": 8,
+        "agent_id": "a_43_0316",
+        "location_id": "road_3894_seg_7"
+      },
+      {
+        "tick": 0,
+        "day": 8,
+        "agent_id": "a_43_0316",
+        "location_id": "road_3586_seg_1"
+      },
+      {
+        "tick": 0,
+        "day": 8,
+        "agent_id": "a_43_0316",
+        "location_id": "warraroon_road_seg_3"
+      },
+      {
+        "tick": 0,
+        "day": 8,
+        "agent_id": "a_43_0316",
+        "location_id": "river_road_west_seg_4_1"
+      },
+      {
+        "tick": 0,
+        "day": 8,
+        "agent_id": "a_43_0316",
+        "location_id": "river_road_west_seg_3_1"
+      },
+      {
+        "tick": 0,
+        "day": 8,
+        "agent_id": "a_43_0316",
+        "location_id": "river_road_west_seg_2_1"
+      },
+      {
+        "tick": 0,
+        "day": 8,
+        "agent_id": "a_43_0316",
+        "location_id": "austin_street_seg_1"
+      },
+      {
+        "tick": 0,
+        "day": 8,
+        "agent_id": "a_43_0316",
+        "location_id": "road_4507_seg_1"
+      },
+      {
+        "tick": 0,
+        "day": 8,
+        "agent_id": "a_43_0316",
+        "location_id": "road_4508_seg_1"
+      },
+      {
+        "tick": 0,
+        "day": 8,
+        "agent_id": "a_43_0316",
+        "location_id": "road_4510_seg_5"
+      },
+      {
+        "tick": 0,
+        "day": 8,
+        "agent_id": "a_43_0316",
+        "location_id": "road_4510_seg_4"
+      },
+      {
+        "tick": 0,
+        "day": 8,
+        "agent_id": "a_43_0316",
+        "location_id": "road_4510_seg_3"
+      },
+      {
+        "tick": 0,
+        "day": 8,
+        "agent_id": "a_43_0316",
+        "location_id": "road_4510_seg_2"
+      },
+      {
+        "tick": 0,
+        "day": 8,
+        "agent_id": "a_43_0316",
+        "location_id": "road_4510_seg_1"
+      },
+      {
+        "tick": 0,
+        "day": 8,
+        "agent_id": "a_43_0316",
+        "location_id": "longueville_road_seg_1_35"
+      },
+      {
+        "tick": 1,
+        "day": 8,
+        "agent_id": "a_43_0316",
+        "location_id": "road_4272_seg_1"
+      },
+      {
+        "tick": 1,
+        "day": 8,
+        "agent_id": "a_43_0316",
+        "location_id": "central_avenue_seg_1"
+      },
+      {
+        "tick": 1,
+        "day": 8,
+        "agent_id": "a_43_0316",
+        "location_id": "little_street_seg_1_4"
+      },
+      {
+        "tick": 1,
+        "day": 8,
+        "agent_id": "a_43_0316",
+        "location_id": "road_3200_seg_2"
+      },
+      {
+        "tick": 1,
+        "day": 8,
+        "agent_id": "a_43_0316",
+        "location_id": "road_3200_seg_1"
+      },
+      {
+        "tick": 1,
+        "day": 8,
+        "agent_id": "a_43_0316",
+        "location_id": "road_2113_seg_1"
+      }
+    ]
+  },
+  {
+    "label": "GD-top responder",
+    "source_variant": "global_distraction",
+    "seed": 43,
+    "agent_id": "a_43_0382",
+    "deviation_m": 3293.302197099935,
+    "is_responder": true,
+    "profile": {
+      "name": "agent_382",
+      "age": 92,
+      "gender": "male",
+      "occupation": "retired",
+      "household": "family_with_kids",
+      "role": "lone",
+      "income_tier": "low",
+      "is_protagonist": true,
+      "home_location": "hydronic_heating_services",
+      "workplace": null,
+      "personality": {
+        "openness": 0.253951328976755,
+        "conscientiousness": 0.4544472058950421,
+        "extraversion": 0.6741084593389521,
+        "agreeableness": 0.5074223047128883,
+        "neuroticism": 0.7275385597616075,
+        "curiosity": 0.8455635435063495,
+        "routine_adherence": 0.3152248646412016,
+        "risk_tolerance": 0.5575503289848606
+      },
+      "identity_text": "agent_382 是一位 92 岁的 retired，住在 Lane Cove。外向健谈、不太按计划过日子。日常生活在 Lane Cove Plaza、St Leonards 和家之间往返，没有特别戏剧化的故事。",
+      "life_pattern": {
+        "preferred_cafe": "plc_sydney_preschool,_lane_cove_campus",
+        "preferred_leisure_park": "shorties_bar_and_dining",
+        "preferred_errand_destination": "area_18",
+        "morning_commute_minute": 14,
+        "evening_return_minute": 49,
+        "weekend_outing_destination": "anz"
+      }
+    },
+    "n_var_changes": 44,
+    "n_bl_changes": 639,
+    "var_changes_sample": [
+      {
+        "tick": 1,
+        "day": 13,
+        "agent_id": "a_43_0382",
+        "location_id": "tambourine_bay_road_seg_4_1"
+      },
+      {
+        "tick": 1,
+        "day": 13,
+        "agent_id": "a_43_0382",
+        "location_id": "tambourine_bay_road_seg_1_8"
+      },
+      {
+        "tick": 1,
+        "day": 13,
+        "agent_id": "a_43_0382",
+        "location_id": "coxs_lane_seg_1_2"
+      },
+      {
+        "tick": 1,
+        "day": 13,
+        "agent_id": "a_43_0382",
+        "location_id": "coxs_lane_seg_1_3"
+      },
+      {
+        "tick": 1,
+        "day": 13,
+        "agent_id": "a_43_0382",
+        "location_id": "coxs_lane_seg_1"
+      },
+      {
+        "tick": 1,
+        "day": 13,
+        "agent_id": "a_43_0382",
+        "location_id": "coxs_lane_seg_2"
+      },
+      {
+        "tick": 1,
+        "day": 13,
+        "agent_id": "a_43_0382",
+        "location_id": "road_3193_seg_1"
+      },
+      {
+        "tick": 1,
+        "day": 13,
+        "agent_id": "a_43_0382",
+        "location_id": "road_2063_seg_1"
+      },
+      {
+        "tick": 1,
+        "day": 13,
+        "agent_id": "a_43_0382",
+        "location_id": "road_3195_seg_1"
+      },
+      {
+        "tick": 1,
+        "day": 13,
+        "agent_id": "a_43_0382",
+        "location_id": "coxs_lane_seg_1_1"
+      },
+      {
+        "tick": 1,
+        "day": 13,
+        "agent_id": "a_43_0382",
+        "location_id": "landers_road_seg_3"
+      },
+      {
+        "tick": 1,
+        "day": 13,
+        "agent_id": "a_43_0382",
+        "location_id": "road_5070_seg_4"
+      },
+      {
+        "tick": 1,
+        "day": 13,
+        "agent_id": "a_43_0382",
+        "location_id": "parklands_avenue_seg_1_5"
+      },
+      {
+        "tick": 1,
+        "day": 13,
+        "agent_id": "a_43_0382",
+        "location_id": "kurri_street_seg_2"
+      },
+      {
+        "tick": 1,
+        "day": 13,
+        "agent_id": "a_43_0382",
+        "location_id": "kurri_street_seg_1"
+      },
+      {
+        "tick": 1,
+        "day": 13,
+        "agent_id": "a_43_0382",
+        "location_id": "karilla_avenue_seg_1_1"
+      },
+      {
+        "tick": 1,
+        "day": 13,
+        "agent_id": "a_43_0382",
+        "location_id": "karilla_avenue_seg_2"
+      },
+      {
+        "tick": 2,
+        "day": 13,
+        "agent_id": "a_43_0382",
+        "location_id": "road_1274_seg_1"
+      },
+      {
+        "tick": 2,
+        "day": 13,
+        "agent_id": "a_43_0382",
+        "location_id": "road_3416_seg_1"
+      },
+      {
+        "tick": 2,
+        "day": 13,
+        "agent_id": "a_43_0382",
+        "location_id": "roslyn_street_seg_2"
+      },
+      {
+        "tick": 2,
+        "day": 13,
+        "agent_id": "a_43_0382",
+        "location_id": "road_3022_seg_1"
+      },
+      {
+        "tick": 2,
+        "day": 13,
+        "agent_id": "a_43_0382",
+        "location_id": "mowbray_road_seg_1_29"
+      },
+      {
+        "tick": 2,
+        "day": 13,
+        "agent_id": "a_43_0382",
+        "location_id": "road_2501_seg_1"
+      },
+      {
+        "tick": 2,
+        "day": 13,
+        "agent_id": "a_43_0382",
+        "location_id": "road_3215_seg_1"
+      },
+      {
+        "tick": 2,
+        "day": 13,
+        "agent_id": "a_43_0382",
+        "location_id": "beaconsfield_road_seg_3_1"
+      },
+      {
+        "tick": 2,
+        "day": 13,
+        "agent_id": "a_43_0382",
+        "location_id": "beaconsfield_road_seg_4_1"
+      },
+      {
+        "tick": 2,
+        "day": 13,
+        "agent_id": "a_43_0382",
+        "location_id": "dalrymple_avenue_seg_4_1"
+      },
+      {
+        "tick": 2,
+        "day": 13,
+        "agent_id": "a_43_0382",
+        "location_id": "dalrymple_avenue_seg_3_2"
+      },
+      {
+        "tick": 2,
+        "day": 13,
+        "agent_id": "a_43_0382",
+        "location_id": "road_299_seg_1"
+      },
+      {
+        "tick": 2,
+        "day": 13,
+        "agent_id": "a_43_0382",
+        "location_id": "road_3235_seg_1"
+      }
+    ],
+    "bl_changes_sample": [
+      {
+        "tick": 253,
+        "day": 7,
+        "agent_id": "a_43_0382",
+        "location_id": "hydronic_heating_services"
+      },
+      {
+        "tick": 91,
+        "day": 8,
+        "agent_id": "a_43_0382",
+        "location_id": "miramont_avenue_seg_2"
+      },
+      {
+        "tick": 91,
+        "day": 8,
+        "agent_id": "a_43_0382",
+        "location_id": "miramont_avenue_seg_3"
+      },
+      {
+        "tick": 91,
+        "day": 8,
+        "agent_id": "a_43_0382",
+        "location_id": "tambourine_bay_road_seg_1_2"
+      },
+      {
+        "tick": 91,
+        "day": 8,
+        "agent_id": "a_43_0382",
+        "location_id": "tambourine_bay_road_seg_2_2"
+      },
+      {
+        "tick": 91,
+        "day": 8,
+        "agent_id": "a_43_0382",
+        "location_id": "road_1400_seg_1"
+      },
+      {
+        "tick": 91,
+        "day": 8,
+        "agent_id": "a_43_0382",
+        "location_id": "tambourine_bay_road_seg_1_4"
+      },
+      {
+        "tick": 91,
+        "day": 8,
+        "agent_id": "a_43_0382",
+        "location_id": "pengilly_street_seg_5"
+      },
+      {
+        "tick": 91,
+        "day": 8,
+        "agent_id": "a_43_0382",
+        "location_id": "pengilly_street_seg_4"
+      },
+      {
+        "tick": 91,
+        "day": 8,
+        "agent_id": "a_43_0382",
+        "location_id": "pengilly_street_seg_3"
+      },
+      {
+        "tick": 91,
+        "day": 8,
+        "agent_id": "a_43_0382",
+        "location_id": "road_3818_seg_3"
+      },
+      {
+        "tick": 91,
+        "day": 8,
+        "agent_id": "a_43_0382",
+        "location_id": "pengilly_street_seg_1"
+      },
+      {
+        "tick": 91,
+        "day": 8,
+        "agent_id": "a_43_0382",
+        "location_id": "pengilly_street_seg_1_1"
+      },
+      {
+        "tick": 91,
+        "day": 8,
+        "agent_id": "a_43_0382",
+        "location_id": "pengilly_street_seg_1_2"
+      },
+      {
+        "tick": 91,
+        "day": 8,
+        "agent_id": "a_43_0382",
+        "location_id": "fox_street_seg_1"
+      },
+      {
+        "tick": 91,
+        "day": 8,
+        "agent_id": "a_43_0382",
+        "location_id": "fox_street_seg_2"
+      },
+      {
+        "tick": 91,
+        "day": 8,
+        "agent_id": "a_43_0382",
+        "location_id": "fox_street_seg_1_1"
+      },
+      {
+        "tick": 91,
+        "day": 8,
+        "agent_id": "a_43_0382",
+        "location_id": "tambourine_bay_road_seg_3_1"
+      },
+      {
+        "tick": 92,
+        "day": 8,
+        "agent_id": "a_43_0382",
+        "location_id": "tambourine_bay_road_seg_4_1"
+      },
+      {
+        "tick": 92,
+        "day": 8,
+        "agent_id": "a_43_0382",
+        "location_id": "tambourine_bay_road_seg_1_8"
+      },
+      {
+        "tick": 92,
+        "day": 8,
+        "agent_id": "a_43_0382",
+        "location_id": "coxs_lane_seg_1_2"
+      },
+      {
+        "tick": 92,
+        "day": 8,
+        "agent_id": "a_43_0382",
+        "location_id": "coxs_lane_seg_1_3"
+      },
+      {
+        "tick": 92,
+        "day": 8,
+        "agent_id": "a_43_0382",
+        "location_id": "coxs_lane_seg_1"
+      },
+      {
+        "tick": 92,
+        "day": 8,
+        "agent_id": "a_43_0382",
+        "location_id": "coxs_lane_seg_2"
+      },
+      {
+        "tick": 92,
+        "day": 8,
+        "agent_id": "a_43_0382",
+        "location_id": "road_3193_seg_1"
+      },
+      {
+        "tick": 92,
+        "day": 8,
+        "agent_id": "a_43_0382",
+        "location_id": "road_2063_seg_1"
+      },
+      {
+        "tick": 92,
+        "day": 8,
+        "agent_id": "a_43_0382",
+        "location_id": "road_3195_seg_1"
+      },
+      {
+        "tick": 92,
+        "day": 8,
+        "agent_id": "a_43_0382",
+        "location_id": "coxs_lane_seg_1_1"
+      },
+      {
+        "tick": 92,
+        "day": 8,
+        "agent_id": "a_43_0382",
+        "location_id": "landers_road_seg_3"
+      },
+      {
+        "tick": 92,
+        "day": 8,
+        "agent_id": "a_43_0382",
+        "location_id": "road_5070_seg_4"
+      }
+    ]
+  }
+]

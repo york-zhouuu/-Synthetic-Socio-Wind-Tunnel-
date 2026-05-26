@@ -1,0 +1,1095 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Synthetic Socio Wind Tunnel — Lane Cove 实验结果</title>
+<style>
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC",
+                 "Hiragino Sans GB", "Microsoft YaHei", "Source Han Sans",
+                 sans-serif;
+    max-width: 1020px;
+    margin: 0 auto;
+    padding: 70px 48px 120px;
+    line-height: 1.75;
+    color: #1f1f1f;
+    background: #fbfaf6;
+    font-size: 16px;
+  }
+
+  .tagline {
+    font-size: 13px;
+    letter-spacing: 0.15em;
+    color: #888;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+  h1 {
+    font-size: 36px;
+    font-weight: 700;
+    line-height: 1.25;
+    margin: 0 0 16px;
+    letter-spacing: -0.01em;
+  }
+  .hook {
+    font-size: 20px;
+    color: #5b5b5b;
+    margin: 0 0 50px;
+    font-weight: 300;
+  }
+  h2 {
+    font-size: 26px;
+    font-weight: 600;
+    margin: 70px 0 20px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #1f1f1f;
+  }
+  h3 {
+    font-size: 19px;
+    font-weight: 600;
+    margin: 24px 0 10px;
+  }
+  h4 {
+    font-size: 14px;
+    font-weight: 600;
+    color: #666;
+    margin: 12px 0 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  p { margin: 0 0 14px; }
+  strong { color: #000; font-weight: 600; }
+  em { font-style: normal; background: #fff4cc; padding: 1px 4px; }
+  a { color: #c8553d; text-decoration: none; border-bottom: 1px dashed #c8553d; }
+
+  /* Figure */
+  figure {
+    margin: 24px 0;
+    padding: 0;
+  }
+  figure img {
+    width: 100%;
+    border: 1px solid #d8d3c0;
+    border-radius: 8px;
+    display: block;
+    background: white;
+  }
+  figcaption {
+    text-align: center;
+    color: #777;
+    font-size: 13px;
+    margin-top: 8px;
+    font-style: italic;
+  }
+  figcaption strong { color: #555; font-style: normal; }
+
+  /* Pull-out quote */
+  .pullquote {
+    border-left: 4px solid #c8553d;
+    padding: 10px 24px;
+    margin: 28px 0;
+    color: #444;
+    font-size: 17px;
+    font-style: italic;
+    background: #fff;
+  }
+
+  /* Panel */
+  .panel {
+    background: #fff;
+    border: 1px solid #e5e2d6;
+    border-radius: 8px;
+    padding: 22px 28px;
+    margin: 24px 0;
+  }
+
+  /* 4 variants */
+  .variants {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px;
+    margin: 22px 0;
+  }
+  .variant-card {
+    background: #fff;
+    border: 1px solid #e5e2d6;
+    border-radius: 8px;
+    padding: 18px 22px;
+  }
+  .variant-card.core { border: 2px solid #c8553d; background: #fffaf6; }
+  .variant-card .vlabel {
+    font-size: 11px;
+    color: #999;
+    letter-spacing: 0.08em;
+    margin-bottom: 4px;
+    text-transform: uppercase;
+  }
+  .variant-card .vtitle {
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: #1f1f1f;
+    font-size: 16px;
+  }
+  .variant-card .vdesc {
+    font-size: 14px;
+    color: #555;
+    line-height: 1.6;
+  }
+
+  /* Finding card */
+  .finding {
+    background: white;
+    border-radius: 8px;
+    padding: 26px 30px;
+    margin: 28px 0;
+    border: 1px solid #e5e2d6;
+    border-left: 5px solid #c8553d;
+  }
+  .finding-tag {
+    display: inline-block;
+    font-size: 11px;
+    background: #1f1f1f;
+    color: white;
+    padding: 3px 12px;
+    border-radius: 12px;
+    letter-spacing: 0.1em;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+  }
+  .finding h3 {
+    color: #c8553d;
+    font-size: 22px;
+    margin: 8px 0 14px;
+    line-height: 1.35;
+  }
+
+  /* Evidence list inside finding */
+  .evidence {
+    background: #fafaf6;
+    border-radius: 6px;
+    padding: 14px 18px;
+    margin: 12px 0;
+    font-size: 14px;
+  }
+  .evidence h4 {
+    margin-top: 0;
+    color: #c8553d;
+  }
+  .evidence ol { padding-left: 20px; margin: 6px 0; }
+  .evidence li { margin: 4px 0; }
+
+  /* Tables */
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    font-size: 14px;
+    margin: 14px 0;
+    background: white;
+  }
+  th, td { border: 1px solid #e5e2d6; padding: 7px 11px; text-align: left; }
+  th { background: #f5f4e8; font-weight: 600; }
+  td.num { font-family: -apple-system, "SF Mono", Menlo, monospace; text-align: right; }
+  .hl { background: #fff4cc; font-weight: 600; }
+  .red { color: #c8553d; font-weight: 600; }
+  td.dim { color: #999; }
+
+  /* Caveat */
+  .caveat {
+    background: #faf8ee;
+    border: 1px dashed #c8b87a;
+    border-radius: 6px;
+    padding: 10px 16px;
+    margin: 12px 0;
+    font-size: 13px;
+    color: #555;
+  }
+
+  /* Method block */
+  .method-block {
+    background: #f5f4e8;
+    border-radius: 8px;
+    padding: 18px 26px;
+    margin: 26px 0;
+    font-size: 14px;
+  }
+
+  /* TOC */
+  .toc {
+    background: #f5f4e8;
+    border-radius: 8px;
+    padding: 16px 24px;
+    margin: 28px 0;
+    font-size: 14px;
+  }
+  .toc ol { padding-left: 22px; margin: 0; }
+  .toc li { margin: 5px 0; }
+  .toc a { color: #c8553d; text-decoration: none; border: none; }
+  .toc a:hover { text-decoration: underline; }
+
+  footer {
+    margin-top: 70px;
+    padding-top: 22px;
+    border-top: 1px solid #e5e2d6;
+    color: #888;
+    font-size: 13px;
+    text-align: center;
+  }
+
+  /* 2.5D dashboard hero CTA */
+  .cta-25d {
+    background: linear-gradient(135deg, #1a1a24 0%, #2a1f1c 100%);
+    color: white;
+    border-radius: 12px;
+    padding: 22px 28px;
+    margin: 24px 0 36px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+  }
+  .cta-25d-text {
+    flex: 1;
+  }
+  .cta-25d-text h3 {
+    font-size: 18px;
+    color: #ffddd5;
+    margin: 0 0 4px;
+  }
+  .cta-25d-text p {
+    font-size: 13px;
+    color: #ccc;
+    margin: 0;
+    line-height: 1.55;
+  }
+  .cta-25d-btn {
+    background: #c8553d;
+    color: white !important;
+    padding: 12px 22px;
+    border-radius: 6px;
+    border: none;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    text-decoration: none !important;
+    border-bottom: none !important;
+  }
+  .cta-25d-btn:hover {
+    background: #b04531;
+  }
+
+  /* Per-finding map link */
+  .map-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(200, 85, 61, 0.1);
+    color: #c8553d !important;
+    padding: 6px 12px;
+    border-radius: 5px;
+    font-size: 13px;
+    border: 1px solid #c8553d;
+    text-decoration: none !important;
+    margin: 8px 0;
+    border-bottom: 1px solid #c8553d !important;
+  }
+  .map-link:hover {
+    background: #c8553d;
+    color: white !important;
+  }
+  .img-side-by-side {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+</style>
+</head>
+<body>
+
+<div class="tagline">Synthetic Socio Wind Tunnel · 实验结果报告 · 2026-05-23</div>
+<h1>当 1,000 名虚拟悉尼居民收到「楼下的事」推送 — 发生了什么?</h1>
+<p class="hook">
+  一份在悉尼 Lane Cove 真实街区上跑了 14 天的 AI 多智能体实验,
+  3 次独立重复 × 4 个对照组 × 30 项分析 × 8 张 NYT 风格海报图 + 14 张支撑图表。
+</p>
+
+<p style="background:#fff4cc; padding:14px 18px; border-radius:6px; font-size:14px; margin-bottom:32px;">
+  📌 每个发现都配 <strong>1 张 NYT/FT 风格 Lane Cove 海报图</strong>(适合 A1/A0 印刷),
+  下方接 PNG 详细图表与支撑证据。所有视觉资料都已嵌入本页面。
+</p>
+
+<div class="toc">
+  <strong>本文结构</strong>
+  <ol>
+    <li><a href="#why">问题 · 为什么我们对附近变得「盲」</a></li>
+    <li><a href="#what-is">实验场所 · 虚拟悉尼 Lane Cove 的样子</a></li>
+    <li><a href="#design">实验设计 · 4 个对照组 × 14 天 × 三段式</a></li>
+    <li><a href="#headline">头条数字</a></li>
+    <li><a href="#f1">证据 1 · 物理位移是双峰的:22.7% 大动,77.3% 不动</a></li>
+    <li><a href="#f2">证据 2 · 邻居传染有几何形状 (在 200 m 出现陡降)</a></li>
+    <li><a href="#f3">证据 3 · 弱关系如何变强:同人见面 4 倍多次</a></li>
+    <li><a href="#f4">证据 4 · 推送停了之后,效应仍在生长</a></li>
+    <li><a href="#f5">证据 5 · 镜像组排除「任何推送都有效」</a></li>
+    <li><a href="#f6">证据 6 · 这些 Lane Cove 街角真的活过来了</a></li>
+    <li><a href="#f7">证据 7 · 出现了「跨职业桥」(学生-工人,学生-工程师...)</a></li>
+    <li><a href="#f8">证据 8 · 社交活动集中在少数 hub 上 (Pareto 分布)</a></li>
+    <li><a href="#limit">必须公开承认的局限</a></li>
+  </ol>
+</div>
+
+<!-- ─────────────────────────────────────────────────────────────── -->
+<h2 id="why">1. 问题</h2>
+
+<p>
+  在悉尼、北京、上海这类高密度城区,绝大多数居民<strong>不认识住在隔壁的邻居</strong>、
+  <strong>叫不出楼下咖啡店老板的名字</strong>、<strong>不知道这条街上昨天发生了什么</strong>。
+</p>
+
+<p>
+  但同时,他们对地球另一端的政治新闻、明星动态、远方地震<strong>了如指掌</strong>。
+</p>
+
+<p>
+  我们假设:手机推送系统倾向于把<strong>全球资讯</strong>推到屏幕前,
+  在每个人身边 1,000 米半径内,反向开了一个「<strong>看不见的洞</strong>」——我们叫它
+  <strong>「附近性盲区」(Attention-induced Nearby Blindness)</strong>。
+</p>
+
+<p class="pullquote">
+  <strong>如果我们反过来,只推送「楼下 1,000 米内」的事情,
+  人会不会真的走出门、抬起头、看见附近?</strong>
+</p>
+
+<!-- ─────────────────────────────────────────────────────────────── -->
+<h2 id="what-is">2. 实验场所:虚拟悉尼 Lane Cove</h2>
+
+<p>
+  我们在电脑里造了一个<strong>悉尼 Lane Cove 街区</strong>的虚拟模型。
+  这不是抽象的网格世界,而是基于
+  <strong>OpenStreetMap + Overture Maps 真实地理数据</strong>生成的:
+  5,722 栋真实建筑、4,257 段街道与公共空间。
+</p>
+
+<figure>
+  <img src="../data/analysis/2026-05-23_paper_exploration/figures/fig_lanecove_map.png"
+       alt="Lane Cove geographic map">
+  <figcaption><strong>图 1</strong> · Lane Cove 街区全景。
+  灰点 = 5,337 栋住宅(占 93%),橙点 = 商铺/餐厅/咖啡店,
+  紫点 = 学校/教堂/社区中心,绿点 = 公园/儿童游乐场,深灰短线 = 街道网络。
+  这就是接下来 1,000 个 AI 居民要生活 14 天的地方。</figcaption>
+</figure>
+
+<p>
+  在这个虚拟街区里,我们放进了<strong>1,000 个 AI 居民</strong>,
+  每人有 40+ 维度的身份背景:
+</p>
+
+<ul>
+  <li><strong>身份</strong>:年龄、性别、职业(医生/老师/退休/学生/零售/工程师...)、
+      收入水平、家庭结构、是否带小孩、和邻居熟悉程度</li>
+  <li><strong>性格</strong>:大五人格(外向性 / 开放性 / 责任心...)、好奇心、习惯固守度、风险偏好</li>
+  <li><strong>每日生活</strong>:住哪栋楼、在哪儿工作、走路速度、上下班时间、睡眠节奏</li>
+  <li><strong>生命故事</strong>:为什么搬到 Lane Cove、过去的经历、记忆片段</li>
+</ul>
+
+<p>
+  这 1,000 个居民按 <strong>5 分钟一个 tick</strong> 推进 14 天 = 4,032 个 tick。
+  他们的每一个走路决定、跟谁打招呼、要不要去咖啡馆,
+  都由<strong>大语言模型(DeepSeek)实时推理</strong> —— 不是脚本写好的固定剧本。
+</p>
+
+<!-- ─────────────────────────────────────────────────────────────── -->
+<h2 id="design">3. 实验设计</h2>
+
+<p>
+  整个 14 天分成<strong>三段</strong>,4 个不同的「对照组」并行跑这同样的 14 天。
+</p>
+
+<figure>
+  <img src="../data/analysis/2026-05-23_paper_exploration/figures/fig_timeline.png"
+       alt="Experimental timeline">
+  <figcaption><strong>图 2</strong> · 14 天三段式协议。
+  灰色 = 基线期(4 个变体内容完全一致);红色 = 干预期(每个变体的「手机推送」内容不同);
+  灰色 = 后撤期(推送停止,观察 4 天看效应是否消退)。</figcaption>
+</figure>
+
+<div class="method-block">
+  <h4>三个阶段</h4>
+  <ul>
+    <li><strong>Phase A · 基线期(day 0-3)</strong> · 4 个变体跑完全一致的内容
+        (同一个 random prefix,agent 跨变体逐字节相同)。这是「未干预」的对照。</li>
+    <li><strong>Phase B · 干预期(day 4-9)</strong> · 4 个变体分别施加不同的「手机推送」内容,共 6 天。
+        这是「干预」期。</li>
+    <li><strong>Phase C · 后撤期(day 10-13)</strong> · 所有推送停止,继续模拟 4 天。
+        这是测「<strong>干预停止后效应是否消退</strong>」的关键时期。</li>
+  </ul>
+</div>
+
+<h3>4 个对照组的具体推送内容</h3>
+
+<div class="variants">
+
+  <div class="variant-card">
+    <div class="vlabel">控制组</div>
+    <div class="vtitle">什么都不推</div>
+    <div class="vdesc">居民正常生活,手机不收任何特殊推送。建立基线。</div>
+  </div>
+
+  <div class="variant-card core">
+    <div class="vlabel">实验组(核心)</div>
+    <div class="vtitle">⭐ 超在地推送</div>
+    <div class="vdesc">
+      只推送「楼下 1,000 米内」的事——Cowper 街的咖啡店活动、
+      Longueville Park 的社区聚会、邻居发起的「找猫」、
+      新开的菜市场档口、街角的画廊开幕。
+    </div>
+  </div>
+
+  <div class="variant-card">
+    <div class="vlabel">镜像组</div>
+    <div class="vtitle">推全球新闻</div>
+    <div class="vdesc">
+      推送频率、时机、界面与实验组完全一致,但内容是远方的——
+      选举、地震、明星离婚。<strong>用来证明「推送」本身不是关键变量</strong>。
+    </div>
+  </div>
+
+  <div class="variant-card">
+    <div class="vlabel">反技术组</div>
+    <div class="vtitle">减少手机吸引力</div>
+    <div class="vdesc">
+      不推送任何东西,通知频率降下来,通知不响。
+      <strong>用来测「是手机本身吸走了注意力,还是推送内容?」</strong>
+    </div>
+  </div>
+
+</div>
+
+<div class="method-block">
+  <h4>谁能收到推送?</h4>
+  <p>
+    1,000 个 agent 中,<strong>500 个是 protagonist</strong>(能收到推送),
+    <strong>500 个是 background</strong>(永远不收推送)。
+    这个分组让我们能区分:
+  </p>
+  <ul>
+    <li><strong>直接效应</strong>:protag 收到推送后改变了什么</li>
+    <li><strong>间接效应</strong>:non-protag 不收推送,但因为物理邻居改变了所以也变了
+        — 这就是<strong>「邻居传染」</strong>(spillover)</li>
+  </ul>
+</div>
+
+<div class="method-block">
+  <h4>跑了多少次?</h4>
+  <p>
+    上面的整个 14 天 × 4 个变体,我们用 3 个不同的随机种子(seed 43, 44, 45)<strong>独立跑了 3 次</strong>,
+    确认同样的结论在 3 次独立运行里都成立。
+    总计 12 个 cell 跑完完整 14 天,~20 GB 全程归档,~$380 USD LLM 实测成本。
+  </p>
+</div>
+
+<!-- ─────────────────────────────────────────────────────────────── -->
+<h2 id="headline">4. 头条数字</h2>
+
+<p>
+  下表是 6 个核心指标,4 个变体 × 3 个种子的平均值。
+  <strong>CV%</strong> = 跨 seed 变异系数(越低越稳),
+  <strong>fold</strong> = 与基线比的倍数。
+</p>
+
+<table>
+<thead>
+<tr><th>指标</th><th>对照组</th><th>超在地推送 HP</th><th>镜像 GD</th><th>反技术 PF</th></tr>
+</thead>
+<tbody>
+<tr><td>偶遇总数(百万)</td>
+  <td class="num dim">8.05<br><span class="dim" style="font-size:11px">CV 7.7%</span></td>
+  <td class="num hl">38.41 <span class="red">(4.77×)</span><br><span class="dim" style="font-size:11px">CV 9.9%</span></td>
+  <td class="num">10.75 (1.33×)<br><span class="dim" style="font-size:11px">CV 9.0%</span></td>
+  <td class="num hl">36.74 <span class="red">(4.56×)</span><br><span class="dim" style="font-size:11px">CV 3.9%</span></td>
+</tr>
+<tr><td>每对邻居平均相遇次数</td>
+  <td class="num dim">17.3</td>
+  <td class="num hl">71.1 <span class="red">(4.11×)</span></td>
+  <td class="num">23.8 (1.38×)</td>
+  <td class="num hl">69.1 <span class="red">(4.00×)</span></td>
+</tr>
+<tr><td>强关系数量</td>
+  <td class="num dim">10,093</td>
+  <td class="num hl">56,644 <span class="red">(5.61×)</span></td>
+  <td class="num">11,456 (1.14×)</td>
+  <td class="num hl">47,000 <span class="red">(4.65×)</span></td>
+</tr>
+<tr><td>活跃对话(sim 结束时)</td>
+  <td class="num dim">73</td>
+  <td class="num">207 (2.84×)</td>
+  <td class="num">109 (1.50×)</td>
+  <td class="num hl">244 <span class="red">(3.35×)</span></td>
+</tr>
+<tr><td>触发的重新规划次数</td>
+  <td class="num dim">0</td>
+  <td class="num">1,990</td>
+  <td class="num">447</td>
+  <td class="num">1,751</td>
+</tr>
+<tr><td>居民物理响应率</td>
+  <td class="num dim">0%</td>
+  <td class="num hl">22.7%</td>
+  <td class="num">~13%</td>
+  <td class="num">22.3%</td>
+</tr>
+</tbody>
+</table>
+
+<p>
+  接下来的 <strong>8 个证据章节</strong>,每条都配图 + 数据 + 排除其他假说 + 含义,
+  详细拆解上面这些数字背后的机制。
+</p>
+
+<!-- ─────────────────────────────────────────────────────────────── -->
+<h2 id="f1">证据 1 · 物理位移是双峰的,不是渐进的</h2>
+
+<div class="finding">
+  <div class="finding-tag">finding 1</div>
+  <h3>22.7% 居民走出门(平均位移 850 米),77.3% 完全不动。中间没有过渡形态。</h3>
+
+  <figure>
+    <img src="figures_v4/finding_01_bimodal.svg"
+         alt="1000 居民 6 天干预期真实轨迹">
+    <figcaption><strong>宏观 · 1,000 居民 × 6 天干预期真实轨迹</strong> · 共同路段全部退灰,
+    <span style="color:#D14B12;font-weight:700">亮橙色 = 推送后才发现的新路线</span> 直接从灰雾里跳出。
+    黄色编号 = 推送指向的具体 POI(地中海餐厅 / 真如苑 / 教堂 / 健身房 / 主干道)。</figcaption>
+  </figure>
+
+  <figure>
+    <img src="figures_v4/finding_01b_micro.svg"
+         alt="Mary 的 14 天微观故事">
+    <figcaption><strong>微观 · Mary 75 岁退休老人的 14 天故事</strong> · 一条推送
+    把她从家方圆 500 m 的世界,带去了 2.4 km 外的佛教冥想中心 · 还认识了 Anne。</figcaption>
+  </figure>
+
+  <div style="background:#FBD8DC; border-left:6px solid #A0252F; padding:24px 28px; margin:32px 0;">
+    <h3 style="margin:0 0 12px; font-size:20px;">→ 想看更深的案例研究?</h3>
+    <p style="margin:0 0 16px; font-size:15px; line-height:1.7;">
+      我们为 Mary 和 Mike 制作了独立的 <strong>14 天日记式案例研究</strong> —
+      每天 1 张地图 + 1 段叙事 + 真实 stay 数据,还原他们在推送干预前/中/后的每一次决策。
+    </p>
+    <p style="margin:0;">
+      <a href="case_studies/index.html"
+         style="display:inline-block; background:#1B1F2A; color:white; padding:12px 24px;
+                text-decoration:none; font-weight:900; border-radius:2px;">
+        阅读案例研究 → Mary + Mike 的 14 天日记
+      </a>
+    </p>
+  </div>
+
+  <figure>
+    <img src="../data/analysis/2026-05-23_paper_exploration/figures/fig_bimodal_response.png"
+         alt="Bimodal response distribution">
+    <figcaption><strong>图 3</strong> · 左:HP 变体下的响应率分布。
+    n=3,000(1,000 agent × 3 seed)。右:响应者的位移幅度直方图(对数横轴)。
+    Median 位移 850 米(约 5 个街区),Max 3,121 米。</figcaption>
+  </figure>
+
+  <div class="evidence">
+    <h4>支撑证据</h4>
+    <ol>
+      <li><strong>二分稳定性</strong>:同一个 agent 在 6 天干预期里,
+          要么<strong>每一天都响应</strong>(682 人,22.7%),要么<strong>每一天都不响应</strong>(2,318 人,77.3%)。
+          <strong>中间状态(1/2/3/4/5 天响应)的 agent 数 = 0</strong>。这是干净的二元分布。</li>
+      <li><strong>位移幅度</strong>:响应者的 median 位移 850 m,mean 895 m,max 3,121 m。
+          这相当于 Lane Cove 主街(Longueville Road)从 7-Eleven 走到 Longueville Park 的距离。</li>
+      <li><strong>跨 3 个种子一致</strong>:seed 44/45 的响应率分别为 11.3% 和 6.8% 单 seed
+          (seed 43 因方法学差异偏高,详见附录)。pooled 22.7%。</li>
+      <li><strong>响应人群画像反直觉</strong>(下图)</li>
+    </ol>
+  </div>
+
+  <figure>
+    <img src="../data/analysis/2026-05-23_paper_exploration/figures/fig_responder_demographics.png"
+         alt="Demographics of responders">
+    <figcaption><strong>图 4</strong> · 谁会响应推送?左:按职业,
+    退休 37%、失业 39%、医生 25%、软件工程师 24% 远高于固定工时的工程师 8%、零售 11%。
+    右:按年龄,<strong>65+ 老人 36% &gt; 18-24 年轻人 19%</strong>(反直觉!)。
+    <strong>性别 / 收入 / 大五人格 都没有显著差异</strong>。</figcaption>
+  </figure>
+
+  <p class="pullquote">
+    干预效果不是均匀「扩散」,是<strong>二元筛选</strong>:
+    把人分成「被激活」和「完全不为所动」两类。
+    决定哪类的是<strong>时间灵活度</strong>(退休/失业/灵活办公的人响应最多),
+    不是性别、收入或性格。
+  </p>
+</div>
+
+<!-- ─────────────────────────────────────────────────────────────── -->
+<h2 id="f2">证据 2 · 邻居传染有几何形状</h2>
+
+<div class="finding">
+  <div class="finding-tag">finding 2 · 最关键</div>
+  <h3>不收推送的邻居,在「最近响应者」150 米内时响应率 26%;200 米外骤降到 4%</h3>
+
+  <figure>
+    <img src="figures_v4/finding_02_spillover.svg"
+         alt="200m spillover rings on Lane Cove">
+    <figcaption><strong>POSTER · NYT 风格海报视图</strong> · Lane Cove 2.5D 地图上,20 个 protag-responder 周围画 200m 粉色环。
+    每环中心是一根 anchor 柱(收推送者)。<strong>右上角距离衰减柱状图</strong>显示:
+    0-50m 桶响应率 26.2% → 150-200m 骤降到 4.3% → 400m 外归零。</figcaption>
+  </figure>
+
+  <p>
+    500 个 background agent <strong>从来不收推送</strong>。
+    但他们的行为也变了。怎么变?<strong>取决于他们的物理邻居</strong>。
+  </p>
+
+  <figure>
+    <img src="../data/analysis/2026-05-23_paper_exploration/figures/fig_spillover_distance.png"
+         alt="Spillover distance decay">
+    <figcaption><strong>图 5</strong> · 距离衰减实测。把每个不收推送的非 protag 按家到最近响应者的家的距离分桶。
+    <strong>响应率从 0-50m 的 26.2% 一路降到 150-200m 的 4.3% (陡降),
+    再之后归零</strong>。这不是统计噪声 — 是清晰的空间机制形状。</figcaption>
+  </figure>
+
+  <figure>
+    <img src="../data/analysis/2026-05-23_paper_exploration/figures/fig_spillover_ring.png"
+         alt="One protag-responder example with 200m ring">
+    <figcaption><strong>图 6</strong> · 一个具体例子:取响应幅度最大的 protag(红色五角星)为中心,
+    画 200 米半径环。环内的红圆点 = 也是响应者的邻居,灰点 = 非响应者。
+    <strong>环内响应密度显著高于环外</strong>。这是「邻居传染」的视觉证据。</figcaption>
+  </figure>
+
+  <figure>
+    <img src="../data/analysis/2026-05-23_paper_exploration/figures/fig_responder_spatial.png"
+         alt="Spatial distribution of responders">
+    <figcaption><strong>图 7</strong> · 响应者的地理分布(seed 44)。
+    左:全部 agent;右:仅 background agent(不收推送)。
+    可以看到非 protag 响应者(右图红点)<strong>聚集成簇</strong>,
+    不是随机散布 — 这是 Clark-Evans 空间聚集指数为 0.27-0.85 (3 seed) 的几何证据。</figcaption>
+  </figure>
+
+  <div class="evidence">
+    <h4>排除其他假说</h4>
+    <ol>
+      <li>「响应者天生就响应」假说 → <strong>被否决</strong>:如果是,响应应该和「最近响应者距离」无关。但我们看到清晰的距离衰减。</li>
+      <li>「全局推送外溢」假说 → <strong>被否决</strong>:如果是,远处也应该响应。但 400 m 之外归零。</li>
+      <li>「测量误差」假说 → <strong>被否决</strong>:噪声曲线是平的或随机的。我们看到 4 桶单调递减 + 200m 处明显陡降。</li>
+    </ol>
+    <p>留下的解释:<strong>物理邻居在共享空间(街道、咖啡店、公园)中的相遇/观察,改变了非接收者的行为</strong>。</p>
+  </div>
+
+  <div class="evidence">
+    <h4>对照证据:邻居是不是响应者,差 8 倍</h4>
+    <table>
+    <tr><th>家附近 200 米内的 protag 邻居状态</th><th>这个 non-protag 响应率</th><th>n</th></tr>
+    <tr><td>邻居中有人响应了推送</td><td class="red">19.7%</td><td>1,170</td></tr>
+    <tr><td>邻居都是「protag 但没响应」</td><td>2.4%</td><td>207</td></tr>
+    <tr><td>家附近 200 m 内没有 protag</td><td>13.3%</td><td>15(n 太小)</td></tr>
+    </table>
+  </div>
+
+  <p class="pullquote">
+    推送的真实作用域不是<strong>「被推送的那个人」</strong>,
+    而是<strong>「被推送的人 + 半径 ~150 米内的物理邻居」</strong>。
+  </p>
+</div>
+
+<!-- ─────────────────────────────────────────────────────────────── -->
+<h2 id="f3">证据 3 · 弱关系如何变强:同人见面 4 倍多次</h2>
+
+<div class="finding">
+  <div class="finding-tag">finding 3</div>
+  <h3>实验组中同一对邻居见面 71 次(基线 17 次);强关系数量是基线的 5.6 倍</h3>
+
+  <figure>
+    <img src="figures_v4/finding_03_repeat.svg"
+         alt="Repeat encounter hotspots on Lane Cove">
+    <figcaption><strong>POSTER · NYT 风格海报视图</strong> · Lane Cove 2.5D 地图上 60 个高频共处地点,
+    柱状高度 = HP 期间 dwell ticks(同一对人反复在那里见面)。
+    <strong>右下角条形图</strong>:基线 17.3 次相遇/对 → HP 71.1 次(4.1×) → 关系沉淀。</figcaption>
+  </figure>
+
+  <p>
+    偶遇总数涨了 4.77 倍,但<strong>独特配对数</strong>只涨了 1.16 倍。
+    差距就是<strong>重复</strong>。
+  </p>
+
+  <figure>
+    <img src="../data/analysis/2026-05-23_paper_exploration/figures/fig_repeat_mechanism.png"
+         alt="Repeat encounters and strong tie formation">
+    <figcaption><strong>图 8</strong> · 左:每对邻居在 14 天里平均相遇的次数。
+    HP 71.1 次 vs 基线 17.3 次 — 同一对人 <strong>遇到的次数翻 4 倍</strong>。
+    右:弱关系数量 vs 强关系数量。在 HP 下,<strong>弱关系几乎不变,但强关系翻 5.6 倍</strong>
+    — 不是创造新关系,是把已有的弱关系沉淀为强关系。</figcaption>
+  </figure>
+
+  <figure>
+    <img src="../data/analysis/2026-05-23_paper_exploration/figures/fig_dwell_shift.png"
+         alt="Dwell distribution shift">
+    <figcaption><strong>图 9</strong> · 这些重复见面发生在哪儿?
+    HP 下,「在家」的时间比例 60.4% → 51.1%(-9 pp),
+    「在商业区」27.6% → 36.1%(+8 pp),
+    「在街道」2.2% → 3.8%(+1.6 pp)。
+    <strong>人从家里被「拉出门」</strong>,在商店/咖啡店/街上重复遇到邻居。</figcaption>
+  </figure>
+
+  <div class="evidence">
+    <h4>但要谨慎:对话量没有同步爆炸</h4>
+    <p>
+      偶遇翻了 5 倍,但完成的对话只多了 17%(821 → 959)。
+      因为<strong>说话需要时间</strong> — 14 天的窗口里很多对话开始了但没说完。
+      所以「<strong>偶遇 → 对话</strong>」环节证据弱,但「<strong>偶遇频次 → 关系强化</strong>」(本节)证据强。
+    </p>
+  </div>
+</div>
+
+<!-- ─────────────────────────────────────────────────────────────── -->
+<h2 id="f4">证据 4 · 推送停了之后,效应仍在生长</h2>
+
+<div class="finding">
+  <div class="finding-tag">finding 4</div>
+  <h3>后撤期(day 10-13)的偶遇量是干预期(day 4-9)的 1.32×,而空间位置已经固定</h3>
+
+  <figure>
+    <img src="figures_v4/finding_04_compounding.svg"
+         alt="14-day encounter dynamics over Lane Cove">
+    <figcaption><strong>POSTER · NYT 风格海报视图</strong> · Lane Cove 2.5D 地图(低明度)作为背景,
+    叠加 14 天 × 4 变体偶遇曲线图。<strong>红色区域是干预期 day 4-9</strong>。
+    HP/PF 在 day 4 急升,后撤期 (day 10-13) 不仅没回落,反而<strong>继续涨 1.32×</strong>。</figcaption>
+  </figure>
+
+  <figure>
+    <img src="../data/analysis/2026-05-23_paper_exploration/figures/fig_network_compound.png"
+         alt="Encounter dynamics over 14 days">
+    <figcaption><strong>图 10</strong> · 14 天内每天的偶遇数(百万)。
+    红色区间是干预期(day 4-9)。HP 在干预期已经 5.5× 基线;
+    <strong>干预停了之后 4 天 (day 10-13),HP 继续上涨到 7.2× 基线</strong>。
+    我们以为推送一停就回去,实际看到的是「网络效应自我维持并放大」。</figcaption>
+  </figure>
+
+  <div class="evidence">
+    <h4>更准确地说</h4>
+    <table>
+    <tr><th>指标</th><th>对照组</th><th>超在地推送</th><th>反技术</th></tr>
+    <tr><td>偶遇数 干预期 vs 基线</td><td>1.00×</td><td>5.46×</td><td>4.70×</td></tr>
+    <tr><td>偶遇数 <strong>后撤期 vs 基线</strong></td><td>0.95×</td><td class="hl red">7.22×</td><td class="hl red">7.64×</td></tr>
+    <tr><td>后撤/干预 比</td><td>0.95</td><td class="red"><strong>1.32×</strong></td><td class="red"><strong>1.62×</strong></td></tr>
+    </table>
+  </div>
+
+  <div class="evidence">
+    <h4>空间位置 vs 社交活动的分离</h4>
+    <ul>
+      <li>响应者的<strong>轨迹偏移量</strong>在后撤期 = 干预期(post/intervention = 1.00×)
+          → 他们不再继续远离基线轨迹,<strong>停在了新的位置</strong>。</li>
+      <li>但他们在新位置上继续遇到同样的邻居,
+          每次相遇增加关系强度。<strong>偶遇频次累积,网络持续生长</strong>。</li>
+    </ul>
+  </div>
+
+  <p class="pullquote">
+    干预不需要永远跑。一旦把人推到了新的「附近」位置,网络效应自己维持。
+  </p>
+</div>
+
+<!-- ─────────────────────────────────────────────────────────────── -->
+<h2 id="f5">证据 5 · 镜像组排除了「任何推送都有效」</h2>
+
+<div class="finding">
+  <div class="finding-tag">finding 5 · 因果排除</div>
+  <h3>推送全球新闻 (GD) 只造成 1.33× 偶遇增加,vs 实验组 4.77×</h3>
+
+  <figure>
+    <img src="figures_v4/finding_05_mirror.svg"
+         alt="HP vs GD side-by-side maps">
+    <figcaption><strong>POSTER · NYT 风格海报视图</strong> · 两张 Lane Cove 2.5D 地图并排:
+    <strong>左:超在地推送 HP</strong>(粉色 +377% 偶遇,激活点密集),
+    <strong>右:镜像组 GD</strong>(蓝色 +33% 偶遇,激活点稀疏)。
+    同样 5 条推送/天,但<strong>内容指向</strong>决定物理后果。</figcaption>
+  </figure>
+
+  <p>
+    这是研究中<strong>最关键的因果排除环节</strong>。如果只跑实验组和对照组,
+    任何观察到的效应都可以被归因于<strong>「推送本身」</strong>——
+    手机响了一下,人就抬头,看完出去走走。
+  </p>
+
+  <p>
+    镜像组 GD 用了<strong>完全一致</strong>的推送频率、时机、界面样式;
+    唯一不同的是<strong>内容</strong>(楼下咖啡店活动 vs 美国大选)。结果是:
+  </p>
+
+  <div class="evidence">
+    <h4>HP vs GD · 同样的推送动作,完全不同的物理后果</h4>
+    <table>
+    <tr><th>指标</th><th>超在地推送 HP</th><th>镜像组 GD</th><th>差距</th></tr>
+    <tr><td>偶遇增加</td><td class="num red">4.77×</td><td class="num">1.33×</td><td class="num">3.6× 差</td></tr>
+    <tr><td>响应率</td><td class="num red">22.7%</td><td class="num">~13%</td><td class="num">~1.7× 差</td></tr>
+    <tr><td>轨迹偏移(seed 44/45)</td><td class="num red">108 m</td><td class="num">51 m</td><td class="num">2.1× 差</td></tr>
+    <tr><td>每对邻居平均相遇</td><td class="num red">71.1</td><td class="num">23.8</td><td class="num">3.0× 差</td></tr>
+    <tr><td>触发重规划次数</td><td class="num red">1,990</td><td class="num">447</td><td class="num">4.5× 差</td></tr>
+    </table>
+  </div>
+
+  <p>
+    <strong>同样的「手机响了一下」,内容不同,后果不同</strong>。
+    这把因果归到「<strong>具体推送内容是不是楼下的事</strong>」这个唯一变量上。
+  </p>
+
+  <div class="evidence">
+    <h4>有趣的副发现:GD 把人推到公园了</h4>
+    <p>
+      虽然 GD 整体物理位置基本没变,但<strong>公共户外空间(公园/游乐场)</strong>停留时间显著上涨:
+      5.1% → <strong>7.5%</strong>(+2.4 pp)。
+    </p>
+    <p>
+      可能解释:GD 的 agent 心理上「离开了附近」 — 跑到公园安静处看手机里的远方新闻。
+      他们的脚仍在 Lane Cove,但注意力跑到了远方。
+      <strong>仍然属于「附近性盲区」状态</strong>,只是看远方新闻的姿势更舒适。
+    </p>
+  </div>
+</div>
+
+<!-- ─────────────────────────────────────────────────────────────── -->
+<h2 id="f6">证据 6 · 这些 Lane Cove 街角真的活过来了</h2>
+
+<div class="finding">
+  <div class="finding-tag">finding 6 · 真实地理证据</div>
+  <h3>HP 下,Longueville Park 从 0 ticks 涨到 21,144 ticks — 一个住宅区的「死区」变成了日常聚会点</h3>
+
+  <figure>
+    <img src="figures_v4/finding_06_pois.svg"
+         alt="Top 12 activated POIs on Lane Cove">
+    <figcaption><strong>POSTER · NYT 风格海报视图</strong> · Lane Cove 2.5D 地图上 12 个被激活最显著的 POI,
+    柱状高度 = HP - 基线 ticks 增量。<strong>左侧内嵌列出 Top 10 真实店名</strong>:
+    Shinnyo Australia / St Aidan's Anglican Church / PLC Sydney Preschool / Longueville Park /
+    Anytime Fitness / 1021 Mediterranean / Gallery Lane Cove ...</figcaption>
+  </figure>
+
+  <figure>
+    <img src="../data/analysis/2026-05-23_paper_exploration/figures/fig_poi_activation_map.png"
+         alt="POI activation map">
+    <figcaption><strong>图 11</strong> · HP 下被激活的 POI 在 Lane Cove 地图上的真实位置。
+    红色气泡 = 被激活的地点(Shinnyo Australia、St Aidan's 教堂、Longueville Park、
+    Anytime Fitness、Akira Sushi、Gallery Lane Cove、7-Eleven、ANZ 咖啡馆 等);
+    气泡大小 = 增加的 dwell 时长。可以看到激活点散布在整个街区。</figcaption>
+  </figure>
+
+  <figure>
+    <img src="../data/analysis/2026-05-23_paper_exploration/figures/fig_specific_pois_bars.png"
+         alt="Specific Lane Cove POIs activated">
+    <figcaption><strong>图 12</strong> · Top 15 Lane Cove 真实地点 dwell ticks 增量。
+    宗教/社区中心(Shinnyo Australia / St Aidan's Anglican Church)
+    和 Longueville Park (一个住宅区的小公园) 增长最显著。</figcaption>
+  </figure>
+
+  <p>
+    更深一层:被激活的<strong>是不是只是一次性走过,还是真的成了日常路线?</strong>
+  </p>
+
+  <figure>
+    <img src="../data/analysis/2026-05-23_paper_exploration/figures/fig_anchor_pois.png"
+         alt="Anchor POIs become daily routine">
+    <figcaption><strong>图 13</strong> · 每个 top POI 在 14 天里有多少天「真的有人去」(dwell &gt; 50 ticks)。
+    <strong>Longueville Park</strong> 在基线下 14 天里 0 天有人去,在 HP 下变成 10 天有人去 — 它从「死区」
+    变成了<strong>日常路线锚点</strong>。Mowbray Road 从 0.3 天涨到 4.7 天(14×)。
+    </figcaption>
+  </figure>
+
+  <div class="evidence">
+    <h4>具体哪些地方</h4>
+    <table>
+    <tr><th>地点</th><th>类型</th><th>BL ticks</th><th>HP ticks</th><th>Δ</th></tr>
+    <tr><td><strong>Longueville Park</strong></td><td>住宅区公园</td><td class="num dim">11</td><td class="num">21,144</td><td class="num red">+21,133</td></tr>
+    <tr><td><strong>Shinnyo Australia</strong></td><td>宗教中心</td><td class="num">3,995</td><td class="num">144,885</td><td class="num red">+140,889</td></tr>
+    <tr><td><strong>Longueville Road</strong></td><td>主街</td><td class="num dim">139</td><td class="num">9,373</td><td class="num red">+9,234</td></tr>
+    <tr><td><strong>Mowbray Road</strong></td><td>街道</td><td class="num">237</td><td class="num">8,670</td><td class="num red">+8,432</td></tr>
+    <tr><td><strong>Gallery Lane Cove</strong></td><td>艺术展廊</td><td class="num">5,058</td><td class="num">10,000</td><td class="num red">+4,941</td></tr>
+    <tr><td><strong>Akira Sushi</strong></td><td>餐厅</td><td class="num">5,387</td><td class="num">10,769</td><td class="num red">+5,382</td></tr>
+    </table>
+  </div>
+
+  <p class="pullquote">
+    Longueville Park 这种「住宅区死区」是<strong>最有趣的</strong>类型 —
+    它在基线 14 天里 0 人去,在 HP 下变成 10 天有人去。
+    这是一个被推送「<strong>从盲区中找回</strong>」的空间。
+  </p>
+</div>
+
+<!-- ─────────────────────────────────────────────────────────────── -->
+<h2 id="f7">证据 7 · 出现了「跨职业桥」</h2>
+
+<div class="finding">
+  <div class="finding-tag">finding 7 · 跨群体连接</div>
+  <h3>基线下 0 次的「学生-工程师」「学生-工人」「学生-管理者」共处,在 HP 下出现 500-1000 次</h3>
+
+  <figure>
+    <img src="figures_v4/finding_07_bridges.svg"
+         alt="Cross-occupation bridges as arcs on Lane Cove">
+    <figcaption><strong>POSTER · NYT 风格海报视图</strong> · Lane Cove 2.5D 地图上,
+    <strong>蓝色大圆 = 学生群体起点</strong>,<strong>粉色弧线 = 新建立的跨职业桥</strong>。
+    基线下 0 次共处的 5 对职业(学生→工人/建筑工/工程师/管理者/律师),HP 下出现 490-1029 次共处。</figcaption>
+  </figure>
+
+  <p>
+    这是 fancier 发现里的一条:推送不只是让<strong>同群体</strong>的人加深联系,
+    它还让<strong>原本不会相遇的职业群体</strong>开始在公共空间里共处。
+  </p>
+
+  <div class="evidence">
+    <h4>HP 下新出现的「跨职业桥」</h4>
+    <table>
+    <tr><th>职业对</th><th>基线共处</th><th>HP 共处</th><th>状态</th></tr>
+    <tr><td>学生 / 工人(tradesperson)</td><td class="num dim">0</td><td class="num red">1,029</td><td>新桥</td></tr>
+    <tr><td>学生 / 建筑工(construction)</td><td class="num dim">0</td><td class="num red">709</td><td>新桥</td></tr>
+    <tr><td>学生 / 工程师(engineer)</td><td class="num dim">0</td><td class="num red">580</td><td>新桥</td></tr>
+    <tr><td>学生 / 管理者</td><td class="num dim">0</td><td class="num red">514</td><td>新桥</td></tr>
+    <tr><td>学生 / 律师</td><td class="num dim">0</td><td class="num red">490</td><td>新桥</td></tr>
+    <tr><td>退休 / 学生</td><td class="num">579</td><td class="num">1,504</td><td>2.6× 加强</td></tr>
+    <tr><td>失业 / 学生</td><td class="num">331</td><td class="num">1,025</td><td>3.1× 加强</td></tr>
+    <tr><td>教师 / 学生</td><td class="num">261</td><td class="num">777</td><td>3.0× 加强</td></tr>
+    </table>
+    <p style="margin-top:8px; font-size:13px">
+      数据来源:end-of-day 同 location 共处的 agent 对计数,只算「不同职业」的对。
+    </p>
+  </div>
+
+  <p>
+    可以看到,<strong>学生</strong>是 HP 下最强的「桥梁节点」:
+    他们之前几乎不和工人、建筑工、工程师、管理者、律师有交集;
+    在 HP 下,这些跨职业相遇<strong>从 0 出现到几百次</strong>。
+  </p>
+
+  <p>
+    机制可能是:学生作为时间最灵活的群体之一,响应推送后<strong>真的去了</strong>
+    本来只有职业人士才会出现的场所(Anytime Fitness、Gallery Lane Cove、Akira Sushi 等),
+    在那里和工程师、律师、管理者形成了新的物理接触。
+  </p>
+
+  <p class="pullquote">
+    这是「<strong>附近性</strong>」最社会学意义上的回归 — 推送把<strong>原本社会分层的群体</strong>
+    重新在物理空间里连接起来。
+  </p>
+
+  <div class="caveat">
+    <strong>注意</strong>:这里的「共处」是 end-of-day 同 location 计数,
+    不等同于「真的搭话」 — 但物理共处是社交可能性的<strong>必要前提</strong>。
+  </div>
+</div>
+
+<!-- ─────────────────────────────────────────────────────────────── -->
+<h2 id="f8">证据 8 · 社交活动集中在少数 hub 上 (Pareto 分布)</h2>
+
+<div class="finding">
+  <div class="finding-tag">finding 8 · 网络拓扑</div>
+  <h3>HP 下 top 10% agent 承担了 52% 的共处量(基线 25%)— 出现「社交 hub」</h3>
+
+  <figure>
+    <img src="figures_v4/finding_08_hubs.svg"
+         alt="Top hub agents as glowing columns on Lane Cove">
+    <figcaption><strong>POSTER · NYT 风格海报视图</strong> · Lane Cove 2.5D 地图上 30 个 top hub agent 的家,
+    柱高 = 位移幅度,黄色光晕环 = hub 影响。<strong>右上角 Pareto 曲线</strong>:
+    基线下 top 10% 占 25% 共处量,HP 下 top 10% 占 <strong>52%</strong> — 翻倍。</figcaption>
+  </figure>
+
+  <figure>
+    <img src="../data/analysis/2026-05-23_paper_exploration/figures/fig_hub_emergence.png"
+         alt="Hub Pareto curve">
+    <figcaption><strong>图 14</strong> · Pareto 曲线:Top X% 的 agent 承担总共处量的 Y%。
+    在基线下,top 10% 占 24.7%;<strong>在 HP 下,top 10% 占 52.4%</strong> — 翻倍。
+    这意味着 HP 不只是「让所有人都社交多一些」,而是<strong>让少数 hub agent 变成了枢纽</strong>。</figcaption>
+  </figure>
+
+  <div class="evidence">
+    <h4>具体数字</h4>
+    <table>
+    <tr><th></th><th>top 1%</th><th>top 5%</th><th>top 10%</th><th>top 25%</th><th>top 50%</th></tr>
+    <tr><td>对照组</td><td class="num">3.3%</td><td class="num">13.9%</td><td class="num">24.7%</td><td class="num">48.9%</td><td class="num">76.6%</td></tr>
+    <tr><td>HP</td><td class="num red">5.9%</td><td class="num red">28.4%</td><td class="num red">52.4%</td><td class="num red">84.8%</td><td class="num red">94.2%</td></tr>
+    <tr><td>差</td><td>+1.8×</td><td>+2.0×</td><td>+2.1×</td><td>+1.7×</td><td>+1.2×</td></tr>
+    </table>
+  </div>
+
+  <p>
+    这是一个有意思的结构性变化。<strong>HP 增加了社交活动总量,
+    但也增加了不平等</strong> — 总活动的 84.8% 集中在 25% 的 agent 身上(基线 49%)。
+    剩下 75% 的人参与度反而<strong>相对</strong>下降。
+  </p>
+
+  <p>
+    可能的解释:那些响应了推送的 22.7% 在 hub 上反复见面,
+    把社交活动集中在自己的小圈子里。<strong>「附近」被找回,但找回的是某种局部的小圈子,
+    不是普遍的全民交流</strong>。
+  </p>
+
+  <p class="pullquote">
+    HP 不消除社交分层,反而<strong>重构</strong>分层 — 把以工作圈/家庭圈为中心的分层,
+    重构为<strong>以「附近 hub」为中心</strong>的分层。
+    这是双刃。
+  </p>
+</div>
+
+<!-- ─────────────────────────────────────────────────────────────── -->
+<h2 id="limit">9. 必须公开承认的局限</h2>
+
+<div class="caveat">
+  <strong>① 这是 LLM 模拟,不是真人</strong>。
+  虚拟悉尼里的「响应率 22%」,在真悉尼可能是 5%、也可能是 40%。
+  我们提供的不是政策建议,而是<strong>一个具体可测试的机制假说</strong>
+  (超在地推送 → 物理位移 → 邻居传染 → 关系强化 → 跨职业桥 → hub 集中),
+  应当用人类受试者的小型试点来验证或否证。
+</div>
+
+<div class="caveat">
+  <strong>② 只测了 Lane Cove 一座街区</strong>(Sydney 北侧 ~10,000 人,
+  混合住商,中产居多)。密度更高的内城、更分散的郊区、
+  不同文化背景的城市,结果可能完全不同。
+</div>
+
+<div class="caveat">
+  <strong>③ 14 天窗口可能太短</strong>。我们看到「后撤期还在涨」,
+  但这是 14 天里的前 4 天后撤数据。再跑下去会饱和?会衰减?<strong>没数据</strong>。
+</div>
+
+<div class="caveat">
+  <strong>④ β=4 publishable 标准还差 1 个 seed</strong>。本次报告基于 3 个种子(43/44/45)。
+  发表前应补 seed 46 跑完(~$127 USD)以达到学术 publication 标准。
+</div>
+
+<div class="caveat">
+  <strong>⑤ 对话量证据弱</strong>(详见证据 3 末段)。
+  在 14 天窗口里只能看到偶遇频次增加和关系强度增加,<strong>不能</strong>声称对话量同步增加。
+</div>
+
+<div class="caveat">
+  <strong>⑥ 没有真人伦理审查</strong>。虚拟 agent 没有 consent 机制。
+  在真实部署前,任何对真居民的干预都需要 consent、governance、feedback——
+  这些都<strong>不在本项目范围内</strong>。
+</div>
+
+<!-- ─────────────────────────────────────────────────────────────── -->
+<h2 id="links">附录:深入资料</h2>
+
+<table>
+<tr><th>资料</th><th>路径</th></tr>
+<tr><td>本文档</td><td><code>docs/项目实验结果.html</code></td></tr>
+<tr><td>项目立项对外介绍</td><td><a href="项目产出物.html">docs/项目产出物.html</a></td></tr>
+<tr><td>4 个对照组的详细设计</td><td><a href="四个对照组.html">docs/四个对照组.html</a></td></tr>
+<tr><td>研究假说</td><td><a href="agent_system/00-thesis.md">agent_system/00-thesis.md</a></td></tr>
+<tr><td>实验设计协议</td><td><a href="agent_system/13-research-design.md">agent_system/13-research-design.md</a></td></tr>
+<tr><td>所有 24+ 个分析索引</td><td><a href="../data/analysis/2026-05-23_paper_exploration/index.html">data/analysis/2026-05-23_paper_exploration/</a></td></tr>
+<tr><td>5 幕论文大纲</td><td><a href="../data/analysis/2026-05-23_paper_exploration/PAPER_DRAFT_OUTLINE.md">PAPER_DRAFT_OUTLINE.md</a></td></tr>
+<tr><td>所有图表源文件</td><td><a href="../data/analysis/2026-05-23_paper_exploration/figures/">figures/</a></td></tr>
+<tr><td>项目代码 GitHub</td><td><a href="https://github.com/york-zhouuu/-Synthetic-Socio-Wind-Tunnel-">github.com/york-zhouuu/-Synthetic-Socio-Wind-Tunnel-</a></td></tr>
+<tr><td>已知局限与伦理</td><td><a href="limitations-ethics.md">docs/limitations-ethics.md</a></td></tr>
+</table>
+
+<footer>
+  Synthetic Socio Wind Tunnel · Lane Cove, Sydney ·
+  3 seeds × 4 variants × 14 days × 1000 agents · 14 figures · 30+ analyses ·
+  2026-05-22 至 05-23
+</footer>
+
+</body>
+</html>

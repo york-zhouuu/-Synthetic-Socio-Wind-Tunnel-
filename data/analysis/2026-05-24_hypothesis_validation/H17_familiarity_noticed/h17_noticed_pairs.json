@@ -1,0 +1,87 @@
+{
+  "method": "agent_events[kind=encounter, 'noticed' in tags] · pair from related_agents",
+  "seeds": [
+    44,
+    45
+  ],
+  "per_seed_notice_stats": {
+    "44": {
+      "baseline": {
+        "n_noticed_total": 8226,
+        "n_encounter_total": 89790,
+        "notice_rate": 0.0916
+      },
+      "hyperlocal_push": {
+        "n_noticed_total": 24164,
+        "n_encounter_total": 237296,
+        "notice_rate": 0.1018
+      },
+      "global_distraction": {
+        "n_noticed_total": 8592,
+        "n_encounter_total": 89268,
+        "notice_rate": 0.0962
+      },
+      "phone_friction": {
+        "n_noticed_total": 21898,
+        "n_encounter_total": 149380,
+        "notice_rate": 0.1466
+      }
+    },
+    "45": {
+      "baseline": {
+        "n_noticed_total": 8478,
+        "n_encounter_total": 86054,
+        "notice_rate": 0.0985
+      },
+      "hyperlocal_push": {
+        "n_noticed_total": 15026,
+        "n_encounter_total": 143158,
+        "notice_rate": 0.105
+      },
+      "global_distraction": {
+        "n_noticed_total": 8320,
+        "n_encounter_total": 86022,
+        "notice_rate": 0.0967
+      },
+      "phone_friction": {
+        "n_noticed_total": 21998,
+        "n_encounter_total": 151362,
+        "notice_rate": 0.1453
+      }
+    }
+  },
+  "combined": {
+    "baseline": {
+      "total_pairs": 8080,
+      "shared_with_baseline": 8080,
+      "new_pairs": 0,
+      "lost_from_baseline": 0,
+      "pct_new": 0.0,
+      "ratio_vs_bl": 1.0
+    },
+    "hyperlocal_push": {
+      "total_pairs": 18534,
+      "shared_with_baseline": 1051,
+      "new_pairs": 17483,
+      "lost_from_baseline": 7029,
+      "pct_new": 94.3,
+      "ratio_vs_bl": 2.294
+    },
+    "global_distraction": {
+      "total_pairs": 8183,
+      "shared_with_baseline": 1225,
+      "new_pairs": 6958,
+      "lost_from_baseline": 6855,
+      "pct_new": 85.0,
+      "ratio_vs_bl": 1.013
+    },
+    "phone_friction": {
+      "total_pairs": 21163,
+      "shared_with_baseline": 1108,
+      "new_pairs": 20055,
+      "lost_from_baseline": 6972,
+      "pct_new": 94.8,
+      "ratio_vs_bl": 2.619
+    }
+  }
+}

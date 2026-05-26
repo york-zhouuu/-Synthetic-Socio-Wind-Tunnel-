@@ -11,6 +11,27 @@ This file provides guidance to Claude Code when working with this repository.
 
 任何对外文档/报告引用这两个数字时务必用 1000 / 1000m。
 
+## 数据分析口径(2026-05-24 强制规则)
+
+**所有数据分析、报告、案例研究、对外文档 SHALL 用 noticed 口径,NOT 物理同框/擦肩口径**。
+
+- **正确口径**: `memory_store_state.agent_events[kind='encounter'] AND 'noticed' in tags` —
+  仿真自带的 attention gate 子集,只保留"真正抬起头、目光扫到对方"的瞬间(占物理同框约 9-15%)。
+- **错误口径**:
+  - `tick_metrics_recorder_state.buckets[day].distinct_pairs` (物理同框 pair, 没过 attention gate)
+  - `agent_events[encounter]` 全部(混了 noticed + unnoticed)
+- **语言规则**: 报告里**不要**用"擦肩 / 偶遇" — 用 **"看见 / 注意到 / 抬头看见 / noticed"**。
+  唯一例外:用 "物理同框 100 次但只看见 10 次" 这种对比来教读者两个口径的差异。
+- **为什么**: 项目核心 thesis 是 **attention-induced nearby blindness · 附近性盲区** —
+  thesis 关心的是 "物理在场但注意力不在" 的差距,不是"物理 proximity 总量"。
+  用物理同框口径(distinct_pairs 等)做 finding,会跟 thesis 完全脱节,且数字方向常常反过来:
+  - 物理同框: HP/PF 跟 BL 几乎一样 (1.04× / 1.10×) — 看起来没差
+  - noticed 口径: HP/PF 比 BL 翻 2.3× / 2.6×, 而且 94% 是 BL 没看见过的人 — 真正的 finding
+- **正例 reference**: `tools/case_studies/build_a0290_longform.py` 第 73-74 行 +
+  `tools/h17_h19_noticed_redo.py` — 都用 `'noticed' in (e.get('tags') or [])` 过滤
+- **encounter event 字段**: `actor_id` 是对方 agent_id (**不是** `related_agents`,inventory 写错了);
+  `tags` 含 `'noticed'` 或 `'unnoticed'`; `encounter_count` 是该 pair 累计次数
+
 ## 关键不变量（testing-rigor 2026-05-19）
 
 写新 capability / 大 PR 提交前 SHALL 过 `tests/README.md` 的
@@ -559,6 +580,150 @@ Literal["sonnet", "haiku", "nano"]` 这套 tier 标识符借自 Anthropic
 **适用范围**：所有 `docs/**/*.md`、`openspec/**/*.md`、commit message、
 PR description、code comments。代码里的 Tier literal 字符串本身不动
 （重命名是独立 refactor 决策，260+ 个 reference 点）。
+
+## "2.5D" 视觉规范 (2026-05-24 强制规则)
+
+**项目里说"2.5D"一律指**: `docs/poster_map_baseline.svg` 这套静态等距投影 SVG
+风格——**不是** maplibre + deck.gl 交互式 HTML,**不是** matplotlib 3D axes。
+
+**canonical 参考产物**:
+- `docs/poster_map_baseline.svg` (base) + `poster_map_{hp,gd,pf,big}.svg` (4 variant)
+- `docs/poster_atlas_thumbnail.svg` (略小的 thumbnail 版本,同款风格)
+
+**生成器**: `tools/build_atlas_thumbnail.py`(749 line,单文件 CLI,无外部生成依赖)
+- 核心入口:`build_thumbnail()` (line ~148) + `main()` (line 697)
+- 关键 CLI 参数:
+  - `--style 2.5d` (默认 `2d`,**必须显式传 `2.5d` 才走等距投影 + 建筑挤压**)
+  - `--variant {baseline,hp,gd,pf}` 切换 overlay (hp 推送圈 / gd 全球 ping / pf 静默)
+  - `--size-mm 120:95` (canonical poster_map_*.svg 的尺寸; thumbnail 用 160:110)
+  - `--radius-m 1000` (Lane Cove 1km 半径,与 hyperlocal 推送半径一致)
+  - `--annotate` (landmark callouts + legend,只在 big 版本开)
+  - `--height-exag 1.6` (2.5d 模式下建筑高度夸张系数)
+- 色板常量在 `COLOR_BG / COLOR_STREET / ...` (文件顶部 line ~30)
+
+**生成命令模板**(5 张 canonical SVG 的实际 recipe):
+
+```bash
+# baseline
+python3 tools/build_atlas_thumbnail.py \
+  --atlas data/lanecove_atlas.json \
+  --positions "data/experiments/<RUN>/variant_baseline/seed_*_positions.json" \
+  --out docs/poster_map_baseline.svg \
+  --style 2.5d --variant baseline --size-mm 120:95 --radius-m 1000
+
+# hp / gd / pf 同上,替换 --variant + --positions + --out
+# big (annotated, 给 ch2 用): 加 --annotate,可不传 --size-mm 走默认 160:110
+```
+
+**核心视觉特征**:
+- viewBox 用 mm 单位(paper-friendly,海报 / PDF 可直接 embed)
+- 米黄底 `#FCFAF6`,灰色细线建筑+道路轮廓 `#9E988C` (stroke 0.15mm,opacity 0.55)
+- 强调色:粉 `#FF4D8F` (active area / hero element)、黄 `#FFD23F`、墨 `#1B1F2A`
+- 粉色虚线椭圆标 active 半径,arrowhead marker 标方向/箭头
+- 30° 等距投影 + 建筑按 footprint 挤压成 SimCity-style block
+
+**禁止当 2.5D 用**:
+- ❌ maplibre-gl + deck.gl 交互式 HTML (`tools/build_25d_findings_dashboard.py`
+  那套已被替代,见 task #129)
+- ❌ matplotlib 3D axes / surface plot
+- ❌ 任何非静态 / 非 SVG 输出
+
+**新做 finding 的 2.5D 图时**: 优先调 `tools/build_atlas_thumbnail.py` 拿底图
+SVG → 后处理(Python BeautifulSoup / lxml / 字符串拼)叠 finding-specific 几何
+(柱 / 弧 / 点 / 文本标注)。 不要从零造新风格,不要回去用 maplibre+deck.gl,
+不要用 matplotlib 3D。
+
+如果需要更多控制(改投影角度 / 加层 / 不同 base color),fork 一份脚本
+而不是在 main 里加 flag — `build_atlas_thumbnail.py` 是 frozen-for-poster
+工具,不要因 finding 实验把它改成 god-object。
+
+旁边还有一个 `tools/build_poster_findings.py`(独立工具)用来生成 8 张
+**finding** poster figure,色板共享但不是 base map 生成器,不要混淆。
+
+## 对外报告写作原则 (2026-05-25 强制规则)
+
+写实验报告 / finding / 对外说明的时候 SHALL 遵守:
+
+### 原则 1: 假定读者完全不知道项目背景
+
+**绝对不能**在图或正文里使用项目内部缩写而不解释:
+- ❌ "BL" / "HP" / "GD" / "PF" 直接作 panel header,没有展开
+- ❌ "noticed 口径" / "attention gate" / "tick" / "encounter event" 当成读者已经懂的术语用
+- ❌ "F1/F2/F3" cross-reference 不解释这是什么
+- ❌ "1,000 agent" / "14 day protocol" 不说为什么是这两个数
+
+**应该这样写**:
+- ✅ panel header 写完整描述: **"Baseline · no app"** 而不是 BL; **"Hyperlocal push · 14 days later"** 而不是 HP
+- ✅ 第一次出现专有词时**附一句白话解释**(然后后文可以缩写)
+- ✅ 引用前面 finding 时点明 finding 内容("as Finding 1 showed — the siphon paradox"), 不只 "(see Finding 1)"
+- ✅ 设计参数(1000 agent / 14 day / 4 condition / 30 push/agent) 第一次出现时说明"为什么这个量级"
+
+**验证方法**: 自己读一遍,假装第一次看到。 任何一个词如果"我现在第一次看,得回去翻文档才懂",就要改。
+
+### 原则 2: 找不知道项目的人读得懂 = 写完前的最后一道闸
+
+提交任何对外产出之前,SHALL 在脑子里跑一遍"如果我把这页给一个 design researcher / urbanist / 一般技术读者,他能不能看懂?"。 看不懂 → 没写完。
+
+### 原则 3: 工具 / LLM / agent 的缺陷不能成为 finding
+
+仿真器是研究工具,**不是研究对象**。 凡是"finding 的实质内容来自工具的局限",一律删掉不写。
+
+- ❌ "仿真的 attention gate 是 bilateral,所以我们测不到 asymmetric awareness" — tool limitation 当 finding
+- ❌ "snapshot eviction 限制只剩 2 天数据,所以 weekday-only profile" — 写成 caveat 也算自废武装
+- ❌ "因为 agent routine adherence 是我们 assign 的,所以这个 finding 取决于参数选择" — agent design 当 finding
+- ❌ "LLM 选择了把人推到 X 类地点,因此..." — LLM 行为当 finding
+- ✅ 工具能产生的 substantive emergent pattern (e.g. "hub-concentration onto 5 anchors") → finding
+- ✅ comparative 跨 condition 的差异 (e.g. "HP vs PF 选不同 anchor") → finding
+
+**识别 → 删除路径**: 内部 audit 时识别为 tool-limitation 的 candidate, 直接不出现在报告里。 不试图"reframe limitation 为 methodological finding"。
+
+### 原则 4: 报告里 stand 在 project 立场, 不写"工具有缺陷 / 我们没测到 X / 这取决于...等" caveat 自废
+
+跟原则 3 是配套的: 即使发现了 tool limitation, 报告里**完全不出现**。 不写"snapshot 限制 / attention gate 参数没校准 / agent 是我们 assign 的"这类话。 描述 method 的时候平实陈述 simulator parameters, 不预先 apologize。 描述 finding 的时候自信地报告 substantive emergent pattern。 caveat litter 会让读者怀疑整个 project — 这是对自己的工作的反向 PR。
+
+唯一可以保留的"scope of claim"陈述: "all claims are comparative across conditions" — 这是 honest framing, 不是自废。
+
+### 原则 5: 真 finding 是 comparative + counterintuitive, 不是 BL 单条件描述
+
+数据挖掘"浮于表面"的最常见表现: 写一堆描述 BL 默认状态长什么样的 finding ("9.5% notice rate", "residential 19% vs street 7%")。 这些是 backdrop, 不是 finding —— 因为它们没回答"工具的本职问题:不同干预 archetype 怎么改写注意力"。
+
+**真 finding 的形态**:
+- 跨 condition 对比 (BL vs HP/PF/GD)
+- 方向性 (谁推得高谁推得低)
+- 反直觉 (推送本应分散却集中 / 摩擦本应被动却赢过推送 / 性格本应预测响应却不预测)
+
+**反例**: F1 "the shape of default blindness" (描述 BL) → 被砍, 改写成 F1 "the recommender as accidental urbanist" (HP 对比 BL + 反直觉 community-anchor detection)。
+
+### 原则 6: 概念 / 定义 / etymology 必须 web-search verify, 不准凭直觉编
+
+碰到一个关键词 (hyperlocal / friction-as-design / routine adherence 等) 要解释 / framing / 引用时, **第一步是 web search 拿真实定义和 literature**。 不准"hyper 意思是原子化 / local 意思是社区"这种凭直觉编的 etymology。
+
+- ❌ 凭脑补的概念拆解 ("hyper means X, local means Y, the two intuitions conflict...")
+- ✅ Merriam-Webster 词条 + Wikipedia 历史 + 学术文献 (Bertelli 2025 / Sànchez-Moreno 2022 / Cox 2016 / Wood 2002 等)
+- ✅ 引用真文献的 URL + 期刊 / 年份, 不只名字
+
+不查就编, 一旦被读者发现, 整篇可信度归零。
+
+### 原则 7: Finding 一个一个推进, 不批量生成
+
+写多 finding 报告时, SHALL 一个 finding 闭环 (数据 → figure → 文字 → 用户 review) 后再做下一个。 不准"先把大纲写出来然后批量补 5 个 finding 文字"。 批量生成的 finding 浅, 也会盖住前一个 finding 的反思空间。
+
+唯一例外: 用户明确说"剩下的都按这个方式做完", 才可以批量。
+
+### 原则 8: 数字必须 verified, 不准编
+
+任何在报告里出现的数字 (人数 / 比例 / 倍数 / 半径 / 时间) 必须能追溯到某个 analysis JSON 或 simulator parameter。 不准为了叙述好看而编 ("600 万次同框, 60 万次看见" 这种)。
+
+**反例 (真发生过)**: 在 v6 写"600 万次同框/60 万次看见", 实际数据是 ~175K / 17K, 被用户当场抓出来。
+**应对**: 写数字前确认它的源 JSON / 计算公式。 不确定 → 不写。
+
+### 原则 9: 假设 / 直觉跟实际数据不一致时, 跟着数据走, reframe finding
+
+挖数据时如果发现跟原 hypothesis 反向 (e.g. 提纲假设"早高峰最盲", 实际数据是"晚高峰最盲"; 提纲假设"PF 分布更均匀", 实际数据是"PF 也集中, 集中到不同的 5 个"), SHALL 跟着数据走重写 finding, 而不是修数据来 match 假设。 reframe 出来的 finding 通常比原假设更有意思。
+
+### 关系总览
+
+9 条原则一起构成对外产出的硬约束。 跟 [[2.5D 视觉规范]] / [[数据分析口径]] (noticed 不擦肩) 并列, 但作用域不同 —— 前者管视觉, 后者管数据口径, 这 9 条管 finding 的 framing 与 writing。
 
 ## 对外报告与产出物的叙述风格（严格遵守）
 

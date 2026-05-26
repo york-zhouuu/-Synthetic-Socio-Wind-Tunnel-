@@ -1,0 +1,824 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>v6 · 看不见的边界 · 看不见的邻居 — 一个虚拟悉尼小区的附近性盲区报告</title>
+<style>
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC",
+                 "Hiragino Sans GB", "Microsoft YaHei", "Source Han Sans",
+                 sans-serif;
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 70px 48px 120px;
+    line-height: 1.85;
+    color: #1f1f1f;
+    background: #fbfaf6;
+    font-size: 17px;
+  }
+  .tagline { font-size: 13px; letter-spacing: 0.15em; color: #888; text-transform: uppercase; margin-bottom: 12px; }
+  h1 { font-size: 38px; font-weight: 700; line-height: 1.22; margin: 0 0 20px; letter-spacing: -0.01em; }
+  .deck { font-size: 21px; color: #5b5b5b; margin: 0 0 36px; font-weight: 300; line-height: 1.55; }
+  h2 { font-size: 28px; font-weight: 700; margin: 80px 0 22px; padding-bottom: 10px; border-bottom: 2px solid #1f1f1f; }
+  h3 { font-size: 22px; font-weight: 600; margin: 36px 0 14px; }
+  h4 { font-size: 13px; font-weight: 700; color: #c8553d; margin: 18px 0 6px; text-transform: uppercase; letter-spacing: 0.1em; }
+  p { margin: 0 0 16px; }
+  strong { color: #000; font-weight: 600; }
+  em { font-style: italic; color: #444; }
+
+  /* Topic box */
+  .topic {
+    background: linear-gradient(135deg, #fff4e6 0%, #ffeacc 100%);
+    border-left: 6px solid #c8553d;
+    padding: 28px 34px; margin: 28px 0 36px; border-radius: 10px;
+  }
+  .topic h3 { margin: 0 0 12px; color: #7a2f0e; font-size: 16px; text-transform: uppercase; letter-spacing: 0.1em; }
+  .topic .key3 {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+    margin: 18px 0;
+    text-align: center;
+  }
+  .topic .key3 .kt { font-size: 13px; color: #888; text-transform: uppercase; letter-spacing: 0.1em; }
+  .topic .key3 .kv { font-size: 22px; font-weight: 800; color: #7a2f0e; margin-top: 4px; }
+  .topic .keysub { font-size: 13px; color: #555; line-height: 1.55; margin-top: 4px; }
+
+  /* Big stat */
+  .blindness-stat {
+    background: #fff;
+    border: 1px solid #d8d3c0;
+    border-radius: 10px;
+    padding: 30px 36px;
+    margin: 26px 0;
+    text-align: center;
+  }
+  .blindness-stat .bs-num {
+    font-size: 64px;
+    font-weight: 800;
+    color: #c8553d;
+    line-height: 1;
+  }
+  .blindness-stat .bs-lab {
+    font-size: 17px;
+    color: #444;
+    margin-top: 12px;
+    font-style: italic;
+  }
+  .blindness-stat .bs-sub {
+    font-size: 14px;
+    color: #888;
+    margin-top: 6px;
+  }
+
+  /* 4 apps */
+  .uni-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px;
+    margin: 22px 0;
+  }
+  .uni {
+    background: #fff;
+    border-radius: 8px;
+    padding: 18px 22px;
+    border-top: 5px solid #888;
+    border-right: 1px solid #e5e2d6;
+    border-bottom: 1px solid #e5e2d6;
+    border-left: 1px solid #e5e2d6;
+    font-size: 15px;
+  }
+  .uni .uname { font-weight: 700; font-size: 16px; margin-bottom: 6px; }
+  .uni.a { border-top-color: #888; }
+  .uni.a .uname { color: #555; }
+  .uni.b { border-top-color: #c8553d; }
+  .uni.b .uname { color: #c8553d; }
+  .uni.c { border-top-color: #3b6ea8; }
+  .uni.c .uname { color: #3b6ea8; }
+  .uni.d { border-top-color: #5a7a4f; }
+  .uni.d .uname { color: #5a7a4f; }
+
+  /* Hypothesis card */
+  .h-card {
+    background: #fff;
+    border-radius: 8px;
+    padding: 24px 30px;
+    margin: 20px 0;
+    border: 1px solid #d8d3c0;
+    border-left: 5px solid #c8553d;
+  }
+  .h-card .h-tag {
+    display: inline-block;
+    font-size: 11px;
+    background: #1f1f1f;
+    color: white;
+    padding: 3px 12px;
+    border-radius: 12px;
+    letter-spacing: 0.1em;
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    font-weight: 700;
+  }
+  .h-card h3 { margin: 6px 0 12px; font-size: 21px; line-height: 1.35; }
+
+  .h-step { margin: 14px 0; }
+  .h-step .lbl {
+    font-size: 11px; font-weight: 700; letter-spacing: 0.1em;
+    text-transform: uppercase; margin-bottom: 3px;
+  }
+  .h-step.predict { background: #faf8ee; padding: 12px 18px; border-radius: 5px; }
+  .h-step.predict .lbl { color: #8a7a3a; }
+  .h-step.test { background: #f4f1ea; padding: 12px 18px; border-radius: 5px; }
+  .h-step.test .lbl { color: #555; }
+  .h-step.result { background: #fff4e6; padding: 14px 20px; border-radius: 5px; border-left: 3px solid #c8553d; }
+  .h-step.result .lbl { color: #7a2f0e; }
+  .h-step.result strong { color: #7a2f0e; }
+  .h-step.verdict {
+    font-size: 14px;
+    margin-top: 10px;
+    color: #444;
+  }
+  .h-step.verdict .v-flag {
+    font-size: 12px;
+    font-weight: 700;
+    padding: 3px 10px;
+    border-radius: 4px;
+    margin-right: 8px;
+  }
+  .v-confirmed { background: #2a7a3a; color: white; }
+  .v-flipped { background: #c8553d; color: white; }
+  .v-partial { background: #c89417; color: white; }
+  .v-disproved { background: #888; color: white; }
+
+  .bignum {
+    display: inline-block;
+    font-weight: 800;
+    color: #c8553d;
+    font-size: 28px;
+    line-height: 1;
+    margin: 0 4px;
+    vertical-align: -2px;
+  }
+
+  /* Conclusion grid */
+  .concl-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 16px;
+    margin: 24px 0;
+  }
+  .concl {
+    background: #fff;
+    border-radius: 8px;
+    padding: 22px 30px;
+    border: 1px solid #d8d3c0;
+    border-left: 5px solid #2a7a3a;
+  }
+  .concl .c-tag {
+    font-size: 11px;
+    font-weight: 700;
+    color: #2a7a3a;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+  .concl h3 { margin: 4px 0 10px; font-size: 20px; line-height: 1.35; }
+  .concl p { margin: 0; color: #444; font-size: 16px; }
+
+  /* Advice */
+  .advice {
+    background: white;
+    border-radius: 8px;
+    padding: 22px 28px;
+    margin: 16px 0;
+    border: 1px solid #d8d3c0;
+    border-top: 4px solid #2a7a3a;
+  }
+  .advice h4 { color: #2a7a3a; margin: 0 0 4px; }
+  .advice h3 { margin: 0 0 10px; font-size: 19px; }
+  .advice p { font-size: 16px; color: #444; margin: 0; }
+
+  /* Figure */
+  figure { margin: 30px 0; padding: 0; }
+  figure img { width: 100%; border: 1px solid #d8d3c0; border-radius: 8px; display: block; background: white; }
+  figcaption { text-align: center; color: #777; font-size: 14px; margin-top: 12px; font-style: italic; line-height: 1.5; padding: 0 20px; }
+
+  /* Pull quote */
+  .pq {
+    border-left: 5px solid #c8553d;
+    padding: 16px 28px;
+    margin: 32px 0;
+    color: #2a1f1c;
+    font-size: 19px;
+    font-style: italic;
+    background: #fff8f0;
+    border-radius: 0 6px 6px 0;
+    line-height: 1.55;
+  }
+
+  /* Mini bar */
+  .barlist { margin: 12px 0; }
+  .barlist .row {
+    display: grid;
+    grid-template-columns: 130px 1fr 60px;
+    gap: 10px;
+    align-items: center;
+    margin: 5px 0;
+    font-size: 14px;
+  }
+  .barlist .row .lab { color: #444; }
+  .barlist .row .bar { height: 20px; background: linear-gradient(90deg, #c8553d, #e57a5a); border-radius: 3px; }
+  .barlist .row .v { font-family: -apple-system, monospace; color: #c8553d; font-weight: 700; text-align: right; }
+  .barlist .row.dim .bar { background: #ccc; }
+  .barlist .row.dim .v { color: #999; }
+
+  /* TOC */
+  .toc {
+    background: #f5f4e8; border-radius: 8px; padding: 22px 30px;
+    margin: 36px 0; font-size: 15px;
+  }
+  .toc strong { display: block; margin-bottom: 10px; font-size: 13px; letter-spacing: 0.1em; color: #555; text-transform: uppercase; }
+  .toc ol { padding-left: 24px; margin: 0; }
+  .toc li { margin: 6px 0; }
+  .toc a { color: #c8553d; text-decoration: none; }
+
+  /* Caveat */
+  .caveat {
+    background: #faf8ee; border: 1px dashed #c8b87a; border-radius: 6px;
+    padding: 14px 22px; margin: 22px 0; font-size: 14px; color: #6a5a3a; line-height: 1.6;
+  }
+  .caveat strong { color: #7a5a2a; }
+
+  footer { margin-top: 90px; padding-top: 26px; border-top: 1px solid #e5e2d6; color: #888; font-size: 13px; text-align: center; line-height: 1.6; }
+</style>
+</head>
+<body>
+
+<p class="tagline">INVISIBLE BORDERS · ATTENTION-INDUCED NEARBY BLINDNESS · LANE COVE SYDNEY</p>
+<h1>21 世纪城市里有一类新型边界 —— 看不见、不挡路、却隔开了你和身边的人。</h1>
+<p class="deck">墙、栅栏、海岸线挡你的身体,但 21 世纪还有另一类边界挡你的注意力 ——
+算法过滤、 推送排序、 低头看手机 —— 它们不阻止你"走到"邻居身边,
+只阻止你"看见"邻居。 这个项目造了一个 1,000 人的虚拟悉尼 Lane Cove,
+量这种新边界有多深 —— 以及什么样的干预能把它打开。</p>
+
+
+<!-- ====================== BROADER + TOPIC ====================== -->
+
+<h2 id="topic">两层 topic · broader 边界 → 具体盲区</h2>
+
+<div class="topic" style="margin-bottom: 14px;">
+  <h3>BROADER · 我们在研究一类边界</h3>
+  <p style="font-size: 17px; color: #2a1f18; margin: 10px 0;">
+    传统边界(墙 / 栅栏 / 海岸线 / 国境线)是 <strong>物理的、可见的、阻挡移动的</strong>。
+    21 世纪有一类新边界 —— <strong>不可见、不挡路、但阻挡 awareness</strong>:
+    算法 feed 排序、 推送过滤、 注意力被屏幕收纳。
+    人可以走到陌生人身边,却没有意识到对方存在。
+    <strong>Visibility 成了一种新型 border condition</strong>。
+  </p>
+  <p style="font-size: 15px; color: #555; margin: 10px 0 0; font-style: italic;">
+    这是 DESN9301 brief "Border Crossings" 的核心 framing —
+    社会设计要做的是 <em>"design instruments to weaken, cross, or reimagine these new invisible borders"</em>。
+  </p>
+</div>
+
+<div class="topic">
+  <h3>SPECIFIC · 我们挑了一个具体表现来量化</h3>
+  <p style="font-size: 19px; color: #2a1f18; margin: 14px 0;">
+    <strong>附近性盲区 · Attention-induced Nearby Blindness</strong> ——
+    高密度城市里, 你身体每天经过几十个邻居, 但因为手机/算法/注意力分配,
+    真正"看见"的可能只有几个。 这是 invisible border 在物理近邻上的具体表现 ——
+    border 没挡你 walk past, 只挡你 notice。
+  </p>
+
+  <div class="key3">
+    <div>
+      <div class="kt">研究对象 · WHERE</div>
+      <div class="kv">附近</div>
+      <div class="keysub">同栋楼 / 同条街 / home 500m 内</div>
+    </div>
+    <div>
+      <div class="kt">研究现象 · BORDER</div>
+      <div class="kv">看不见</div>
+      <div class="keysub">物理同框却 attention 没过门槛 (低头看手机 / 想别的)</div>
+    </div>
+    <div>
+      <div class="kt">研究干预 · HACK</div>
+      <div class="kv">带回来</div>
+      <div class="keysub">什么样的 app / 推送 / 反推送能 weaken 这种边界</div>
+    </div>
+  </div>
+
+  <p style="margin: 14px 0 0; color: #2a1f18;">所有 finding 都围绕一件事:
+  <strong>这种 invisible border 在不同 app 下变深还是变浅?能不能被 design out?</strong></p>
+</div>
+
+<div class="caveat" style="margin-top: 20px;">
+  <strong>为什么 Lane Cove 这种"看不见的邻居"实验,讲的不只是 Lane Cove</strong> ——
+  附近盲区是一种 <strong>generic invisible border</strong>:
+  墨尔本西郊有它、 北京回龙观有它、 伦敦 Hackney 也有它。 同样的方法论(虚拟克隆 4 个 app 版本看数据)
+  可以测其他 invisible border 类型 — 比如算法 feed 制造的"信息盲区"、 推荐系统造的"职业 / 阶层盲区"、
+  搜索过滤造的"文化盲区"。 本项目的可迁移性, 不在数据本身, 在 <strong>"用虚拟克隆量不可见边界"这个工具</strong>。
+</div>
+
+
+<!-- ====================== 盲区有多深 ====================== -->
+
+<h2 id="depth">先量一下盲区有多深</h2>
+
+<p>把同一栋楼、 同一段街、 同一分钟内的两个人记为"物理同框"。
+然后通过仿真的 attention gate 滤一遍 —
+只保留那些 <strong>真正抬起头、目光扫到对方</strong>的瞬间。</p>
+
+<div class="blindness-stat">
+  <div class="bs-num">9.5%</div>
+  <div class="bs-lab">物理同框中, 真正"看见"对方的比例</div>
+  <div class="bs-sub">基线(对照组)· seed 44 + 45 pooled · 600 万次同框 / 60 万次看见</div>
+</div>
+
+<p>这是默认基线 ——  <strong>剩下 90.5% 是看不见的邻居</strong>。 你的楼下、 你的公交站、 你的早晨遛狗路线上,
+绝大多数擦肩而过的人,你是看见但没看见 ——身体在那、注意力不在。</p>
+
+<p>这个 9.5% 也不是均匀分布的。 个体之间差很多:有些人 14 天能注意到 99 张脸(我们另一篇案例研究的 ICU 护士),
+有些只有 6 张(咖啡店老板娘 Hannah 的对照宇宙)。 同一个人在 4 个不同 app 下也差很多 —
+她在"少看手机 app"宇宙里,从 6 张涨到 73 张。</p>
+
+
+<!-- ====================== 实验设计 ====================== -->
+
+<h2 id="design">实验是怎么做的</h2>
+
+<p>悉尼北岸有个叫 <strong>Lane Cove</strong> 的小区 — 1 公里步行半径。 我们把它的真实地图搬到电脑里,
+造了 1,000 个虚拟居民 — 老何 75 岁退休、 Hannah 36 岁开咖啡店、 a0290 33 岁 ICU 护士……
+每人有完整生平和日常 routine。</p>
+
+<p>然后把这个虚拟 Lane Cove <strong>复制 4 份</strong>,完全一样 — 只换一件事:
+每份里这 1,000 人手机口袋里的 app。</p>
+
+<div class="uni-grid">
+  <div class="uni a">
+    <div class="uname">① 对照组 (没装额外 app)</div>
+    手机没有任何额外推送。 这是我们看"自然盲区"的基线。
+  </div>
+  <div class="uni b">
+    <div class="uname">② 本街活动 app</div>
+    每天推 5 条本街活动:亲子市集、教堂读书会、PLC 幼儿园活动。 试图把人拉到 5 个本街 anchor。
+  </div>
+  <div class="uni c">
+    <div class="uname">③ 全球新闻 app</div>
+    每天推 5 条 CBD/全球新闻:Vivid 灯光节、世界杯、SpaceX。 不告诉你去本街哪。
+  </div>
+  <div class="uni d">
+    <div class="uname">④ 少看手机 app</div>
+    14 天里只推 6 条提醒,不告诉去哪,只说"放下手机看看附近"。
+  </div>
+</div>
+
+<p>4 份各跑 14 天, 然后看每个版本里, 这 1,000 人 <strong>真正"看见"邻居的能力</strong> 有什么变化。</p>
+
+
+<!-- ====================== HYPOTHESES ====================== -->
+
+<h2 id="hypotheses">我们出发时的 8 个猜想 + 数据</h2>
+
+<p>下面每条按 <strong>预测 → 怎么测 → 数据 → 验证</strong> 四步走。 所有 finding 紧密围绕一件事:
+盲区在这个干预下变深还是变浅了?</p>
+
+
+<!-- H1 -->
+<div class="h-card">
+  <span class="h-tag">猜想 1 · 默认盲区</span>
+  <h3>物理同框 ≈ 社会看见?</h3>
+
+  <div class="h-step predict">
+    <div class="lbl">预测</div>
+    Jacobs / Granovetter 的经典假设:物理 proximity 自然带来社会 awareness。 同一栋楼的人会注意到彼此。
+  </div>
+
+  <div class="h-step test">
+    <div class="lbl">怎么测</div>
+    所有"两人 5m 内同一分钟"的物理同框事件计数 vs 那些过了 attention gate ("真注意到对方")的子集。
+  </div>
+
+  <div class="h-step result">
+    <div class="lbl">数据</div>
+    <p>1,000 人 14 天, 物理同框约 600 万次, 真正"看见"对方的约 60 万次。
+    <strong><span class="bignum">90.5%</span></strong> 的邻居身在你身边但你完全没察觉。</p>
+  </div>
+
+  <div class="h-step verdict">
+    <span class="v-flag v-flipped">⚡ 完全反方向</span>
+    物理 proximity ≠ 社会 awareness。 经典假设在手机时代不再成立。 默认状态下绝大多数邻居就是"看不见的"。
+  </div>
+</div>
+
+
+<!-- H2 -->
+<div class="h-card">
+  <span class="h-tag">猜想 2 · 本街推送的效果</span>
+  <h3>"本街活动 app" 会让人多看见本街邻居?</h3>
+
+  <div class="h-step predict">
+    <div class="lbl">预测</div>
+    "Hyperlocal" 这个词本身意味着加强紧邻关系。 装上本街活动 app,楼下邻居应该看见更多。
+  </div>
+
+  <div class="h-step test">
+    <div class="lbl">怎么测</div>
+    每次"真看见"事件记下来发生在哪。 按到自己 home 的距离分桶。 比较对照组 vs 本街活动 app 组,看 0-100m / 100-500m / 500m-2km / 2-5km 各 bucket 的看见率。
+  </div>
+
+  <div class="h-step result">
+    <div class="lbl">数据</div>
+    <p>home 周围 0-100 米看见率: 对照组 <strong>17.3%</strong> → 本街活动 app <strong>8.1%</strong>
+    (<strong>砍掉一半</strong>)。 同时 2-5km 远距离涨到 <span class="bignum">19.9%</span>(对照组只 5.7%)。
+    "home 500m 内" 总看见率: 32.1% → 20.9%。</p>
+  </div>
+
+  <div class="h-step verdict">
+    <span class="v-flag v-flipped">⚡ 完全反方向 · 核心反直觉</span>
+    "Hyperlocal" 推送反而**让楼下邻居盲区扩大**。 原因: 推送的 anchor (PLC / Anglican 教堂等) 本身就在 home 500-1500m 外,
+    把人从近邻 100m 圈拽到中距离 anchor 集中。 <strong>"hyperlocal" 在数据里是 hyper-non-local</strong>。
+  </div>
+</div>
+
+
+<!-- H3 -->
+<div class="h-card">
+  <span class="h-tag">猜想 3 · "少看手机" 干预</span>
+  <h3>"放下手机" app 能让人多看见邻居?</h3>
+
+  <div class="h-step predict">
+    <div class="lbl">预测</div>
+    直觉:手机抢走了注意力,放下手机自然能让人多抬头看见邻居 — 这是项目最朴素的反盲区假设。
+  </div>
+
+  <div class="h-step test">
+    <div class="lbl">怎么测</div>
+    比较 4 个 app 版本的整体 notice rate (物理同框中真看见的比例)。
+  </div>
+
+  <div class="h-step result">
+    <div class="lbl">数据</div>
+    <div class="barlist">
+      <div class="row"><span class="lab">少看手机 app</span><div class="bar" style="width: 100%;"></div><span class="v">14.6%</span></div>
+      <div class="row"><span class="lab">本街活动 app</span><div class="bar" style="width: 70%;"></div><span class="v">10.3%</span></div>
+      <div class="row"><span class="lab">全球新闻 app</span><div class="bar" style="width: 66%;"></div><span class="v">9.6%</span></div>
+      <div class="row dim"><span class="lab">对照组</span><div class="bar" style="width: 65%;"></div><span class="v">9.5%</span></div>
+    </div>
+    <p>"少看手机" app 把整体抬头率 <strong>从 9.5% 提到 14.6%</strong> — 净涨 <span class="bignum">+54%</span>,
+    远高于其他干预。 本街活动 app 涨幅小 (+8%), 全球新闻几乎没变 (+1%)。</p>
+  </div>
+
+  <div class="h-step verdict">
+    <span class="v-flag v-confirmed">✓ 强力证实</span>
+    反盲区最有效的 app 不是告诉你去哪,是"释放你的注意力" — 让你在已经在的地方有空抬头。
+    这是项目核心假设 (super-hyperlocal counter-push) 的直接数据支持。
+  </div>
+</div>
+
+
+<!-- H4 -->
+<div class="h-card">
+  <span class="h-tag">猜想 4 · 全球新闻的代价</span>
+  <h3>装"全球新闻 app" 会让人忘记本街?</h3>
+
+  <div class="h-step predict">
+    <div class="lbl">预测</div>
+    全球新闻把注意力拉到悉尼 CBD/世界,本街看见率应该明显下降。 像案例研究 Mary 那种 — 注意力漂去 Chatswood。
+  </div>
+
+  <div class="h-step test">
+    <div class="lbl">怎么测</div>
+    比对照组 vs 全球新闻 app 组的"home 500m 内"看见率, 加 4 universe 末态物理位置距离。
+  </div>
+
+  <div class="h-step result">
+    <div class="lbl">数据</div>
+    <p>"home 500m 内"看见率: 对照组 32.1% → 全球新闻 <strong>29.8%</strong> (只略降);
+    更惊人的是物理位置: 全球新闻 vs 对照组, <strong>89.5%</strong> 的人末态位置完全相同(身体根本没动)。
+    Notice rate 9.6% ≈ BL 9.5%。</p>
+  </div>
+
+  <div class="h-step verdict">
+    <span class="v-flag v-partial">~ 部分反方向</span>
+    全球新闻 app <strong>不让人忘记本街(物理上)</strong> — 这是数据 surprise。 它是更隐形的盲区机:
+    <strong>身体留在本街,注意力被偷到 CBD</strong>,看见的人数和对照组几乎一样多 — 但你身在邻居身边却没抬头。
+    Mary 漂去 Chatswood 是少数极端,大多数 GD agent 坐在原地刷新闻。 真正的危害不是位移,
+    是 <strong>"在场不看见" — 默认盲区的隐形延续</strong>。
+  </div>
+</div>
+
+
+<!-- H5 -->
+<div class="h-card">
+  <span class="h-tag">猜想 5 · 干预的总量</span>
+  <h3>这些干预能让 1,000 人小镇里"互相看见"的关系总数翻倍?</h3>
+
+  <div class="h-step predict">
+    <div class="lbl">预测</div>
+    干预让看见率上升 → 14 天累计"曾经看见过对方"的人对数应该明显上升。
+  </div>
+
+  <div class="h-step test">
+    <div class="lbl">怎么测</div>
+    每个 app 版本里, 14 天内所有"真正互相看见过"的 (a, b) pair 集合的大小。
+  </div>
+
+  <div class="h-step result">
+    <div class="lbl">数据</div>
+    <div class="barlist">
+      <div class="row"><span class="lab">少看手机 app</span><div class="bar" style="width: 100%;"></div><span class="v">21,163</span></div>
+      <div class="row"><span class="lab">本街活动 app</span><div class="bar" style="width: 88%;"></div><span class="v">18,534</span></div>
+      <div class="row dim"><span class="lab">全球新闻 app</span><div class="bar" style="width: 39%;"></div><span class="v">8,183</span></div>
+      <div class="row dim"><span class="lab">对照组</span><div class="bar" style="width: 38%;"></div><span class="v">8,080</span></div>
+    </div>
+    <p>对照组里 1,000 人 14 天只有 8,080 对人 "互相看见过"。 少看手机 app 翻到 <strong>21,163</strong>
+    (<span class="bignum">2.6×</span>), 本街活动 18,534 (2.3×), 全球新闻 8,183 (1.01× = 没变)。</p>
+  </div>
+
+  <div class="h-step verdict">
+    <span class="v-flag v-confirmed">✓ 强力证实</span>
+    干预可以让"互相看见"的关系总数翻 2-3 倍。 小镇的 social fabric 可以被改写。 但全球新闻 app 是个隐形 placebo —
+    数字跟对照组一模一样 — <strong>"有干预"≠"反盲区"</strong>,要看是什么干预。
+  </div>
+</div>
+
+
+<!-- H6 -->
+<div class="h-card">
+  <span class="h-tag">猜想 6 · 新看见 vs 老熟人</span>
+  <h3>这些"多看见的人",是看见了已熟悉的人,还是看见了陌生人?</h3>
+
+  <div class="h-step predict">
+    <div class="lbl">预测</div>
+    本街活动 app 可能让你跟"老熟人" 见面更频繁(同一群 PLC 妈妈反复见)。 少看手机 app 可能让你认识"新人"。
+  </div>
+
+  <div class="h-step test">
+    <div class="lbl">怎么测</div>
+    每个 app 版本里 "互相看见" 的 pair 集合, 跟对照组的集合做集合差(intersection vs new)。
+  </div>
+
+  <div class="h-step result">
+    <div class="lbl">数据</div>
+    <ul style="margin: 8px 0; padding-left: 24px;">
+      <li>少看手机 app: 21,163 pair, 其中 <strong>94.8% 是对照组里从没看见过的新人</strong></li>
+      <li>本街活动 app: 18,534 pair, 其中 <strong>94.3% 是新人</strong></li>
+      <li>全球新闻 app: 8,183 pair, 其中 85.0% 是新人(但总数没涨, 是"换血"不是新增)</li>
+    </ul>
+  </div>
+
+  <div class="h-step verdict">
+    <span class="v-flag v-confirmed">✓ 证实但比预期强</span>
+    "多看见" 几乎全是 <strong>"以前压根没看见过的新人脸"</strong> — 不是"老熟人见多了"。
+    本街活动 app 不是让你跟已认识的人见面更频繁, 是让你**真的看见之前每天经过却没察觉的陌生面孔**。
+    全球新闻 app 不增加看见的人数 — 但 85% 的看见对象不一样了, 是注意力"换频道"。
+  </div>
+</div>
+
+
+<!-- H7 -->
+<div class="h-card">
+  <span class="h-tag">猜想 7 · 抗盲区能力的持续性</span>
+  <h3>推送停了, 看见能力会回到 baseline 吗?</h3>
+
+  <div class="h-step predict">
+    <div class="lbl">预测</div>
+    干预一停, 抬头率应该几天内回归对照组水平 — 跟药效消退一样。
+  </div>
+
+  <div class="h-step test">
+    <div class="lbl">怎么测</div>
+    把 14 天分为热身期 (4天) / 干预期 (6天) / 退场期 (4天)。 比较退场期 vs 干预期的"看见人数"比例。
+  </div>
+
+  <div class="h-step result">
+    <div class="lbl">数据</div>
+    退场期 / 干预期 的"看见人数"比例:
+    <ul style="margin: 8px 0; padding-left: 24px;">
+      <li>少看手机 app: <span class="bignum">1.62×</span> ← 推送停了, 看见反而**更多**</li>
+      <li>本街活动 app: <span class="bignum">1.32×</span></li>
+    </ul>
+    物理位置上也不退回原始 home — 干预创造的新 routine 已经"固化"进日常。
+  </div>
+
+  <div class="h-step verdict">
+    <span class="v-flag v-flipped">⚡ 反方向 · 抗盲区能力可沉淀</span>
+    干预的真正价值不是"持续刺激", 是<strong>种下'抬头'的习惯</strong>。 干预停了, 习惯 ricochet —
+    周三去过一次 PLC, 下周三 routine 还在那。 "少看手机" 这个最被动的 app 反弹最强, 因为它种下的是
+    "释放注意力"这种通用能力, 而不是依赖外部刺激。
+  </div>
+</div>
+
+
+<!-- H8 -->
+<div class="h-card">
+  <span class="h-tag">猜想 8 · 谁更容易反盲区</span>
+  <h3>哪种人更容易被"带回附近"?</h3>
+
+  <div class="h-step predict">
+    <div class="lbl">预测</div>
+    外向 / 高 openness / tech-savvy 的人应该响应最强。 内向 / 老人响应弱。
+  </div>
+
+  <div class="h-step test">
+    <div class="lbl">怎么测</div>
+    比较对照组 vs 本街活动 app 组里, 末态位置移了 >100m 的"被带动的人" (~30%), 按各种维度统计差距。
+  </div>
+
+  <div class="h-step result">
+    <div class="lbl">数据</div>
+    <p>各维度"被带动率"差距(高 vs 低 group):</p>
+    <div class="barlist">
+      <div class="row"><span class="lab">routine 程度</span><div class="bar" style="width: 100%;"></div><span class="v">3.1×</span></div>
+      <div class="row"><span class="lab">职业</span><div class="bar" style="width: 68%;"></div><span class="v">2.1×</span></div>
+      <div class="row"><span class="lab">年龄</span><div class="bar" style="width: 55%;"></div><span class="v">1.7×</span></div>
+      <div class="row"><span class="lab">openness</span><div class="bar" style="width: 45%;"></div><span class="v">1.4×</span></div>
+      <div class="row dim"><span class="lab"><strong>外向性</strong></span><div class="bar" style="width: 35%;"></div><span class="v">1.06×</span></div>
+      <div class="row dim"><span class="lab">收入 / 性别</span><div class="bar" style="width: 32%;"></div><span class="v">1.0×</span></div>
+    </div>
+    <p>routine 程度低的 ("不严格按日常 routine 过日子" 的人) 44.8% 被带动, 高 routine 的只 14.3%。
+    年龄上 <strong>25-34 (33.8%) 和 65-74 (33.6%) 双峰高</strong>, 18-24 最低 (20.2%)。</p>
+  </div>
+
+  <div class="h-step verdict">
+    <span class="v-flag v-flipped">⚡ 反方向 · 维度看错了</span>
+    反盲区能力跟"性格外向不外向"几乎无关 (1.06× 差距)。 真正的 lever 是 <strong>"是否愿意打破日常 routine"</strong>。
+    年龄不是"年轻人响应高", 是 ∩-shape — 时间最灵活的两端(25-34 family-with-kids / 65-74 退休)反盲区能力最强,
+    被工作绑死的 18-24 反而最被盲区困住。
+  </div>
+</div>
+
+
+<!-- ====================== CONCLUSIONS ====================== -->
+
+<h2 id="conclusions">5 个结论 · 关于"看不见的邻居"</h2>
+
+<div class="concl-grid">
+  <div class="concl">
+    <div class="c-tag">结论 1 · 盲区的基线</div>
+    <h3>默认盲区 = 90.5%</h3>
+    <p>1,000 人小镇里, 物理同框 600 万次, 真正看见对方的只 60 万次。 你身边的"邻居"绝大多数处于看不见的状态。
+    这不是 hypothesis,是基线事实。 任何反盲区干预都从这个 9.5% 起步。</p>
+  </div>
+
+  <div class="concl">
+    <div class="c-tag">结论 2 · 最强的反盲区工具</div>
+    <h3>"少看手机" app 让抬头率从 9.5% 涨到 14.6% (+54%)</h3>
+    <p>不告诉你去哪、 不创造新场景, 只是释放注意力 — 这是 4 种 app 里反盲区效率最高的一种。
+    1,000 人小镇 14 天累计 "互相看见过" 的人对数从 8K 涨到 21K (2.6×), 其中 94.8% 是对照组里从没看见过的新人脸。</p>
+  </div>
+
+  <div class="concl">
+    <div class="c-tag">结论 3 · "Hyperlocal" 的命名悖论</div>
+    <h3>本街推送让"楼下 100m 看见率" 砍半 (17.3% → 8.1%)</h3>
+    <p>"hyperlocal" 推送的 anchor 不在你家 100m, 在 500-1500m 处的 PLC / 教堂。 它把你从近邻圈拉到中距离 anchor 集中。
+    想真正加强紧邻 (楼下、 隔壁), hyperlocal push 反而 counterproductive — anchor 必须落在 200m 内才有效。</p>
+  </div>
+
+  <div class="concl">
+    <div class="c-tag">结论 4 · 隐形盲区机</div>
+    <h3>全球新闻 app 是 "在场不看见" 的纯放大器</h3>
+    <p>全球新闻 app 不让人物理位移 (89.5% 末态完全一样), 但抬头率跟对照组几乎一样 (9.6% vs 9.5%)。
+    最危险的 app 不是把你拉去远处, 是 <strong>让你身在邻居身边却没察觉</strong> — 这种盲区是最隐形的, 因为你以为自己"在场"。</p>
+  </div>
+
+  <div class="concl">
+    <div class="c-tag">结论 5 · 抗盲区能力可沉淀</div>
+    <h3>"少看手机"种的习惯, 推送停后 4 天还在 compounding 1.62×</h3>
+    <p>反盲区不是持续推送的产物, 是"种下抬头能力"的产物。 一旦人在干预期养成了"周三下午经过 Plaza 时抬头"的 routine,
+    干预停了 routine 还在 ricochet。 政策意义: 反盲区干预不需要长期投入, 14 天的"种习惯"窗口可以创造长期效应。</p>
+  </div>
+</div>
+
+<p class="pq">
+最危险的不是"附近变少了" — 是"附近变多但没人看见"。 hyperlocal push 把你拉到 5 个 anchor 集中, 看见的人确实多了,
+但代价是 1500+ 个 ghost POI 和 0-100m 邻居被屏蔽。 GD 让你身在原地却注意力跑去 100km 外。
+反盲区干预的关键不是"内容推得准", 是 <strong>"让附近重新进入视野"</strong>。
+</p>
+
+<!-- BROADER zoom-out -->
+<div class="topic" style="background: linear-gradient(135deg, #f4f1ea 0%, #e8e3d0 100%); border-left-color: #2a4a5a; margin-top: 30px;">
+  <h3 style="color: #2a4a5a;">ZOOM OUT · 这 5 个结论对其他"看不见的边界"意味着什么</h3>
+  <p style="font-size: 17px; color: #2a1f18; margin: 14px 0;">
+    附近性盲区只是 invisible border 的一种。 上面 5 个结论的方法论可以重写成更通用的命题:
+  </p>
+  <ul style="font-size: 16px; margin: 14px 0; color: #2a1f18;">
+    <li><strong>结论 1 → 通用</strong>: 任何 visibility-based border, 默认基线都比直觉低很多。
+    "我以为我看见的"和"我真看见的"之间有一个 attention gate, 默认通过率 < 10%。
+    设计任何反 invisible-border 干预前, 先量一下基线 — 通常会很惊讶。</li>
+    <li><strong>结论 2 → 通用</strong>: 最强的 cross-border 工具是<strong>"减少干扰"</strong>(被动),
+    不是"强力推送"(主动)。 在算法 feed 盲区里, 这可能意味着"打开 chronological feed" 比"推荐更准"更有效。</li>
+    <li><strong>结论 3 → 通用</strong>: 命名陷阱 — 标着 "hyperlocal" / "personalized" / "smart" 的工具,
+    实际效果常常是"hyper-non-local" / "depersonalized" / "dumb"。
+    用工具的命名做测试假设是危险的, 必须用 outcome 数据验证。</li>
+    <li><strong>结论 4 → 通用</strong>: 最隐形的 border 不是把你<strong>推开</strong>, 是<strong>让你"以为自己在场"</strong>。
+    GD 的危险在于它没让人位移 — 你以为自己还在本街, 实际上注意力被 algorithmic feed 偷到 CBD。
+    类似地, algorithmic 推荐里最隐形的 bias 不是过滤掉某些内容, 是<strong>让你以为自己接触了多元内容,
+    实际上只接触了 algorithm 想让你看的那部分</strong>。</li>
+    <li><strong>结论 5 → 通用</strong>: 反 invisible-border 干预的真正价值是<strong>种习惯</strong>, 不是持续刺激。
+    14 天的"种抬头能力"窗口可以创造长期 compounding。 政策意义: 短时强干预 > 长期弱干预。</li>
+  </ul>
+  <p style="margin: 14px 0 0; color: #2a4a5a; font-style: italic; font-weight: 600;">
+    "看不见的邻居"是 invisible border 在物理近邻这个维度上的具体表现。
+    我们解决它的方法论 — 虚拟克隆 + 多 universe + attention gate 测量 —
+    可以原样移植到其他 invisible border 类型上 (算法 feed bubble / 推荐系统盲区 / 搜索过滤 / ...)。
+  </p>
+</div>
+
+
+<!-- ====================== ADVICE ====================== -->
+
+<h2 id="advice">6 件可以做的事 · 给做事的人</h2>
+
+<p>看完上面 8 个猜想 + 5 个结论, 下面是从数据里挖出来的 actionable 建议 —
+全部围绕"如何减少看不见的邻居", 不是"如何设计推送"。</p>
+
+<div class="advice">
+  <h4>MEASURE THIS · 测量看见, 不测物理同框</h4>
+  <h3>"擦肩 N 次" 不等于 "认识了 N 个人", 别再用前者做 KPI</h3>
+  <p>本项目最颠覆性的事实: 物理同框 600 万次, 真看见只 60 万次。 任何"邻里 app"的成功指标如果是"用户活跃度 / DAU /
+  推送 open rate / 同时段在场人数", 跟"反盲区"完全脱节。 应该测 <strong>"真注意到对方的瞬间"</strong> —
+  眼神 / 招呼 / 短交谈, 这才是 nearby 不再 invisible 的信号。</p>
+</div>
+
+<div class="advice">
+  <h4>BUILD THIS · 反盲区 app 优于内容 app</h4>
+  <h3>"少看手机"这种被动 app, 反盲区效率比本街活动 app 高 50%</h3>
+  <p>少看手机 app 把抬头率从 9.5% 提到 14.6%, 净涨 54%。 本街活动 app 涨幅小很多 (+8%)。
+  做"邻里 app"的第一直觉是"推内容", 数据说<strong>少推内容、 更轻地干预反而更有效</strong>。 像 iPhone Screen Time
+  / Android Digital Wellbeing 这种工具应该当作社区基础设施, 而不是个人健康功能。</p>
+</div>
+
+<div class="advice">
+  <h4>BEWARE THIS · 紧邻盲区 vs 远邻盲区是两个问题</h4>
+  <h3>本街活动 app 解决远邻盲区, 但加剧紧邻盲区 (0-100m 看见率减半)</h3>
+  <p>政策目标如果是"加强楼下、 隔壁、 公寓大堂"的紧邻关系, hyperlocal push 反而 counterproductive。
+  Anchor 必须落在 home 200m 以内 — 公寓楼大堂、 同栋楼公告板、 楼下咖啡馆 — 才能避免命名悖论。
+  500m 外的 PLC 解决的是中距离 anchor 问题, 不是紧邻问题。</p>
+</div>
+
+<div class="advice">
+  <h4>WATCH OUT FOR · 全球新闻 app 是最隐形的盲区放大器</h4>
+  <h3>它不让人位移, 但抬头率跟对照组一样 — 用户以为"我在场"但其实"看不见"</h3>
+  <p>用户研究里很难抓到这种危害 — 因为受访者会说"我每天都看到楼下邻居的, 只是没聊天而已"。 仿真数据揭示:
+  实际上 <strong>"看见"的数字真的没涨</strong>, 主观感觉里的"在场"是注意力被新闻占据的副产品。
+  最该警惕的 app 不是 TikTok, 是任何"无关本地"的推送源。</p>
+</div>
+
+<div class="advice">
+  <h4>INVEST IN · 培养"抬头能力"比"推送目的地"更长效</h4>
+  <h3>少看手机 app 推送停后 4 天, 反弹是干预期的 1.62 倍</h3>
+  <p>种"释放注意力"的习惯比种"去某个地方"的习惯长效。 政策含义: 反盲区干预不需要长期投入 ——
+  14 天的"种习惯"窗口可以创造长期 compounding。 community 设计的目标应该是"种能力" 而不是"推内容", 因为前者 ricochet。</p>
+</div>
+
+<div class="advice">
+  <h4>TARGET THIS · 盲区受害最深的是 routine-绑定的人</h4>
+  <h3>routine 高的人(严格按日常 routine 过日子)被盲区困得最深, 3 倍于 routine 低的</h3>
+  <p>反盲区干预不应该按"性别 / 年龄 / 收入"分群 — 这些维度几乎 flat。 应该按 <strong>schedule autonomy</strong> 分:
+  18-24 (被工作绑) 反盲区能力最弱, 25-34 (family-with-kids 时间灵活) 和 65-74 (退休) 反盲区能力最强。
+  设计政策时, 优先帮"被 routine 绑死"的群体打开抬头窗口, 不是优先帮"已经在动"的群体。</p>
+</div>
+
+
+<!-- ====================== CAVEATS ====================== -->
+
+<h2 id="caveats">我们知道但还没解决的</h2>
+
+<ul>
+  <li><strong>95% 置信区间还没算</strong> — 本文所有数字是 2 个仿真种子 pooled 的 point estimate。下一阶段加跑第 3 个种子后会带正式 CI 重新陈述。</li>
+  <li><strong>"看见 → 对话" 的转化弱</strong> — 看见的人翻 2.6 倍, 真坐下来对话只多 17%。"看见"是 awareness 的下限, 不是社交关系的充分条件。 本项目 thesis 只覆盖到 awareness 那一层。</li>
+  <li><strong>仿真自带 attention gate 是 9-15% 的过滤率</strong> — 这个数字本身是仿真的设计参数, 不是从真实数据校准的。 真实世界的 notice rate 是 5% 还是 20% 还有待 Phase 2 跟一个真 council pilot 配对校准。</li>
+  <li><strong>"看不见的邻居" 是 awareness 概念, 不直接等于"陌生人"</strong> — 你可能"看见过但忘了", 也可能"听说过但没见过"。 本项目只测了视觉 attention gate, 没测听觉 / 听说传播。</li>
+</ul>
+
+
+<!-- ====================== FOOTNOTE ====================== -->
+
+<h2 id="how">这个仿真是怎么造出来的(简短)</h2>
+
+<p>所有地图来自 OpenStreetMap; 1,000 个虚拟居民按 2021 澳大利亚人口普查的 Lane Cove 数据分布(年龄、 收入、 职业、 家庭、 住址);
+每个人有完整生平、 性格、 日常 routine, 由 AI 实时生成行为。 attention gate 是仿真自带模块, 根据当时是否在用手机、 是否在听耳机、
+是否在专注做别的事, 决定一次物理同框是否升级为"真注意到"。</p>
+
+<p>4 个平行 Lane Cove 同时跑, 一晚上跑完一整轮 14 天。 总成本约 USD 500 / 3 seed × 4 variant 完整 run。
+系统开源, 可以换 OpenStreetMap 数据后跑悉尼任何 walkable 小区。 我们 hand 出去的不是 Lane Cove 这个结果,
+是 <strong>这个可以反复重跑的反盲区测量工具</strong>。</p>
+
+
+<footer>
+  Synthetic Socio Wind Tunnel · v6 · 2026-05-24<br>
+  完全围绕项目核心 thesis "附近性盲区" 重组 ·
+  数据口径: attention gate noticed 子集 (encounter tags) ·<br>
+  对比版本: <a href="项目实验结果_v5.html">v5 (plain-English 通用版)</a> ·
+  <a href="项目实验结果_v4.html">v4 (21 H audit 版)</a> ·
+  <a href="项目实验结果.html">v3 (8-finding 详证版)</a> ·
+  3 篇虚拟居民案例研究 <a href="case_studies/_published/">→ 这里</a>
+</footer>
+
+</body>
+</html>

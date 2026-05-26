@@ -1,0 +1,170 @@
+{
+  "43|baseline": {
+    "weekday": {
+      "encounter_count": 544071.8,
+      "distinct_pairs": 22789.7,
+      "move_success": 287975.6,
+      "new_ties": 1365.1
+    },
+    "weekend": {
+      "encounter_count": 518164.5,
+      "distinct_pairs": 62086.75,
+      "move_success": 288000,
+      "new_ties": 4209.5
+    }
+  },
+  "43|hyperlocal_push": {
+    "weekday": {
+      "encounter_count": 2977133.4,
+      "distinct_pairs": 32740.9,
+      "move_success": 287805.9,
+      "new_ties": 5663
+    },
+    "weekend": {
+      "encounter_count": 2832289.25,
+      "distinct_pairs": 59784.75,
+      "move_success": 287871.5,
+      "new_ties": 4576.25
+    }
+  },
+  "43|global_distraction": {
+    "weekday": {
+      "encounter_count": 692375.8,
+      "distinct_pairs": 22888.4,
+      "move_success": 287949.6,
+      "new_ties": 538.2
+    },
+    "weekend": {
+      "encounter_count": 683589,
+      "distinct_pairs": 58153.75,
+      "move_success": 287998,
+      "new_ties": 0
+    }
+  },
+  "43|phone_friction": {
+    "weekday": {
+      "encounter_count": 2480664.2,
+      "distinct_pairs": 30334.7,
+      "move_success": 287776.1,
+      "new_ties": 5870.3
+    },
+    "weekend": {
+      "encounter_count": 2605058.25,
+      "distinct_pairs": 57755.75,
+      "move_success": 287852.25,
+      "new_ties": 6416
+    }
+  },
+  "44|baseline": {
+    "weekday": {
+      "encounter_count": 585843,
+      "distinct_pairs": 23333.2,
+      "move_success": 287978.1,
+      "new_ties": 2050.3
+    },
+    "weekend": {
+      "encounter_count": 513666.25,
+      "distinct_pairs": 60597.5,
+      "move_success": 288000,
+      "new_ties": 6126
+    }
+  },
+  "44|hyperlocal_push": {
+    "weekday": {
+      "encounter_count": 2502963.2,
+      "distinct_pairs": 30085.4,
+      "move_success": 287688.5,
+      "new_ties": 5228.2
+    },
+    "weekend": {
+      "encounter_count": 2252137,
+      "distinct_pairs": 56101,
+      "move_success": 287806.5,
+      "new_ties": 7180.25
+    }
+  },
+  "44|global_distraction": {
+    "weekday": {
+      "encounter_count": 838355.5,
+      "distinct_pairs": 23355.3,
+      "move_success": 287917,
+      "new_ties": 2318.7
+    },
+    "weekend": {
+      "encounter_count": 785123.25,
+      "distinct_pairs": 56335,
+      "move_success": 287932,
+      "new_ties": 5788.75
+    }
+  },
+  "44|phone_friction": {
+    "weekday": {
+      "encounter_count": 2761962.7,
+      "distinct_pairs": 31222.9,
+      "move_success": 287690.4,
+      "new_ties": 7339
+    },
+    "weekend": {
+      "encounter_count": 2623832.25,
+      "distinct_pairs": 57484,
+      "move_success": 287830,
+      "new_ties": 9105.25
+    }
+  },
+  "45|baseline": {
+    "weekday": {
+      "encounter_count": 661973.9,
+      "distinct_pairs": 22551.4,
+      "move_success": 287985.4,
+      "new_ties": 1995
+    },
+    "weekend": {
+      "encounter_count": 528577.5,
+      "distinct_pairs": 56194,
+      "move_success": 288000,
+      "new_ties": 5793
+    }
+  },
+  "45|hyperlocal_push": {
+    "weekday": {
+      "encounter_count": 2933370.4,
+      "distinct_pairs": 31491.2,
+      "move_success": 287827,
+      "new_ties": 5819.7
+    },
+    "weekend": {
+      "encounter_count": 2690170.5,
+      "distinct_pairs": 53238,
+      "move_success": 287872,
+      "new_ties": 7211.75
+    }
+  },
+  "45|global_distraction": {
+    "weekday": {
+      "encounter_count": 820474.3,
+      "distinct_pairs": 22519.8,
+      "move_success": 287970.1,
+      "new_ties": 2239
+    },
+    "weekend": {
+      "encounter_count": 714681.25,
+      "distinct_pairs": 52976,
+      "move_success": 287990.75,
+      "new_ties": 5659.25
+    }
+  },
+  "45|phone_friction": {
+    "weekday": {
+      "encounter_count": 2632740.6,
+      "distinct_pairs": 30543.8,
+      "move_success": 287813.2,
+      "new_ties": 7024.1
+    },
+    "weekend": {
+      "encounter_count": 2634039.5,
+      "distinct_pairs": 53494.25,
+      "move_success": 287866.5,
+      "new_ties": 9247.5
+    }
+  }
+}

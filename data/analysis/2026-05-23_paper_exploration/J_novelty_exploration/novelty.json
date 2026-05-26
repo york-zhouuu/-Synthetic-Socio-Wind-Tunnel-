@@ -1,0 +1,86 @@
+{
+  "43|baseline": {
+    "median_novel_locs_per_agent": 78.0,
+    "mean_novel_locs_per_agent": 76.984,
+    "mean_novel_pct_of_int_visits": 1.0,
+    "mean_stuck_in_post_pct": 0.6584584316171951,
+    "n_agents_with_int_visits": 1000
+  },
+  "43|hyperlocal_push": {
+    "median_novel_locs_per_agent": 91.0,
+    "mean_novel_locs_per_agent": 92.02,
+    "mean_novel_pct_of_int_visits": 1.0,
+    "mean_stuck_in_post_pct": 0.6242141113605608,
+    "n_agents_with_int_visits": 1000
+  },
+  "43|global_distraction": {
+    "median_novel_locs_per_agent": 0,
+    "mean_novel_locs_per_agent": 0,
+    "mean_novel_pct_of_int_visits": 0,
+    "mean_stuck_in_post_pct": 0,
+    "n_agents_with_int_visits": 1000
+  },
+  "43|phone_friction": {
+    "median_novel_locs_per_agent": 79.0,
+    "mean_novel_locs_per_agent": 82.534,
+    "mean_novel_pct_of_int_visits": 1.0,
+    "mean_stuck_in_post_pct": 0.6562413012655579,
+    "n_agents_with_int_visits": 1000
+  },
+  "44|baseline": {
+    "median_novel_locs_per_agent": 174.0,
+    "mean_novel_locs_per_agent": 176.92342342342343,
+    "mean_novel_pct_of_int_visits": 0.9938844256812727,
+    "mean_stuck_in_post_pct": 0.513186696094333,
+    "n_agents_with_int_visits": 888
+  },
+  "44|hyperlocal_push": {
+    "median_novel_locs_per_agent": 157.0,
+    "mean_novel_locs_per_agent": 158.65207877461708,
+    "mean_novel_pct_of_int_visits": 0.9922014538056095,
+    "mean_stuck_in_post_pct": 0.5016784627222853,
+    "n_agents_with_int_visits": 920
+  },
+  "44|global_distraction": {
+    "median_novel_locs_per_agent": 167,
+    "mean_novel_locs_per_agent": 170.33930571108624,
+    "mean_novel_pct_of_int_visits": 0.993573415062883,
+    "mean_stuck_in_post_pct": 0.5111741992794754,
+    "n_agents_with_int_visits": 893
+  },
+  "44|phone_friction": {
+    "median_novel_locs_per_agent": 156,
+    "mean_novel_locs_per_agent": 156.43947655398037,
+    "mean_novel_pct_of_int_visits": 0.9923426888370013,
+    "mean_stuck_in_post_pct": 0.4748201757705049,
+    "n_agents_with_int_visits": 928
+  },
+  "45|baseline": {
+    "median_novel_locs_per_agent": 171.0,
+    "mean_novel_locs_per_agent": 173.29886363636365,
+    "mean_novel_pct_of_int_visits": 0.9937056786480586,
+    "mean_stuck_in_post_pct": 0.5130118118425165,
+    "n_agents_with_int_visits": 880
+  },
+  "45|hyperlocal_push": {
+    "median_novel_locs_per_agent": 150,
+    "mean_novel_locs_per_agent": 153.06215921483098,
+    "mean_novel_pct_of_int_visits": 0.9914306152987785,
+    "mean_stuck_in_post_pct": 0.5022384339358582,
+    "n_agents_with_int_visits": 919
+  },
+  "45|global_distraction": {
+    "median_novel_locs_per_agent": 167.0,
+    "mean_novel_locs_per_agent": 169.51238738738738,
+    "mean_novel_pct_of_int_visits": 0.993599438280343,
+    "mean_stuck_in_post_pct": 0.5099687032016931,
+    "n_agents_with_int_visits": 888
+  },
+  "45|phone_friction": {
+    "median_novel_locs_per_agent": 155.0,
+    "mean_novel_locs_per_agent": 155.55786026200875,
+    "mean_novel_pct_of_int_visits": 0.9924560285037104,
+    "mean_stuck_in_post_pct": 0.46394398758394395,
+    "n_agents_with_int_visits": 924
+  }
+}

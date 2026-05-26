@@ -1,0 +1,1115 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>三种推送, 三个城市 — 注意力干预如何重写邻里</title>
+<style>
+  :root {
+    --bg: #FCFAF6;
+    --ink: #1B1F2A;
+    --ink-soft: #3a3a3a;
+    --text: #2a2a2a;
+    --muted: #6a6358;
+    --rule: #d8d0c2;
+    --pink: #FF4D8F;
+    --pink-deep: #C8245E;
+    --grey-warm: #9E988C;
+    --highlight: #FFF4E6;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    padding: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Source Han Serif SC", "Songti SC", "Noto Serif CJK SC",
+                 "Charter", Georgia, serif;
+    font-size: 17px;
+    line-height: 1.85;
+    -webkit-font-smoothing: antialiased;
+  }
+  .container {
+    max-width: 880px;
+    margin: 0 auto;
+    padding: 80px 56px 140px;
+  }
+
+  /* Eyebrow */
+  .eyebrow {
+    font-family: "Inter", -apple-system, "PingFang SC", "Hiragino Sans GB",
+                 sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--pink-deep);
+    margin: 0 0 14px;
+  }
+
+  /* Hero header */
+  header.lead h1 {
+    font-family: "PingFang SC", "Hiragino Sans GB", "Source Han Sans SC",
+                 "Microsoft YaHei", sans-serif;
+    font-size: 44px;
+    font-weight: 700;
+    line-height: 1.25;
+    letter-spacing: -0.005em;
+    color: var(--ink);
+    margin: 0 0 24px;
+  }
+  header.lead .deck {
+    font-family: "PingFang SC", "Hiragino Sans GB", sans-serif;
+    font-size: 17px;
+    font-weight: 400;
+    color: var(--muted);
+    margin: 0 0 40px;
+    line-height: 1.7;
+  }
+  blockquote.opener {
+    margin: 36px 0 24px;
+    padding: 28px 32px;
+    border: none;
+    border-left: 4px solid var(--pink);
+    background: linear-gradient(90deg, rgba(255,77,143,0.06) 0%, rgba(255,77,143,0.00) 100%);
+    font-family: "Source Han Serif SC", "Songti SC", serif;
+    font-size: 22px;
+    font-weight: 400;
+    line-height: 1.6;
+    color: var(--ink);
+  }
+  blockquote.opener cite {
+    display: block;
+    margin-top: 14px;
+    font-family: "PingFang SC", "Hiragino Sans GB", sans-serif;
+    font-style: normal;
+    font-size: 13px;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+  }
+
+  /* Section headings */
+  h2.section {
+    font-family: "PingFang SC", "Hiragino Sans GB", sans-serif;
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: -0.005em;
+    color: var(--ink);
+    margin: 100px 0 8px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid var(--ink);
+    line-height: 1.3;
+  }
+  h2.section .num {
+    color: var(--pink-deep);
+    font-weight: 700;
+    margin-right: 14px;
+    font-family: "Inter", sans-serif;
+  }
+  .section-deck {
+    font-family: "Source Han Serif SC", "Songti SC", serif;
+    font-size: 19px;
+    color: var(--ink-soft);
+    margin: 0 0 32px;
+    line-height: 1.55;
+  }
+
+  /* Body */
+  p { margin: 0 0 18px; }
+  strong { color: var(--ink); font-weight: 700; }
+  em { font-style: normal; color: var(--ink-soft); font-weight: 600; }
+  a { color: var(--pink-deep); text-decoration: none; border-bottom: 1px dotted var(--pink-deep); }
+  a:hover { color: var(--pink); }
+  code {
+    font-family: "SF Mono", Menlo, Consolas, monospace;
+    font-size: 0.88em;
+    background: rgba(255,77,143,0.06);
+    padding: 1px 5px;
+    border-radius: 3px;
+    color: var(--ink-soft);
+  }
+
+  /* Pullquote */
+  .pullquote {
+    margin: 50px -20px;
+    padding: 36px 40px;
+    border-top: 1px solid var(--ink);
+    border-bottom: 1px solid var(--ink);
+    font-family: "Source Han Serif SC", "Songti SC", serif;
+    font-size: 25px;
+    font-weight: 400;
+    line-height: 1.55;
+    color: var(--ink);
+    text-align: center;
+  }
+  .pullquote .pq-sub {
+    display: block;
+    margin-top: 18px;
+    font-family: "PingFang SC", "Hiragino Sans GB", sans-serif;
+    font-size: 13px;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+  }
+
+  /* Headline stat */
+  .headline-stat {
+    margin: 36px auto 28px;
+    padding: 30px 36px;
+    background: #fff;
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    display: grid;
+    grid-template-columns: 140px 1fr;
+    gap: 28px;
+    align-items: center;
+  }
+  .headline-stat .hs-num {
+    font-family: "Inter", sans-serif;
+    font-size: 72px;
+    font-weight: 800;
+    line-height: 1;
+    letter-spacing: -0.04em;
+    color: var(--pink-deep);
+    text-align: right;
+  }
+  .headline-stat .hs-body p { margin: 0; }
+  .headline-stat .hs-body .hs-lab {
+    font-family: "PingFang SC", "Hiragino Sans GB", sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    color: var(--muted);
+    margin: 0 0 8px;
+  }
+  .headline-stat .hs-body .hs-cap {
+    font-family: "Source Han Serif SC", "Songti SC", serif;
+    font-size: 17px;
+    color: var(--ink);
+    line-height: 1.7;
+  }
+  .headline-stat .hs-body .hs-fine {
+    font-family: "PingFang SC", "Hiragino Sans GB", sans-serif;
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 8px;
+    letter-spacing: 0.03em;
+  }
+
+  /* Figures */
+  figure.hero, figure.companion {
+    margin: 50px 0 30px;
+    padding: 0;
+  }
+  figure.hero {
+    margin-left: calc(-1 * (50vw - 50%) + 32px);
+    margin-right: calc(-1 * (50vw - 50%) + 32px);
+    max-width: 1280px;
+  }
+  figure object.svg-fig {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+  figure figcaption {
+    margin-top: 14px;
+    padding: 0 4px;
+    font-family: "PingFang SC", "Hiragino Sans GB", sans-serif;
+    font-size: 13.5px;
+    line-height: 1.65;
+    color: var(--muted);
+    text-align: left;
+  }
+  figure figcaption strong { color: var(--ink); font-weight: 700; }
+  figure figcaption .fig-num {
+    font-family: "Inter", sans-serif;
+    font-weight: 800;
+    letter-spacing: 0.18em;
+    color: var(--pink-deep);
+    margin-right: 8px;
+    font-size: 12px;
+  }
+
+  /* Stub */
+  .stub {
+    margin: 24px 0;
+    padding: 22px 26px;
+    background: #fff;
+    border: 1px dashed var(--rule);
+    border-radius: 4px;
+    font-family: "PingFang SC", "Hiragino Sans GB", sans-serif;
+    font-size: 14.5px;
+    color: var(--muted);
+    line-height: 1.75;
+  }
+  .stub .stub-lab {
+    font-weight: 700;
+    color: var(--pink-deep);
+    letter-spacing: 0.15em;
+    font-size: 11px;
+    margin-bottom: 8px;
+  }
+  .stub ul { margin: 8px 0 0 0; padding-left: 22px; }
+  .stub li { margin: 6px 0; }
+
+  /* Footnote */
+  .footnote {
+    margin: 24px 0;
+    padding-top: 18px;
+    border-top: 1px solid var(--rule);
+    font-family: "PingFang SC", "Hiragino Sans GB", sans-serif;
+    font-size: 13.5px;
+    color: var(--muted);
+    line-height: 1.7;
+  }
+  .footnote .fn-lab {
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    font-size: 11px;
+    color: var(--ink);
+  }
+
+  /* Footer */
+  footer.site {
+    margin: 100px 0 0;
+    padding: 36px 0 12px;
+    border-top: 1px solid var(--rule);
+    font-family: "PingFang SC", "Hiragino Sans GB", sans-serif;
+    font-size: 12.5px;
+    color: var(--muted);
+    line-height: 1.7;
+  }
+  footer.site .footer-stack { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  footer.site strong { color: var(--ink); }
+
+  /* Inline emphasis */
+  .pct {
+    font-family: "Inter", sans-serif;
+    font-weight: 700;
+    color: var(--pink-deep);
+  }
+
+  /* TOC */
+  nav.toc {
+    margin: 30px 0 50px;
+    padding: 18px 22px;
+    background: #fff;
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    font-family: "PingFang SC", "Hiragino Sans GB", sans-serif;
+    font-size: 13.5px;
+  }
+  nav.toc .toc-lab {
+    display: block;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    font-size: 11px;
+    color: var(--muted);
+    margin-bottom: 10px;
+  }
+  nav.toc a {
+    display: inline-block;
+    margin-right: 14px;
+    color: var(--ink);
+    border-bottom: 1px solid transparent;
+    padding-bottom: 1px;
+    line-height: 2;
+  }
+  nav.toc a:hover { border-bottom-color: var(--pink); color: var(--pink-deep); }
+  nav.toc a.ready { color: var(--pink-deep); border-bottom: 1px dotted var(--pink-deep); }
+
+  /* TL;DR box */
+  .tldr {
+    margin: 28px 0 36px;
+    padding: 22px 28px;
+    background: #F1ECDF;
+    border-left: 5px solid var(--pink-deep);
+    border-radius: 4px;
+    font-family: "Source Han Serif SC", "Songti SC", serif;
+    font-size: 16.5px;
+    line-height: 1.85;
+    color: var(--ink);
+  }
+  .tldr .tldr-lab {
+    display: block;
+    font-family: "PingFang SC", "Hiragino Sans GB", sans-serif;
+    font-size: 11.5px;
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    color: var(--pink-deep);
+    margin-bottom: 12px;
+  }
+  .tldr ol { margin: 0; padding-left: 26px; }
+  .tldr li { margin: 10px 0; }
+  .tldr strong { color: var(--pink-deep); font-weight: 700; }
+
+  /* Finding navigation breadcrumb */
+  nav.finding-nav {
+    margin: -8px 0 28px;
+    padding: 10px 16px;
+    background: #fff;
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    font-family: "PingFang SC", "Hiragino Sans GB", sans-serif;
+    font-size: 13px;
+    color: var(--muted);
+    display: flex; justify-content: space-between; align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  nav.finding-nav .fn-cur { color: var(--pink-deep); font-weight: 700; }
+  nav.finding-nav a { color: var(--ink-soft); text-decoration: none; border: none; padding: 4px 0; }
+  nav.finding-nav a:hover { color: var(--pink-deep); }
+  nav.finding-nav .fn-arc { color: var(--muted); font-size: 11px; letter-spacing: 0.14em; font-weight: 600; }
+
+  /* Language switch */
+  .lang-switch {
+    position: fixed;
+    top: 22px;
+    right: 28px;
+    font-family: "Inter", sans-serif;
+    font-size: 12px;
+    letter-spacing: 0.14em;
+    background: #fff;
+    padding: 7px 14px;
+    border: 1px solid var(--rule);
+    border-radius: 24px;
+    color: var(--ink);
+    z-index: 100;
+  }
+  .lang-switch a {
+    color: var(--muted);
+    border: none;
+    text-decoration: none;
+  }
+  .lang-switch a:hover { color: var(--pink-deep); }
+  .lang-switch .cur { color: var(--pink-deep); font-weight: 700; }
+</style>
+</head>
+<body>
+
+<div class="lang-switch">
+  <span class="cur">中文</span> · <a href="项目实验结果_v7.html">EN</a>
+</div>
+
+<div class="container">
+
+  <!-- ===================== HERO HEADER ===================== -->
+  <header class="lead">
+    <p class="eyebrow">一座注意力干预的城市风洞</p>
+    <h1>三种推送, 三个城市 — 干预设计究竟在做什么</h1>
+    <p class="deck">
+      一千个居民,十四天,四个平行 condition:超在地推送 · 全球分心 · 手机摩擦 ·
+      无 app 对照。 一个测注意力中介干预如何改写"谁看见谁"的城市风洞。
+    </p>
+
+    <blockquote class="opener">
+      一套 1,000 米半径的"超在地"推送, 在 14 天里对 1,000 个 Lane Cove 模拟居民推荐
+      "附近不常被用的地点", 把 <strong>80%</strong> 被重新分配的 dwell 时长集中到 5 个
+      社区 anchor 上。 该 finding 把 recommender-system 文献中已记录的 hub-concentration
+      效应(Bertelli et al. 2025;Sànchez-Moreno et al. 2022)延伸进定义"超在地"推荐的
+      小半径范围内。
+      <cite>超在地推送 vs 无 app 对照 · 1,000 居民 · 14 天 · seed 43</cite>
+    </blockquote>
+
+    <div class="tldr">
+      <span class="tldr-lab">TL;DR · 三个发现, 三句话</span>
+      <ol>
+        <li>宣扬本地主义的推送, 实际上在物理空间制造<strong>"数字踩踏"</strong> —— 80% 重新分配的注意力被 5 个地标垄断。</li>
+        <li>放下手机带来的<strong>"盲盒社交"</strong>, 规模远大于算法的精准推荐 —— 而且收的是<strong>完全不同的另一组 anchor</strong>。</li>
+        <li>算法改变不了被生活锁死的人。 响应推送的从来不是性格, 而是日常的<strong>闲暇</strong> —— routine 的松紧。</li>
+      </ol>
+    </div>
+
+    <nav class="toc">
+      <span class="toc-lab">目录</span>
+      <a href="#intro">1 · 引言</a>
+      <a href="#background">2 · 背景</a>
+      <a href="#method">3 · 方法</a>
+      <a class="ready" href="#f1">4 · Finding 1 · 集中</a>
+      <a class="ready" href="#f2">5 · Finding 2 · 摩擦</a>
+      <a class="ready" href="#f3">6 · Finding 3 · 触及</a>
+      <a href="#synthesis">7 · 综合</a>
+      <a href="#discussion">8 · 讨论</a>
+    </nav>
+  </header>
+
+  <!-- ===================== § 1 引言 ===================== -->
+  <section id="intro">
+    <h2 class="section"><span class="num">1</span>引言</h2>
+    <p class="section-deck">
+      21 世纪的城市出现了一类新的边界:它不挡身体, 它挡注意力。 本文要问的是, 当我们试图把注意力推回来时, 究竟会发生什么。
+    </p>
+
+    <p>
+      两米外正在看手机的邻居, 在"被识别"这件事上, 跟你不在同一座城市。 智能手机是这种注意力中介隔离最显眼的载体, 但这种现象不依附于任何单一技术 —— 它存在于"注意力在公共空间里如何被争夺"这一结构里。 实证观察现在已经印证了设计直觉过去十年所暗示的:Hampton, Goulet &amp; Albanesius (2025, <em>PNAS</em>) 用计算机视觉重拍了 William H. Whyte 1970 年代的公共空间影像, 发现"进入公共空间并加入某个 group 的行人比例从 5.5% 降到了 2%"。 这是否是 Jane Jacobs (1961) 笔下"sidewalk ballet"的长期衰减是一个方法论问题; 但这种衰减是可被测量的, 已经没有疑问。
+    </p>
+
+    <p>
+      为了把注意力推回"附近", 已经有几类干预 archetype 被提出。 <em>超在地推荐</em> app 建议附近不常被用的地点。 <em>摩擦式设计</em>(灰阶手机、 时间限制、 microboundaries; Cox et al., CHI EA 2016)降低手机吸引力以释放 in-person 注意力。 <em>civic-tech 内容干预</em>把本地故事推到全国新闻之前。 每种 archetype 都已经在个体层面被研究过。 然而每种干预在<em>城市人口 encounter 尺度</em>上如何重塑注意力 —— 跨数千居民、 数日、 在每个 venue 的社会语境与每个居民的 routine adherence 对分析者完全可见的设置里 —— 一直是真实世界部署研究力所不及的。
+    </p>
+
+    <p>
+      本文用一套完全可观测的仿真来回答这个问题。 1,000 个虚拟 Lane Cove (悉尼北郊 SA2) 居民, 在 14 天里生活、 工作、 移动, 处于 4 个平行 condition:无 app(baseline)、 超在地推送、 全球分心、 手机摩擦。 每一次居民之间的物理同框都被记录, 并通过一个 attention gate 决定这次相遇是否记为 <em>noticed</em>。 后续 finding 都是<strong>对比性</strong>的。 它们提问:
+    </p>
+
+    <ol style="margin: 8px 0 18px 22px; padding: 0;">
+      <li style="margin: 8px 0;">当一个小半径的推荐器被指示推送"附近不常被用的地点"时, 注意力实际去了哪? <strong>(Finding 1)</strong></li>
+      <li style="margin: 8px 0;">撤掉来自竞争平台的注意力, 是否能产生与主动推荐附近地点相当的 in-person 关系? <strong>(Finding 2)</strong></li>
+      <li style="margin: 8px 0;">人口中有多大比例对注意力中介干预有反应, 又是什么预测了反应? <strong>(Finding 3)</strong></li>
+    </ol>
+
+    <p>
+      3 个 mechanism 单独看都不新。 每个 finding 都延伸的是一项已发表文献 —— 推荐系统 popularity bias、 HCI friction-as-design、 习惯研究关于干预触及的研究。 完全可观测的仿真提供的, 是把这些 mechanism 在<em>同一个场景</em>下、 在完整社会语境中, <em>相互对照</em>地读出来的能力。 这一贡献既是方法论的, 也是经验性的。 finding 不是任何真实邻里绝对数字的点估计; 它们是风洞使之可见的<em>对比性形状</em>。
+    </p>
+  </section>
+
+  <!-- ===================== § 2 背景 ===================== -->
+  <section id="background">
+    <h2 class="section"><span class="num">2</span>背景</h2>
+    <p class="section-deck">
+      4 条文献从不同方向汇聚到同一个 gap。 本文位于它们的交点。
+    </p>
+
+    <h3 style="font-family:'PingFang SC',sans-serif; font-size:16px; font-weight:700; color:var(--ink); margin:24px 0 8px;">注意力的城市社会学</h3>
+    <p>
+      Jane Jacobs 在《美国大城市的死与生》(1961) 把人行道层面的物理同框当作城市社会生活的基底 —— "sidewalk ballet" 生产 familiar stranger、 弱关系与社区维护。 Mark Granovetter (1973, <em>AJS</em>) 形式化了社交网络层面的对应:新信息和机会不成比例地通过弱关系流动, 公共空间里的偶然 encounter 因此具有结构性重要性。 Stanley Milgram (1972) 命名了基本单位 —— <em>familiar stranger</em> —— 由"观察、 重复、 没有互动"3 个条件构成。 智能手机时代的文献记录了这一基底衰减的 mechanism:Hatuka &amp; Toch (2014) 关于"portable private territory"、 Hampton et al. (2025, <em>PNAS</em>) 关于公共空间 group-joining 行为可测的下降、 Misra et al. (2016) 关于手机仅仅 mere presence 带来的社会-情感代价。
+    </p>
+
+    <h3 style="font-family:'PingFang SC',sans-serif; font-size:16px; font-weight:700; color:var(--ink); margin:24px 0 8px;">推荐系统的 popularity bias</h3>
+    <p>
+      Location-based recommender system 长期被研究, 其在 individual feed 上看起来多样化、 在集体层面却把注意力集中到少数热门 venue 上的特性已有充分记录。 Sànchez-Moreno et al. (2022, <em>Data Mining and Knowledge Discovery</em>) 归纳了 4 种 polarisation 形态。 Bertelli et al. (2025, <em>Machine Learning</em>) 报告:推荐系统"持续在个体层面增加访问场所的多样性", 但"可能同时通过把访问集中到少数热门地点上, 放大集体层面的不平等"。 纠偏手段已经发展(Qin et al. 2023; Klimashevskaia et al. 2024)。 这一文献从未能直接获取的, 是被集中到的 venue 在某个具体邻里中<em>究竟是什么</em>。 Finding 1 落在这一 gap。
+    </p>
+
+    <h3 style="font-family:'PingFang SC',sans-serif; font-size:16px; font-weight:700; color:var(--ink); margin:24px 0 8px;">HCI: 摩擦 vs 推送 作为两种并行设计 archetype</h3>
+    <p>
+      Anna Cox 等 (CHI EA 2016) 为"主动加摩擦的设计"命名了 canonical 框架 —— microboundaries:打断自动交互、 促成 reflective 反应的小障碍。 Mejtoft, Parsjö &amp; Norlin (2023, <em>ECCE</em>) 明确把摩擦与 nudge 对置为两种相反的干预 archetype。 摩擦-by-removal 在个体层面的证据是吻合的:Hunt et al. (2018, <em>J. Social and Clinical Psychology</em>) 把社交平台使用限制到每天每平台 10 分钟、 持续 3 周, 观察到孤独感与抑郁下降; Allcott et al. (2020, NBER w25514) 停用 Facebook 4 周, 观察到 offline 社交增加。 在城市人口尺度上对推送与摩擦的直接比较一直空缺。 Finding 2 落在这一 gap。
+    </p>
+
+    <h3 style="font-family:'PingFang SC',sans-serif; font-size:16px; font-weight:700; color:var(--ink); margin:24px 0 8px;">习惯研究与干预触及</h3>
+    <p>
+      Wood, Quinn &amp; Kashy (2002, <em>J. Personality and Social Psychology</em>) 用每小时日记追踪 209 个本科生, 发现 43% 的行为是几乎每天在同一情境下重复的。 Verplanken &amp; Orbell (2003) 用 Self-Report Habit Index 把这操作化, 指出习惯的自动性使其"对修改相当抵抗"。 Hägerstrand 的 time geography (1970, <em>Papers of the Regional Science Association</em>) 提供了地理 mechanism:日常 space-time 路径受 capability、 coupling、 authority 三类约束塑造, 留下可替换活动的 space-time prism。 数字干预参与文献长期报告 Pareto-shaped 响应 (JMIR 2024 mHealth 系统综述:sustained engagement 介于 0.5–28.6%), 却没有命名响应不对称背后的结构性预测变量。 Finding 3 落在这一 gap。
+    </p>
+
+    <p>
+      本文不试图内部解决这 4 条文献中的任何一条。 它用一套完全可观测的仿真, 把每条文献从自身角度命名的结构, 在 4 条同时可见的场景里浮现出来。
+    </p>
+  </section>
+
+  <!-- ===================== § 3 方法 ===================== -->
+  <section id="method">
+    <h2 class="section"><span class="num">3</span>方法</h2>
+    <p class="section-deck">
+      一套完全埋点的仿真:1,000 居民、 14 天、 4 个平行干预 condition, 共享相同的 biography、 routine、 attention gate。
+    </p>
+
+    <h3 style="font-family:'PingFang SC',sans-serif; font-size:16px; font-weight:700; color:var(--ink); margin:24px 0 8px;">仿真器</h3>
+    <p>
+      Lane Cove SA2(悉尼北郊)从 OpenStreetMap 几何按建筑与户外区域级别重建:在距社区 hub 1,000 米半径内有约 5,000 座建筑、 约 2,400 个活跃 POI。 1,000 个虚拟居民被赋予完整生平(职业、 家庭、 年龄、 routine、 Big Five 性格、 routine adherence), 输入参照该 SA2 的 2021 澳大利亚 census 分布。 每位居民的日常 plan 由 LLM 在其生平条件下生成, 然后由 planner 按 tick(1 tick = 5 模拟分钟)逐步执行:选目的地、 在 atlas 内移动 agent、 在每次 5 米内物理同框时 emit encounter event。
+    </p>
+
+    <h3 style="font-family:'PingFang SC',sans-serif; font-size:16px; font-weight:700; color:var(--ink); margin:24px 0 8px;">Attention gate 与 <em>noticed</em> 事件</h3>
+    <p>
+      两名居民在同一 tick 内进入 5 米半径时, 仿真器为每个观察者视角 emit 一个 <em>encounter</em> 事件。 每个事件经一道 attention gate —— 基于手机使用状态、 当前活动 focus、 认知负荷 —— 决定标记为 <em>noticed</em> 还是 <em>unnoticed</em>。 当双方观察者在同一次物理同框中都过了 gate, 该 pair 被记为 <em>mutually noticed</em>。 本文的主分析单位是 4 个 condition 下的 noticed-event 子集; 所有对比 finding 都基于它计算。
+    </p>
+
+    <h3 style="font-family:'PingFang SC',sans-serif; font-size:16px; font-weight:700; color:var(--ink); margin:24px 0 8px;">4 个平行 condition</h3>
+    <p>
+      4 个实验 condition 共享相同的 1,000 居民、 相同的生平、 相同的 routine 生成、 相同的 atlas。 它们仅在施加到手机上的干预上不同:
+    </p>
+    <ul style="margin: 8px 0 18px 22px;">
+      <li style="margin: 6px 0;"><strong>无 app(baseline)</strong> —— 无推送、 无摩擦、 无内容竞争。 居民按生成的 routine 生活。</li>
+      <li style="margin: 6px 0;"><strong>超在地推送</strong> —— 推荐算法在每位居民每次推送时刻扫描 1,000 米半径内"不常用 + 可达 + 有吸引力"的地点, 推送其中一个。 14 天每居民 30 条推送。</li>
+      <li style="margin: 6px 0;"><strong>全球分心</strong> —— 把本地注意力替换为非本地内容(国家新闻、 viral post)。 推送节奏相同; 不做空间推荐。</li>
+      <li style="margin: 6px 0;"><strong>手机摩擦</strong> —— 对手机界面做注意力削减(通知抑制、 灰阶、 时间限制)。 不推荐、 不换内容。 只是手机变得不那么吸引人。</li>
+    </ul>
+
+    <h3 style="font-family:'PingFang SC',sans-serif; font-size:16px; font-weight:700; color:var(--ink); margin:24px 0 8px;">规模与协议</h3>
+    <p>
+      每个 condition 跑 14 模拟天, 5 分钟 tick 分辨率(每 condition 4,032 ticks)。 每 condition 跑 seed 44 和 45 两个 seed 用于方差估计; 另用单 seed 43 的较长一跑用于 position-trace 重新分布分析。 完整运行在 4 个 condition 上产生约 70 万条物理 encounter event, 其中约 8 万条过 attention gate 被记为 noticed。
+    </p>
+
+    <h3 style="font-family:'PingFang SC',sans-serif; font-size:16px; font-weight:700; color:var(--ink); margin:24px 0 8px;">每个 finding 用了什么数据</h3>
+    <p>
+      Finding 1 用 HP vs baseline 在所有 atlas POI 上的 dwell 时长重新分布(seed 43)。 Finding 2 用 4 个 condition 下的 mutually-noticed pair 计数与 novelty 占比(seed 44 + 45 pooled)。 Finding 3 用 baseline vs 干预的末态位置 relocation(seed 43), 与每位居民的 trait join。
+    </p>
+
+    <h3 style="font-family:'PingFang SC',sans-serif; font-size:16px; font-weight:700; color:var(--ink); margin:24px 0 8px;">主张范围</h3>
+    <p>
+      本文所有主张都是<strong>对比性</strong>的 —— 跨 4 个 condition、 跨注意力结构的不同 layer —— 而非任何真实邻里绝对数字的点估计。 Attention gate 的参数由仿真器设计, 而非从真人 eye-tracking 数据校准; 绝对 notice rate 是 setting-specific 的。 效应的方向、 排序、 结构形状在 setting 内是稳健的, 构成本文 finding 的基本单位。
+    </p>
+  </section>
+
+  <!-- ===================== § 4 FINDING 1 · 虹吸悖论 ===================== -->
+  <section id="f1">
+    <h2 class="section"><span class="num">4</span>Finding 1 · 超在地推荐下的 hub-concentration</h2>
+    <p class="section-deck">
+      以 1,000 米半径的推荐器对 1,000 居民跑 14 天 —— 实验在小半径内复现了 recommender-system 文献已记录的 hub-concentration 现象, 并指认了具体吸金的社区 anchor。
+    </p>
+    <nav class="finding-nav">
+      <span class="fn-arc">← 上一</span>
+      <a href="#method">方法</a>
+      <span class="fn-cur">· Finding 1 / 3 · 集中 ·</span>
+      <a href="#f2">Finding 2 · 摩擦</a>
+      <span class="fn-arc">下一 →</span>
+    </nav>
+
+
+    <div class="headline-stat">
+      <div class="hs-num">1<span style="font-size: 0.55em">:6</span></div>
+      <div class="hs-body">
+        <p class="hs-lab">增重 : 失重 POI 比例 · 14 天超在地推送</p>
+        <p class="hs-cap">
+          在超在地推送 condition 下, Lane Cove 大约 1,800 个活跃地点中,
+          <strong>249</strong> 个 dwell 时长增加, <strong>1,556</strong> 个减少
+          —— 受益:失重 = 1 : 6。 5 个最大吸金地点(一所幼儿园、 一座教堂、
+          一家健身房、 一条主干道路段、 一片户外区域)合计吸走 <strong>80%</strong>
+          被重新分配的 dwell。 单一最大吸金点 PLC Sydney Preschool 把 baseline dwell
+          时长放大了 <strong>56 倍</strong>。
+        </p>
+        <p class="hs-fine">
+          1,000 居民 · 14 天每 agent 30 次 push · seed 43 · dwell 用 5 分钟 tick
+          在 POI 的时长测 · HP vs BL 对比
+        </p>
+      </div>
+    </div>
+
+    <p>
+      <em>"超在地"(hyperlocal)</em>一词最早出现于 1921 年, 1989 年由
+      <em>《华盛顿邮报》</em>描述 5 万人以下市场的 cable TV 新闻时再度普及。 在随后被应用于
+      城市治理(Brookings, <em>Hyperlocal: Place Governance in a Fragmented World</em>,
+      2020)、 location-based marketing(典型半径 ~300–450 米)、 社区新闻报道等领域的过程中,
+      这个词始终只承诺一项属性:<em>限定在一个很小的地理范围内</em>(Merriam-Webster)。
+      它并不承诺把注意力分散到多个本地目的地; 它只承诺<strong>小半径</strong>。 流行的"超在
+      地干预应当产生分散的邻里<em>重新发现</em>"这一设计直觉 —— 也就是本研究入场时持有的工
+      作假设 —— 并不出现在词典定义里。
+    </p>
+
+    <p>
+      推荐系统文献则与"分散重发现"这一直觉相反, 已经持续记录了相反的模式。 Sànchez-Moreno
+      et al. (2022, <em>Data Mining and Knowledge Discovery</em>) 归纳了 location-based
+      recommender 的四种 polarisation:venue popularity、 category popularity、 venue
+      exposure、 geographical distance。 一项较新的研究 (Bertelli et al. 2025,
+      <em>Machine Learning</em>) 使用 feedback-loop 模型得出结论:"虽然推荐系统持续在个体
+      层面增加访问场所的多样性, 但它们可能同时通过把访问集中到少数热门地点上, 放大集体层
+      面的不平等。" 在定义"超在地"的小半径之内, 同样的 hub-concentration 默认地起作用。
+    </p>
+
+    <p>
+      仿真结果在一个完整可观测的环境中复现了这一模式。 在超在地推送 condition 下(每位
+      居民 14 天收到 30 条推送, 每条推荐 1,000 米半径内一个不常被用的地点), dwell 时长在
+      Lane Cove 大约 1,800 个活跃地点之间重新分布如下:249 个地点 dwell 增加, 1,556 个减
+      少 —— 受益:失重 = 1 : 6。 5 个吸金量最大的地点 —— <strong>PLC Sydney Preschool</strong>
+      (+380,000 ticks · 56× baseline)、 <strong>Mowbray Road 路段</strong>
+      (+25,000 · 71×)、 <strong>Anytime Fitness Australia</strong> (+39,000 · 11×)、
+      <strong>area_105</strong> (+33,000 · 10×)、 <strong>Anglican Church of Australia
+      Lane Cove</strong> (+18,000 · 2×) —— 合计吸收了 80% 被重新分配的 dwell。 重新分配
+      因此<strong>集中</strong>了邻里注意力, 而不是把它分散。
+    </p>
+
+    <figure class="hero">
+      <img src="figures_v7/f1_siphon_hero.png"
+           alt="Lane Cove 双 panel 地图:左为 baseline,2400 个 POI 上 dwell 均匀分布的浅橙圆;右为 HP,dwell 收缩到 PLC Sydney Preschool 及另 4 个 named anchor。"
+           style="display:block; width:100%; height:auto;">
+      <figcaption>
+        <span class="fig-num">图 1</span>
+        <strong>超在地推送在实际中是中心化的。</strong>
+        同一批 1,000 居民、 14 天、 两个平行 condition。 <em>左:</em>baseline —— dwell
+        散布在 ~2,400 个 POI 上。 <em>右:</em>HP 经过 30 次/agent push 后 —— dwell
+        集中到 5 个 named anchor(仅 PLC Sydney Preschool 一家就吸 62%),
+        而 1,556 个 POI 相对 baseline <em>失去</em> dwell。 浅橙圆面积 = 该地点 dwell 总时长。
+      </figcaption>
+    </figure>
+
+    <div class="pullquote">
+      "词典只把<em>"超在地"</em>承诺给小半径 —— 不承诺分散重发现。 推荐器在这个小半径
+      内运行, 产生的是 recommender-system 文献已记录的 hub-concentration。 5 个赢家正是
+      这个邻里的 community anchor。"
+      <span class="pq-sub">FINDING 1 · 超在地推荐下的 hub-concentration</span>
+    </div>
+
+    <p>
+      mechanism 是受限候选集内的 preferential attachment:任何时刻只有少数附近地点同时
+      满足算法的几条标准; 这些地点赢得推送; 附近居民聚拢过去; 14 天里同一小批地点反复赢。
+      这里新颖的不是 mechanism 本身, 而是 mechanism <em>恰好抓住了什么</em>。 在 Foursquare
+      数据上跑同一套动力学, 输出的会是一份高评分咖啡馆和爆款酒吧的列表; 在这个仿真里 —
+      每个居民有完整生平, 每个地点有 typed role — 输出的是一份城市规划师会画出来的列表。
+      <strong>Hub-concentration 与社区 anchor 检测, 是同一个效应在两种不同 lens 下的读
+      法</strong>。 推荐系统文献此前只有第一种 lens 可用。 完全可观测的仿真器让第二种 lens
+      变得可用。
+    </p>
+
+    <p>
+      这一 reframing 改变了设计意义。 推荐系统文献对 hub-concentration 的标准回应是装上纠
+      偏 —— diversity-aware re-ranking (Sànchez-Moreno et al. 2022)、 novelty 奖励
+      (Qin et al. 2023, arXiv:2304.07041)、 popularity-bias 校正 (Klimashevskaia et al.
+      2024, <em>User Modeling and User-Adapted Interaction</em>) —— 其前提是集中到的 venue
+      只是任意的 popularity artefact。 如果集中到的 venue 是邻里的社区 anchor, 那么纠偏所
+      压制的就不是 bias 而是<em>信号</em>。 因此, 是否纠偏不是一项技术性的 default, 而是两
+      种设计意图之间的实质性选择:<em>分散重发现</em>(需要 anti-concentration 工具)还是
+      <em>社区 anchor 激活</em>(默认机制即可)。 <em>"超在地"</em>这个词只承诺小半径,
+      并不规定哪一种。
+    </p>
+
+    <div class="footnote">
+      <span class="fn-lab">口径与脚本</span>
+      <p>
+        Dwell ticks 从 <code>positions.json</code> 按地点 / 居民 / 5 分钟 tick 累计;
+        无 app 对照与超在地推送两组共享相同的 1,000 居民、 同样的 biographies、 同样的
+        routine 生成 —— 仅推送 condition 不同。 地点类别通过 <code>location_id</code> 与
+        atlas 的 <code>building_type</code> / <code>area_type</code> join 得到; top-5
+        吸金地点按 dwell 增量绝对值排序。 生成脚本:<code>tools/hero_figure_siphon.py</code>。
+        引用文献:
+        Bertelli et al. 2025, "The urban impact of AI: modelling feedback loops in
+        location-based recommender systems," <em>Machine Learning</em>
+        (<a href="https://link.springer.com/article/10.1007/s10994-025-06904-z">link</a>);
+        Sànchez-Moreno et al. 2022, "Bias characterization, evaluation, and mitigation
+        in location-based recommender systems," <em>Data Mining and Knowledge Discovery</em>
+        (<a href="https://link.springer.com/article/10.1007/s10618-022-00913-5">link</a>);
+        Qin et al. 2023, "A Diffusion model for POI recommendation," arXiv:2304.07041
+        (<a href="https://arxiv.org/abs/2304.07041">link</a>);
+        Klimashevskaia et al. 2024, "A survey on popularity bias in recommendation,"
+        <em>User Modeling and User-Adapted Interaction</em>
+        (<a href="https://link.springer.com/article/10.1007/s11257-024-09406-0">link</a>);
+        Merriam-Webster, "hyperlocal";
+        Brookings (2020), <em>Hyperlocal: Place Governance in a Fragmented World</em>。
+      </p>
+    </div>
+  </section>
+
+
+  <!-- ===================== § 5 FINDING 2 · 摩擦 vs 推送 ===================== -->
+  <section id="f2">
+    <h2 class="section"><span class="num">5</span>Finding 2 · 不开口推送的路径反而促成了最多新关系</h2>
+    <p class="section-deck">
+      两种干预 archetype —— 推荐推送 与 注意力摩擦 —— 在新关系形成的规模上接近。 那种<em>什么都没告诉居民去哪</em>的干预, 反而多了一些。
+    </p>
+    <nav class="finding-nav">
+      <span class="fn-arc">← 上一</span>
+      <a href="#f1">Finding 1 · 集中</a>
+      <span class="fn-cur">· Finding 2 / 3 · 摩擦 ·</span>
+      <a href="#f3">Finding 3 · 触及</a>
+      <span class="fn-arc">下一 →</span>
+    </nav>
+
+
+    <div class="headline-stat">
+      <div class="hs-num">2.6<span style="font-size: 0.55em">×</span></div>
+      <div class="hs-body">
+        <p class="hs-lab">noticed pair 倍数 vs baseline · 手机摩擦组</p>
+        <p class="hs-cap">
+          手机摩擦(让手机变得不那么吸引人, 不推荐任何去处)产生的 noticed pair 数是无 app
+          baseline 的 <strong>2.62 倍</strong>。 超在地推送(每居民收 30 条"去附近某处"的推送)
+          是 <strong>2.29 倍</strong>。 这些 noticed pair 中, 手机摩擦组有 <strong>94.8%</strong>、
+          超在地推送组有 <strong>94.3%</strong> 是 baseline 里从未彼此抬头看见的 pair ——
+          意味着不是<em>同一批居民更频繁地看见对方</em>, 而是<em>不同居民被放进了彼此的视线半径内</em>。
+        </p>
+        <p class="hs-fine">
+          BL: 8,080 noticed pair · HP: 18,534 (94.3% 是新 pair) · GD: 8,183 (85.0% 新) ·
+          PF: 21,163 (94.8% 新) · seed 44+45 pooled
+        </p>
+      </div>
+    </div>
+
+    <p>
+      HCI 设计文献区分了两类数字注意力干预 archetype。 <em>推荐推送</em>
+      (也叫 <em>nudge</em>; Caraban et al., CHI 2019, "23 Ways to Nudge")
+      添加规定:notification、 建议、 prompt 用以"invoke automatic behavior
+      and quickly guide users towards helpful decisions"(Mejtoft, Parsjö &amp;
+      Norlin 2023, <em>ECCE</em>)。 <em>注意力摩擦</em> —— Cox et al. (CHI EA
+      2016) 将其形式化为 "microboundaries", Cho et al. (CHI 2024, "A
+      Longitudinal In-the-Wild Investigation of Design Frictions to Prevent
+      Smartphone Overuse") 进一步发展 —— 做的是减法:在手机使用前加小障碍,
+      让用户"reflect"而非自动反应。 两种 archetype 通过相反的机制起作用。
+      两者都在个体层面被研究过。 据我们所知, 在城市人口的 encounter 层面上,
+      两者从未被直接比较过。
+    </p>
+
+    <p>
+      相关的个体层面证据是吻合的。 Hunt et al. (2018, <em>J. Social and
+      Clinical Psychology</em>) 发现, 把 Facebook / Instagram / Snapchat 限制
+      到每个平台每天 10 分钟、 持续 3 周, 能降低孤独感与抑郁。 Allcott et al.
+      (2020, NBER w25514) 把 2,743 个 Facebook 账号停用 4 周, 发现停用"增加了
+      offline 活动, 比如独自看电视、 与家人朋友相处"。 Hampton et al. (2025,
+      <em>PNAS</em>) 用计算机视觉重拍了 William H. Whyte 1970 年代的公共空间影
+      像, 发现"进入公共空间后加入某个 group 的行人比例从 5.5% 降到了 2%"。 摩擦
+      lens 的预测是:撤掉手机对注意力的竞争, 会释放沉睡的 in-person encounter
+      容量。 它无法直接测的是 —— 这个释放跟同一场景里部署一个主动 push 干预相
+      比, 是接近、 超过、 还是不足。
+    </p>
+
+    <figure class="hero">
+      <img src="figures_v7/f2_friction_vs_push.png"
+           alt="双 panel 条形图:左为 4 condition 的总 noticed pair(BL 8,080 / HP 18,534 / GD 8,183 / PF 21,163);右为 3 个 intervention 的新 pair 占比都在 85% 以上。"
+           style="display:block; width:100%; height:auto;">
+      <figcaption>
+        <span class="fig-num">图 2</span>
+        <strong>摩擦与推荐都让 noticed pair 总数大致翻三倍, 而且两者都置换了 pair
+        里的人。</strong><em>左:</em>4 个 condition 的 noticed pair 总数
+        (seed 44+45 pooled, 14 天)。 超在地推送 (推荐, 粉色) 和手机摩擦 (摩擦,
+        深粉) 分别达到 baseline 的 2.29 倍和 2.62 倍; 全球分心不动总数。
+        <em>右:</em>每个 condition 的 noticed pair 中"baseline 里不存在"的比例。
+        3 个 intervention 都 &gt; 85% 是新 pair —— 干预不是让同一批居民更频繁
+        看见彼此, 而是把不同居民放进彼此的视线半径内。
+      </figcaption>
+    </figure>
+
+    <figure class="hero">
+      <img src="figures_v7/f2_geographic_3panel.png"
+           alt="Lane Cove 三面板地图:基线 / 超在地推送 / 手机摩擦 下的 dwell 分布。两种干预都把 dwell 集中到 5 个 named anchor,但集中到的是不同的 5 个 —— 推送选了 PLC Preschool,摩擦让 Anglican Church 成为最大吸金点。"
+           style="display:block; width:100%; height:auto;">
+      <figcaption>
+        <span class="fig-num">图 2B</span>
+        <strong>同一规模的结果, 不同的 anchor 几何。</strong>
+        Lane Cove dwell 在 3 种 condition 下的分布。 <em>左:</em>baseline —— dwell
+        散布在 ~2,400 个地点。 <em>中:</em>超在地推送集中到一所幼儿园 (PLC Sydney
+        Preschool)、 一家健身房、 一条主干道、 一片户外区域、 一座教堂 —— 推荐
+        算法的选择。 <em>右:</em>手机摩擦也集中, 但集中到的是另外 5 个 —— 一座
+        教堂 (Anglican Church of Australia, 这一次成了最大吸金点)、 一家健身房、
+        一座公园、 一片户外区域、 一家银行 —— 这些是当手机对注意力的竞争被撤掉
+        时, 居民按既有 routine 自然漂向的地方。 dwell 增量被 top-5 吸走的比例:
+        推送下 83%, 摩擦下 82%。
+      </figcaption>
+    </figure>
+
+    <div class="pullquote">
+      "推荐推送与注意力摩擦在新关系形成的规模上接近。 给每居民规定 30 个去处的
+      路径, 产生了 17,500 个新的 noticed pair。 什么都没规定 —— 仅仅减少了手机对
+      注意力的竞争 —— 的路径, 产生了 20,000 个。"
+      <span class="pq-sub">FINDING 2 · 摩擦与推荐作为通往新关系的两条并行路径</span>
+    </div>
+
+    <p>
+      仿真结果把摩擦 lens 的预测从个体层面 (Hunt 2018; Allcott 2020) 延伸到城市
+      人口的 encounter 层面:仅仅撤掉手机对注意力的竞争, 在 Lane Cove 里能产生
+      与"对每个居民主动推荐附近去处"一样多的新 pair encounter。 推荐 lens 并不
+      因此变得多余。 地理对比 (图 2B) 显示, 两个干预都把 dwell 时长集中到一小组
+      anchor 上 —— 超在地推送下 top 5 地点吸 83% 的 dwell 增量, 手机摩擦下
+      吸 82% —— 但集中到的是<em>两组不同</em>的 anchor。 两组 5 个 anchor 在 3 个地点重叠 —— 一家健身房、 一片户外区域、 与 Anglican Church —— 但在另外 2 个上分歧。 超在地推送独有的两个是一所幼儿园 (PLC Sydney) 和一条主干道路段 (Mowbray Road) —— 推荐算法
+      "不常用 + 可达 + 有吸引力"标准选出来的地方。 手机摩擦独有的两个是一座公园 (Longueville Park) 和一家银行 (ANZ) —— 当手机对注意力的竞争
+      被撤掉时, 居民按已有 routine 自然漂去的地方。 两条路径在"新关系总量"上接
+      近, 但暴露的是邻里里两组不同的<em>潜在 anchor 结构</em>。 全球分心条件既不规
+      定也不撤注意力, 而是替换手机内容, 在 noticed pair 总数上不动, 但 85% 的
+      noticed pair 仍是新 pair。 <em>数字不变, 人换了</em>。 <strong>全球分心既没有制造物理聚集, 也没有
+      制造新关系, 它只是完美地、 悄无声息地完成了本地注意力的抽离(蒸发)
+      —— 在 dwell 地图和 noticed-pair 计数上都不留任何足迹。</strong> 这种
+      "静默 content swap"是第三种在设计文献中没有明确名字的 archetype;
+      数据在这里把它作为一种独立模式呈现出来。
+    </p>
+
+    <p>
+      设计意义是:在面向 in-person 社交结果的干预里, "选 push 还是选 friction"
+      不是"选有效还是无效"之间的选择, 而是两种<em>通过相反机制达成相近结果</em>
+      的选择。 推荐推送让设计者承诺去策展和排序目的地, 接受集中到推荐器挑出的
+      地方(Finding 1)。 摩擦干预让设计者承诺去削减平台的注意力基础设施, 接受
+      由此发生的 in-person encounter 是不可被引导的。 两条路都不免费; 代价的种
+      类不同。 完全可观测的仿真提供的是:在同一套 instrument 下、 同一群居民身
+      上, 让两种 archetype 的规模直接可比。
+    </p>
+
+    <div class="footnote">
+      <span class="fn-lab">口径与脚本</span>
+      <p>
+        Noticed pair 按 unique pair 统计, 在 14 天窗口内按 sorted (agent_a,
+        agent_b) 去重。 Novelty share = baseline 中不存在的 pair ÷ 该 condition
+        全部 pair。 seed 44 与 45 pooled。 生成脚本:
+        <code>tools/h17_h19_noticed_redo.py</code> (分析) +
+        <code>tools/f2_friction_figure.py</code> (图)。 引用文献:
+        Cox, Gould, Cecchinato, Iacovides &amp; Renfree 2016,
+        "Design Frictions for Mindful Interactions: The Case for
+        Microboundaries," CHI EA
+        (<a href="https://discovery.ucl.ac.uk/id/eprint/10130282/">link</a>);
+        Mejtoft, Parsjö &amp; Norlin 2023, "Design Friction and
+        Digital Nudging," ECCE
+        (<a href="https://dl.acm.org/doi/fullHtml/10.1145/3591156.3591183">link</a>);
+        Cho et al. 2024, "A Longitudinal In-the-Wild Investigation
+        of Design Frictions to Prevent Smartphone Overuse," CHI
+        (<a href="https://dl.acm.org/doi/10.1145/3613904.3642370">link</a>);
+        Hunt, Marx, Lipson &amp; Young 2018, "No More FOMO,"
+        <em>J. Social and Clinical Psychology</em>
+        (<a href="https://guilfordjournals.com/doi/10.1521/jscp.2018.37.10.751">link</a>);
+        Allcott, Braghieri, Eichmeyer &amp; Gentzkow 2020,
+        "The Welfare Effects of Social Media," NBER w25514
+        (<a href="https://www.nber.org/papers/w25514">link</a>);
+        Hampton, Goulet &amp; Albanesius 2025,
+        "Exploring the social life of urban spaces through AI,"
+        <em>PNAS</em>
+        (<a href="https://www.pnas.org/doi/10.1073/pnas.2424662122">link</a>);
+        Caraban et al. 2019, "23 Ways to Nudge," CHI。
+      </p>
+    </div>
+  </section>
+
+  <!-- ===================== § 6 FINDING 3 · 触及 ===================== -->
+  <section id="f3">
+    <h2 class="section"><span class="num">6</span>Finding 3 · routine 决定干预能触及到谁, personality 不决定</h2>
+    <p class="section-deck">
+      3 种干预的响应比例都是约三成。 决定这三成是谁的是 routine 黏度; 性格、 收入、 年龄、 性别、 家庭结构都不是。
+    </p>
+    <nav class="finding-nav">
+      <span class="fn-arc">← 上一</span>
+      <a href="#f2">Finding 2 · 摩擦</a>
+      <span class="fn-cur">· Finding 3 / 3 · 触及 ·</span>
+      <a href="#synthesis">综合</a>
+      <span class="fn-arc">下一 →</span>
+    </nav>
+
+
+    <div class="headline-stat">
+      <div class="hs-num">3.1<span style="font-size: 0.55em">×</span></div>
+      <div class="hs-body">
+        <p class="hs-lab">"可移动率"高低 routine adherence 之间的差距</p>
+        <p class="hs-cap">
+          1,000 个模拟居民中, <strong>29.4%</strong> 在至少一种干预下, 末态位置距
+          baseline 末态超过 100 米 —— 这就是"可移动"那一群。 这个比例在 routine
+          adherence 低的居民里是 <strong>44.8%</strong>, 在高的居民里是
+          <strong>14.3%</strong> —— 差 <strong>3.1 倍</strong>。 同样的分组按
+          extraversion (1.13× 差距)、 收入、 家庭、 性别、 大多数年龄段做出来,
+          看不到可比的梯度。
+        </p>
+        <p class="hs-fine">
+          可移动 = HP / GD / PF 中至少一种干预下, 末态位置距 baseline ≥ 100 米 ·
+          seed 43 · 1,000 居民
+        </p>
+      </div>
+    </div>
+
+    <p>
+      习惯研究早就建立了两件事。 一是日常行为中相当大一部分是习惯性的:
+      Wood, Quinn &amp; Kashy (2002, <em>J. Personality and Social Psychology</em>)
+      用每小时日记追踪 209 个本科生, 发现 43% 的行为是几乎每天在同一情境下重复的;
+      Neal, Wood &amp; Quinn (2006, <em>Current Directions in Psychological
+      Science</em>) 重复出 ~45% 的数字。 二是高习惯强度的个体经验上抵抗干预:
+      Verplanken &amp; Orbell (2003, <em>J. Applied Social Psychology</em>) 用
+      Self-Report Habit Index 把这操作化, 指出"the automatic features of the
+      habit construct make it quite resistant to modification."
+      Wood &amp; Neal (2007, <em>Psychological Review</em>) 追溯了 mechanism:
+      情境-线索关联一旦建立, 不会因为一次干预而更新。
+    </p>
+
+    <p>
+      数字干预文献报告的结构上是吻合的:被触及的人口里, 只有少数响应。 2024 年
+      JMIR 一项关于慢性病 mHealth 干预的系统综述发现:"sustained engagement"
+      在不同研究里介于 0.5% 与 28.6% 之间; 2025 年 npj Digital Medicine 一项关
+      于 92 项心理健康 app RCT 的 meta-analysis 显示, 各类劝服式设计 category 中
+      engagement 都呈现陡降曲线。 Nielsen Norman Group 的 "90-9-1" 规则、 产品
+      分析中的 Pareto-shaped engagement 曲线, 都是同一个形状的不同侧面。 这些发
+      现都没明确命名的, 是"<em>谁响应、 谁不响应</em>"背后的结构性预测变量。
+      性格是最显然的候选, 但经验上偏弱; 人口学变量(年龄、 收入、 性别)更弱。
+    </p>
+
+    <figure class="hero">
+      <img src="figures_v7/f3_reach_routine.png"
+           alt="双 panel 条形图:左为 routine adherence 低/中/高 三档的可移动率(44.8% / 29.1% / 14.3%),3.1× 差距高亮;右为 extraversion 三档的可移动率(26.9% / 30.4% / 28.6%),基本持平。"
+           style="display:block; width:100%; height:auto;">
+      <figcaption>
+        <span class="fig-num">图 3</span>
+        <strong>Routine adherence 决定触及; personality 不决定。</strong>
+        <em>左:</em>routine adherence 三档(low &lt; 0.33, high &gt; 0.67)下,
+        在任意干预下移动 ≥ 100 米的居民比例。 低档居民被干预触动的概率是高档的
+        3.1 倍。 <em>右:</em>同一指标按 extraversion 三档拆分, 差距为 1.13× ——
+        基本持平。 同样的模式在收入、 性别、 家庭结构、 大多数年龄段上都成立 ——
+        测试的人口学与人格变量中, routine adherence 是唯一的强预测器。
+      </figcaption>
+    </figure>
+
+    <figure class="hero">
+      <img src="figures_v7/f3_movable_map.png"
+           alt="Lane Cove 地图:1,000 个居民点,其中 310 个粉色 (超在地推送下末态位置 ≥100m 移动) 跟 690 个灰色 (锁死, 末态位置不变) 互相穿插。"
+           style="display:block; width:100%; height:auto;">
+      <figcaption>
+        <span class="fig-num">图 3B</span>
+        <strong>响应的 30% 并不集中在邻里某一角 —— 他们跟锁死的 70% 互相穿插。</strong>
+        每个点是一名 Lane Cove 居民, 按 baseline 末态位置绘制。 粉色点 (n=310) 是末态位置在超在地推送下与 baseline 相差 ≥ 100 m 的居民 —— 人口的响应分群。 灰色点 (n=690) 是 routine-locked 那部分。 粉灰在空间上相互穿插, 没有按邻里街区、 postcode 或房型 segregate。 选出响应者的 gate (按 Hägerstrand 的 time geography 与 Verplanken 的习惯研究) 是个体的 schedule 刚性, 不是他/她的住址。
+      </figcaption>
+    </figure>
+
+    <div class="pullquote">
+      "数字干预参与文献长期观察到 Pareto-shaped 响应 —— 大多数被触及的人不参与
+      —— 却没有明确命名这种不对称背后的结构性预测变量。 仿真浮现的候选, 正是
+      习惯研究自 Verplanken (2003) 起就一直命名的:<em>习惯强度</em>。 routine
+      adherence 把响应率从 44.8% 切到 14.3%; extraversion、 收入、 年龄、 性别、
+      家庭结构都做不到。"
+      <span class="pq-sub">FINDING 3 · 干预的有效分母不是整个人口</span>
+    </div>
+
+    <p>
+      Hägerstrand 的 time geography (1970, <em>Papers of the Regional Science
+      Association</em>) 提供了地理 mechanism。 日常 space-time 路径被三类约束塑造:
+      <em>capability</em>(生理 —— 睡眠、 移动速度)、 <em>coupling</em>(必须与
+      某人/某物共在 —— 工作、 学校、 家庭)、 <em>authority</em>(规则 —— 工作时间、
+      店铺营业时间)。 固定 anchor 之间的可裁量窗口, 就是个体能用一种活动替换另一
+      种活动的"space-time prism"。 一个 coupling 与 authority anchor 密集、 因而
+      routine adherence 高的居民, prism 就小:物理上腾不出腾挪余地, 即使收到 push
+      也响应不动。 习惯研究的发现(Wood et al.)和 time geography 的发现(Hägerstrand)
+      从两个学科指认了同一个结构性约束。 仿真把它指认为注意力中介的城市干预里
+      触及上限的主要 gatekeeper。
+    </p>
+
+    <p>
+      两条设计意义。 第一, 任何注意力中介干预的<strong>有效分母</strong>不是被触
+      及的人口(本研究里的 1,000 居民), 而是响应人群(约 30%)。 按被触及人口算
+      reach KPI 大约高估三倍, 也掩盖了结构性 gating。 第二, routine adherence 梯
+      度本身是一个设计 lever。 在居民既有 routine anchor 上动手(校门口、 教堂、
+      晨间通勤)的干预, 作用的是不同的约束, 跟"要求居民离开 routine 去新地方"的
+      干预不是一码事。 风洞显示:后者 by default 只能触及到 routine 足够松散、
+      能腾挪的那三成人。
+    </p>
+
+    <div class="footnote">
+      <span class="fn-lab">口径与脚本</span>
+      <p>
+        可移动 = 在 HP / GD / PF 三种干预中任意一种下, 个体末态位置距 baseline
+        末态欧氏距离 ≥ 100 米。 routine adherence 是 simulator 预先分配给每个居
+        民的 0–1 trait, 决定生成的日常 schedule 的刚性(low &lt; 0.33,
+        high &gt; 0.67)。 分析基于 seed 43 与 1,000 居民。 生成脚本:
+        <code>tools/n4_movable_profile.py</code>(分析) +
+        <code>tools/f3_reach_figure.py</code>(图)。
+        引用文献:
+        Wood, Quinn &amp; Kashy 2002, "Habits in Everyday Life,"
+        <em>J. Personality and Social Psychology</em>
+        (<a href="https://dornsife.usc.edu/wendy-wood/wp-content/uploads/sites/183/2023/10/Wood.Quinn_.Kashy_.2002_Habits_in_everyday_life.pdf">PDF</a>);
+        Neal, Wood &amp; Quinn 2006, "Habits — A Repeat Performance,"
+        <em>Current Directions in Psychological Science</em>
+        (<a href="https://journals.sagepub.com/doi/10.1111/j.1467-8721.2006.00435.x">link</a>);
+        Verplanken &amp; Orbell 2003, "Reflections on Past Behavior: A
+        Self-Report Index of Habit Strength,"
+        <em>J. Applied Social Psychology</em>
+        (<a href="https://onlinelibrary.wiley.com/doi/10.1111/j.1559-1816.2003.tb01951.x">link</a>);
+        Wood &amp; Neal 2007, "A New Look at Habits and the Habit-Goal
+        Interface," <em>Psychological Review</em>
+        (<a href="https://dornsife.usc.edu/wendy-wood/wp-content/uploads/sites/183/2023/10/wood.neal_.2007psychrev_a_new_look_at_habits_and_the_interface_between_habits_and_goals.pdf">PDF</a>);
+        Hägerstrand 1970, "What about people in regional science?"
+        <em>Papers of the Regional Science Association</em>
+        (<a href="https://liu.diva-portal.org/smash/get/diva2:544278/FULLTEXT01">link</a>);
+        2024 JMIR systematic review of mHealth engagement (e50508)
+        (<a href="https://www.jmir.org/2024/1/e50508">link</a>)。
+      </p>
+    </div>
+  </section>
+
+  <!-- ===================== § 7 综合 ===================== -->
+  <section id="synthesis">
+    <h2 class="section"><span class="num">7</span>综合 · 三种干预, 三场不同的手术</h2>
+    <p class="section-deck">
+      三个 finding 加起来:每种干预 archetype 改写的是注意力结构的不同一层。 在它们之间选, 不是选谁更"强", 是选改写哪一层。
+    </p>
+
+    <figure class="hero">
+      <img src="figures_v7/synthesis_hero.png"
+           alt="Lane Cove 地图,3 个 finding 同时叠加:690 个灰点(锁死居民)、 310 个粉点(可移动居民)、 5 个橙圈(超在地推送 anchor)、 5 个深粉圈(手机摩擦 anchor)。 3 个 anchor 两色都有 — 即 shared anchor。 图显示干预激活的是重叠但不完全相同的 anchor 集合, 响应的 30% 在地理上跟锁死的 70% 互相穿插。"
+           style="display:block; width:100%; height:auto;">
+      <figcaption>
+        <span class="fig-num">图 4 · 综合</span>
+        <strong>同一座 Lane Cove, 三个 finding。</strong>
+        每个点是按 baseline 末态位置绘制的一名居民(粉色 = 310 个可移动; 灰色 = 690 个 routine-locked)。 每个橙圈是一个超在地推送 anchor (Finding 1 中包揽 80% 重新分配 dwell 的 top-5)。 每个深粉圈是一个手机摩擦 anchor (Finding 2 的 top-5)。 两种颜色同时出现的圈表示该地点在两个干预下都赢 —— 5 个里有 3 个是这样 (一家健身房、 一片户外区域、 Anglican Church); 余下 2 个分歧 (推送选了幼儿园和路段; 摩擦选了公园和银行)。 粉色居民跟灰色互相穿插, 没有按邻里 segregate —— routine adherence (Finding 3) 选出响应者, 但这个选择不在空间上 cluster。 三个 finding, 一张地图, 一个对任何干预设计者都实质性的选择:打算改写哪一层, 接受风洞所揭示的相应 trade-off。
+      </figcaption>
+    </figure>
+
+    <p>
+      三个 finding 一起描述的是同一个邻里上的三种不同手术。
+      <strong>超在地推送</strong>动的是<em>注意力被集中到哪</em>:一套 1,000 米半径
+      的推荐器, 在三条抽象标准上运行, 浮现并放大了一小组社区 anchor —— 意外地
+      成了"这个邻里早已在聚集的地方"的自动检测仪(Finding 1)。
+      <strong>手机摩擦</strong>动的是<em>有多少注意力在被竞争</em>:撤掉智能手机
+      的吸引力, 释放出 in-person encounter 的容量, 在新关系总量上跟主动推送相当,
+      却不规定任何去处(Finding 2)。 <strong>触及</strong>这一横切约束, 动的是
+      <em>任何干预到底能触动谁</em>:本研究里只有约三成居民会响应任何一种注意力
+      中介干预, 而这三成是被 routine adherence 选出来的, 不是被性格、 收入、
+      年龄、 性别、 家庭结构选出来的(Finding 3)。
+    </p>
+
+    <div class="pullquote">
+      "三种干预之间不是有强有弱的关系。 它们写到不同的 layer —— anchor 集中、
+      注意力竞争、 routine 决定的触及底线。 在它们之间选, 是在选改写哪一层,
+      并接受这种改写的代价。"
+      <span class="pq-sub">综合 · 设计诊断学的 framing</span>
+    </div>
+
+    <p>
+      三个 finding 单独看都不新。 location-based recommendation 的 hub-concentration
+      在 RS 文献里已有记录(Bertelli et al. 2025; Sànchez-Moreno et al. 2022)。
+      推送 (nudge) 与摩擦作为两种设计 archetype 的对比在 HCI 里有形式化(Cox et al.
+      2016; Mejtoft et al. 2023), 注意力削减的个体效应在社交媒体停用研究里有记录
+      (Hunt et al. 2018; Allcott et al. 2020)。 数字干预的 Pareto-shaped engagement
+      在 mHealth 系统综述里普遍报告, 习惯研究早就把习惯强度命名为行为改变的结构
+      性障碍 (Verplanken &amp; Orbell 2003; Wood &amp; Neal 2007)。 完全可观测
+      的仿真提供的, 是在一个<em>同时知道每个 venue 的社会语境、 知道每个 agent
+      routine adherence</em>的设置里, 把三个 mechanism 同时拉到一张桌上互相比对
+      —— 让"是哪 5 个 anchor 吸了集中度"可被命名、 让"push 与 friction 的规模"
+      可在同一个 encounter 尺度上直接对照、 让"routine 而非 personality 是触及
+      gatekeeper"在性格变量缺乏区分力的地方被指认出来。
+    </p>
+
+    <p>
+      由此引出的设计诊断学很直接。 一句"这能提升附近感知"的干预声明, 在这里的
+      证据下是<em>欠规定的</em>。 同一句话可以描述:一个把注意力集中到 5 个社区
+      anchor 的推荐推送(在那 5 个地点拿到 80% 重新分配的 dwell, 在另外 1,556
+      个地点失去 dwell); 一个不挑任何目的地、 通过摩擦在人口里产生 20,000 个新
+      noticed pair 的干预; 或一个让总数不变、 但把底层 pair 换了 85% 的内容置换。
+      三者都会在粗 aggregate KPI 上呈正; 三者描述的不是同一个结果。 诊断式的问题
+      是:设计者打算改写哪一层 —— 集中、 竞争、 触及 —— 以及, 设计者愿意接受
+      哪一种代价。
+    </p>
+  </section>
+
+  <!-- ===================== § 8 讨论 ===================== -->
+  <section id="discussion">
+    <h2 class="section"><span class="num">8</span>讨论 · 风洞作为方法, 以及其他"看不见的边界"</h2>
+    <p class="section-deck">
+      完全可观测的仿真器贡献的不是新 mechanism, 而是一套方法。 同样的诊断 framing 适用于任何注意力在"存在"与"被识别"之间起中介作用的场景 —— 算法 feed、 search、 推荐、 公共空间。
+    </p>
+
+    <p>
+      三个 finding 上, 仿真器的贡献形状是一致的。 每个 finding 都印证了一项已有
+      文献记录的 mechanism —— RS 文献的 hub-concentration、 HCI 的 friction-as-design、
+      习惯研究指认的 routine 强度作为干预抵抗的预测器 —— 并补上对应实证研究难以
+      给出的东西:吸金 venue 的社会语境 (Finding 1)、 同一人口下不同干预 archetype
+      的城市尺度直接对比 (Finding 2)、 谁响应以及为什么响应的结构性指认 (Finding 3)。
+      完全可观测的环境用绝对值校准 (仿真的 attention 参数并未从真人 eye-tracking
+      数据校准) 换来了 mechanism 与 context 的完全可观测。 因此 finding 应被视为
+      <em>对比性</em> —— 跨 condition、 跨结构层 —— 而不是任何一个真实邻里行为
+      的点估计。
+    </p>
+
+    <p>
+      这套诊断 framing 推广到其他注意力在"存在"与"被识别"之间起中介作用的场景。
+      算法 feed 呈现出 Finding 1 所记录的同样的 hub-concentration default
+      (popularity bias); 文献的回应 (diversity-aware re-ranking、 novelty 奖励、
+      popularity-bias 校正) 是同一组 remediation。 摩擦设计与推送设计作为两种并行
+      archetype, 在 search 界面与推荐系统设计中都存在; Finding 2 浮现的 trade-off
+      —— 规定 cost vs 不可引导结果 —— 同样适用。 routine-gated reach 是 mobile-health
+      app、 civic-tech 工具、 公共健康消息、 政治动员里参与曲线的结构形状; Finding 3
+      命名的变量(习惯强度, 在本研究里通过 routine adherence 操作化), 跟 Verplanken
+      &amp; Orbell (2003) 二十年前命名的、 mHealth meta-analysis 至今没明确命名的,
+      是同一个变量。
+    </p>
+
+    <p>
+      局限是, 风洞不替代实地田野研究; 它给田野研究<em>排序</em>。 田野研究观察
+      一个推荐系统在部署后报告 hub-concentration 发生了; 仿真器能反过来问:给定
+      一个候选干预设计, 它最可能改写注意力结构的哪一层、 这种改写承担什么代价、
+      它能触及人口的多大比例? 答案不替代部署, 但它<em>重新框定</em>部署应该测什么。
+      对一个注意力中介的城市干预, 该测的不是"awareness 是否提升", 而是"它改写了
+      哪一层、 在多大集中度代价下、 以 routine 决定的多大触及范围"。 这一重新框定
+      就是本文带走的方法论贡献。
+    </p>
+  </section>
+
+  <!-- ===================== FOOTER ===================== -->
+  <footer class="site">
+    <div class="footer-stack">
+      <div>
+        <strong>Synthetic Socio Wind Tunnel</strong> · Lane Cove 注意力地图 ·
+        v7 草稿 · 2026-05-25 · 论文体 · 全文 noticed 口径
+      </div>
+      <div style="text-align: right;">
+        数据:双 seed pooled · 1,000 居民 × 14 天 × 4 干预 · 约 70 万次 encounter · 约 8 万次 noticed
+      </div>
+    </div>
+  </footer>
+
+</div>
+
+</body>
+</html>

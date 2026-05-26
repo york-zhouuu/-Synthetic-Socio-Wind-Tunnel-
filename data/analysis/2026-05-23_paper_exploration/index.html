@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>Morning Exploration Brief · Synthetic Socio Wind Tunnel</title>
+<style>
+  body { font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+         max-width: 980px; margin: 40px auto; padding: 0 20px; line-height: 1.6;
+         color: #222; background: #fafaf7; }
+  h1 { font-size: 28px; border-bottom: 3px solid #d62728; padding-bottom: 8px; }
+  h2 { color: #d62728; border-bottom: 1px solid #ddd; padding-bottom: 6px; margin-top: 32px; }
+  h3 { color: #333; margin-top: 24px; }
+  .headline { background: #fff8e1; border-left: 4px solid #d62728;
+              padding: 12px 16px; margin: 16px 0; border-radius: 4px; }
+  .quote { font-style: italic; color: #555; border-left: 3px solid #ccc;
+           padding-left: 12px; margin: 8px 0; }
+  table { border-collapse: collapse; margin: 12px 0; width: 100%; font-size: 14px; }
+  th, td { border: 1px solid #ddd; padding: 6px 10px; text-align: left; }
+  th { background: #eee; }
+  td.num { text-align: right; font-family: monospace; }
+  .card { border: 1px solid #ddd; border-radius: 6px; padding: 12px 16px;
+          margin: 8px 0; background: white; }
+  .gradient-bar { display: inline-block; width: 200px; height: 12px; background: #eee;
+                  position: relative; vertical-align: middle; border-radius: 6px; overflow: hidden; }
+  .gradient-bar-fill { height: 100%; background: linear-gradient(90deg, #d62728, #ff7f50); }
+  a { color: #1f77b4; text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  .caveat { color: #777; font-size: 13px; }
+  .tag { display: inline-block; background: #eee; padding: 2px 8px; border-radius: 12px;
+         font-size: 12px; margin-right: 6px; }
+  .tag-strong { background: #d62728; color: white; }
+  img { max-width: 100%; border: 1px solid #ddd; margin: 8px 0; }
+</style>
+</head>
+<body>
+
+<h1>🌅 Morning Exploration Brief</h1>
+<p><em>2026-05-23 04:35 (Sydney)</em> · 自动探索运行结束 ·
+   3 seeds × 4 variants × 14 days × 1000 agents · <strong>23 个独立分析（A-Z）</strong></p>
+
+<p style="font-size:13px;color:#888;">
+  ⚡ <strong>建议阅读顺序</strong>:
+  ① 看下面 4 panel <em>HERO_FIGURE</em> → ② 读 <a href="MORNING_SUMMARY.md">MORNING_SUMMARY.md</a> →
+  ③ 读 <a href="PAPER_DRAFT_OUTLINE.md">PAPER_DRAFT_OUTLINE.md</a> 看论文怎么写 →
+  ④ 任选感兴趣的 A-Z 进 deep dive
+</p>
+
+<div class="headline">
+  <strong>核心结论:</strong> 超在地推送(HP)不只在 14 天内显著推动 1/5 居民物理位移、
+  形成强关系；干预停止后 4 天里 <strong>encounter 仍在以 1.32× 速度增长</strong>，
+  且 <strong>200m 物理邻居出现 8-12× 同伴效应</strong>。
+  「附近性盲区」的反向是可建立、且具有网络持久性的。
+</div>
+
+<img src="HERO_FIGURE.png" alt="4-panel paper-headline composite figure"
+     style="width:100%; margin: 16px 0; border: 2px solid #d62728; border-radius: 6px;">
+<p style="text-align:center; font-size: 13px; color: #777;">
+  <em>4 panel 论文头版图</em>:
+  L 社交传染(8-12×) · W 后期 network 增长(1.3-1.6×) · C 双峰响应(22.7%/77.3%) · 4-变体雷达对比
+</p>
+
+<h2>🏆 Top 5 论文金句</h2>
+
+<div class="card">
+  <h3>1. 社交传染 8-12×</h3>
+  <p class="quote">200m 内有 protag 响应者邻居的 non-protag,响应率
+  19.7%/25.2%/16.8% (HP/GD/PF)；只有非响应邻居的 non-protag,响应率仅 2-2.4%。</p>
+  <p>这是论文里最强的「社会传染」证据。非接收者也会变。</p>
+  <p><a href="L_spillover/summary.md">→ L_spillover</a></p>
+</div>
+
+<div class="card">
+  <h3>2. Post-period network compounding</h3>
+  <p class="quote">干预停止后 4 天，HP encounter 是 intervention 期的 1.32×，
+  PF 是 1.62×。距离的 trajectory 偏移保持 1.0×。</p>
+  <p>不是「不回 baseline」,是 <strong>network effects 还在继续放大</strong>。</p>
+  <p><a href="W_deeper_stickiness/summary.md">→ W_deeper_stickiness</a></p>
+</div>
+
+<div class="card">
+  <h3>3. 弱关系→强关系的频次机制</h3>
+  <p class="quote">repeats per pair: BL 17.3 → HP 71.1 (4.1×) → PF 69.1。
+  HP/PF 让同一对人遇到的次数翻 4 倍 → 这就是弱关系怎么变强关系。</p>
+  <p>tie_count_strong: BL 10K → HP 56.6K (5.6×) 验证了这条机制。</p>
+  <p><a href="V_repeat_vs_unique/summary.md">→ V</a> ·
+     <a href="Q_encounter_diversity/summary.md">→ Q</a> ·
+     <a href="P_tie_strength/summary.md">→ P</a></p>
+</div>
+
+<div class="card">
+  <h3>4. 双峰响应：22.7% 大动,77.3% 不动</h3>
+  <p class="quote">HP 响应率 22.7%（n=3000 across 3 seeds）。响应者平均 895m（5+ 街区）。
+  <strong>时间灵活的人响应最多</strong>: 退休 37%, 失业 39%, 软件工程师 24% vs
+  零售 11%, 工程师 8%。<strong>性别/收入无差</strong>—机会均等。</p>
+  <p>响应者大概率是 65+ 的退休人群（36% vs 18-24 的 19%）—— 这是论文里反直觉的发现。</p>
+  <p><a href="C_responder_profile/responder_rates_by_demo.md">→ C</a></p>
+</div>
+
+<div class="card">
+  <h3>5. 镜像对照：GD 干净的负控</h3>
+  <p class="quote">GD（推全球新闻）encounter 只涨 1.4× vs HP 5.5×；
+  trajectory 51m vs HP 108m；replan 447 vs HP 1990。</p>
+  <p>「推送」本身无效—— <strong>必须是 hyperlocal 内容</strong> 才能撬动物理响应。</p>
+  <p><a href="B_temporal_curves/phase_summary.md">→ B</a></p>
+</div>
+
+<h2>📊 全部 23 个分析索引</h2>
+
+<table>
+<thead><tr><th>#</th><th>分析</th><th>核心发现</th><th>路径</th></tr></thead>
+<tbody>
+
+<tr><td>A</td><td>POI 激活热力图</td>
+<td>HP 激活 265 POI,弃用 1549。median -12% dwell — 注意力集中而非分散</td>
+<td><a href="A_poi_activation/">A/</a></td></tr>
+
+<tr><td>B</td><td>14 天时间动态曲线</td>
+<td>HP encounter intervention 5.46× BL;post 7.22× BL（持续增长!）</td>
+<td><a href="B_temporal_curves/">B/</a></td></tr>
+
+<tr><td>C</td><td>响应者画像</td>
+<td>22.7% 响应率;时间灵活的人(退休 37%/失业 39%)响应最多</td>
+<td><a href="C_responder_profile/">C/</a></td></tr>
+
+<tr><td>D</td><td>步行足迹</td>
+<td>所有干预都让 <em>走得更少</em>(HP 0.91×) — 精准而非随机</td>
+<td><a href="D_walking_footprint/">D/</a></td></tr>
+
+<tr><td>E</td><td>地点多样性</td>
+<td>BL 195 unique locs/agent → HP 173 — 干预收敛非扩散</td>
+<td><a href="E_location_diversity/">E/</a></td></tr>
+
+<tr><td>F</td><td>偶遇位置分解</td>
+<td>HP: residential 60→51%, commercial 28→36%, street 2.2→3.8%</td>
+<td><a href="F_encounter_locations/">F/</a></td></tr>
+
+<tr><td>G</td><td>习惯粘性 (trajectory)</td>
+<td>post/int = 1.00× 跨所有 cell — 空间锚点不回 baseline</td>
+<td><a href="G_habit_stickiness/">G/</a></td></tr>
+
+<tr><td>H</td><td>性格相关</td>
+<td>所有大五特征 |r|<0.13 — <em>情境 > 性格</em></td>
+<td><a href="H_personality/">H/</a></td></tr>
+
+<tr><td>I</td><td>距离-target proximity</td>
+<td>protag 在 0-200m bin 响应率 33% vs 1500m bin 26% — 弱单调梯度</td>
+<td><a href="I_proximity_to_targets/">I/</a></td></tr>
+
+<tr><td>J</td><td>新地点探索</td>
+<td>HP 134 novel locs ≈ BL 142 — 不是发现新地方,是「重新优先化」</td>
+<td><a href="J_novelty_exploration/">J/</a></td></tr>
+
+<tr><td>K</td><td>成本效率</td>
+<td>HP $52/cell, $0.001 per extra unique pair, $0.40 per extra dialogue</td>
+<td><a href="K_cost_efficiency/">K/</a></td></tr>
+
+<tr><td><strong>L</strong></td><td><strong>社交传染 ⭐</strong></td>
+<td><strong>200m 邻居有 protag-responder → 19.7% vs 仅 2.4%</strong></td>
+<td><a href="L_spillover/">L/</a></td></tr>
+
+<tr><td>M</td><td>工作日/周末</td>
+<td>BL 周末 distinct_pairs 2.6× 工作日;HP 填平工作日空缺</td>
+<td><a href="M_weekday_weekend/">M/</a></td></tr>
+
+<tr><td>N</td><td>方法论方差</td>
+<td>seed 43 用 v6 老 prefix,3-4× 偏差大;论文用 seed 44/45 为主</td>
+<td><a href="N_methods_variance/">N/</a></td></tr>
+
+<tr><td>O</td><td>时段动态</td>
+<td>commute 7-9, 17-19 高峰;hour-00 spike 是 sim artifact</td>
+<td><a href="O_time_of_day/">O/</a></td></tr>
+
+<tr><td>P</td><td>关系强度演化</td>
+<td><strong>HP 强关系 56.6K vs BL 10.1K = 5.6×</strong></td>
+<td><a href="P_tie_strength/">P/</a></td></tr>
+
+<tr><td>Q</td><td>偶遇多样性比</td>
+<td>BL 5.8% → HP 1.4% — 同人多次相遇而非新人</td>
+<td><a href="Q_encounter_diversity/">Q/</a></td></tr>
+
+<tr><td>R</td><td>信息传播</td>
+<td>所有变体到达 ~985/1000 agents,无显著差异</td>
+<td><a href="R_info_propagation/">R/</a></td></tr>
+
+<tr><td>S</td><td>Replan 动态</td>
+<td>BL 0, HP 1990, PF 1751, GD 447 — 干净的剂量响应</td>
+<td><a href="S_replan_dynamics/">S/</a></td></tr>
+
+<tr><td>T</td><td>案例 agent 追踪</td>
+<td>5 个 exemplar agent 的 14 天轨迹（包含 spillover responder）</td>
+<td><a href="T_case_studies/">T/</a></td></tr>
+
+<tr><td>U</td><td>跨群体共处</td>
+<td>per-location 人口学多样性 — HP 略增混合度</td>
+<td><a href="U_cross_cohort/">U/</a></td></tr>
+
+<tr><td>V</td><td>重复 vs 独特相遇</td>
+<td><strong>BL 17.3 repeats/pair → HP 71.1 (4.1×)</strong> — 弱→强关系机制</td>
+<td><a href="V_repeat_vs_unique/">V/</a></td></tr>
+
+<tr><td><strong>W</strong></td><td><strong>深度 stickiness ⭐</strong></td>
+<td><strong>post/int = HP 1.32× / PF 1.62× — network 还在生长</strong></td>
+<td><a href="W_deeper_stickiness/">W/</a></td></tr>
+
+<tr><td>X</td><td>工作场所引力</td>
+<td>所有变体 post 期都减少工作场所 dwell;HP 减少最多(post/BL 0.47×)</td>
+<td><a href="X_workplace_pull/">X/</a></td></tr>
+
+<tr><td>Y</td><td>活动 Gini 系数</td>
+<td>BL 0.834 → HP 0.852 — HP 让活动更集中(创建新热点)</td>
+<td><a href="Y_encounter_gini/">Y/</a></td></tr>
+
+<tr><td>Z</td><td>峰值 DOW</td>
+<td>BL 周末降 13%;HP 周末几乎平 — HP 填平了周末-工作日差异</td>
+<td><a href="Z_peak_hour/">Z/</a></td></tr>
+
+<tr><td><strong>AA</strong></td><td><strong>encounter → dialogue ⚠️</strong></td>
+<td>HP encounter 5×,但 dialogue 仅 +17% — H2 写作需谨慎</td>
+<td><a href="AA_encounter_dialogue/">AA/</a></td></tr>
+
+</tbody>
+</table>
+
+<h2>📝 论文写作辅助</h2>
+<p><a href="PAPER_DRAFT_OUTLINE.md"><strong>PAPER_DRAFT_OUTLINE.md</strong></a> —
+完整 5 幕论文大纲(摘要 / §1-9 / 附录)。每节都附引用对应分析的链接 + sample copy 草稿。直接可改成发表稿。</p>
+
+<p><a href="MORNING_SUMMARY.md"><strong>MORNING_SUMMARY.md</strong></a> —
+详细汇总文本版(配本 HTML 页可读)。</p>
+
+<h2>💡 论文 5 幕叙事框架(用现成数据可写)</h2>
+
+<table>
+<thead><tr><th>幕</th><th>主题</th><th>支撑数据</th></tr></thead>
+<tbody>
+<tr><td>1</td><td>假说</td><td>H1: hyperlocal push 把注意力拉回近处</td></tr>
+<tr><td>2</td><td>机制</td><td>S: 1990 replans triggered · D/E: 走得更少更精准 · A: 265 POI 激活</td></tr>
+<tr><td>3</td><td>量化</td><td>C: 22.7% 响应率, 双峰 (88%/12%, 850m) · 时间灵活人响应最多</td></tr>
+<tr><td>4</td><td>泛化</td><td><strong>L: 8-12× 邻居传染 · P/V: 5.6× 强关系经由 4.1× 频次</strong></td></tr>
+<tr><td>5</td><td>含义</td><td><strong>W: post 1.32-1.62× 增长 · G: 空间不回 baseline · B: GD 镜像确认 hyperlocal-only</strong></td></tr>
+</tbody>
+</table>
+
+<h2>⚠️ 数据质量说明</h2>
+<ul>
+<li><strong>seed 43</strong> 用 v6 老 prefix(2026-05-21),trajectory 3-4× 偏高 — 论文以 seed 44/45 为主</li>
+<li><strong>seed 43 GD cell</strong> 64% fallback / $0.51 cost — 该 cell 早死,GD 分析排除</li>
+<li><strong>dialogue_count = 750 卡平</strong> — 是 evicted 计数器,用 <code>dialogue_live_at_exit</code> (BL 73 / HP 207 / GD 109 / PF 244) 更好</li>
+<li><strong>trajectory median = 0</strong> — 88% agent 0 deviation,12% 大动,bimodal 不是测量错。用 mean 或 responder-only median</li>
+<li><strong>info_propagation</strong> 无变体差异 — 是 social_priors 衍生,不响应干预</li>
+</ul>
+
+<h2>🔧 复现命令</h2>
+<pre><code>.venv/bin/python3 tools/backfill_publishable_metrics.py
+.venv/bin/python3 tools/paper_exploration_a_poi_activation.py
+.venv/bin/python3 tools/paper_exploration_b_temporal_curves.py
+.venv/bin/python3 tools/paper_exploration_c_responder_profile.py
+.venv/bin/python3 tools/paper_exploration_d_to_i_batch.py
+.venv/bin/python3 tools/paper_exploration_j_to_n_batch.py
+.venv/bin/python3 tools/paper_exploration_o_to_s_batch.py
+.venv/bin/python3 tools/paper_exploration_t_to_w_batch.py
+.venv/bin/python3 tools/paper_exploration_x_to_z_batch.py</code></pre>
+
+<h2>🌙 没在自动跑里完成的</h2>
+<ol>
+<li><strong>seed 46 fork</strong> — 论文 β=4 还差 1 个 seed。成本 ~$127 USD。
+   <em>等用户决定后再 spawn,不擅自花钱。</em></li>
+<li><strong>encounter → dialogue 转化率</strong> — 需要 per-encounter event 流挖掘,本次没做</li>
+<li><strong>信息扩散树可视化</strong> — info_propagation_hops 有数据但无 per-info 路径</li>
+<li><strong>更详细的 agent 案例追踪</strong> — T_case_studies 给了 5 个,可以再深</li>
+</ol>
+
+<p style="text-align:center; color:#aaa; margin-top:40px;">
+🤖 Autonomous by Claude · 2026-05-23
+</p>
+
+</body>
+</html>

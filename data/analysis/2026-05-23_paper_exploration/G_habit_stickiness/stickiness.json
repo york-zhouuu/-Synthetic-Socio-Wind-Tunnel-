@@ -1,0 +1,74 @@
+{
+  "43|hyperlocal_push": {
+    "n_responders": 501,
+    "n_non_responders": 499,
+    "responder_int_mean": 712.3191076768104,
+    "responder_post_mean": 712.3191076768104,
+    "post/intervention_ratio": 1.0,
+    "non_responder_post_mean": 0.4091765124383814
+  },
+  "43|global_distraction": {
+    "n_responders": 519,
+    "n_non_responders": 481,
+    "responder_int_mean": 483.8518123047239,
+    "responder_post_mean": 483.8518123047239,
+    "post/intervention_ratio": 1.0,
+    "non_responder_post_mean": 0.562587805929019
+  },
+  "43|phone_friction": {
+    "n_responders": 490,
+    "n_non_responders": 510,
+    "responder_int_mean": 693.9780173710989,
+    "responder_post_mean": 693.9780173710989,
+    "post/intervention_ratio": 1.0,
+    "non_responder_post_mean": 0.30145545529259105
+  },
+  "44|hyperlocal_push": {
+    "n_responders": 113,
+    "n_non_responders": 887,
+    "responder_int_mean": 896.2964483748733,
+    "responder_post_mean": 896.2964483748733,
+    "post/intervention_ratio": 1.0,
+    "non_responder_post_mean": 0.0
+  },
+  "44|global_distraction": {
+    "n_responders": 61,
+    "n_non_responders": 939,
+    "responder_int_mean": 744.1822216235759,
+    "responder_post_mean": 744.1822216235759,
+    "post/intervention_ratio": 1.0,
+    "non_responder_post_mean": 0.021221459323095333
+  },
+  "44|phone_friction": {
+    "n_responders": 110,
+    "n_non_responders": 890,
+    "responder_int_mean": 939.9037874694284,
+    "responder_post_mean": 939.9037874694284,
+    "post/intervention_ratio": 1.0,
+    "non_responder_post_mean": 0.01621449494802558
+  },
+  "45|hyperlocal_push": {
+    "n_responders": 68,
+    "n_non_responders": 932,
+    "responder_int_mean": 1047.9348808751997,
+    "responder_post_mean": 1047.9348808751997,
+    "post/intervention_ratio": 1.0,
+    "non_responder_post_mean": 0.0
+  },
+  "45|global_distraction": {
+    "n_responders": 46,
+    "n_non_responders": 954,
+    "responder_int_mean": 893.9268491555492,
+    "responder_post_mean": 893.9268491555492,
+    "post/intervention_ratio": 1.0,
+    "non_responder_post_mean": 0.010254789610255827
+  },
+  "45|phone_friction": {
+    "n_responders": 76,
+    "n_non_responders": 924,
+    "responder_int_mean": 1098.4758326851938,
+    "responder_post_mean": 1098.4758326851938,
+    "post/intervention_ratio": 1.0,
+    "non_responder_post_mean": 0.0
+  }
+}

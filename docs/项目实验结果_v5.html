@@ -1,0 +1,834 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>v5 · 我们对邻里关系的 14 个常识 — 数据打了几个脸</title>
+<style>
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC",
+                 "Hiragino Sans GB", "Microsoft YaHei", "Source Han Sans",
+                 sans-serif;
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 70px 48px 120px;
+    line-height: 1.85;
+    color: #1f1f1f;
+    background: #fbfaf6;
+    font-size: 17px;
+  }
+  .tagline { font-size: 13px; letter-spacing: 0.15em; color: #888; text-transform: uppercase; margin-bottom: 12px; }
+  h1 { font-size: 38px; font-weight: 700; line-height: 1.22; margin: 0 0 20px; letter-spacing: -0.01em; }
+  .deck { font-size: 21px; color: #5b5b5b; margin: 0 0 36px; font-weight: 300; line-height: 1.55; }
+  h2 { font-size: 28px; font-weight: 700; margin: 80px 0 22px; padding-bottom: 10px; border-bottom: 2px solid #1f1f1f; }
+  h3 { font-size: 22px; font-weight: 600; margin: 36px 0 14px; }
+  h4 { font-size: 13px; font-weight: 700; color: #c8553d; margin: 18px 0 6px; text-transform: uppercase; letter-spacing: 0.1em; }
+  p { margin: 0 0 16px; }
+  strong { color: #000; font-weight: 600; }
+  em { font-style: italic; color: #444; }
+
+  /* Setup box at top */
+  .setup-box {
+    background: #fff;
+    border: 1px solid #d8d3c0;
+    border-radius: 10px;
+    padding: 28px 34px;
+    margin: 28px 0 40px;
+  }
+  .setup-box h3 { margin: 0 0 14px; font-size: 17px; color: #7a5a2a; text-transform: uppercase; letter-spacing: 0.08em; }
+  .setup-box p { font-size: 16px; }
+
+  /* 4 universes — friendly */
+  .uni-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px;
+    margin: 22px 0;
+  }
+  .uni {
+    background: #fff;
+    border-radius: 8px;
+    padding: 18px 22px;
+    border-top: 5px solid #888;
+    border-right: 1px solid #e5e2d6;
+    border-bottom: 1px solid #e5e2d6;
+    border-left: 1px solid #e5e2d6;
+    font-size: 15px;
+  }
+  .uni .uname { font-weight: 700; font-size: 16px; margin-bottom: 6px; }
+  .uni.a { border-top-color: #888; }
+  .uni.a .uname { color: #555; }
+  .uni.b { border-top-color: #c8553d; }
+  .uni.b .uname { color: #c8553d; }
+  .uni.c { border-top-color: #3b6ea8; }
+  .uni.c .uname { color: #3b6ea8; }
+  .uni.d { border-top-color: #5a7a4f; }
+  .uni.d .uname { color: #5a7a4f; }
+
+  /* Question card — for the 14 walk-in questions */
+  .q-row {
+    display: grid;
+    grid-template-columns: 32px 1fr 90px;
+    gap: 14px;
+    align-items: start;
+    padding: 14px 0;
+    border-bottom: 1px solid #e5e2d6;
+    font-size: 16px;
+  }
+  .q-row .qn { color: #888; font-weight: 600; font-family: -apple-system, monospace; }
+  .q-row .qt strong { color: #1f1f1f; display: block; margin-bottom: 4px; }
+  .q-row .qt .qsub { color: #666; font-size: 14px; line-height: 1.5; }
+  .q-row .verdict { font-size: 14px; font-weight: 700; text-align: right; }
+  .v-yes { color: #2a7a3a; }
+  .v-part { color: #c89417; }
+  .v-no { color: #888; }
+  .v-flip { color: #c8553d; }
+
+  .q-group {
+    background: #1f1f1f;
+    color: white;
+    padding: 12px 18px;
+    margin: 30px 0 0;
+    border-radius: 6px 6px 0 0;
+    font-size: 13px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    font-weight: 600;
+  }
+
+  /* Story card — for the 7 surprises */
+  .story {
+    background: #fff;
+    border-radius: 10px;
+    padding: 30px 36px;
+    margin: 32px 0;
+    border: 1px solid #d8d3c0;
+    border-left: 6px solid #c8553d;
+  }
+  .story .sn {
+    font-size: 12px;
+    background: #c8553d;
+    color: white;
+    padding: 4px 14px;
+    border-radius: 14px;
+    display: inline-block;
+    letter-spacing: 0.1em;
+    font-weight: 700;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+  .story h3 { margin: 4px 0 18px; font-size: 24px; line-height: 1.3; color: #1f1f1f; }
+
+  .step {
+    margin: 18px 0;
+    padding-left: 0;
+  }
+  .step .step-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: #c8553d;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+  .step.expected { background: #faf8ee; padding: 14px 20px; border-radius: 6px; }
+  .step.expected .step-label { color: #8a7a3a; }
+  .step.method { background: #f4f1ea; padding: 14px 20px; border-radius: 6px; }
+  .step.method .step-label { color: #555; }
+  .step.found { background: #fff4e6; padding: 16px 22px; border-radius: 6px; border-left: 3px solid #c8553d; }
+  .step.found p { font-size: 17px; margin: 0; }
+  .step.found strong { color: #7a2f0e; }
+  .step.verdict { background: #ffeacc; padding: 14px 20px; border-radius: 6px; }
+  .step.verdict .step-label { color: #7a2f0e; }
+  .step.verdict p { margin: 0; font-size: 16px; }
+
+  .bignum {
+    display: inline-block;
+    font-weight: 800;
+    color: #c8553d;
+    font-size: 32px;
+    line-height: 1;
+    margin: 0 4px;
+    vertical-align: -2px;
+  }
+
+  /* Hero figure */
+  figure { margin: 30px 0; padding: 0; }
+  figure img { width: 100%; border: 1px solid #d8d3c0; border-radius: 8px; display: block; background: white; }
+  figcaption { text-align: center; color: #777; font-size: 14px; margin-top: 12px; font-style: italic; line-height: 1.5; padding: 0 20px; }
+  figcaption strong { color: #555; font-style: normal; }
+
+  /* Pull quote */
+  .pq {
+    border-left: 5px solid #c8553d;
+    padding: 16px 28px;
+    margin: 32px 0;
+    color: #2a1f1c;
+    font-size: 20px;
+    font-style: italic;
+    background: #fff8f0;
+    border-radius: 0 6px 6px 0;
+    line-height: 1.5;
+  }
+
+  /* Practical advice */
+  .advice {
+    background: #fff;
+    border-radius: 8px;
+    padding: 22px 28px;
+    margin: 16px 0;
+    border: 1px solid #d8d3c0;
+    border-top: 4px solid #2a7a3a;
+  }
+  .advice h4 { color: #2a7a3a; margin: 0 0 6px; }
+  .advice h3 { margin: 0 0 10px; font-size: 19px; }
+  .advice p { font-size: 16px; color: #444; margin: 0; }
+
+  /* Inline mini-bar */
+  .barlist { margin: 14px 0; }
+  .barlist .row {
+    display: grid;
+    grid-template-columns: 150px 1fr 60px;
+    gap: 10px;
+    align-items: center;
+    margin: 6px 0;
+    font-size: 15px;
+  }
+  .barlist .row .lab { color: #444; }
+  .barlist .row .bar {
+    height: 22px;
+    background: linear-gradient(90deg, #c8553d, #e57a5a);
+    border-radius: 3px;
+  }
+  .barlist .row .v {
+    font-family: -apple-system, monospace;
+    color: #c8553d;
+    font-weight: 700;
+    text-align: right;
+  }
+  .barlist .row.dim .bar { background: #ccc; }
+  .barlist .row.dim .v { color: #999; }
+
+  /* Caveat */
+  .caveat {
+    background: #faf8ee;
+    border: 1px dashed #c8b87a;
+    border-radius: 6px;
+    padding: 14px 22px;
+    margin: 22px 0;
+    font-size: 14px;
+    color: #6a5a3a;
+    line-height: 1.6;
+  }
+
+  /* TOC */
+  .toc {
+    background: #f5f4e8;
+    border-radius: 8px;
+    padding: 22px 30px;
+    margin: 36px 0;
+    font-size: 15px;
+  }
+  .toc strong { display: block; margin-bottom: 10px; font-size: 13px; letter-spacing: 0.1em; color: #555; text-transform: uppercase; }
+  .toc ol { padding-left: 24px; margin: 0; }
+  .toc li { margin: 6px 0; }
+  .toc a { color: #c8553d; text-decoration: none; }
+  .toc a:hover { text-decoration: underline; }
+
+  footer { margin-top: 90px; padding-top: 26px; border-top: 1px solid #e5e2d6; color: #888; font-size: 13px; text-align: center; line-height: 1.6; }
+</style>
+</head>
+<body>
+
+<p class="tagline">A 14-DAY VIRTUAL EXPERIMENT · LANE COVE, SYDNEY</p>
+<h1>我们对邻居关系有 14 个常识。 数据告诉我们其中 5 个完全反了方向。</h1>
+<p class="deck">手机推送会让人更熟悉邻居,还是更远离邻居? 我们造了一个虚拟的悉尼小区,
+让 1,000 个虚拟居民住进去,克隆 4 份,每份给他们装不同的手机 app,
+看了 14 天的人间烟火。下面是我们出发时的预期,和数据给的答案。</p>
+
+
+<!-- ====================== SETUP ====================== -->
+
+<h2 id="setup">先讲清楚我们做了什么</h2>
+
+<div class="setup-box">
+  <p>悉尼北岸有个叫 <strong>Lane Cove</strong> 的小区 — 大约 1 公里步行半径,有公寓、商店、小学、教堂、Plaza。
+  我们用 OpenStreetMap 把它的每一栋楼、每一段路、每一个公园都搬到电脑里,然后造了 1,000 个虚拟居民:
+  老何 75 岁退休图书馆志愿者、Hannah 36 岁咖啡店老板娘、a0290 33 岁 ICU 护士……
+  每人有完整的生平、性格、家庭、收入、住址、上班路线。</p>
+
+  <p>然后我们做的事是: <strong>把这个虚拟 Lane Cove 复制了 4 份</strong>。
+  4 份完全一样 — 同一批 1,000 人、同一栋公寓、同一所学校、同一条街。
+  我们只换一件事: <strong>每份里这 1,000 人手机口袋里那部 app 推什么内容</strong>。</p>
+
+  <div class="uni-grid">
+    <div class="uni a">
+      <div class="uname">① 不装任何 app</div>
+      手机里没有任何额外推送,就是默认的 14 天生活。这是对照组。
+    </div>
+    <div class="uni b">
+      <div class="uname">② 装本街活动 app</div>
+      像 Lane Cove 邻里 app 一样,每天推 5 条本街活动:周六亲子市集、周日清扫日、Anglican 教堂读书会、PLC 幼儿园活动。
+    </div>
+    <div class="uni c">
+      <div class="uname">③ 装新闻 app</div>
+      每天推 5 条全球/悉尼 CBD 新闻:世界杯、加密货币、Vivid 灯光节、SpaceX 火星任务。和 ② 量一样,内容不同。
+    </div>
+    <div class="uni d">
+      <div class="uname">④ 装防沉迷 app</div>
+      14 天里只推 6 条提醒,不告诉去哪,只说"放下手机看看附近"、"Plaza 站 5 分钟"。
+    </div>
+  </div>
+
+  <p>4 份各跑 14 天,然后看 4 份里的同一个人最后去哪了、见了谁、跟谁聊了天、对小区发生的事知道多少。
+  整个仿真总共记录了 1.6 千万次决策、近 600 万次"两个人物理上同时在同一栋楼或同一段街",
+  其中**真正"抬头看见对方"的瞬间只有约 60 万次,大约 10%** —
+  剩下 90% 是身体经过了但因为低头看手机、想别的事而完全没注意。 另外还有近 1 万次完整对话。
+  规模相当于这个小区活了 16.8 万人天。</p>
+
+  <p>这一切的目的: 不是问"app 好不好",是问 <strong>"我们对邻里关系的常识对不对"</strong> —
+  把每条常识写下来,然后看数据是不是站得住。</p>
+
+  <p style="font-size:14px; color:#555; background:#faf8ee; padding:14px 20px; border-radius:6px; border-left:3px solid #c8b87a; margin-top:18px;">
+    <strong>一个关键名词</strong>: 后文反复出现 <strong>"注意到 / 看见"</strong>。
+    它不是简单"两个人物理上同时在那" — 是 <strong>真正抬起头、目光扫到对方脸的那一瞬间</strong>。
+    人在同一栋楼可能擦肩 100 次,但因为低头看手机或想别的,真正注意到对方的可能只有 6 次。
+    这个项目想测的就是这 6 次怎么变成 73 次 — 而不是那 100 次能不能变 500 次。
+  </p>
+</div>
+
+
+<!-- ====================== 14 QUESTIONS ====================== -->
+
+<h2 id="questions">我们出发时写下的 14 个预期</h2>
+
+<p>这些不是研究问题,是普通人在听完项目介绍后会自然形成的预期。我们一开始也这么以为。</p>
+
+<p style="margin-bottom: 8px;"><strong>判定符号</strong>:
+<span class="v-yes">✓ 数据证实</span> ·
+<span class="v-part">~ 部分对</span> ·
+<span class="v-no">✗ 推翻</span> ·
+<span class="v-flip">⚡ 数据反方向</span></p>
+
+<div class="q-group">关于"推送怎么改变行为"</div>
+
+<div class="q-row">
+  <div class="qn">Q1</div>
+  <div class="qt"><strong>推本街活动会把人吸到那个地点?</strong>
+    <div class="qsub">直觉:你推一个 PLC 幼儿园活动,有些人就会去那。</div></div>
+  <div class="verdict v-yes">✓ 证实</div>
+</div>
+
+<div class="q-row">
+  <div class="qn">Q2</div>
+  <div class="qt"><strong>更多人去同一地点 → 注意到的人更多?</strong>
+    <div class="qsub">直觉:同一时间同一栋楼,抬头看到的脸自然更多。</div></div>
+  <div class="verdict v-yes">✓ 证实</div>
+</div>
+
+<div class="q-row">
+  <div class="qn">Q3</div>
+  <div class="qt"><strong>注意到的人变多 → 多认识新人?</strong>
+    <div class="qsub">直觉:多看到的人里总有些会变成新熟人。</div></div>
+  <div class="verdict v-flip">⚡ 反方向</div>
+</div>
+
+<div class="q-row">
+  <div class="qn">Q4</div>
+  <div class="qt"><strong>多次注意到同一个人 → 点头之交变成朋友?</strong>
+    <div class="qsub">直觉:Granovetter 那套 — 反复看到同一张脸,陌生人会变成熟人。</div></div>
+  <div class="verdict v-yes">✓ 证实</div>
+</div>
+
+<div class="q-row">
+  <div class="qn">Q5</div>
+  <div class="qt"><strong>注意到的人翻 5 倍 → 对话也翻 5 倍?</strong>
+    <div class="qsub">直觉:看见机会多了,聊天机会应该成比例增加。</div></div>
+  <div class="verdict v-no">✗ 推翻</div>
+</div>
+
+<div class="q-group">关于"哪些人会响应推送"</div>
+
+<div class="q-row">
+  <div class="qn">Q6</div>
+  <div class="qt"><strong>外向开放的人响应最强,内向人不动?</strong>
+    <div class="qsub">直觉:性格决定一切。</div></div>
+  <div class="verdict v-flip">⚡ 反方向</div>
+</div>
+
+<div class="q-row">
+  <div class="qn">Q7</div>
+  <div class="qt"><strong>年轻人响应高,老人不响应(他们用 app 少)?</strong>
+    <div class="qsub">直觉:推送是年轻人的工具。</div></div>
+  <div class="verdict v-flip">⚡ 反方向</div>
+</div>
+
+<div class="q-row">
+  <div class="qn">Q8</div>
+  <div class="qt"><strong>高收入 / 高教育响应更强?</strong>
+    <div class="qsub">直觉:tech-savvy = early adopter。</div></div>
+  <div class="verdict v-no">✗ 推翻(几乎相同)</div>
+</div>
+
+<div class="q-row">
+  <div class="qn">Q9</div>
+  <div class="qt"><strong>住得离活动越近,响应越强?</strong>
+    <div class="qsub">直觉:距离效应,近一倍就响应一倍。</div></div>
+  <div class="verdict v-part">~ 弱梯度</div>
+</div>
+
+<div class="q-group">关于"推送怎么设计才有效"</div>
+
+<div class="q-row">
+  <div class="qn">Q10</div>
+  <div class="qt"><strong>推得越多越有效?</strong>
+    <div class="qsub">直觉:量决定效果,推 30 条比推 5 条好 6 倍。</div></div>
+  <div class="verdict v-no">✗ 推翻(第 8 条已经半效)</div>
+</div>
+
+<div class="q-row">
+  <div class="qn">Q11</div>
+  <div class="qt"><strong>全球新闻推送也能"激活"本街?</strong>
+    <div class="qsub">直觉:都是推送都消耗注意力,效果应该差不多。</div></div>
+  <div class="verdict v-no">✗ 推翻</div>
+</div>
+
+<div class="q-row">
+  <div class="qn">Q12</div>
+  <div class="qt"><strong>"少看手机"自动会让人多注意到邻居?</strong>
+    <div class="qsub">直觉:手机抢走了注意力,放下就会抬头看见邻居。</div></div>
+  <div class="verdict v-flip">⚡ 短期没用 / 长期反弹最强</div>
+</div>
+
+<div class="q-row">
+  <div class="qn">Q13</div>
+  <div class="qt"><strong>推送 → 信息传播更广?</strong>
+    <div class="qsub">直觉:听到事的人多,告诉别人的概率就高。</div></div>
+  <div class="verdict v-no">✗ 推翻(本系统这个指标不可用)</div>
+</div>
+
+<div class="q-group">关于"停掉推送之后"</div>
+
+<div class="q-row">
+  <div class="qn">Q14</div>
+  <div class="qt"><strong>推送一停,行为就回到原样?</strong>
+    <div class="qsub">直觉:刺激没了就回归默认。</div></div>
+  <div class="verdict v-flip">⚡ 反方向 — 推送停后 4 天网络还在长</div>
+</div>
+
+
+<div class="caveat">
+  <strong>统计</strong>: 14 条普通常识里,我们对了 4 条,部分对 1 条,错了 4 条,
+  <strong>有 5 条数据方向完全相反</strong>。 一句话:"关于邻里关系的常识里,接近 1/3 是反方向的。"
+</div>
+
+
+<!-- ====================== 7 SURPRISES ====================== -->
+
+<h2 id="surprises">7 个最让我们意外的发现</h2>
+
+<p>下面每条用 <strong>4 步</strong>讲: 我们以为是什么 → 我们怎么测的 → 数据说是什么 → 验证结论。</p>
+
+
+<!-- ======== SURPRISE 1: hyperlocal is hyper-non-local ======== -->
+
+<div class="story">
+  <span class="sn">SURPRISE #1 · 命名悖论</span>
+  <h3>"本街"推送让人**离开**本街</h3>
+
+  <div class="step expected">
+    <div class="step-label">我们以为</div>
+    <p>装了"本街活动 app"的人,会更多在 home 周围 100 米内活动 — 真正抬头看见楼下邻居、
+    隔壁咖啡店老板的次数更多。 "hyperlocal" 这个词本身意味着"加强紧邻关系"。</p>
+  </div>
+
+  <div class="step method">
+    <div class="step-label">我们怎么测</div>
+    <p>每个虚拟居民 14 天里**真正抬起头注意到的每张脸**(不是物理同框的全部,是过了"注意力门槛"的那一小部分),
+    记下来发生在哪、距离 home 多远。 按距离 home 的远近分桶(0-100m / 100-300m / 300-500m / ...),
+    然后比较"本街活动 app" 组 vs 对照组。</p>
+  </div>
+
+  <div class="step found">
+    <div class="step-label">数据说</div>
+    <p><strong>正好反过来,而且差距比预期大得多</strong>。 装本街活动 app 后,home 周围 0-100 米内"看见"的占比从对照组的
+    <span class="bignum">17.3%</span> 跌到 <span class="bignum">8.1%</span> — <strong>楼下邻居被看见的比例不到原来的一半</strong>。
+    与此同时,2-5 公里远距离涨到 <strong>19.9%</strong>(对照组只 5.7%)。
+    "本街"(home 500 米内)看见人的占比: 对照组 <strong>32.1%</strong> → 本街活动组 <strong>20.9%</strong>。</p>
+  </div>
+
+  <div class="step verdict">
+    <div class="step-label">为什么</div>
+    <p>因为推送里的活动地点(PLC 幼儿园、Shinnyo、Anglican 教堂)本身就在你家 <strong>500-1500 米</strong>外,
+    不在你家楼下。当 app 精准把你拉到这些 anchor 集中,你就离开了"楼下 100 米"的紧邻圈。
+    "hyperlocal" 名义上是"分散到本街",实际效果是"集中到 5 个外围 anchor"。</p>
+  </div>
+</div>
+
+
+<!-- HERO FIGURE -->
+<figure>
+  <img src="figures_v4/finding_00_siphon_hero.png" alt="虹吸地图">
+  <figcaption><strong>左边:</strong>对照组的 Lane Cove — 14 天里 1,000 人的活动散布在大约 2,400 个地点。
+  <strong>右边:</strong>装了本街活动 app 后的同一个 Lane Cove — 1 个地点 (PLC 幼儿园) 吸走了 62% 的新增停留时间,
+  与此同时 <strong>1,556 个地点失去了人</strong>。</figcaption>
+</figure>
+
+
+<!-- ======== SURPRISE 2: PF is the new-friend factory ======== -->
+
+<div class="story">
+  <span class="sn">SURPRISE #2 · 工具角色反转</span>
+  <h3>"少看手机"这种**被动**工具,反而创造了最多新认识</h3>
+
+  <div class="step expected">
+    <div class="step-label">我们以为</div>
+    <p>本街活动 app(主动告诉你去哪)应该带来最多新认识。 "少看手机" app 是被动的,
+    不告诉你去哪、不创造连接,只是挡屏幕,所以新认识应该很少。</p>
+  </div>
+
+  <div class="step method">
+    <div class="step-label">我们怎么测</div>
+    <p>每个 app 版本里,记下所有"两个人在 14 天里**真正抬头互相看见过**"的组合
+    (过了注意力门槛的那一小部分,不算两人物理同框但都低头没看见)。 然后看哪些组合是
+    <strong>对照组里从来没出现过、这个 app 版本里才第一次出现的</strong> —
+    这些是"app 真正带来的新看见的人"。</p>
+  </div>
+
+  <div class="step found">
+    <div class="step-label">数据说</div>
+    <p>14 天里"对照组没看见过、这个版本才看见的"新人对数:</p>
+
+    <div class="barlist">
+      <div class="row"><span class="lab">少看手机 app</span><div class="bar" style="width: 100%;"></div><span class="v">20,055</span></div>
+      <div class="row"><span class="lab">本街活动 app</span><div class="bar" style="width: 87%;"></div><span class="v">17,483</span></div>
+      <div class="row dim"><span class="lab">全球新闻 app</span><div class="bar" style="width: 35%;"></div><span class="v">6,958</span></div>
+    </div>
+
+    <p>"少看手机"比"本街活动"多 <span class="bignum">15%</span> 新看见的人。
+    更夸张的:对照组里只 8,080 对人互相看见过;"少看手机"翻到 21,163 对(<strong>2.6 倍</strong>)、
+    本街活动 18,534 对(<strong>2.3 倍</strong>)。 这两个 app 里 <strong>94% 的"看见对方"都是对照组里从来没发生过的</strong> —
+    几乎是全新的脸。 全球新闻 app 几乎没变(1.01 倍),attention 走神但没让人看见新东西。</p>
+
+    <p>更深一层:不同 app 让人"抬头率"差很多 — 对照组 9.5% 的物理同框真正变成了"看见",
+    本街活动 10.3%,全球新闻 9.6%,**少看手机 14.6%** — 少看手机 app 让抬头率净涨 50%。</p>
+  </div>
+
+  <div class="step verdict">
+    <div class="step-label">为什么</div>
+    <p>本街活动 app 把你赶到固定 5 个 anchor 反复见同一群人。
+    "少看手机" app 不告诉你去哪 → 你自由探索 → 走到更多 home 周围本来没去过的地方 → 遇见更多新面孔。
+    被动工具的"留白"反而是关键 — 它没占用你的目的地选择权。</p>
+  </div>
+</div>
+
+
+<!-- ======== SURPRISE 3: 24-96h response window ======== -->
+
+<div class="story">
+  <span class="sn">SURPRISE #3 · 时间窗错位</span>
+  <h3>推送的真正效果在 **1-4 天后**,不是当天</h3>
+
+  <div class="step expected">
+    <div class="step-label">我们以为</div>
+    <p>推送响应应该是平滑衰减曲线 — 第一小时最强(看到就去),几天后归零。
+    任何产品业界看推送都用 "open rate" 或 "same-day CTR"。</p>
+  </div>
+
+  <div class="step method">
+    <div class="step-label">我们怎么测</div>
+    <p>每次推送投递的精确时间记下来,然后看这个人 <strong>第一次真正走到那个推送的地点</strong>(不是看到、是身体到了)
+    用了多久。 把所有 1.6 万次"被推 → 真到了"的时间间隔分组统计。</p>
+  </div>
+
+  <div class="step found">
+    <div class="step-label">数据说</div>
+    <p>完全不是平滑衰减,是 <strong>"当时 / 一天后"两头大中间空</strong>的双峰:</p>
+
+    <div class="barlist">
+      <div class="row"><span class="lab">同一小时内</span><div class="bar" style="width: 100%;"></div><span class="v">45.1%</span></div>
+      <div class="row dim"><span class="lab">1-12 小时内</span><div class="bar" style="width: 1%;"></div><span class="v">0.2%</span></div>
+      <div class="row dim"><span class="lab">12-24 小时</span><div class="bar" style="width: 2%;"></div><span class="v">0.6%</span></div>
+      <div class="row"><span class="lab">第 2 天</span><div class="bar" style="width: 43%;"></div><span class="v">19.4%</span></div>
+      <div class="row"><span class="lab">第 3-4 天</span><div class="bar" style="width: 46%;"></div><span class="v">20.7%</span></div>
+      <div class="row"><span class="lab">5 天以上</span><div class="bar" style="width: 31%;"></div><span class="v">14.0%</span></div>
+    </div>
+
+    <p>"同一小时内"的 45% 主要是仿真技术细节(推送和当天计划同时处理 — 大致相当于"推送一到就被纳入今天的安排")。
+    剔掉这部分,<strong>真正"看到后去"的响应集中在 1-4 天后</strong>,占 40%。
+    第一天内(0-24h)反而几乎没人响应。</p>
+  </div>
+
+  <div class="step verdict">
+    <div class="step-label">为什么</div>
+    <p>看到推送的当天不会立刻去 — 人有自己的计划,推送是先存档,过 1-3 天某个空档才行动。
+    "open rate / same-day CTR"会错失 <strong>~95%</strong> 真实效果。任何想测推送的实验,
+    measurement window 至少 4 天,不要看当天。</p>
+  </div>
+</div>
+
+
+<!-- ======== SURPRISE 4: routine_adherence is the lever ======== -->
+
+<div class="story">
+  <span class="sn">SURPRISE #4 · 维度看错了</span>
+  <h3>性格不是没用 — 关键性格是"是否愿打破日常",不是"是否外向"</h3>
+
+  <div class="step expected">
+    <div class="step-label">我们以为</div>
+    <p>外向(extraversion)、开放(openness)、tech-savvy 的人响应推送强。
+    内向、宅、年纪大的人响应弱。 性格 → 响应 是直觉。</p>
+  </div>
+
+  <div class="step method">
+    <div class="step-label">我们怎么测</div>
+    <p>把对照组和本街活动组的同一个人的"14 天后最终位置"比对一下。
+    如果两个版本里这个人最后位置差 > 100 米,标记为"被 app 移动了的人"(movable)。
+    然后看这群"被移动的人"按各种维度(年龄、职业、性格、收入、家庭)的分布。</p>
+  </div>
+
+  <div class="step found">
+    <div class="step-label">数据说</div>
+    <p>各个维度里"被移动率"差距(高 vs 低):</p>
+
+    <div class="barlist">
+      <div class="row"><span class="lab">routine 程度</span><div class="bar" style="width: 100%;"></div><span class="v">3.1×</span></div>
+      <div class="row"><span class="lab">职业</span><div class="bar" style="width: 68%;"></div><span class="v">2.1×</span></div>
+      <div class="row"><span class="lab">年龄</span><div class="bar" style="width: 55%;"></div><span class="v">1.7×</span></div>
+      <div class="row"><span class="lab">openness</span><div class="bar" style="width: 45%;"></div><span class="v">1.4×</span></div>
+      <div class="row"><span class="lab">家庭</span><div class="bar" style="width: 42%;"></div><span class="v">1.3×</span></div>
+      <div class="row dim"><span class="lab">extraversion</span><div class="bar" style="width: 35%;"></div><span class="v">1.1×</span></div>
+      <div class="row dim"><span class="lab">收入</span><div class="bar" style="width: 32%;"></div><span class="v">1.0×</span></div>
+      <div class="row dim"><span class="lab">性别</span><div class="bar" style="width: 32%;"></div><span class="v">1.0×</span></div>
+    </div>
+
+    <p>routine 程度("是否严格按日常 routine 过日子"):低 routine 的人 <strong>44.8%</strong> 被移动,
+    高 routine 的只 <strong>14.3%</strong> — 差距 3.1×。
+    extraversion 高 vs 低: <span class="bignum">28.6%</span> vs <span class="bignum">26.9%</span> — 几乎没差。</p>
+
+    <p>年龄分布也是反直觉的: 25-34 岁(33.8%)和 65-74 岁(33.6%)双峰最高,
+    <strong>18-24 岁最低(20.2%)</strong>。 不是单调"年轻人响应高",是 ∩ 形,两头响应,中间正在拼事业的反而平。</p>
+  </div>
+
+  <div class="step verdict">
+    <div class="step-label">为什么</div>
+    <p>响应推送本质上是"愿不愿意打破当天 routine"。 这是 schedule autonomy,不是 social attitude。
+    年龄上 25-34(family-with-kids 阶段)和 65-74(退休)两头时间最灵活,被推送的能力最强。
+    18-24 反而被(实际或想象中的)固定日程绑得最死。</p>
+  </div>
+</div>
+
+
+<!-- ======== SURPRISE 5: 70% don't budge ======== -->
+
+<div class="story">
+  <span class="sn">SURPRISE #5 · 末态 stickiness</span>
+  <h3>70% 的人不管怎么推都不动 — 干预效果全集中在 30% movable 群体</h3>
+
+  <div class="step expected">
+    <div class="step-label">我们以为</div>
+    <p>推送会"或多或少影响所有人" — 强弱不同但所有 1000 人都会有些位移。
+    14 天的强干预总该让每个人都换一下习惯。</p>
+  </div>
+
+  <div class="step method">
+    <div class="step-label">我们怎么测</div>
+    <p>看同一个人在对照组(没 app)和"本街活动 app"组里 — 14 天后晚上最后所在位置差多少米。</p>
+  </div>
+
+  <div class="step found">
+    <div class="step-label">数据说</div>
+    <ul style="margin: 8px 0; padding-left: 24px;">
+      <li><strong>70.2%</strong> 的人在两个版本里末态位置完全一样(差<1米) — 没动</li>
+      <li>装"新闻 app"版本里这个比例更高 — <span class="bignum">89.5%</span> 完全没动(身体上)</li>
+      <li>"少看手机"版本: 67.2% 没动</li>
+    </ul>
+    <p>所有"干预效应"集中在 <strong>~30% movable</strong> 群体上。 跟 #4 联系起来:
+    这 30% 主要是 routine 程度低 + 25-34 或 65-74 + family-with-kids 这个特定子群。</p>
+  </div>
+
+  <div class="step verdict">
+    <div class="step-label">为什么</div>
+    <p>日常 routine 极其黏。 推送的"覆盖率"不该用 1,000 做分母, 而应该用 ~300 真正会动的群体。
+    设计政策时知道有 70% 的人就算装了 app 也不会动,资源该放在剩下那 30% 怎么 onboarding。</p>
+  </div>
+</div>
+
+
+<!-- ======== SURPRISE 6: GD is attention drift only ======== -->
+
+<div class="story">
+  <span class="sn">SURPRISE #6 · 看新闻的"漂"是注意力,不是身体</h3>
+  <h3>装"新闻 app" 的人,身体几乎完全没动 — 只是注意力漂去了 CBD</h3>
+
+  <div class="step expected">
+    <div class="step-label">我们以为</div>
+    <p>看悉尼 CBD 新闻、Vivid 灯光节、SpaceX 这些推送会把人物理"带去 CBD"。
+    像 Mary 案例那种 — 漂去 Chatswood 4.5km 外的 12 楼陌生公寓。</p>
+  </div>
+
+  <div class="step method">
+    <div class="step-label">我们怎么测</div>
+    <p>同 #5 — 比对同一个人在对照组和"新闻 app"组的最终位置距离。</p>
+  </div>
+
+  <div class="step found">
+    <div class="step-label">数据说</div>
+    <p>装"新闻 app"版本里, <span class="bignum">89.5%</span> 的人末态位置跟对照组**完全一样**。
+    Mary 漂去 Chatswood 是极端少数,大多数人坐在原地刷新闻,身体上还在本街。
+    本街(home 500m 内)看见人的占比也跟对照组几乎一样(25.6% vs 27.5%),
+    社交网络上 96.8% 跟对照组重叠 — <strong>新闻 app 对物理行为几乎零影响</strong>。</p>
+  </div>
+
+  <div class="step verdict">
+    <div class="step-label">为什么</div>
+    <p>注意力被推送拉走 ≠ 身体被推送拉走 — <strong>但代价是"在场却没看见"</strong>。
+    新闻 app 让你心里去了悉尼 CBD,但 routine 让你身体留在本街。
+    可怕的不是"少经过了多少邻居",是 <strong>"你身在邻居身边却没抬头看见他们"</strong> —
+    Mary 长文里描述的那种"在场又不在场"。 物理 footprint 和 baseline 一样,
+    可"看见"的瞬间被新闻 app 偷走了。</p>
+  </div>
+</div>
+
+
+<!-- ======== SURPRISE 7: stopping doesn't stop ======== -->
+
+<div class="story">
+  <span class="sn">SURPRISE #7 · 网络滞后</span>
+  <h3>推送停掉之后,人际网络还在继续生长 4 天</h3>
+
+  <div class="step expected">
+    <div class="step-label">我们以为</div>
+    <p>推送一停,行为应该几天内回归默认 — 跟药效消退一样。</p>
+  </div>
+
+  <div class="step method">
+    <div class="step-label">我们怎么测</div>
+    <p>把 14 天分成 3 段: 前 4 天没推送 ("热身期"); 中间 6 天有推送 ("干预期"); 最后 4 天又停掉 ("退场期")。
+    看退场期内"注意到的人数"对比干预期的比例。</p>
+  </div>
+
+  <div class="step found">
+    <div class="step-label">数据说</div>
+    <p>推送停后的 4 天里,注意到的人数不仅没回到对照组水平,反而<strong>比干预期还高</strong>:</p>
+    <ul style="margin: 8px 0; padding-left: 24px;">
+      <li>本街活动 app: 退场期 / 干预期 = <strong>1.32×</strong></li>
+      <li>少看手机 app: 退场期 / 干预期 = <strong>1.62×</strong></li>
+    </ul>
+    <p>同时人在物理空间上的偏移也不退回原始位置 — 干预创造的新 routine 已经"固化"。</p>
+  </div>
+
+  <div class="step verdict">
+    <div class="step-label">为什么</div>
+    <p>14 天里新认识的人 / 新建立的"周三下午经过 Plaza"的习惯,会自己 ricochet — 你周三去了一次,
+    下周三 routine 还在那。 推送的真正价值是"种习惯",不是"持续刺激"。
+    "少看手机"这个**最被动**的 app 反弹最强,因为它种的习惯没有外部依赖,纯粹是 routine 内部重构。</p>
+  </div>
+</div>
+
+
+<!-- ====================== PULL QUOTE ====================== -->
+
+<p class="pq">
+14 个常识里 5 个完全反方向。 关于邻里关系的直觉,有近 1/3 是错的方向 ——
+不是"对了一点点 / 错了一点点",是 <strong>反过来</strong>。
+</p>
+
+
+<!-- ====================== PRACTICAL ====================== -->
+
+<h2 id="practical">这意味着什么 · 给做事的人</h2>
+
+<p>看完 7 个反直觉之后,如果你正在做一个本街 app、 一个 council 邻里服务、 一个社区设计项目,
+下面这 6 件事是从数据里能挖出来的最具体的建议。</p>
+
+<div class="advice">
+  <h4>BUILDING THIS WEEK · 推送内容比频率重要</h4>
+  <h3>把推送内容从"council 广播"换成"本街 origin"</h3>
+  <p>同样推 5 条/天,全球新闻让人少注意到 8% 的本街邻居,本街内容多注意到 14% — "推送频率"不是关键变量,
+  "推什么"才是。 council app 设计的第一件事是把推送主体改成本街社区生成的内容,而不是机构广播。</p>
+</div>
+
+<div class="advice">
+  <h4>CAPS · 不要超过 8 条/天/人</h4>
+  <h3>注意力是有限预算,第 8 条已经半效</h3>
+  <p>第 1 条推送全效,第 8 条半效,第 15 条基本无效。 任何 hyperlocal 项目 > 8 推送/天,
+  在居民注意力预算上**净亏**。 软上限 ≤ 8/天,多出来的额度让位给居民自己生成的内容。</p>
+</div>
+
+<div class="advice">
+  <h4>PAIRING · "少看手机"必须配本街锚点</h4>
+  <h3>不要单做反推送,要配公告板 / 市集 / 长椅</h3>
+  <p>"少看手机" 单独效果在干预期不明显(虽然停后反弹强)。 anti-tech 项目必须配实体本街锚点
+  —— 周六市集、楼下公告板、Plaza 长椅 —— 才变成有效的社会工具。</p>
+</div>
+
+<div class="advice">
+  <h4>NAMING · 小心 "hyperlocal" 的命名悖论</h4>
+  <h3>想要紧邻效果,anchor 必须落在 home 200m 内</h3>
+  <p>如果你的目标是加强紧邻关系(楼下邻居、隔壁阿姨),hyperlocal push 反而 counterproductive
+  — 它把人从 100m 圈拉到 500-1500m 圈。 真正想加强紧邻,anchor 要落在公寓楼大堂、 同栋楼公告板,
+  不是 500m 外的 PLC。</p>
+</div>
+
+<div class="advice">
+  <h4>TOOLBOX · "本街活动"和"少看手机"不是同种工具的强弱档</h4>
+  <h3>HP 加强老熟人,PF 认识新人 — 看目标用哪个</h3>
+  <p>本街活动 app = 集中加强机制(老熟人见面 5 倍多)。 少看手机 = 分散探索机制(认识 20% 新人)。
+  目标是"激活街角生意" → 用本街活动 app。 目标是"扩展个人社交圈" → 用少看手机。 不要二选一思维。</p>
+</div>
+
+<div class="advice">
+  <h4>MEASUREMENT · 不要看 same-day CTR</h4>
+  <h3>推送效果测量窗口至少 96 小时</h3>
+  <p>真正响应在 1-4 天后。 任何推送 A/B 测试如果只看当天 click rate,会错失 95% 真实效果。
+  measurement window ≥ 4 天 · 看后续物理访问,不看 open rate。</p>
+</div>
+
+
+<!-- ====================== CAVEATS ====================== -->
+
+<h2 id="caveats">我们知道但还没解决的</h2>
+
+<ul>
+  <li><strong>95% 置信区间还没算</strong> — 本文所有数字是 2 个仿真种子 pooled 的 point estimate。
+  下一阶段加跑第 3 个种子后会带正式 CI 重新陈述。</li>
+  <li><strong>对话的逐句文本没存</strong> — 我们有 ~9,000 段 LLM 第一人称对话总结,
+  但 turn-by-turn 原话没留。 这是仿真层 limitation。</li>
+  <li><strong>"注意到 → 对话"的转化弱</strong> — 注意到的人翻 5 倍,真坐下来对话只多 17%。 跟人类社交直觉相反,
+  这一段证据较弱,论文里要保守。</li>
+  <li><strong>信息传播指标不可用</strong> — 4 个版本都把信息传给 985/1000 人,变体间无差异。
+  这是仿真层有 bug 的部分,不能用这个 metric。</li>
+  <li><strong>响应时间 0-1h 的 45% 含技术 artifact</strong> — 仿真把推送和当天计划同 tick 处理。
+  不影响 bimodal 结论,但 0-1h 这段不能拿来宣传"瞬时响应"。</li>
+  <li><strong>本文所有"看见 / 注意到 / 抬头" 数字</strong>都用仿真自带的 attention gate 子集
+  (<code>encounter</code> 事件里 tag 含 <code>noticed</code> 的部分)— 这只占物理同框的 9-15%。
+  剩下 85-91% 是身体经过但没看见(低头看手机或想别的)。</li>
+</ul>
+
+
+<!-- ====================== FOOTNOTE ====================== -->
+
+<h2 id="how">这个仿真是怎么造出来的(简短)</h2>
+
+<p>所有地图来自 OpenStreetMap;1,000 个虚拟居民按 2021 澳大利亚人口普查的 Lane Cove 数据分布(年龄、收入、
+职业、家庭、住址);每个人有完整生平、性格、日常 routine,由 AI 实时生成行为。
+4 个平行 Lane Cove 同时跑,一晚上跑完一整轮 14 天。 总成本约 USD 500 / 3 seed × 4 variant 完整 run。</p>
+
+<p>系统是开源的,可以换 OpenStreetMap 数据后跑悉尼任何 walkable 小区 — Marrickville、Parramatta、
+任何 council 想 pre-test 的地点。 我们 hand 出去的不是 Lane Cove 这个结果,
+是这个**可以反复重跑的虚拟小区工具**。</p>
+
+
+<footer>
+  Synthetic Socio Wind Tunnel · v5 · 2026-05-24<br>
+  这是 14-day 实验的"对账"版本 · 给完全不懂项目的读者 ·
+  详细 8 张图证据版见 <a href="项目实验结果.html">v3</a> ·
+  21 H 数据 audit 版见 <a href="项目实验结果_v4.html">v4</a> ·
+  3 个虚拟居民的长篇案例见 <a href="case_studies/_published/">这里</a>
+</footer>
+
+</body>
+</html>

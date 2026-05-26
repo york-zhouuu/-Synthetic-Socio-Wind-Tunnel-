@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>v4 · 21 个猜想,数据打了几个脸 — Synthetic Socio Wind Tunnel · Lane Cove</title>
+<style>
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC",
+                 "Hiragino Sans GB", "Microsoft YaHei", "Source Han Sans",
+                 sans-serif;
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: 70px 48px 120px;
+    line-height: 1.75;
+    color: #1f1f1f;
+    background: #fbfaf6;
+    font-size: 16px;
+  }
+  .tagline { font-size: 13px; letter-spacing: 0.15em; color: #888; text-transform: uppercase; margin-bottom: 12px; }
+  h1 { font-size: 38px; font-weight: 700; line-height: 1.22; margin: 0 0 16px; letter-spacing: -0.01em; }
+  .hook { font-size: 20px; color: #5b5b5b; margin: 0 0 30px; font-weight: 300; }
+  h2 { font-size: 28px; font-weight: 700; margin: 80px 0 22px; padding-bottom: 10px; border-bottom: 2px solid #1f1f1f; }
+  h3 { font-size: 21px; font-weight: 600; margin: 32px 0 12px; }
+  h4 { font-size: 13px; font-weight: 600; color: #666; margin: 12px 0 6px; text-transform: uppercase; letter-spacing: 0.08em; }
+  p { margin: 0 0 14px; }
+  strong { color: #000; font-weight: 600; }
+  em { font-style: normal; background: #fff4cc; padding: 1px 4px; }
+  a { color: #c8553d; text-decoration: none; border-bottom: 1px dashed #c8553d; }
+  code { background: #f0eee0; padding: 2px 6px; border-radius: 3px; font-size: 13px; color: #6a4a2a; }
+
+  figure { margin: 24px 0; padding: 0; }
+  figure img { width: 100%; border: 1px solid #d8d3c0; border-radius: 8px; display: block; background: white; }
+  figcaption { text-align: center; color: #777; font-size: 13px; margin-top: 10px; font-style: italic; }
+  figcaption strong { color: #555; font-style: normal; }
+
+  /* TL;DR box */
+  .tldr {
+    background: linear-gradient(135deg, #fff4e6 0%, #ffeacc 100%);
+    border-left: 6px solid #c8553d;
+    padding: 26px 30px; margin: 30px 0 40px; border-radius: 8px;
+  }
+  .tldr h3 { margin-top: 0; color: #7a2f0e; font-size: 16px; text-transform: uppercase; letter-spacing: 0.1em; }
+  .tldr ul { margin: 14px 0 0; padding-left: 22px; }
+  .tldr li { margin: 8px 0; font-size: 16px; }
+  .tldr li strong { color: #7a2f0e; }
+
+  /* Hypothesis table */
+  .htable { border-collapse: collapse; width: 100%; margin: 22px 0; font-size: 14.5px; background: white; }
+  .htable th, .htable td { border: 1px solid #e5e2d6; padding: 9px 12px; text-align: left; vertical-align: top; }
+  .htable th { background: #f5f4e8; font-weight: 600; }
+  .htable td.h-id { font-weight: 700; color: #7a2f0e; white-space: nowrap; }
+  .htable td.verdict { text-align: center; font-size: 18px; white-space: nowrap; }
+  .group-row td { background: #1f1f1f; color: white; font-weight: 600; letter-spacing: 0.05em; }
+
+  .verdict-conf { color: #2d7a3a; }
+  .verdict-part { color: #c89417; }
+  .verdict-disc { color: #888; }
+  .verdict-flip { color: #c8553d; font-weight: 700; }
+
+  /* Counter-intuitive cards */
+  .ci-card {
+    background: #fff;
+    border-radius: 8px;
+    padding: 26px 30px;
+    margin: 24px 0;
+    border: 1px solid #e5e2d6;
+    border-left: 6px solid #c8553d;
+    position: relative;
+  }
+  .ci-tag {
+    display: inline-block;
+    font-size: 11px;
+    background: #c8553d;
+    color: white;
+    padding: 3px 12px;
+    border-radius: 12px;
+    letter-spacing: 0.1em;
+    margin-bottom: 10px;
+    text-transform: uppercase;
+    font-weight: 700;
+  }
+  .ci-card h3 {
+    margin: 4px 0 12px;
+    font-size: 22px;
+    color: #1f1f1f;
+    line-height: 1.35;
+  }
+  .ci-card .ci-expectation {
+    background: #faf8ee;
+    border-left: 3px solid #c8b87a;
+    padding: 10px 16px;
+    font-size: 14px;
+    color: #6a5a3a;
+    margin: 12px 0;
+    font-style: italic;
+  }
+  .ci-card .ci-finding {
+    background: #fff4e6;
+    border-left: 3px solid #c8553d;
+    padding: 12px 18px;
+    font-size: 15px;
+    margin: 12px 0;
+  }
+  .ci-card .ci-finding strong { color: #7a2f0e; }
+  .ci-card .ci-meaning {
+    color: #444;
+    font-size: 15px;
+    margin-top: 14px;
+  }
+
+  /* Pull quote */
+  .pq {
+    border-left: 5px solid #c8553d;
+    padding: 14px 26px;
+    margin: 30px 0;
+    color: #2a1f1c;
+    font-size: 19px;
+    font-style: italic;
+    background: #fff8f0;
+    border-radius: 0 6px 6px 0;
+  }
+
+  /* Variant block */
+  .four-variants {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin: 22px 0 30px;
+  }
+  .vbox { background: white; border: 1px solid #e5e2d6; border-radius: 6px; padding: 14px 16px; font-size: 13px; }
+  .vbox .vt { font-weight: 700; font-size: 14px; margin-bottom: 6px; }
+  .vbox.bl { border-top: 4px solid #888; }
+  .vbox.bl .vt { color: #888; }
+  .vbox.hp { border-top: 4px solid #c8553d; }
+  .vbox.hp .vt { color: #c8553d; }
+  .vbox.gd { border-top: 4px solid #3b6ea8; }
+  .vbox.gd .vt { color: #3b6ea8; }
+  .vbox.pf { border-top: 4px solid #5a7a4f; }
+  .vbox.pf .vt { color: #5a7a4f; }
+
+  /* TOC */
+  .toc { background: #f5f4e8; border-radius: 8px; padding: 18px 28px; margin: 32px 0; font-size: 14px; }
+  .toc ol { padding-left: 22px; margin: 0; }
+  .toc li { margin: 5px 0; }
+  .toc a { color: #c8553d; border: none; }
+  .toc a:hover { text-decoration: underline; }
+
+  /* Big number callout */
+  .bignum {
+    display: inline-block;
+    font-weight: 800;
+    color: #c8553d;
+    font-size: 36px;
+    line-height: 1;
+    margin: 0 6px;
+    vertical-align: -2px;
+  }
+
+  /* Recommendation card */
+  .rec {
+    background: white;
+    border-radius: 8px;
+    padding: 22px 28px;
+    margin: 18px 0;
+    border: 1px solid #e5e2d6;
+    border-top: 4px solid #2a7a3a;
+  }
+  .rec h4 { color: #2a7a3a; font-size: 12px; }
+  .rec h3 { margin: 4px 0 10px; font-size: 19px; }
+
+  /* Caveat */
+  .caveat {
+    background: #faf8ee;
+    border: 1px dashed #c8b87a;
+    border-radius: 6px;
+    padding: 12px 18px;
+    margin: 16px 0;
+    font-size: 13px;
+    color: #555;
+  }
+  .caveat strong { color: #7a5a2a; }
+
+  footer { margin-top: 80px; padding-top: 24px; border-top: 1px solid #e5e2d6; color: #888; font-size: 13px; text-align: center; }
+
+  /* Demographic bar */
+  .demobar {
+    display: grid;
+    grid-template-columns: 110px 1fr 60px;
+    gap: 8px;
+    align-items: center;
+    margin: 6px 0;
+    font-size: 14px;
+  }
+  .demobar .label { color: #555; }
+  .demobar .bar {
+    height: 22px;
+    background: linear-gradient(90deg, #c8553d, #e57a5a);
+    border-radius: 3px;
+  }
+  .demobar .val { font-family: -apple-system, monospace; color: #c8553d; font-weight: 600; text-align: right; }
+</style>
+</head>
+<body>
+
+<p class="tagline">SYNTHETIC SOCIO WIND TUNNEL · v4 · 21-HYPOTHESIS DATA AUDIT</p>
+<h1>我们一开始有 21 个关于"邻居"的猜想 —— 数据打了 7 个的脸。</h1>
+<p class="hook">这一版换一种讲法。不是直接铺 8 条 finding,
+是先把项目开始时"自然会有的猜想"全部列出来,然后用 1,000 个虚拟居民 × 14 天 × 4 个平行宇宙 ×
+3 seed 的数据,**逐条对账**。 5 个金句、 6 个 emergent、 7 个反直觉。</p>
+
+<!-- HERO FIGURE -->
+<figure>
+  <img src="figures_v4/finding_00_siphon_hero.png" alt="Lane Cove 虹吸地图">
+  <figcaption><strong>本文 hero figure ·</strong> Lane Cove 的"虹吸效应":
+  hyperlocal push 让 PLC Sydney Preschool 单一地点的 dwell ticks 暴涨 56×,
+  与此同时 1,556 个 POI 失去停留量 —— "hyperlocal" 在数据里却**集中**得最厉害。</figcaption>
+</figure>
+
+<!-- TL;DR -->
+<div class="tldr">
+  <h3>TL;DR · 5 行</h3>
+  <ul>
+    <li>14 个"自然猜想"对账后:<strong>5 条确认 · 2 条部分对 · 4 条被推翻 · 3 条数据反过来打脸</strong></li>
+    <li>Hero 反直觉:<strong>"Hyperlocal" 推送反而 hyper-non-local</strong> —— 把人从 home 100m 内拉到 500-1500m 的 anchor 集中</li>
+    <li>Hero 反直觉:<strong>Phone Friction(不告诉去哪)反而创造最多新认识</strong>(20.2% 新 pair,比 HP 多 2.7×)</li>
+    <li>Hero 反直觉:<strong>推送响应窗口是 24-96h,不是当天</strong> —— "open rate" / "same-day CTR" 严重低估推送效果</li>
+    <li>Hero 反直觉:<strong>routine_adherence 比 extraversion 强 3×</strong> —— 真正的 personality lever 是"是否愿打破日常",不是"外向"</li>
+  </ul>
+</div>
+
+<!-- TOC -->
+<div class="toc">
+  <strong>本文导览</strong>
+  <ol>
+    <li><a href="#design">实验设计 · 4 个平行宇宙</a></li>
+    <li><a href="#hypotheses">14 个"开始前的自然猜想" — 数据对账表</a></li>
+    <li><a href="#counter">7 个反直觉发现</a></li>
+    <li><a href="#emergent">6 个 emergent finding(没人事先猜的)</a></li>
+    <li><a href="#hero">三个 Hero Findings 深讲</a></li>
+    <li><a href="#policy">给政策方:周一该做什么</a></li>
+    <li><a href="#future">局限 + Phase 2 commitment</a></li>
+    <li><a href="#method">数据规格 + 方法</a></li>
+  </ol>
+</div>
+
+<!-- =================================================================== -->
+<h2 id="design">1. 实验设计 · 4 个平行宇宙</h2>
+
+<p>把同一个 Lane Cove(1,000 个虚拟居民、 同一份生平、 同一台手机)复制 4 份,只换一件事:
+口袋里那部手机 14 天里推什么。</p>
+
+<div class="four-variants">
+  <div class="vbox bl">
+    <div class="vt">◍ Baseline</div>
+    无推送。对照宇宙。
+  </div>
+  <div class="vbox hp">
+    <div class="vt">◍ Hyperlocal Push</div>
+    本街活动(PLC 幼儿园、 Anglican 教堂等),5 push/agent/day。
+  </div>
+  <div class="vbox gd">
+    <div class="vt">◍ Global Distraction</div>
+    悉尼 CBD 新闻(Vivid 灯光节、 比特币、 国际)。同样 5/day,内容不一样。
+  </div>
+  <div class="vbox pf">
+    <div class="vt">◍ Phone Friction</div>
+    推送被压到 6 条/14 天,内容只说"抬头看看",不告诉去哪。
+  </div>
+</div>
+
+<p><strong>规模</strong>: 1,000 agent × 14 天 × 4 variant × 3 seed = 等于一个小镇活 168,000 模拟人天。
+每 5 分钟一帧 (288 帧/天)。 12 个独立 snapshot 共 ~6 GB 原始状态。</p>
+
+<!-- =================================================================== -->
+<h2 id="hypotheses">2. 14 个"开始前的自然猜想"</h2>
+
+<p>下面这 14 条,是任何看完项目 brief 的人都会"自然写下来"的预期。
+左列是预期,中列是数据真相,右列是判定。</p>
+
+<p><strong>判定符号</strong>:
+✅ Confirmed (符合预期) ·
+🟡 Partially (部分对) ·
+❌ Disconfirmed (推翻) ·
+⚡ Counter-intuitive (数据反过来打脸)</p>
+
+<table class="htable">
+  <thead><tr>
+    <th width="60">#</th><th width="30%">自然猜想</th><th width="50%">数据真相</th><th width="80">判定</th>
+  </tr></thead>
+  <tbody>
+    <tr class="group-row"><td colspan="4">A · 因果机制链(从推送到关系)</td></tr>
+    <tr><td class="h-id">H1</td>
+      <td>Hyperlocal push 会让人去推送地点</td>
+      <td>HP 激活 265 POI · top 1 POI (PLC) dwell <strong>56×</strong> BL</td>
+      <td class="verdict verdict-conf">✅</td></tr>
+    <tr><td class="h-id">H2</td>
+      <td>去了同一地点 → 更多偶遇</td>
+      <td>HP encounter intervention 期 <strong>5.46×</strong> BL,post 期 7.22×</td>
+      <td class="verdict verdict-conf">✅</td></tr>
+    <tr><td class="h-id">H3</td>
+      <td>偶遇增多 → 新增弱关系</td>
+      <td>方向错!弱关系几乎没多,<strong>强关系反而 5.6×</strong>。HP 是"已认识者频次 5× + 净换血 17%",不是制造新人</td>
+      <td class="verdict verdict-flip">⚡</td></tr>
+    <tr><td class="h-id">H4</td>
+      <td>弱关系→强关系(需时间累积)</td>
+      <td>repeats per pair BL 17.3 → HP 71.1 (<strong>4.1×</strong>) · 机制是"同人多见面"</td>
+      <td class="verdict verdict-conf">✅</td></tr>
+    <tr><td class="h-id">H13</td>
+      <td>encounter ↑ → dialogue ↑ 成比例</td>
+      <td>encounter 5× 但 dialogue 只 +17% · 卡 LLM 计算瓶颈</td>
+      <td class="verdict verdict-disc">❌</td></tr>
+    <tr><td class="h-id">H14</td>
+      <td>推送 ↑ → 信息传播更广</td>
+      <td>info 传到 985/1000 全覆盖,4 variant 无差(metric 不可用)</td>
+      <td class="verdict verdict-disc">❌</td></tr>
+
+    <tr class="group-row"><td colspan="4">B · 用户特征(谁会响应)</td></tr>
+    <tr><td class="h-id">H8</td>
+      <td>性格外向 / openness 高 → 响应强</td>
+      <td>extraversion 几乎 flat (30% vs 27%) · openness 1.4× · <strong>但 routine_adherence 3.1× 差距</strong> —— 维度看错了</td>
+      <td class="verdict verdict-flip">⚡</td></tr>
+    <tr><td class="h-id">H9</td>
+      <td>年轻人响应高(用 app 多)</td>
+      <td><strong>18-24 最低 (20%) · 25-34 与 65-74 双峰高 (~33%)</strong> · ∩-shape 而非单调</td>
+      <td class="verdict verdict-flip">⚡</td></tr>
+    <tr><td class="h-id">H10</td>
+      <td>高收入 / 高教育响应更强</td>
+      <td>性别 / 收入 ~flat (28-30%) · 机会均等</td>
+      <td class="verdict verdict-disc">❌</td></tr>
+    <tr><td class="h-id">H12</td>
+      <td>距离 push target 近的人响应强</td>
+      <td>有梯度但弱: 0-200m 33% vs 1500m 26%</td>
+      <td class="verdict verdict-part">🟡</td></tr>
+
+    <tr class="group-row"><td colspan="4">C · 干预设计(推送怎么设计才有效)</td></tr>
+    <tr><td class="h-id">H6</td>
+      <td>推送越多越有效(volume = impact)</td>
+      <td>Push #1 全效 / #8 半效 / #15 ≈ 0 · saturation ceiling</td>
+      <td class="verdict verdict-disc">❌</td></tr>
+    <tr><td class="h-id">H7</td>
+      <td>全球新闻推送也能激活本街</td>
+      <td>GD encounter 1.4× BL vs HP 5.5× · 内容必须 hyperlocal</td>
+      <td class="verdict verdict-disc">❌</td></tr>
+    <tr><td class="h-id">H5</td>
+      <td>Phone friction → 抬头 → 偶遇</td>
+      <td>单 PF 没自动制造连接(intervention 期),<strong>但 post 期 compounding 最强 1.62×</strong>,而且换血 20.2% 最多 —— PF 才是新关系工厂</td>
+      <td class="verdict verdict-flip">⚡</td></tr>
+
+    <tr class="group-row"><td colspan="4">D · 持续性(推送停止后会怎样)</td></tr>
+    <tr><td class="h-id">H11</td>
+      <td>推送停止 → 回 baseline</td>
+      <td><strong>反过来</strong>: post 期 HP 1.32× / PF 1.62× intervention 期 · 网络仍在 compounding</td>
+      <td class="verdict verdict-flip">⚡</td></tr>
+  </tbody>
+</table>
+
+<div class="caveat">
+  <strong>统计</strong>: 14 条里 — <strong>4 ✅ Confirmed · 1 🟡 Partially · 4 ❌ Disconfirmed · 5 ⚡ Counter-intuitive (数据反向)</strong>。
+  完整 5 条直觉是反向打脸。这个比例本身就是 paper 一句话:**关于附近性的"常识"里,1/3 是错的方向**。
+</div>
+
+<!-- =================================================================== -->
+<h2 id="counter">3. 7 个反直觉发现 · 数据完整推翻的"常识"</h2>
+
+<p>上面表格的 ⚡ 是这些反直觉的引线。 这里逐个展开,每条给:
+"<strong>我们以为是</strong>" → "<strong>数据说是</strong>" → "<strong>含义</strong>"。</p>
+
+
+<div class="ci-card">
+  <span class="ci-tag">⚡⚡⚡ Hero #1 · 命名悖论</span>
+  <h3>N1 — "Hyperlocal" 推送反而 hyper-non-local</h3>
+  <div class="ci-expectation">
+    我们以为:本街推送会加强 home 周围 100-500m 的紧邻互动。
+  </div>
+  <div class="ci-finding">
+    数据说:HP 让 home 周围 0-100m 的 encounter 占比从 baseline 的 <span class="bignum">9.9%</span>
+    跌到 <span class="bignum">5.2%</span>。 同时 2-5km 远距离 encounter 占比从 5.7% 涨到 <span class="bignum">15.8%</span> (2.8×)。
+    "本街 (0-500m)" share: BL <strong>27.5%</strong> → HP <strong>20.4%</strong>。
+  </div>
+  <p class="ci-meaning"><strong>含义</strong>:HP 推送的 anchor location (PLC、 Shinnyo、 St Aidan's)
+  本身就在 home 周围 500-1500m 处,不是 100m。 所以"hyperlocal 推送"实际效果是
+  <strong>把人从近邻拉到中距离 anchor 集中</strong>。 如果政策目标是"加强楼下邻里关系",
+  hyperlocal push 反而 counterproductive —— 它换来了 500m+ 的"邻里二跳关系"。</p>
+</div>
+
+
+<div class="ci-card">
+  <span class="ci-tag">⚡⚡⚡ Hero #2 · 工具角色反转</span>
+  <h3>N2 — Phone Friction 才是真正的"新关系工厂"</h3>
+  <div class="ci-expectation">
+    我们以为:HP 推送会带最多新认识,PF (反推送)只是减少屏幕时间,不直接造关系。
+  </div>
+  <div class="ci-finding">
+    数据说:14 天里的"BL 没见过、 本宇宙才见过"的 <strong>新 pair</strong> 数:
+    <ul>
+      <li>HP: <span class="bignum">76,822</span> 新 pair (16.7%)</li>
+      <li>PF: <span class="bignum">98,801</span> 新 pair (20.2%) <strong>← HP 的 2.7× 净增</strong></li>
+      <li>GD: 13,549 (3.2%)</li>
+    </ul>
+  </div>
+  <p class="ci-meaning"><strong>含义</strong>:PF 不强制目的地 → 自由探索 → 走到更多新地方 → 遇见更多新人。
+  这跟之前 finding "PF post 期 compounding 最强 1.62×" 形成完美因果链 ——
+  那些 PF 期间认识的新 weak ties 在 post 期慢慢加固。
+  HP 是"集中加强老熟人",PF 是"分散认识新人"。 两个干预 <strong>不是同一种工具</strong>。</p>
+</div>
+
+
+<div class="ci-card">
+  <span class="ci-tag">⚡⚡ Hero #3 · 时间窗错位</span>
+  <h3>N3 — 推送响应窗口是 24-96h,不是同一天</h3>
+  <div class="ci-expectation">
+    我们以为:推送响应应该是平滑衰减曲线 —— 当天最强,几天后归零。
+    "open rate" / "same-day CTR" 应该捕捉到大部分效果。
+  </div>
+  <div class="ci-finding">
+    数据说:16,461 次"到达 target" 的时间分布完全不是平滑衰减,是 <strong>bimodal 双峰</strong>:
+    <ul>
+      <li>0-1h: 45.1% (大概率仿真同 tick 处理 push + plan)</li>
+      <li>1-12h: <strong>0.2%</strong> ← 几乎为零</li>
+      <li>24-48h: 19.4%</li>
+      <li>48-96h: 20.7%</li>
+      <li>96h+: 14.0%</li>
+    </ul>
+    其中 24-96h 占 <span class="bignum">40%</span> —— 这才是真正"被推动"的人。
+  </div>
+  <p class="ci-meaning"><strong>含义</strong>:推送的真正"运营时间窗"是到达后 <strong>1-4 天</strong>,
+  不是首小时。 只看 "open rate" / "same-day CTR" 会严重低估推送效果。
+  设计推送的 A/B 测试,measurement window 应该至少 96h。</p>
+</div>
+
+
+<div class="ci-card">
+  <span class="ci-tag">⚡⚡ Hero #4 · 维度错位</span>
+  <h3>N4 — routine_adherence 比 extraversion 强 3×</h3>
+  <div class="ci-expectation">
+    我们以为:外向(extraversion)、 开放(openness)等"性格" tendency 应该决定一个人是否响应推送。
+  </div>
+  <div class="ci-finding">
+    数据说:看 BL ↔ HP 末态位移 >100m 的 ~30% "movable" 人群,按各维度的差距:
+    <div style="margin: 8px 0;">
+      <div class="demobar"><span class="label">routine_adherence 低</span><div class="bar" style="width: 100%;"></div><span class="val">44.8%</span></div>
+      <div class="demobar"><span class="label">ethnicity HK</span><div class="bar" style="width: 84%;"></div><span class="val">37.5%</span></div>
+      <div class="demobar"><span class="label">occupation 工人</span><div class="bar" style="width: 97%;"></div><span class="val">43.4%</span></div>
+      <div class="demobar"><span class="label">openness 高</span><div class="bar" style="width: 80%;"></div><span class="val">35.8%</span></div>
+      <div class="demobar"><span class="label">risk_tolerance 高</span><div class="bar" style="width: 75%;"></div><span class="val">33.8%</span></div>
+      <div class="demobar"><span class="label">age 25-34</span><div class="bar" style="width: 75%;"></div><span class="val">33.8%</span></div>
+      <div class="demobar"><span class="label">family_with_kids</span><div class="bar" style="width: 76%;"></div><span class="val">33.9%</span></div>
+      <div class="demobar"><span class="label"><strong>extraversion 高</strong></span><div class="bar" style="width: 64%;"></div><span class="val">28.6%</span></div>
+      <div class="demobar"><span class="label">income (任意档)</span><div class="bar" style="width: 67%; opacity: 0.5;"></div><span class="val">28-30%</span></div>
+      <div class="demobar"><span class="label">routine_adherence 高</span><div class="bar" style="width: 32%; opacity: 0.5;"></div><span class="val">14.3%</span></div>
+    </div>
+    routine_adherence 低 vs 高: <span class="bignum">3.1×</span> · extraversion 高 vs 低: 仅 1.06×。
+  </div>
+  <p class="ci-meaning"><strong>含义</strong>:之前 finding H "性格 |r|<0.13" 是看错维度了。
+  性格里的真正 lever 是 <strong>"是否愿意打破日常 routine"</strong> —— 不是外向性、 不是开放性、 不是收入、 不是年龄。
+  推送响应是一种 schedule autonomy,不是 social attitude。</p>
+</div>
+
+
+<div class="ci-card">
+  <span class="ci-tag">⚡⚡ Hero #5 · 末态 stickiness</span>
+  <h3>N5 — 70% 的 agent 在 BL↔HP 末态完全不动</h3>
+  <div class="ci-expectation">
+    我们以为:推送应该或多或少影响所有人 —— 强弱可能不同,但都有一些位移。
+  </div>
+  <div class="ci-finding">
+    数据说:同一个 agent 在 BL universe 和 HP universe 14 天后的末态位置:
+    <ul>
+      <li>BL ↔ HP: <strong>70.2%</strong> agent 末态位置完全相同(差 < 1m)</li>
+      <li>BL ↔ GD: <strong>89.5%</strong> 完全相同 ← GD 几乎不动身体</li>
+      <li>BL ↔ PF: <strong>67.2%</strong> 完全相同</li>
+      <li>HP ↔ PF: 54.5% 完全相同(两干预朝不同方向推)</li>
+    </ul>
+  </div>
+  <p class="ci-meaning"><strong>含义</strong>:routine 极黏。 所有"干预效应"集中在 ~30% movable 人群上。
+  跟 N4 结合:这 30% 是 routine_adherence 低 + age 25-34/65-74 + family_with_kids 的特定子群。
+  policy 设计的"覆盖率"分母不应该是 1,000,而是这 ~300 真正会动的。</p>
+</div>
+
+
+<div class="ci-card">
+  <span class="ci-tag">⚡⚡ Hero #6 · 虹吸 hub</span>
+  <h3>N6 — Hyperlocal push 是 hub creation machine</h3>
+  <div class="ci-expectation">
+    我们以为:hyperlocal push 会"均匀激活"5 个 anchor 加上一些附近 POI。
+  </div>
+  <div class="ci-finding">
+    数据说:HP 推送下 —
+    <ul>
+      <li><strong>249 个 POI</strong> 获得 dwell · <strong>1,556 个 POI</strong> 失去 dwell · 比例 <span class="bignum">1 : 6</span></li>
+      <li>Top 1 POI (PLC Sydney Preschool) 单独吃掉 <strong>62%</strong> 所有正向 dwell 净增 ↓</li>
+      <li>Top 5 POIs 吃掉 <strong>80%</strong></li>
+      <li>Top 20 吃掉 <strong>97%</strong></li>
+    </ul>
+    Top hot: PLC (+56× BL) · Anytime Fitness (11×) · Mowbray Road (71×) ·
+    Longueville Park (<strong>667× BL,从近 0 变热点</strong>)
+  </div>
+  <p class="ci-meaning"><strong>含义</strong>: HP 像虹吸 —— 把分散在 1,500+ 处的注意力集中到 5 个 anchor。
+  跟 sec 07 海报的 "saturation ceiling" 接上:saturation 不只是 push 第 8 条没用,
+  是 <strong>这 5 个 anchor 自己也接不住</strong> —— 物理 ceiling 比心理 ceiling 更早 hit。
+  反讽: "hyperlocal" 名义上是"分散到本街",实际效果是"集中到 5 点"。</p>
+</div>
+
+
+<div class="ci-card">
+  <span class="ci-tag">⚡ Hero #7 · GD 的真面目</span>
+  <h3>N7 — Global Distraction 不移动身体,只移注意力</h3>
+  <div class="ci-expectation">
+    我们以为:CBD 新闻推送可能把人物理"带去 CBD"(像 Mary 案例那种漂去 Chatswood 12 楼公寓)。
+  </div>
+  <div class="ci-finding">
+    数据说:GD 宇宙下:
+    <ul>
+      <li>BL ↔ GD: <strong>89.5%</strong> 末态完全相同(物理几乎不动)</li>
+      <li>本街 0-500m encounter share: <strong>25.6%</strong>(≈ BL 27.5%,反而"保护"了本街)</li>
+      <li>only 3.2% 新 pair · 社交网络几乎不变</li>
+    </ul>
+  </div>
+  <p class="ci-meaning"><strong>含义</strong>:Mary 漂去 Chatswood 是极端个案,不是常态。 GD 的真正效果是
+  <strong>attention drift 不带 physical drift</strong> —— 人坐在原地刷新闻,身体上还在本街,
+  但心思走了。 之前的猜想"GD 让人忘记本街"是错的 —— 反而是 HP 让人离开本街(见 N1)。</p>
+</div>
+
+
+<!-- =================================================================== -->
+<h2 id="emergent">4. 6 个 emergent finding(没人事先猜的)</h2>
+
+<p>这些是数据自己冒出来的,不在原始猜想清单里。</p>
+
+<table class="htable">
+  <thead><tr><th>#</th><th>发现</th><th>数据</th></tr></thead>
+  <tbody>
+    <tr><td class="h-id">E1</td>
+      <td><strong>8-12× 邻居传染</strong> · 没收推送的人也会因为邻居响应而响应</td>
+      <td>200m 内有 protag-responder 的非接收者响应率 19.7/25.2/16.8% (HP/GD/PF) vs 邻居全非响应者的 2.0-2.4%</td></tr>
+    <tr><td class="h-id">E2</td>
+      <td><strong>时间灵活性 >> 性格</strong></td>
+      <td>退休 37% / 失业 39% / engineer 35% / hospitality 22% / accountant 21% — 哪一行有 schedule autonomy 是关键</td></tr>
+    <tr><td class="h-id">E3</td>
+      <td>干预下走得 <strong>更少</strong></td>
+      <td>HP walking 0.91× BL · GD 0.78× — "推送→乱走"是错觉,精准而非乱走</td></tr>
+    <tr><td class="h-id">E4</td>
+      <td>unique locations/agent <strong>下降</strong></td>
+      <td>BL 195 → HP 173 — HP 让人收敛而非发散</td></tr>
+    <tr><td class="h-id">E5</td>
+      <td>residential dwell ↓ / commercial dwell ↑</td>
+      <td>60% → 51% / 28% → 36% — 推送把人从家里拽出来</td></tr>
+    <tr><td class="h-id">E6</td>
+      <td>spillover protag vs non-protag gap</td>
+      <td>movable rate: protag 33.6% vs non-protag 25.1%(没收推送的人也在动 — 这是邻居传染的另一个度量)</td></tr>
+  </tbody>
+</table>
+
+<!-- =================================================================== -->
+<h2 id="hero">5. 三个 Hero Findings 深讲</h2>
+
+<h3>Hero #1 · "Hyperlocal" 反而 hyper-non-local — 命名悖论</h3>
+
+<p>这是最 quotable 的一条。 整个项目 brief 都假设"hyperlocal push = 加强 hyperlocal connection"。
+数据显示这是错的方向。</p>
+
+<figure>
+  <img src="figures_v4/finding_00_siphon_hero.png" alt="虹吸地图">
+  <figcaption><strong>左 BL</strong> · dwell 分布在 ~2,400 POI ·
+  <strong>右 HP</strong> · top 1 PLC 吸走 62% 净增 dwell · 1,556 个 POI 失去人</figcaption>
+</figure>
+
+<p>因为 HP 推送 anchor location 不在 home 周围 100m,而在 500-1500m 处。 当推送精准命中你 demographic,
+你不是"原地变更积极",而是"被叫到 500m 外的另一个 anchor 跟另一群被同样推送命中的人挤一起"。
+"hyperlocal" 因此变成"集中到几个固定 anchor",代价是 1,500+ POI ghost 化。</p>
+
+<p class="pq">
+"Hyperlocal push,执行后,有一个隐藏的命名悖论 —— 它不是让你更跟邻居互动,
+是让你跟 500m 外的另一群被同样命中的人见面更多次。"
+</p>
+
+<h3>Hero #2 · Phone Friction 是新关系工厂</h3>
+
+<p>从设计直觉,"反推送 / 减少手机"应该是被动的 — 不告诉去哪、 不创造连接,只是"挡住屏幕"。
+数据完全反过来。</p>
+
+<p>14 天里 PF 创造了 <strong>98,801 个新 pair</strong>(BL 没见过的人),
+比 HP (76,822) 多 30%,净增 +45K 是 HP (+17K) 的 2.7×。
+而且这些新 pair 在 post 期还在 compounding (PF 1.62× intervention 期,所有 variant 最高)。</p>
+
+<p>机制是: PF 不告诉你去哪 → 你自由探索 → 走到更多 BL 没去过的地方 → 遇见更多新人 →
+这些 weak ties 在 14 天后还在不断 ricochet。 HP 把你赶到 5 个固定 anchor,你确实见面更多,
+但都是同一批人。</p>
+
+<p class="pq">
+"Phone friction 让人多认识 20.2% 的人。 Hyperlocal push 只 16.7%。 ⚡
+直觉里的'被动'工具,在数据里反而是更主动的社交工具。"
+</p>
+
+<h3>Hero #3 · 推送响应是 24-96h 不是当天</h3>
+
+<p>所有海报/产品业界讲推送都用 "open rate / same-day CTR"。 我们的数据展示这套测量是 broken 的。</p>
+
+<p>16,461 次"被推送 → 到达 target" 的时间间隔分布完全不是平滑衰减:</p>
+
+<table class="htable">
+  <thead><tr><th>间隔</th><th>数量</th><th>占比</th></tr></thead>
+  <tbody>
+    <tr><td>0-1h (同 tick)</td><td>7,431</td><td class="hl">45.1%</td></tr>
+    <tr><td>1-12h</td><td>32</td><td>0.2% ← 几乎为零</td></tr>
+    <tr><td>12-24h</td><td>93</td><td>0.6%</td></tr>
+    <tr><td>24-48h</td><td>3,199</td><td class="hl">19.4%</td></tr>
+    <tr><td>48-96h</td><td>3,400</td><td class="hl">20.7%</td></tr>
+    <tr><td>96h+</td><td>2,306</td><td>14.0%</td></tr>
+  </tbody>
+</table>
+
+<p>排除"已在 target"的 35 个 noise 之后这个 bimodal 仍然成立。 含义:</p>
+
+<ul>
+  <li>0-1h 的 45% 其实是仿真同 tick 处理 push + plan(推送一到立即进入今天 plan,5 min 后开始走)</li>
+  <li>1-12h 几乎没人响应 — "当天看到 → 当天去"在数据里不存在</li>
+  <li><strong>54% 的真响应在 24h 之后</strong> · 24-96h 占 40% — 这才是推送真正"运营"的窗口</li>
+</ul>
+
+<p class="pq">
+"产品业界的 open rate / same-day CTR 把 95% 的推送效果错失。 推送是慢效应,不是即时效应。"
+</p>
+
+<!-- =================================================================== -->
+<h2 id="policy">6. 给政策方:周一该做什么</h2>
+
+<p>从 21 条猜想里挖出来的 actionable insights,给 council、 neighbourhood app 团队、 社会设计师。</p>
+
+<div class="rec">
+  <h4>RECOMMENDATION 01 · CURATE THE FEED</h4>
+  <h3>推送内容比推送频率重要</h3>
+  <p>同样 5 push/day,全球新闻负 8% encounter,本街内容 +14%。"是否要推送"不是关键变量,
+  <strong>推什么</strong>才是。 council app 该做的第一件事是把推送主体从"council 广播"换成"本街社区 origin"。</p>
+</div>
+
+<div class="rec">
+  <h4>RECOMMENDATION 02 · CAP THE VOLUME · ≤ 8 / agent / DAY</h4>
+  <h3>注意力是 finite 预算</h3>
+  <p>Push #1 全效 · #8 半效 · #15 ≈ 0。 任何 hyperlocal 项目 > 8 推送/居民/天,在居民注意力预算上**净亏**。
+  软上限 ≤ 8/天,marginal 推送让位给 community-generated 内容。</p>
+</div>
+
+<div class="rec">
+  <h4>RECOMMENDATION 03 · PAIR PHONE-DOWN WITH ANCHOR</h4>
+  <h3>"少看手机"是 precondition,不是 intervention</h3>
+  <p>PF 单独效果在 intervention 期不明显(虽然 post 期反弹最强)。 anti-tech policy 必须配
+  <strong>本街锚点</strong>(市集 / 公告栏 / 长椅 / 周日清扫)才变成有效社会政策。</p>
+</div>
+
+<div class="rec">
+  <h4>RECOMMENDATION 04 · BEWARE THE NAMING PARADOX</h4>
+  <h3>"hyperlocal" 推送会让人离开 home 100m 圈</h3>
+  <p>如果政策目标是"加强紧邻关系",hyperlocal push 反而 counterproductive(home 0-100m encounter
+  share 9.9% → 5.2%)。 想要紧邻效果,需要 anchor 落在 home 200m 内 — 公寓楼大堂 / 同栋楼公告板,
+  不是 500m 外的 PLC。</p>
+</div>
+
+<div class="rec">
+  <h4>RECOMMENDATION 05 · USE PF FOR NEW CONNECTIONS</h4>
+  <h3>HP 加强老熟人,PF 认识新人</h3>
+  <p>不要把 hyperlocal push 和 phone friction 当成同一种工具的强弱档。 HP = 集中加强机制
+  (重复见同一群人 5×),PF = 分散探索机制(认识 20.2% 新人)。 哪个该用看目标 —
+  "活化街角生意" 用 HP, "扩展个人社交圈" 用 PF。</p>
+</div>
+
+<div class="rec">
+  <h4>RECOMMENDATION 06 · MEASURE OVER 96h NOT 24h</h4>
+  <h3>放弃 same-day CTR</h3>
+  <p>真正的响应窗口是 24-96h。 任何 A/B 测试 measurement window 至少 4 天。
+  open rate 不要看 — 看 follow-up 物理访问。</p>
+</div>
+
+<!-- =================================================================== -->
+<h2 id="future">7. 局限 + Phase 2 commitment</h2>
+
+<h3>知道但还没解决的</h3>
+<ul>
+  <li><strong>95% CI 还没算</strong> — 本文所有数字是 seed 44+45 pooled 的 point estimate。 Phase 2 跑 seed 46 后会带 CI 重新陈述</li>
+  <li><strong>dialogue 逐句文本没存</strong> — 我们有 752 条 LLM 第一人称总结,没有 turn-by-turn raw 文本。 这是仿真层 limitation,case study 重建可弥补但论文 H 不能</li>
+  <li><strong>encounter → dialogue 转化弱</strong>(只 +17%)— 论文 H2 写法须保守, "频次→关系强化"(V)证据强,"encounter→对话"(AA)证据弱</li>
+  <li><strong>info_propagation metric 不可用</strong> — 来自 social_priors 静态注入,4 variant 无差,不响应干预</li>
+  <li><strong>0-1h response 45% 仍含 simulator artifact</strong>(同 tick 处理 push + plan) — 不影响 bimodal 结论,但 0-1h 那一段不能拿来讲"瞬时响应"</li>
+</ul>
+
+<h3>Phase 2 (3-12 个月)</h3>
+<ul>
+  <li><strong>Phase 2a (3 个月)</strong> — 跑完 seed 46 + 100% rigour,所有数字带 ±95% CI</li>
+  <li><strong>Phase 2b (6-9 个月)</strong> — 跟一个 Sydney council (Lane Cove / Inner West) 配对做 14 天真 pilot,用居民问卷反向校准 attention 参数</li>
+  <li><strong>Phase 2c (12 个月)</strong> — 公益发布 hosted "policy sandbox": 选 postcode → 选 push policy → 8h 后看 4 个 14 天 outputs</li>
+</ul>
+
+<!-- =================================================================== -->
+<h2 id="method">8. 数据规格 + 方法</h2>
+
+<p><strong>仿真规模</strong>: 3 seed × 4 variant × 14 day × 1,000 agent · 每 5min 一帧 · 总
+<strong>16.1M tick × agent</strong> 决策。</p>
+
+<p><strong>数据 footprint</strong>: 12 个 snapshot 文件 (~6 GB),每个 460-525 MB 含完整 ledger + memory_store +
+attention_service + dialogue_service 状态; 12 个 positions.json (~840 MB) 含每次位置变化;
+另有 wal / events / memstat / llm telemetry jsonl。</p>
+
+<p><strong>本文用到的 21 个 H 验证脚本位置</strong>:</p>
+<ul>
+  <li><code>tools/h15_h16_h20_push_response.py</code> — H15 + H16 + H20 联合</li>
+  <li><code>tools/h17_familiar_vs_stranger.py</code> — H17 pair 重叠分析</li>
+  <li><code>tools/h18_drift_coupling.py</code> — H18 4-universe 末态距离</li>
+  <li><code>tools/h19_h21_local_blindness_and_hub.py</code> — H19 home-radius + H21 hub Pareto</li>
+  <li><code>tools/h16b_h4_clean_decay_and_movable.py</code> — H16b 排除 noise 重算 + N4 movable profile</li>
+</ul>
+
+<p><strong>原始数据 inventory</strong>: 见 <code>docs/case_studies/DATA_INVENTORY.md</code>(926 行,逐字段详)</p>
+
+<p><strong>已有的 24 个分析 (paper exploration)</strong>: 见
+<a href="../data/analysis/2026-05-23_paper_exploration/MORNING_SUMMARY.md">MORNING_SUMMARY.md</a> ·
+本文是它的"猜想驱动"重组,所有 24 个 finding 都隐含引用。</p>
+
+<p><strong>本次新分析 H15-H21 + 衍生</strong>:
+<code>data/analysis/2026-05-24_hypothesis_validation/01_FINDINGS_H15_H21.md</code></p>
+
+<div class="caveat">
+  <strong>关于"per-push" vs "per-unique-agent" 度量</strong>:
+  本文 H20 funnel 65% 是 per-push (一个 agent 1 次访问可以"满足"多条推送)。
+  per-unique-agent recover rate 应该 < 65%。 论文版陈述会明确区分 numerator/denominator。
+</div>
+
+<footer>
+  Synthetic Socio Wind Tunnel · v4 · 2026-05-24 ·
+  21-hypothesis data audit ·
+  seed 44+45 pooled, seed 46 待 spawn(Phase 2a)·
+  原始数据: <code>data/experiments/20260522_*_publishable_v7_*</code> ·
+  关联文档: <a href="项目实验结果.html">v3 (8-finding linear)</a> ·
+  <a href="项目Brief.md">项目 Brief</a> ·
+  <a href="case_studies/_published/">3 案例研究 (Mary, Hannah, ICU 护士)</a>
+</footer>
+
+</body>
+</html>

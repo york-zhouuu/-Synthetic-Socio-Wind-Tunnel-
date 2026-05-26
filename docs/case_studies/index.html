@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="zh-Hans">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>案例研究 · 1,000 居民中的具体两位 · Synthetic Socio Wind Tunnel</title>
+<style>
+body { font-family: 'Georgia', 'Songti SC', serif; max-width: 880px; margin: 0 auto;
+       padding: 0; background: #F8F5EE; color: #1B1F2A; line-height: 1.65; }
+.cover { background: #1B1F2A; color: white; padding: 70px 40px 50px; }
+.kicker { color: #A0252F; font-style: italic; letter-spacing: 1px; font-size: 14px; margin: 0 0 16px; }
+.cover h1 { font-size: 48px; font-weight: 900; margin: 0 0 16px; letter-spacing: -1px; line-height: 1.15; }
+.cover .subtitle { font-size: 20px; font-style: italic; color: #D8D9DC; margin: 0; }
+.intro { padding: 40px; font-size: 17px; line-height: 1.85; }
+.intro .lead { font-size: 22px; font-style: italic; color: #A0252F; margin: 0 0 24px;
+              padding-left: 16px; border-left: 4px solid #F0C419; }
+.cases { padding: 0 40px 60px; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 24px; }
+.case { background: white; padding: 32px; border-top: 6px solid #D14B12; box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        transition: transform 0.2s; }
+.case:hover { transform: translateY(-3px); box-shadow: 0 6px 18px rgba(0,0,0,0.10); }
+.case h2 { font-size: 28px; font-weight: 900; margin: 0 0 4px; }
+.case .who { font-size: 14px; color: #5A5E6A; font-style: italic; margin: 0 0 18px; }
+.case .quote { background: #F4EFE5; padding: 14px 18px; border-left: 3px solid #1B1F2A;
+              font-size: 14px; color: #1B1F2A; font-style: italic; margin: 0 0 20px; }
+.case .stats { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin: 0 0 20px; }
+.case .stat { text-align: center; padding: 8px 0; background: #1B1F2A; }
+.case .stat .num { font-size: 18px; font-weight: 900; color: #F0C419; }
+.case .stat .lbl { font-size: 10px; color: #D8D9DC; font-style: italic; }
+.case .cta { display: block; background: #1B1F2A; color: white; text-decoration: none;
+            padding: 14px 20px; text-align: center; font-weight: 900; font-size: 16px;
+            letter-spacing: 0.5px; border-radius: 2px; transition: background 0.2s; }
+.case .cta:hover { background: #A0252F; }
+.what-is { padding: 0 40px 60px; }
+.what-is h3 { font-size: 22px; font-weight: 900; margin: 0 0 12px; }
+.what-is p { font-size: 16px; line-height: 1.8; }
+.footer { padding: 30px 40px; text-align: center; font-size: 12px; color: #A8ACB5;
+         border-top: 1px solid #D8D9DC; font-style: italic; }
+.related { padding: 0 40px 40px; }
+.related a { color: #A0252F; text-decoration: none; border-bottom: 1px dashed #A0252F; }
+.related a:hover { background: #FBD8DC; }
+@media (max-width: 700px) {
+  .cases { grid-template-columns: 1fr; }
+  .cover h1 { font-size: 32px; }
+}
+</style>
+</head>
+<body>
+
+<div class="cover">
+  <div class="kicker">CASE STUDIES · 案例研究 · 真实 positions.json 14 天完整路径复原</div>
+  <h1>1,000 个虚拟居民里的<br>具体三位</h1>
+  <div class="subtitle">同样的推送 · 不同的人生 · 不同的"附近"</div>
+</div>
+
+<div class="intro">
+  <p class="lead">
+    在 1,000 个虚拟居民的统计里,我们看到 22.7% 的居民被推送带去了新地方。
+    但这三位是具体的人 — 用她们 / 他的 14 天真实路径,讲清楚"推送如何改变一个人"。
+  </p>
+  <p>
+    Mary(75 岁退休)、Mike(26 岁工程师)、Frank(64 岁建筑工)是这 1,000 名虚拟居民中的 3 位。
+    我们从 <code>seed_43_positions.json</code>(每 5 分钟一次位置记录,共 14 天)+
+    <code>snapshot.json</code>(523MB 的仿真完整状态:agent 收到的真实推送内容 / agent 的真实
+    plan + reason / agent 遇到的真实邻居 profiles)中复原了他们每日的真实行程、决策瞬间、推送内容、对话对象。
+    每页都包含真实的 personality 雷达图 + POI 每日访客时序图。
+    叙事文字基于真实数据骨架 + 简单第一人称润色,试图把"22.7% 响应率"这个抽象数字翻译成具体故事。
+  </p>
+</div>
+
+<div class="cases">
+  <div class="case">
+    <h2>Mary 的 14 天</h2>
+    <div class="who">75 岁 · 退休 · 独居 · 内蒙古移民</div>
+    <div class="quote">
+      "我以前一个人住,饭点散步、买菜、看电视。直到那天手机推送告诉我楼下真如苑下周三冥想公开课。"
+    </div>
+    <div class="stats">
+      <div class="stat"><div class="num">75</div><div class="lbl">岁</div></div>
+      <div class="stat"><div class="num">2.4 km</div><div class="lbl">最远新走出</div></div>
+      <div class="stat"><div class="num">真如苑</div><div class="lbl">推送指向</div></div>
+    </div>
+    <a class="cta" href="mary_diary.html">阅读 Mary 的 14 天 →</a>
+    <p style="margin:10px 0 0; text-align:center; font-size:12px;">
+      <a href="mary_diary_poster.svg" style="color:#5A5E6A;">📄 印刷版 SVG (320×460mm)</a>
+    </p>
+  </div>
+
+  <div class="case">
+    <h2>Mike 的 14 天</h2>
+    <div class="who">26 岁 · 软件工程师 · 单身 · 英国移民</div>
+    <div class="quote">
+      "我从来不订餐厅。但那条推送说『只剩 2 位』,我就鬼使神差地点了订餐按钮。"
+    </div>
+    <div class="stats">
+      <div class="stat"><div class="num">26</div><div class="lbl">岁</div></div>
+      <div class="stat"><div class="num">2.7 km</div><div class="lbl">最远新走出</div></div>
+      <div class="stat"><div class="num">1021</div><div class="lbl">餐厅</div></div>
+    </div>
+    <a class="cta" href="mike_diary.html">阅读 Mike 的 14 天 →</a>
+    <p style="margin:10px 0 0; text-align:center; font-size:12px;">
+      <a href="mike_diary_poster.svg" style="color:#5A5E6A;">📄 印刷版 SVG</a>
+    </p>
+  </div>
+
+  <div class="case">
+    <h2>Frank 的 14 天</h2>
+    <div class="who">64 岁 · 建筑工 · 已婚 · Lane Cove 30 年老居民</div>
+    <div class="quote">
+      "我以为 Lane Cove 老居民就剩我们几个老的。Shinnyo 读书会让我认识了 25 岁全职妈妈、32 岁 tradie、20 岁失业小伙。"
+    </div>
+    <div class="stats">
+      <div class="stat"><div class="num">64</div><div class="lbl">岁</div></div>
+      <div class="stat"><div class="num">Shinnyo</div><div class="lbl">+ 圣公会教堂</div></div>
+      <div class="stat"><div class="num">5+</div><div class="lbl">新认识的本街邻居</div></div>
+    </div>
+    <a class="cta" href="agent_12_diary.html">阅读 Frank 的 14 天 →</a>
+  </div>
+</div>
+
+<div class="what-is">
+  <h3>这些案例是怎么构建的?</h3>
+  <p>
+    每位 agent 的 14 天行程都来自真实模拟数据 — <code>seed_43_positions.json</code>
+    每 5 分钟记录一次该 agent 的所在 location_id。我们把 location_id 翻译成 Lane Cove 的真实建筑或街道
+    (来自 OpenStreetMap 数据),识别出每个"停留 ≥ 20 分钟"的地点,以及"推送下她去了但基线下她从没去过"的新地点。
+  </p>
+  <p>
+    叙事文本 (例如 "她和 Anne 一起约去 Longueville Park" 这种细节) 是基于数据骨架的合理虚构 —
+    Anne 这个角色是真实存在的另一位 HP 响应者邻居 (从 spillover 数据反推),但她们具体说了什么话不在数据里。
+  </p>
+</div>
+
+<div class="related">
+  <p>
+    返回主报告: <a href="../项目实验结果.html">实验结果 · 8 个核心发现</a> ·
+    <a href="../项目产出物.html">项目产出物总览</a>
+  </p>
+</div>
+
+<div class="footer">
+  Synthetic Socio Wind Tunnel · 悉尼 Lane Cove 虚拟城市 · github.com/york-zhouuu
+</div>
+
+</body>
+</html>

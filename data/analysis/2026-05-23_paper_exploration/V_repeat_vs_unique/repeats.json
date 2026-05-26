@@ -1,0 +1,86 @@
+[
+  {
+    "seed": 43,
+    "variant": "baseline",
+    "total_encounters": 7513376.0,
+    "unique_pairs": 476244.0,
+    "avg_repeats_per_pair": 15.776316342043154
+  },
+  {
+    "seed": 43,
+    "variant": "hyperlocal_push",
+    "total_encounters": 41100491.0,
+    "unique_pairs": 566548.0,
+    "avg_repeats_per_pair": 72.54547011021131
+  },
+  {
+    "seed": 43,
+    "variant": "global_distraction",
+    "total_encounters": 9658114.0,
+    "unique_pairs": 461499.0,
+    "avg_repeats_per_pair": 20.927702985271907
+  },
+  {
+    "seed": 43,
+    "variant": "phone_friction",
+    "total_encounters": 35226875.0,
+    "unique_pairs": 534370.0,
+    "avg_repeats_per_pair": 65.92225424331455
+  },
+  {
+    "seed": 44,
+    "variant": "baseline",
+    "total_encounters": 7913095.0,
+    "unique_pairs": 475722.0,
+    "avg_repeats_per_pair": 16.633863895300195
+  },
+  {
+    "seed": 44,
+    "variant": "hyperlocal_push",
+    "total_encounters": 34038180.0,
+    "unique_pairs": 525258.0,
+    "avg_repeats_per_pair": 64.80278263253487
+  },
+  {
+    "seed": 44,
+    "variant": "global_distraction",
+    "total_encounters": 11524048.0,
+    "unique_pairs": 458893.0,
+    "avg_repeats_per_pair": 25.112712549548586
+  },
+  {
+    "seed": 44,
+    "variant": "phone_friction",
+    "total_encounters": 38114956.0,
+    "unique_pairs": 542165.0,
+    "avg_repeats_per_pair": 70.30139533167947
+  },
+  {
+    "seed": 45,
+    "variant": "baseline",
+    "total_encounters": 8734049.0,
+    "unique_pairs": 450290.0,
+    "avg_repeats_per_pair": 19.39649781252082
+  },
+  {
+    "seed": 45,
+    "variant": "hyperlocal_push",
+    "total_encounters": 40094386.0,
+    "unique_pairs": 527864.0,
+    "avg_repeats_per_pair": 75.9559015200885
+  },
+  {
+    "seed": 45,
+    "variant": "global_distraction",
+    "total_encounters": 11063468.0,
+    "unique_pairs": 437102.0,
+    "avg_repeats_per_pair": 25.31095259230111
+  },
+  {
+    "seed": 45,
+    "variant": "phone_friction",
+    "total_encounters": 36863564.0,
+    "unique_pairs": 519415.0,
+    "avg_repeats_per_pair": 70.97131195672054
+  }
+]

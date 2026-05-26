@@ -106,3 +106,14 @@ data/population_cache/
 seed_*.memstat.jsonl
 seed_*.events.jsonl
 seed_*.llm.jsonl
+
+# 32 GB pre-2026-05-21 experiment archive — way too large for git
+# (kept on disk for reference; never re-enter the repo)
+data/experiments_archive_*/
+
+# Large precompute caches (regenerable from raw data via tools/)
+data/analysis/*_cache_*.json
+data/analysis/*_cache.json
+
+# Release bundles (rebuilt from docs/case_studies + figures_v7 sources)
+releases/

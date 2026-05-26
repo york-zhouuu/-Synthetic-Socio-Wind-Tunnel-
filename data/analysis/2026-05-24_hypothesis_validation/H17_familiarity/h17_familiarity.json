@@ -1,0 +1,241 @@
+{
+  "method": "tick_metrics_recorder_state.buckets.{day}.distinct_pairs",
+  "seeds": [
+    44,
+    45
+  ],
+  "per_seed": {
+    "44": {
+      "seed": 44,
+      "variants": {
+        "baseline": {
+          "total_unique_pairs": 226668,
+          "shared_with_baseline": 226668,
+          "new_in_this_variant_only": 0,
+          "in_baseline_but_lost": 0,
+          "frac_pairs_already_known_from_bl": 1.0,
+          "frac_pairs_genuinely_new": 0.0,
+          "per_day_distinct_pairs_total": {
+            "0": 26342,
+            "1": 24412,
+            "2": 23499,
+            "3": 62028,
+            "4": 63509,
+            "5": 23451,
+            "6": 22666,
+            "7": 22863,
+            "8": 22316,
+            "9": 22883,
+            "10": 59518,
+            "11": 57335,
+            "12": 22381,
+            "13": 22514
+          }
+        },
+        "hyperlocal_push": {
+          "total_unique_pairs": 231779,
+          "shared_with_baseline": 197778,
+          "new_in_this_variant_only": 34001,
+          "in_baseline_but_lost": 28890,
+          "frac_pairs_already_known_from_bl": 0.8533,
+          "frac_pairs_genuinely_new": 0.1467,
+          "per_day_distinct_pairs_total": {
+            "0": 26342,
+            "1": 24412,
+            "2": 23499,
+            "3": 62028,
+            "4": 57934,
+            "5": 28353,
+            "6": 31076,
+            "7": 31589,
+            "8": 34496,
+            "9": 33524,
+            "10": 53225,
+            "11": 51217,
+            "12": 32817,
+            "13": 34614
+          }
+        },
+        "global_distraction": {
+          "total_unique_pairs": 218371,
+          "shared_with_baseline": 211777,
+          "new_in_this_variant_only": 6594,
+          "in_baseline_but_lost": 14891,
+          "frac_pairs_already_known_from_bl": 0.9698,
+          "frac_pairs_genuinely_new": 0.0302,
+          "per_day_distinct_pairs_total": {
+            "0": 26342,
+            "1": 24412,
+            "2": 23499,
+            "3": 62028,
+            "4": 60295,
+            "5": 23048,
+            "6": 22999,
+            "7": 23131,
+            "8": 22385,
+            "9": 23091,
+            "10": 53105,
+            "11": 49912,
+            "12": 22397,
+            "13": 22237
+          }
+        },
+        "phone_friction": {
+          "total_unique_pairs": 248139,
+          "shared_with_baseline": 199975,
+          "new_in_this_variant_only": 48164,
+          "in_baseline_but_lost": 26693,
+          "frac_pairs_already_known_from_bl": 0.8059,
+          "frac_pairs_genuinely_new": 0.1941,
+          "per_day_distinct_pairs_total": {
+            "0": 26342,
+            "1": 24412,
+            "2": 23499,
+            "3": 62028,
+            "4": 59102,
+            "5": 27768,
+            "6": 29482,
+            "7": 30822,
+            "8": 36232,
+            "9": 38918,
+            "10": 55848,
+            "11": 52958,
+            "12": 37964,
+            "13": 36726
+          }
+        }
+      }
+    },
+    "45": {
+      "seed": 45,
+      "variants": {
+        "baseline": {
+          "total_unique_pairs": 215825,
+          "shared_with_baseline": 215825,
+          "new_in_this_variant_only": 0,
+          "in_baseline_but_lost": 0,
+          "frac_pairs_already_known_from_bl": 1.0,
+          "frac_pairs_genuinely_new": 0.0,
+          "per_day_distinct_pairs_total": {
+            "0": 25221,
+            "1": 23612,
+            "2": 22850,
+            "3": 57054,
+            "4": 59620,
+            "5": 22494,
+            "6": 22506,
+            "7": 22531,
+            "8": 21490,
+            "9": 21779,
+            "10": 53374,
+            "11": 54728,
+            "12": 21691,
+            "13": 21336
+          }
+        },
+        "hyperlocal_push": {
+          "total_unique_pairs": 227571,
+          "shared_with_baseline": 184750,
+          "new_in_this_variant_only": 42821,
+          "in_baseline_but_lost": 31075,
+          "frac_pairs_already_known_from_bl": 0.8118,
+          "frac_pairs_genuinely_new": 0.1882,
+          "per_day_distinct_pairs_total": {
+            "0": 25221,
+            "1": 23612,
+            "2": 22850,
+            "3": 57054,
+            "4": 54861,
+            "5": 27316,
+            "6": 32766,
+            "7": 33822,
+            "8": 40417,
+            "9": 37305,
+            "10": 51370,
+            "11": 49667,
+            "12": 36033,
+            "13": 35546
+          }
+        },
+        "global_distraction": {
+          "total_unique_pairs": 210126,
+          "shared_with_baseline": 203171,
+          "new_in_this_variant_only": 6955,
+          "in_baseline_but_lost": 12654,
+          "frac_pairs_already_known_from_bl": 0.9669,
+          "frac_pairs_genuinely_new": 0.0331,
+          "per_day_distinct_pairs_total": {
+            "0": 25221,
+            "1": 23612,
+            "2": 22850,
+            "3": 57054,
+            "4": 56789,
+            "5": 22037,
+            "6": 22176,
+            "7": 22317,
+            "8": 21694,
+            "9": 22263,
+            "10": 48810,
+            "11": 49251,
+            "12": 21731,
+            "13": 21280
+          }
+        },
+        "phone_friction": {
+          "total_unique_pairs": 239876,
+          "shared_with_baseline": 189239,
+          "new_in_this_variant_only": 50637,
+          "in_baseline_but_lost": 26586,
+          "frac_pairs_already_known_from_bl": 0.7889,
+          "frac_pairs_genuinely_new": 0.2111,
+          "per_day_distinct_pairs_total": {
+            "0": 25221,
+            "1": 23612,
+            "2": 22850,
+            "3": 57054,
+            "4": 55531,
+            "5": 24406,
+            "6": 29483,
+            "7": 32342,
+            "8": 34993,
+            "9": 36692,
+            "10": 50717,
+            "11": 50675,
+            "12": 39510,
+            "13": 36171
+          }
+        }
+      }
+    }
+  },
+  "combined": {
+    "baseline": {
+      "total_unique_pairs": 442493,
+      "shared_with_baseline": 442493,
+      "new_pairs": 0,
+      "frac_already_known": 1.0,
+      "frac_new": 0.0
+    },
+    "hyperlocal_push": {
+      "total_unique_pairs": 459350,
+      "shared_with_baseline": 382528,
+      "new_pairs": 76822,
+      "frac_already_known": 0.8328,
+      "frac_new": 0.1672
+    },
+    "global_distraction": {
+      "total_unique_pairs": 428497,
+      "shared_with_baseline": 414948,
+      "new_pairs": 13549,
+      "frac_already_known": 0.9684,
+      "frac_new": 0.0316
+    },
+    "phone_friction": {
+      "total_unique_pairs": 488015,
+      "shared_with_baseline": 389214,
+      "new_pairs": 98801,
+      "frac_already_known": 0.7975,
+      "frac_new": 0.2025
+    }
+  }
+}

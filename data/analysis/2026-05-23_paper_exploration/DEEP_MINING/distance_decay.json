@@ -1,0 +1,50 @@
+[
+  {
+    "bucket": "0-50m",
+    "total": 565,
+    "responders": 148,
+    "rate": 0.26194690265486725
+  },
+  {
+    "bucket": "50-100m",
+    "total": 257,
+    "responders": 53,
+    "rate": 0.20622568093385213
+  },
+  {
+    "bucket": "100-150m",
+    "total": 210,
+    "responders": 24,
+    "rate": 0.11428571428571428
+  },
+  {
+    "bucket": "150-200m",
+    "total": 138,
+    "responders": 6,
+    "rate": 0.043478260869565216
+  },
+  {
+    "bucket": "200-300m",
+    "total": 136,
+    "responders": 6,
+    "rate": 0.04411764705882353
+  },
+  {
+    "bucket": "300-400m",
+    "total": 50,
+    "responders": 1,
+    "rate": 0.02
+  },
+  {
+    "bucket": "400-500m",
+    "total": 27,
+    "responders": 0,
+    "rate": 0.0
+  },
+  {
+    "bucket": "500-700m",
+    "total": 9,
+    "responders": 0,
+    "rate": 0.0
+  }
+]

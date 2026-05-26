@@ -1,0 +1,54 @@
+{
+  "baseline": {
+    "n_agents_with_copresence": 2746,
+    "total_richness": 114322,
+    "max_richness_single_agent": 140,
+    "median_richness": 40.0,
+    "pareto_share": {
+      "top_1_pct": 0.032679624219310366,
+      "top_5_pct": 0.13874844736796066,
+      "top_10_pct": 0.24666293451829044,
+      "top_25_pct": 0.4889172687671664,
+      "top_50_pct": 0.7655306940046536
+    }
+  },
+  "hyperlocal_push": {
+    "n_agents_with_copresence": 2851,
+    "total_richness": 624794,
+    "max_richness_single_agent": 1330,
+    "median_richness": 49,
+    "pareto_share": {
+      "top_1_pct": 0.059176304509966485,
+      "top_5_pct": 0.2839944045557416,
+      "top_10_pct": 0.5238046460113254,
+      "top_25_pct": 0.8481547518061954,
+      "top_50_pct": 0.9424194214413071
+    }
+  },
+  "global_distraction": {
+    "n_agents_with_copresence": 2767,
+    "total_richness": 168636,
+    "max_richness_single_agent": 515,
+    "median_richness": 41,
+    "pareto_share": {
+      "top_1_pct": 0.07540501435043526,
+      "top_5_pct": 0.31292250764961216,
+      "top_10_pct": 0.4389691406342655,
+      "top_25_pct": 0.6324865390545317,
+      "top_50_pct": 0.8312578571597998
+    }
+  },
+  "phone_friction": {
+    "n_agents_with_copresence": 2881,
+    "total_richness": 582930,
+    "max_richness_single_agent": 1217,
+    "median_richness": 61,
+    "pareto_share": {
+      "top_1_pct": 0.05722814060007205,
+      "top_5_pct": 0.2626696172782324,
+      "top_10_pct": 0.4497383905443192,
+      "top_25_pct": 0.7799632889026127,
+      "top_50_pct": 0.9273000188701902
+    }
+  }
+}

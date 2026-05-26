@@ -1,0 +1,186 @@
+{
+  "43|baseline": {
+    "median_unique_locs_per_agent_total": 174.0,
+    "mean_unique_locs_per_agent_total": 159.659,
+    "per_day_median_unique": {
+      "7": 1.0,
+      "8": 52.0,
+      "9": 52.0,
+      "10": 56.0,
+      "11": 56.5,
+      "12": 51.0,
+      "13": 50.0
+    }
+  },
+  "43|hyperlocal_push": {
+    "median_unique_locs_per_agent_total": 154.0,
+    "mean_unique_locs_per_agent_total": 145.58,
+    "per_day_median_unique": {
+      "6": 11.5,
+      "7": 44.0,
+      "8": 43.0,
+      "9": 43.0,
+      "10": 43.0,
+      "11": 42.0,
+      "12": 39.0,
+      "13": 39.0
+    }
+  },
+  "43|global_distraction": {
+    "median_unique_locs_per_agent_total": 48.0,
+    "mean_unique_locs_per_agent_total": 48.607,
+    "per_day_median_unique": {
+      "13": 48.0
+    }
+  },
+  "43|phone_friction": {
+    "median_unique_locs_per_agent_total": 144.0,
+    "mean_unique_locs_per_agent_total": 136.275,
+    "per_day_median_unique": {
+      "6": 1.0,
+      "7": 41.0,
+      "8": 40.0,
+      "9": 39.0,
+      "10": 41.0,
+      "11": 40.0,
+      "12": 36.0,
+      "13": 38.0
+    }
+  },
+  "44|baseline": {
+    "median_unique_locs_per_agent_total": 230.0,
+    "mean_unique_locs_per_agent_total": 215.712,
+    "per_day_median_unique": {
+      "3": 1.0,
+      "4": 61.0,
+      "5": 54.0,
+      "6": 54.0,
+      "7": 53.0,
+      "8": 53.0,
+      "9": 53.0,
+      "10": 59.0,
+      "11": 57.0,
+      "12": 51.0,
+      "13": 53.0
+    }
+  },
+  "44|hyperlocal_push": {
+    "median_unique_locs_per_agent_total": 198.0,
+    "mean_unique_locs_per_agent_total": 190.35,
+    "per_day_median_unique": {
+      "3": 1.0,
+      "4": 59.0,
+      "5": 50.0,
+      "6": 49.0,
+      "7": 47.0,
+      "8": 45.0,
+      "9": 44.0,
+      "10": 49.0,
+      "11": 46.0,
+      "12": 43.0,
+      "13": 43.5
+    }
+  },
+  "44|global_distraction": {
+    "median_unique_locs_per_agent_total": 216.0,
+    "mean_unique_locs_per_agent_total": 205.241,
+    "per_day_median_unique": {
+      "3": 1.0,
+      "4": 60.0,
+      "5": 53.0,
+      "6": 52.5,
+      "7": 51.0,
+      "8": 51.0,
+      "9": 51.0,
+      "10": 56.0,
+      "11": 54.0,
+      "12": 50.0,
+      "13": 52.0
+    }
+  },
+  "44|phone_friction": {
+    "median_unique_locs_per_agent_total": 195.5,
+    "mean_unique_locs_per_agent_total": 184.159,
+    "per_day_median_unique": {
+      "3": 1.0,
+      "4": 59.0,
+      "5": 49.5,
+      "6": 47.0,
+      "7": 42.0,
+      "8": 41.0,
+      "9": 39.0,
+      "10": 42.0,
+      "11": 40.0,
+      "12": 36.0,
+      "13": 36.0
+    }
+  },
+  "45|baseline": {
+    "median_unique_locs_per_agent_total": 224.5,
+    "mean_unique_locs_per_agent_total": 210.051,
+    "per_day_median_unique": {
+      "3": 1.0,
+      "4": 60.0,
+      "5": 51.0,
+      "6": 50.0,
+      "7": 51.0,
+      "8": 51.0,
+      "9": 49.0,
+      "10": 58.0,
+      "11": 55.5,
+      "12": 49.0,
+      "13": 51.0
+    }
+  },
+  "45|hyperlocal_push": {
+    "median_unique_locs_per_agent_total": 181.5,
+    "mean_unique_locs_per_agent_total": 182.565,
+    "per_day_median_unique": {
+      "3": 1.0,
+      "4": 55.5,
+      "5": 49.0,
+      "6": 47.0,
+      "7": 46.0,
+      "8": 44.0,
+      "9": 42.0,
+      "10": 46.0,
+      "11": 44.0,
+      "12": 42.0,
+      "13": 42.0
+    }
+  },
+  "45|global_distraction": {
+    "median_unique_locs_per_agent_total": 216.0,
+    "mean_unique_locs_per_agent_total": 203.732,
+    "per_day_median_unique": {
+      "3": 1.0,
+      "4": 59.0,
+      "5": 50.0,
+      "6": 50.0,
+      "7": 50.0,
+      "8": 50.0,
+      "9": 49.0,
+      "10": 55.0,
+      "11": 53.0,
+      "12": 48.0,
+      "13": 51.0
+    }
+  },
+  "45|phone_friction": {
+    "median_unique_locs_per_agent_total": 188.0,
+    "mean_unique_locs_per_agent_total": 183.399,
+    "per_day_median_unique": {
+      "3": 1.0,
+      "4": 56.5,
+      "5": 48.0,
+      "6": 46.0,
+      "7": 44.0,
+      "8": 42.0,
+      "9": 38.5,
+      "10": 40.0,
+      "11": 37.0,
+      "12": 36.0,
+      "13": 36.0
+    }
+  }
+}

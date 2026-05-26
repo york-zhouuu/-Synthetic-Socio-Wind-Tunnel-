@@ -1,0 +1,142 @@
+{
+  "baseline": {
+    "total_eod_copresence_pairs": 24456,
+    "within_age_bucket": 5917,
+    "cross_age_bucket": 18539,
+    "cross_age_pct": 0.7580552829571475,
+    "top_age_pair_crossings": {
+      "18-24/35-49": 3172,
+      "35-49/50-64": 2543,
+      "35-49/35-49": 2266,
+      "25-34/35-49": 2259,
+      "35-49/65+": 2172,
+      "18-24/25-34": 1986,
+      "18-24/50-64": 1567,
+      "18-24/18-24": 1520,
+      "25-34/50-64": 1377,
+      "50-64/65+": 1235
+    },
+    "top_occupation_pair_crossings": {
+      "retired/student": 579,
+      "consultant/student": 430,
+      "accountant/student": 375,
+      "software_dev/student": 362,
+      "designer/retired": 351,
+      "consultant/retired": 346,
+      "nurse/retired": 337,
+      "student/unemployed": 331,
+      "nurse/student": 328,
+      "designer/student": 298,
+      "retail_worker/student": 292,
+      "retired/software_dev": 287,
+      "retail_worker/retired": 284,
+      "retired/tradesperson": 267,
+      "student/teacher": 261
+    }
+  },
+  "hyperlocal_push": {
+    "total_eod_copresence_pairs": 45487,
+    "within_age_bucket": 11902,
+    "cross_age_bucket": 33585,
+    "cross_age_pct": 0.738342823224218,
+    "top_age_pair_crossings": {
+      "18-24/35-49": 7253,
+      "18-24/18-24": 4619,
+      "25-34/35-49": 4233,
+      "35-49/50-64": 4185,
+      "35-49/35-49": 4024,
+      "18-24/25-34": 3464,
+      "18-24/50-64": 3434,
+      "35-49/65+": 3176,
+      "18-24/65+": 2328,
+      "25-34/50-64": 2113
+    },
+    "top_occupation_pair_crossings": {
+      "retired/student": 1504,
+      "student/tradesperson": 1029,
+      "student/unemployed": 1025,
+      "software_dev/student": 890,
+      "consultant/student": 785,
+      "student/teacher": 777,
+      "nurse/student": 735,
+      "construction/student": 709,
+      "accountant/student": 680,
+      "retail_worker/student": 633,
+      "designer/student": 620,
+      "engineer/student": 580,
+      "manager/student": 514,
+      "lawyer/student": 490,
+      "designer/retired": 477
+    }
+  },
+  "phone_friction": {
+    "total_eod_copresence_pairs": 43551,
+    "within_age_bucket": 10679,
+    "cross_age_bucket": 32872,
+    "cross_age_pct": 0.754793230924663,
+    "top_age_pair_crossings": {
+      "18-24/35-49": 6266,
+      "25-34/35-49": 4315,
+      "35-49/35-49": 3833,
+      "35-49/50-64": 3683,
+      "18-24/25-34": 3519,
+      "35-49/65+": 3488,
+      "18-24/18-24": 3412,
+      "18-24/65+": 2896,
+      "18-24/50-64": 2873,
+      "50-64/65+": 2036
+    },
+    "top_occupation_pair_crossings": {
+      "retired/student": 2174,
+      "nurse/student": 826,
+      "consultant/student": 820,
+      "software_dev/student": 789,
+      "student/tradesperson": 692,
+      "accountant/student": 680,
+      "designer/student": 653,
+      "student/unemployed": 641,
+      "nurse/retired": 596,
+      "consultant/retired": 564,
+      "retired/software_dev": 556,
+      "designer/retired": 551,
+      "student/teacher": 513,
+      "engineer/student": 493,
+      "marketer/student": 470
+    }
+  },
+  "global_distraction": {
+    "total_eod_copresence_pairs": 36475,
+    "within_age_bucket": 8977,
+    "cross_age_bucket": 27498,
+    "cross_age_pct": 0.7538862234407128,
+    "top_age_pair_crossings": {
+      "18-24/35-49": 5467,
+      "35-49/50-64": 3297,
+      "18-24/18-24": 3249,
+      "35-49/35-49": 3070,
+      "18-24/25-34": 3055,
+      "25-34/35-49": 2994,
+      "35-49/65+": 2918,
+      "18-24/50-64": 2547,
+      "18-24/65+": 2375,
+      "25-34/50-64": 1682
+    },
+    "top_occupation_pair_crossings": {
+      "retired/student": 1656,
+      "nurse/student": 817,
+      "student/teacher": 593,
+      "consultant/student": 589,
+      "student/unemployed": 584,
+      "student/tradesperson": 575,
+      "designer/student": 573,
+      "accountant/student": 556,
+      "retail_worker/student": 523,
+      "engineer/student": 513,
+      "nurse/retired": 499,
+      "designer/retired": 455,
+      "homemaker/student": 452,
+      "caregiver/student": 447,
+      "software_dev/student": 443
+    }
+  }
+}

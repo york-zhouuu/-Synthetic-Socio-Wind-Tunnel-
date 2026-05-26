@@ -1,0 +1,310 @@
+{
+  "seeds": [
+    44,
+    45
+  ],
+  "combined_funnel": {
+    "delivered": 25340,
+    "consumed": 25340,
+    "arrived": 16461,
+    "consume_rate": 1.0,
+    "arrive_rate": 0.6496,
+    "arrive_given_consume": 0.6496
+  },
+  "combined_decay": {
+    "0-1h": 7431,
+    "6-12h": 32,
+    "12-24h": 93,
+    "24-48h": 3199,
+    "48-96h": 3400,
+    "96h+": 2306
+  },
+  "combined_topic_response": [
+    {
+      "location": "st_aidans_anglican_church",
+      "event": "cleanup",
+      "delivered": 897,
+      "consumed": 897,
+      "arrived": 699,
+      "consume_rate": 1.0,
+      "arrive_rate": 0.7793,
+      "arrive_given_consume": 0.7793
+    },
+    {
+      "location": "st_aidans_anglican_church",
+      "event": "book_club",
+      "delivered": 1795,
+      "consumed": 1795,
+      "arrived": 1254,
+      "consume_rate": 1.0,
+      "arrive_rate": 0.6986,
+      "arrive_given_consume": 0.6986
+    },
+    {
+      "location": "st_aidans_anglican_church",
+      "event": "market",
+      "delivered": 1763,
+      "consumed": 1763,
+      "arrived": 1214,
+      "consume_rate": 1.0,
+      "arrive_rate": 0.6886,
+      "arrive_given_consume": 0.6886
+    },
+    {
+      "location": "st_aidans_anglican_church",
+      "event": "kids_event",
+      "delivered": 3857,
+      "consumed": 3857,
+      "arrived": 2543,
+      "consume_rate": 1.0,
+      "arrive_rate": 0.6593,
+      "arrive_given_consume": 0.6593
+    },
+    {
+      "location": "plc_sydney_preschool,_lane_cove_campus",
+      "event": "book_club",
+      "delivered": 444,
+      "consumed": 444,
+      "arrived": 292,
+      "consume_rate": 1.0,
+      "arrive_rate": 0.6577,
+      "arrive_given_consume": 0.6577
+    },
+    {
+      "location": "st_aidans_anglican_church",
+      "event": "meetup",
+      "delivered": 4396,
+      "consumed": 4396,
+      "arrived": 2862,
+      "consume_rate": 1.0,
+      "arrive_rate": 0.651,
+      "arrive_given_consume": 0.651
+    },
+    {
+      "location": "plc_sydney_preschool,_lane_cove_campus",
+      "event": "kids_event",
+      "delivered": 5199,
+      "consumed": 5199,
+      "arrived": 3359,
+      "consume_rate": 1.0,
+      "arrive_rate": 0.6461,
+      "arrive_given_consume": 0.6461
+    },
+    {
+      "location": "plc_sydney_preschool,_lane_cove_campus",
+      "event": "cleanup",
+      "delivered": 2685,
+      "consumed": 2685,
+      "arrived": 1704,
+      "consume_rate": 1.0,
+      "arrive_rate": 0.6346,
+      "arrive_given_consume": 0.6346
+    },
+    {
+      "location": "plc_sydney_preschool,_lane_cove_campus",
+      "event": "meetup",
+      "delivered": 2661,
+      "consumed": 2661,
+      "arrived": 1682,
+      "consume_rate": 1.0,
+      "arrive_rate": 0.6321,
+      "arrive_given_consume": 0.6321
+    },
+    {
+      "location": "plc_sydney_preschool,_lane_cove_campus",
+      "event": "market",
+      "delivered": 1643,
+      "consumed": 1643,
+      "arrived": 852,
+      "consume_rate": 1.0,
+      "arrive_rate": 0.5186,
+      "arrive_given_consume": 0.5186
+    }
+  ],
+  "per_seed": {
+    "44": {
+      "seed": 44,
+      "topic_results": [
+        {
+          "location": "plc_sydney_preschool,_lane_cove_campus",
+          "event": "book_club",
+          "delivered": 444,
+          "consumed": 444,
+          "arrived": 292,
+          "consume_rate": 1.0,
+          "arrive_rate": 0.6577,
+          "arrive_given_consume": 0.6577,
+          "arrival_p50_ticks": 290.0,
+          "arrival_p25_ticks": 3,
+          "arrival_p75_ticks": 587,
+          "arrival_max_ticks": 2190
+        },
+        {
+          "location": "plc_sydney_preschool,_lane_cove_campus",
+          "event": "kids_event",
+          "delivered": 5199,
+          "consumed": 5199,
+          "arrived": 3359,
+          "consume_rate": 1.0,
+          "arrive_rate": 0.6461,
+          "arrive_given_consume": 0.6461,
+          "arrival_p50_ticks": 290,
+          "arrival_p25_ticks": 3,
+          "arrival_p75_ticks": 580,
+          "arrival_max_ticks": 2766
+        },
+        {
+          "location": "plc_sydney_preschool,_lane_cove_campus",
+          "event": "cleanup",
+          "delivered": 2685,
+          "consumed": 2685,
+          "arrived": 1704,
+          "consume_rate": 1.0,
+          "arrive_rate": 0.6346,
+          "arrive_given_consume": 0.6346,
+          "arrival_p50_ticks": 290.0,
+          "arrival_p25_ticks": 3,
+          "arrival_p75_ticks": 583,
+          "arrival_max_ticks": 2766
+        },
+        {
+          "location": "plc_sydney_preschool,_lane_cove_campus",
+          "event": "meetup",
+          "delivered": 2661,
+          "consumed": 2661,
+          "arrived": 1682,
+          "consume_rate": 1.0,
+          "arrive_rate": 0.6321,
+          "arrive_given_consume": 0.6321,
+          "arrival_p50_ticks": 290.0,
+          "arrival_p25_ticks": 3,
+          "arrival_p75_ticks": 581,
+          "arrival_max_ticks": 2766
+        },
+        {
+          "location": "plc_sydney_preschool,_lane_cove_campus",
+          "event": "market",
+          "delivered": 1643,
+          "consumed": 1643,
+          "arrived": 852,
+          "consume_rate": 1.0,
+          "arrive_rate": 0.5186,
+          "arrive_given_consume": 0.5186,
+          "arrival_p50_ticks": 578.0,
+          "arrival_p25_ticks": 6,
+          "arrival_p75_ticks": 1153,
+          "arrival_max_ticks": 2766
+        }
+      ],
+      "decay_buckets": {
+        "48-96h": 1592,
+        "24-48h": 1478,
+        "0-1h": 3461,
+        "96h+": 1267,
+        "12-24h": 68,
+        "6-12h": 23
+      },
+      "funnel": {
+        "delivered": 12632,
+        "consumed": 12632,
+        "arrived": 7889,
+        "consume_rate": 1.0,
+        "arrive_rate": 0.6245,
+        "arrive_given_consume": 0.6245
+      },
+      "n_arrivals_total": 7889
+    },
+    "45": {
+      "seed": 45,
+      "topic_results": [
+        {
+          "location": "st_aidans_anglican_church",
+          "event": "cleanup",
+          "delivered": 897,
+          "consumed": 897,
+          "arrived": 699,
+          "consume_rate": 1.0,
+          "arrive_rate": 0.7793,
+          "arrive_given_consume": 0.7793,
+          "arrival_p50_ticks": 293,
+          "arrival_p25_ticks": 5,
+          "arrival_p75_ticks": 867,
+          "arrival_max_ticks": 2597
+        },
+        {
+          "location": "st_aidans_anglican_church",
+          "event": "book_club",
+          "delivered": 1795,
+          "consumed": 1795,
+          "arrived": 1254,
+          "consume_rate": 1.0,
+          "arrive_rate": 0.6986,
+          "arrive_given_consume": 0.6986,
+          "arrival_p50_ticks": 290.0,
+          "arrival_p25_ticks": 4,
+          "arrival_p75_ticks": 582,
+          "arrival_max_ticks": 2597
+        },
+        {
+          "location": "st_aidans_anglican_church",
+          "event": "market",
+          "delivered": 1763,
+          "consumed": 1763,
+          "arrived": 1214,
+          "consume_rate": 1.0,
+          "arrive_rate": 0.6886,
+          "arrive_given_consume": 0.6886,
+          "arrival_p50_ticks": 291.0,
+          "arrival_p25_ticks": 4,
+          "arrival_p75_ticks": 865,
+          "arrival_max_ticks": 2595
+        },
+        {
+          "location": "st_aidans_anglican_church",
+          "event": "kids_event",
+          "delivered": 3857,
+          "consumed": 3857,
+          "arrived": 2543,
+          "consume_rate": 1.0,
+          "arrive_rate": 0.6593,
+          "arrive_given_consume": 0.6593,
+          "arrival_p50_ticks": 7,
+          "arrival_p25_ticks": 3,
+          "arrival_p75_ticks": 578,
+          "arrival_max_ticks": 2309
+        },
+        {
+          "location": "st_aidans_anglican_church",
+          "event": "meetup",
+          "delivered": 4396,
+          "consumed": 4396,
+          "arrived": 2862,
+          "consume_rate": 1.0,
+          "arrive_rate": 0.651,
+          "arrive_given_consume": 0.651,
+          "arrival_p50_ticks": 289.0,
+          "arrival_p25_ticks": 3,
+          "arrival_p75_ticks": 579,
+          "arrival_max_ticks": 2597
+        }
+      ],
+      "decay_buckets": {
+        "96h+": 1039,
+        "48-96h": 1808,
+        "0-1h": 3970,
+        "24-48h": 1721,
+        "12-24h": 25,
+        "6-12h": 9
+      },
+      "funnel": {
+        "delivered": 12708,
+        "consumed": 12708,
+        "arrived": 8572,
+        "consume_rate": 1.0,
+        "arrive_rate": 0.6745,
+        "arrive_given_consume": 0.6745
+      },
+      "n_arrivals_total": 8572
+    }
+  }
+}

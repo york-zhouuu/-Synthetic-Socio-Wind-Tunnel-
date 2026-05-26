@@ -1,0 +1,86 @@
+{
+  "43|baseline": {
+    "info_count": 749.0,
+    "max_hop": 28.0,
+    "info_reaching_2plus": 746.0,
+    "avg_reach": 983.0,
+    "info_within_target_reach": 0.0
+  },
+  "43|hyperlocal_push": {
+    "info_count": 756.0,
+    "max_hop": 28.0,
+    "info_reaching_2plus": 756.0,
+    "avg_reach": 991.0,
+    "info_within_target_reach": 1426.0
+  },
+  "43|global_distraction": {
+    "info_count": 780.0,
+    "max_hop": 28.0,
+    "info_reaching_2plus": 779.0,
+    "avg_reach": 985.0,
+    "info_within_target_reach": 0.0
+  },
+  "43|phone_friction": {
+    "info_count": 756.0,
+    "max_hop": 28.0,
+    "info_reaching_2plus": 749.0,
+    "avg_reach": 992.0,
+    "info_within_target_reach": 0.0
+  },
+  "44|baseline": {
+    "info_count": 753.0,
+    "max_hop": 24.0,
+    "info_reaching_2plus": 751.0,
+    "avg_reach": 978.0,
+    "info_within_target_reach": 0.0
+  },
+  "44|hyperlocal_push": {
+    "info_count": 763.0,
+    "max_hop": 24.0,
+    "info_reaching_2plus": 762.0,
+    "avg_reach": 984.0,
+    "info_within_target_reach": 1445.0
+  },
+  "44|global_distraction": {
+    "info_count": 784.0,
+    "max_hop": 24.0,
+    "info_reaching_2plus": 782.0,
+    "avg_reach": 980.0,
+    "info_within_target_reach": 0.0
+  },
+  "44|phone_friction": {
+    "info_count": 765.0,
+    "max_hop": 24.0,
+    "info_reaching_2plus": 758.0,
+    "avg_reach": 985.0,
+    "info_within_target_reach": 0.0
+  },
+  "45|baseline": {
+    "info_count": 744.0,
+    "max_hop": 23.0,
+    "info_reaching_2plus": 744.0,
+    "avg_reach": 984.0,
+    "info_within_target_reach": 0.0
+  },
+  "45|hyperlocal_push": {
+    "info_count": 752.0,
+    "max_hop": 24.0,
+    "info_reaching_2plus": 749.0,
+    "avg_reach": 988.0,
+    "info_within_target_reach": 1440.0
+  },
+  "45|global_distraction": {
+    "info_count": 774.0,
+    "max_hop": 23.0,
+    "info_reaching_2plus": 774.0,
+    "avg_reach": 987.0,
+    "info_within_target_reach": 0.0
+  },
+  "45|phone_friction": {
+    "info_count": 756.0,
+    "max_hop": 24.0,
+    "info_reaching_2plus": 749.0,
+    "avg_reach": 992.0,
+    "info_within_target_reach": 0.0
+  }
+}

@@ -1,0 +1,128 @@
+[
+  {
+    "day": 0,
+    "phase": "baseline",
+    "protag_response_rate": 0.49706748852454175,
+    "nonprotag_response_rate": 0.4598647112693468,
+    "ratio_protag_to_nonprotag": 1.0808993957212014,
+    "protag_response_rate_std": 0.1395364035673577,
+    "nonprotag_response_rate_std": 0.17472713962864125
+  },
+  {
+    "day": 1,
+    "phase": "baseline",
+    "protag_response_rate": 0.3110590354481813,
+    "nonprotag_response_rate": 0.1663843106354105,
+    "ratio_protag_to_nonprotag": 1.8695214366082218,
+    "protag_response_rate_std": 0.21150370142353336,
+    "nonprotag_response_rate_std": 0.2826879340127324
+  },
+  {
+    "day": 2,
+    "phase": "baseline",
+    "protag_response_rate": 0.3110590354481813,
+    "nonprotag_response_rate": 0.1663843106354105,
+    "ratio_protag_to_nonprotag": 1.8695214366082218,
+    "protag_response_rate_std": 0.21150370142353336,
+    "nonprotag_response_rate_std": 0.2826879340127324
+  },
+  {
+    "day": 3,
+    "phase": "baseline",
+    "protag_response_rate": 0.3110590354481813,
+    "nonprotag_response_rate": 0.1663843106354105,
+    "ratio_protag_to_nonprotag": 1.8695214366082218,
+    "protag_response_rate_std": 0.21150370142353336,
+    "nonprotag_response_rate_std": 0.2826879340127324
+  },
+  {
+    "day": 4,
+    "phase": "intervention",
+    "protag_response_rate": 0.3110590354481813,
+    "nonprotag_response_rate": 0.1663843106354105,
+    "ratio_protag_to_nonprotag": 1.8695214366082218,
+    "protag_response_rate_std": 0.21150370142353336,
+    "nonprotag_response_rate_std": 0.2826879340127324
+  },
+  {
+    "day": 5,
+    "phase": "intervention",
+    "protag_response_rate": 0.3110590354481813,
+    "nonprotag_response_rate": 0.1663843106354105,
+    "ratio_protag_to_nonprotag": 1.8695214366082218,
+    "protag_response_rate_std": 0.21150370142353336,
+    "nonprotag_response_rate_std": 0.2826879340127324
+  },
+  {
+    "day": 6,
+    "phase": "intervention",
+    "protag_response_rate": 0.3110590354481813,
+    "nonprotag_response_rate": 0.1663843106354105,
+    "ratio_protag_to_nonprotag": 1.8695214366082218,
+    "protag_response_rate_std": 0.21150370142353336,
+    "nonprotag_response_rate_std": 0.2826879340127324
+  },
+  {
+    "day": 7,
+    "phase": "intervention",
+    "protag_response_rate": 0.3110590354481813,
+    "nonprotag_response_rate": 0.1663843106354105,
+    "ratio_protag_to_nonprotag": 1.8695214366082218,
+    "protag_response_rate_std": 0.21150370142353336,
+    "nonprotag_response_rate_std": 0.2826879340127324
+  },
+  {
+    "day": 8,
+    "phase": "intervention",
+    "protag_response_rate": 0.3110590354481813,
+    "nonprotag_response_rate": 0.1663843106354105,
+    "ratio_protag_to_nonprotag": 1.8695214366082218,
+    "protag_response_rate_std": 0.21150370142353336,
+    "nonprotag_response_rate_std": 0.2826879340127324
+  },
+  {
+    "day": 9,
+    "phase": "intervention",
+    "protag_response_rate": 0.3110590354481813,
+    "nonprotag_response_rate": 0.1663843106354105,
+    "ratio_protag_to_nonprotag": 1.8695214366082218,
+    "protag_response_rate_std": 0.21150370142353336,
+    "nonprotag_response_rate_std": 0.2826879340127324
+  },
+  {
+    "day": 10,
+    "phase": "post",
+    "protag_response_rate": 0.3110590354481813,
+    "nonprotag_response_rate": 0.1663843106354105,
+    "ratio_protag_to_nonprotag": 1.8695214366082218,
+    "protag_response_rate_std": 0.21150370142353336,
+    "nonprotag_response_rate_std": 0.2826879340127324
+  },
+  {
+    "day": 11,
+    "phase": "post",
+    "protag_response_rate": 0.3110590354481813,
+    "nonprotag_response_rate": 0.1663843106354105,
+    "ratio_protag_to_nonprotag": 1.8695214366082218,
+    "protag_response_rate_std": 0.21150370142353336,
+    "nonprotag_response_rate_std": 0.2826879340127324
+  },
+  {
+    "day": 12,
+    "phase": "post",
+    "protag_response_rate": 0.3110590354481813,
+    "nonprotag_response_rate": 0.1663843106354105,
+    "ratio_protag_to_nonprotag": 1.8695214366082218,
+    "protag_response_rate_std": 0.21150370142353336,
+    "nonprotag_response_rate_std": 0.2826879340127324
+  },
+  {
+    "day": 13,
+    "phase": "post",
+    "protag_response_rate": 0.3110590354481813,
+    "nonprotag_response_rate": 0.1663843106354105,
+    "ratio_protag_to_nonprotag": 1.8695214366082218,
+    "protag_response_rate_std": 0.21150370142353336,
+    "nonprotag_response_rate_std": 0.2826879340127324
+  }
+]

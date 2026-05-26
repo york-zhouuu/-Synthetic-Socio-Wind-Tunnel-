@@ -1236,3 +1236,90 @@ aggregate = build_suite_aggregate(runs, ...)
 - [[backlog 1.7 B]] auto-restart on RSS — 触发条件正常
 - [[sigusr1-graceful-stop-corruption]] — 不写假 seed_N.json 部分工作正常
 - 但 build_suite_aggregate 误把 graceful_stop 当 "all variants failed" 抛错
+
+## 1.20 cold-prune evict 实际 evict=0 events，snapshot 不缩 (2026-05-21 audit 发现)
+
+**触发**：seed 43 baseline-prefix day 3 end EVICT event 显示：
+
+```json
+{"kind":"EVICT","before_day_index":1,"events_evicted":0,
+ "memory_store_total_before":4426274,
+ "memory_store_total_after":4426274}
+```
+
+evict 调用参数对（GRACE=2 at day 3 → before=1，应 evict day 0 encounter events）但实际 **events_evicted=0**。memory_store 4.43M events 一个没动。
+
+**对架构的后果**：
+- backlog 1.6 (snapshot-resume-ram-peak) 表面"已通过 cold-prune 解决"实际无效
+- snapshot 文件大小不会随时间缩（day 3 snap 1.86GB，day 13 可能 6+GB）
+- fork resume RAM peak 永远是 5-10× snapshot size
+
+**可能根因**（待 audit）：
+
+A. encounter events 都打了错的 day_index — 可能写入时全用当前 sim 时间的 day_index（也即当前 day），导致 evict 永远找不到比 "before_day_index" 小的：因为所有 events 都 day_index = recorder.current_day_at_record_time
+B. kind 字段不是 `"encounter"` — ai-town port 后可能改名了 `physical_encounter` 之类，evict_cold_encounter_events 的 `if ev.kind == "encounter"` 严格匹配错过
+C. schema 升级后 day_index 字段缺失或 None — evict 条件 `ev_day is not None and ev_day < before_day_index` 短路
+
+**最快诊断**:
+```python
+# 在 evict_cold_encounter_events 加诊断 log
+n_encounter = sum(1 for e in self._events if e.kind == "encounter")
+n_with_day = sum(1 for e in self._events if e.kind == "encounter" and e.day_index is not None)
+n_old_enough = sum(1 for e in self._events if e.kind == "encounter" and e.day_index is not None and e.day_index < before_day_index)
+logger.info(f"evict diag: total={len(self._events)} encounter={n_encounter} with_day={n_with_day} old_enough={n_old_enough}")
+```
+
+跑一次 publishable smoke 看 log，立刻知道哪个 condition 失败。
+
+**严重性**：
+- 这个 bug 让 backlog 1.6 + 1.7 全部内存压力机制都"看上去 work 实际无效"
+- publishable 跑 5 day+ RSS 必然爆 cap → graceful_stop 频繁 → 数据 chain 断裂概率高
+- 不修这个，明天重跑也是同样问题
+
+**Owner**：未指定。**下次 publishable 之前必须修**。
+
+**关联**:
+- [[backlog 1.6]] snapshot-resume-ram-peak — 一直说"已解决"实际是这个 bug 在掩盖
+- [[fix-encounter-eviction-tick-semantic]] 2026-05-20 — 上次也是 evict 相关 bug，可能跟这次同源
+- [[parallelize-day-end-llm-batches]] 2026-05-21 — 一个改 day_end LLM 一个改 evict，正交
+
+
+## 1.21 fork 启动只复制 snapshot，没复制 day 0-N summaries (2026-05-21 实测发现)
+
+**触发**：2026-05-21 fork day 4-13 run (`publishable_v6_day4to13_fork_seed43`)
+启动时 `/tmp/swt-v5-fork-day4to13.sh` 只复制了 baseline-prefix 的 snapshot 文件
+到 4 个 variant 子目录，**没复制 day 0-3 的 day_summary.json**。
+
+→ worker 启动时 `load_day_summaries()` 读到 0 个 day summary（仅 snapshot 里有
+state，没有 per-day aggregate）。内存中 `run_metrics.per_day_summaries` 从空开
+始，只累积 worker 自己跑的 day 3 (resumed partial) + day 4-13。
+
+→ Worker 完成时写的 `seed_43.json` / `aggregate.json` / `contest.json` 缺
+day 0-2 数据，day 3 是 11-tick partial 不是 full 288-tick。
+
+**Post-process 已 documented**：
+`data/experiments/20260521_185100_publishable_v6_day4to13_fork_seed43/POSTPROCESS_NEEDED.md`
+
+**根因**：本次 fork 用临时 bash 脚本 `/tmp/swt-v5-fork-day4to13.sh`，没考虑 
+`load_day_summaries()` 的入口语义。
+
+**修复方案（写进 backlog 1.7 baseline-prefix-share 正式实施）**：
+
+`tools/spawn_fork_variants.py`（拟新建工具）应：
+1. 复制 baseline-prefix 全部 `seed_<N>_day{0..K}.summary.json` 到每个 variant 子目录
+2. 复制 baseline-prefix 的 `seed_<N>_day{0..K}.partial.json`（虽然 cleanup_partials
+   后已经清空，向后兼容）
+3. 复制最新 periodic snapshot
+4. 写 `SUITE_ANCHOR.json` 标记 fork 来源 + day 范围
+5. spawn 4 worker with `--resume` + `--from-snapshot`
+
+→ worker 启动时 `load_day_summaries` 读到完整 day 0-K，per_day_summaries 内存
+正确。
+
+**Owner**：未指定。**下次 publishable 用 baseline-prefix-share pattern 前必修**。
+
+**关联**：
+- [[backlog 1.7]] baseline-prefix-share 设计 — 这是它的正式实施前提
+- [[backlog 1.11]] --resume 不保留 run_metrics — 跟此问题同源
+- [[harden-parallel-publishable-run]] 2026-05-21 proposal — 应 incorporate 此 task
+

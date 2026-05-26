@@ -1,0 +1,883 @@
+{
+  "method": "BL pooled seed 44+45, in-memory snapshot events, hour-of-day bins from simulated_time.hour. Midnight (00:00) events excluded as likely init artefact. Coverage: 2 weekdays (Mon 2026-05-04 + Tue 2026-05-05). Population mean notice rate ~9.5% across 14 days.",
+  "hourly": [
+    {
+      "hour": 0,
+      "enc": 2468,
+      "noticed": 236,
+      "rate": 0.0956
+    },
+    {
+      "hour": 1,
+      "enc": 0,
+      "noticed": 0,
+      "rate": 0.0
+    },
+    {
+      "hour": 2,
+      "enc": 0,
+      "noticed": 0,
+      "rate": 0.0
+    },
+    {
+      "hour": 3,
+      "enc": 0,
+      "noticed": 0,
+      "rate": 0.0
+    },
+    {
+      "hour": 4,
+      "enc": 522,
+      "noticed": 50,
+      "rate": 0.0958
+    },
+    {
+      "hour": 5,
+      "enc": 0,
+      "noticed": 0,
+      "rate": 0.0
+    },
+    {
+      "hour": 6,
+      "enc": 0,
+      "noticed": 0,
+      "rate": 0.0
+    },
+    {
+      "hour": 7,
+      "enc": 12502,
+      "noticed": 1230,
+      "rate": 0.0984
+    },
+    {
+      "hour": 8,
+      "enc": 25118,
+      "noticed": 2858,
+      "rate": 0.1138
+    },
+    {
+      "hour": 9,
+      "enc": 4534,
+      "noticed": 602,
+      "rate": 0.1328
+    },
+    {
+      "hour": 10,
+      "enc": 3092,
+      "noticed": 256,
+      "rate": 0.0828
+    },
+    {
+      "hour": 11,
+      "enc": 928,
+      "noticed": 94,
+      "rate": 0.1013
+    },
+    {
+      "hour": 12,
+      "enc": 2716,
+      "noticed": 242,
+      "rate": 0.0891
+    },
+    {
+      "hour": 13,
+      "enc": 5740,
+      "noticed": 528,
+      "rate": 0.092
+    },
+    {
+      "hour": 14,
+      "enc": 7080,
+      "noticed": 598,
+      "rate": 0.0845
+    },
+    {
+      "hour": 15,
+      "enc": 1864,
+      "noticed": 142,
+      "rate": 0.0762
+    },
+    {
+      "hour": 16,
+      "enc": 26088,
+      "noticed": 2016,
+      "rate": 0.0773
+    },
+    {
+      "hour": 17,
+      "enc": 6212,
+      "noticed": 522,
+      "rate": 0.084
+    },
+    {
+      "hour": 18,
+      "enc": 4402,
+      "noticed": 450,
+      "rate": 0.1022
+    },
+    {
+      "hour": 19,
+      "enc": 23532,
+      "noticed": 1832,
+      "rate": 0.0779
+    },
+    {
+      "hour": 20,
+      "enc": 26166,
+      "noticed": 2008,
+      "rate": 0.0767
+    },
+    {
+      "hour": 21,
+      "enc": 8938,
+      "noticed": 584,
+      "rate": 0.0653
+    },
+    {
+      "hour": 22,
+      "enc": 214,
+      "noticed": 24,
+      "rate": 0.1121
+    },
+    {
+      "hour": 23,
+      "enc": 46,
+      "noticed": 4,
+      "rate": 0.087
+    }
+  ],
+  "hourly_by_building_type": {
+    "street": [
+      {
+        "hour": 0,
+        "type": "street",
+        "enc": 1702,
+        "noticed": 160,
+        "rate": 0.094
+      },
+      {
+        "hour": 1,
+        "type": "street",
+        "enc": 0,
+        "noticed": 0,
+        "rate": 0.0
+      },
+      {
+        "hour": 2,
+        "type": "street",
+        "enc": 0,
+        "noticed": 0,
+        "rate": 0.0
+      },
+      {
+        "hour": 3,
+        "type": "street",
+        "enc": 0,
+        "noticed": 0,
+        "rate": 0.0
+      },
+      {
+        "hour": 4,
+        "type": "street",
+        "enc": 164,
+        "noticed": 6,
+        "rate": 0.0366
+      },
+      {
+        "hour": 5,
+        "type": "street",
+        "enc": 0,
+        "noticed": 0,
+        "rate": 0.0
+      },
+      {
+        "hour": 6,
+        "type": "street",
+        "enc": 0,
+        "noticed": 0,
+        "rate": 0.0
+      },
+      {
+        "hour": 7,
+        "type": "street",
+        "enc": 7100,
+        "noticed": 534,
+        "rate": 0.0752
+      },
+      {
+        "hour": 8,
+        "type": "street",
+        "enc": 9186,
+        "noticed": 680,
+        "rate": 0.074
+      },
+      {
+        "hour": 9,
+        "type": "street",
+        "enc": 746,
+        "noticed": 46,
+        "rate": 0.0617
+      },
+      {
+        "hour": 10,
+        "type": "street",
+        "enc": 2652,
+        "noticed": 200,
+        "rate": 0.0754
+      },
+      {
+        "hour": 11,
+        "type": "street",
+        "enc": 478,
+        "noticed": 28,
+        "rate": 0.0586
+      },
+      {
+        "hour": 12,
+        "type": "street",
+        "enc": 1254,
+        "noticed": 72,
+        "rate": 0.0574
+      },
+      {
+        "hour": 13,
+        "type": "street",
+        "enc": 4194,
+        "noticed": 302,
+        "rate": 0.072
+      },
+      {
+        "hour": 14,
+        "type": "street",
+        "enc": 5454,
+        "noticed": 392,
+        "rate": 0.0719
+      },
+      {
+        "hour": 15,
+        "type": "street",
+        "enc": 1482,
+        "noticed": 92,
+        "rate": 0.0621
+      },
+      {
+        "hour": 16,
+        "type": "street",
+        "enc": 23570,
+        "noticed": 1690,
+        "rate": 0.0717
+      },
+      {
+        "hour": 17,
+        "type": "street",
+        "enc": 4782,
+        "noticed": 360,
+        "rate": 0.0753
+      },
+      {
+        "hour": 18,
+        "type": "street",
+        "enc": 2258,
+        "noticed": 166,
+        "rate": 0.0735
+      },
+      {
+        "hour": 19,
+        "type": "street",
+        "enc": 19914,
+        "noticed": 1368,
+        "rate": 0.0687
+      },
+      {
+        "hour": 20,
+        "type": "street",
+        "enc": 24698,
+        "noticed": 1810,
+        "rate": 0.0733
+      },
+      {
+        "hour": 21,
+        "type": "street",
+        "enc": 8850,
+        "noticed": 578,
+        "rate": 0.0653
+      },
+      {
+        "hour": 22,
+        "type": "street",
+        "enc": 156,
+        "noticed": 4,
+        "rate": 0.0256
+      },
+      {
+        "hour": 23,
+        "type": "street",
+        "enc": 10,
+        "noticed": 0,
+        "rate": 0.0
+      }
+    ],
+    "residential": [
+      {
+        "hour": 0,
+        "type": "residential",
+        "enc": 0,
+        "noticed": 0,
+        "rate": 0.0
+      },
+      {
+        "hour": 1,
+        "type": "residential",
+        "enc": 0,
+        "noticed": 0,
+        "rate": 0.0
+      },
+      {
+        "hour": 2,
+        "type": "residential",
+        "enc": 0,
+        "noticed": 0,
+        "rate": 0.0
+      },
+      {
+        "hour": 3,
+        "type": "residential",
+        "enc": 0,
+        "noticed": 0,
+        "rate": 0.0
+      },
+      {
+        "hour": 4,
+        "type": "residential",
+        "enc": 0,
+        "noticed": 0,
+        "rate": 0.0
+      },
+      {
+        "hour": 5,
+        "type": "residential",
+        "enc": 0,
+        "noticed": 0,
+        "rate": 0.0
+      },
+      {
+        "hour": 6,
+        "type": "residential",
+        "enc": 0,
+        "noticed": 0,
+        "rate": 0.0
+      },
+      {
+        "hour": 7,
+        "type": "residential",
+        "enc": 0,
+        "noticed": 0,
+        "rate": 0.0
+      },
+      {
+        "hour": 8,
+        "type": "residential",
+        "enc": 0,
+        "noticed": 0,
+        "rate": 0.0
+      },
+      {
+        "hour": 9,
+        "type": "residential",
+        "enc": 0,
+        "noticed": 0,
+        "rate": 0.0
+      },
+      {
+        "hour": 10,
+        "type": "residential",
+        "enc": 0,
+        "noticed": 0,
+        "rate": 0.0
+      },
+      {
+        "hour": 11,
+        "type": "residential",
+        "enc": 0,
+        "noticed": 0,
+        "rate": 0.0
+      },
+      {
+        "hour": 12,
+        "type": "residential",
+        "enc": 0,
+        "noticed": 0,
+        "rate": 0.0
+      },
+      {
+        "hour": 13,
+        "type": "residential",
+        "enc": 0,
+        "noticed": 0,
+        "rate": 0.0
+      },
+      {
+        "hour": 14,
+        "type": "residential",
+        "enc": 210,
+        "noticed": 32,
+        "rate": 0.1524
+      },
+      {
+        "hour": 15,
+        "type": "residential",
+        "enc": 20,
+        "noticed": 2,
+        "rate": 0.1
+      },
+      {
+        "hour": 16,
+        "type": "residential",
+        "enc": 1254,
+        "noticed": 160,
+        "rate": 0.1276
+      },
+      {
+        "hour": 17,
+        "type": "residential",
+        "enc": 206,
+        "noticed": 20,
+        "rate": 0.0971
+      },
+      {
+        "hour": 18,
+        "type": "residential",
+        "enc": 14,
+        "noticed": 4,
+        "rate": 0.2857
+      },
+      {
+        "hour": 19,
+        "type": "residential",
+        "enc": 108,
+        "noticed": 16,
+        "rate": 0.1481
+      },
+      {
+        "hour": 20,
+        "type": "residential",
+        "enc": 204,
+        "noticed": 28,
+        "rate": 0.1373
+      },
+      {
+        "hour": 21,
+        "type": "residential",
+        "enc": 82,
+        "noticed": 6,
+        "rate": 0.0732
+      },
+      {
+        "hour": 22,
+        "type": "residential",
+        "enc": 50,
+        "noticed": 20,
+        "rate": 0.4
+      },
+      {
+        "hour": 23,
+        "type": "residential",
+        "enc": 0,
+        "noticed": 0,
+        "rate": 0.0
+      }
+    ],
+    "commercial": [
+      {
+        "hour": 0,
+        "type": "commercial",
+        "enc": 540,
+        "noticed": 54,
+        "rate": 0.1
+      },
+      {
+        "hour": 1,
+        "type": "commercial",
+        "enc": 0,
+        "noticed": 0,
+        "rate": 0.0
+      },
+      {
+        "hour": 2,
+        "type": "commercial",
+        "enc": 0,
+        "noticed": 0,
+        "rate": 0.0
+      },
+      {
+        "hour": 3,
+        "type": "commercial",
+        "enc": 0,
+        "noticed": 0,
+        "rate": 0.0
+      },
+      {
+        "hour": 4,
+        "type": "commercial",
+        "enc": 304,
+        "noticed": 38,
+        "rate": 0.125
+      },
+      {
+        "hour": 5,
+        "type": "commercial",
+        "enc": 0,
+        "noticed": 0,
+        "rate": 0.0
+      },
+      {
+        "hour": 6,
+        "type": "commercial",
+        "enc": 0,
+        "noticed": 0,
+        "rate": 0.0
+      },
+      {
+        "hour": 7,
+        "type": "commercial",
+        "enc": 3674,
+        "noticed": 426,
+        "rate": 0.1159
+      },
+      {
+        "hour": 8,
+        "type": "commercial",
+        "enc": 10002,
+        "noticed": 1400,
+        "rate": 0.14
+      },
+      {
+        "hour": 9,
+        "type": "commercial",
+        "enc": 2450,
+        "noticed": 356,
+        "rate": 0.1453
+      },
+      {
+        "hour": 10,
+        "type": "commercial",
+        "enc": 0,
+        "noticed": 0,
+        "rate": 0.0
+      },
+      {
+        "hour": 11,
+        "type": "commercial",
+        "enc": 0,
+        "noticed": 0,
+        "rate": 0.0
+      },
+      {
+        "hour": 12,
+        "type": "commercial",
+        "enc": 792,
+        "noticed": 88,
+        "rate": 0.1111
+      },
+      {
+        "hour": 13,
+        "type": "commercial",
+        "enc": 430,
+        "noticed": 74,
+        "rate": 0.1721
+      },
+      {
+        "hour": 14,
+        "type": "commercial",
+        "enc": 104,
+        "noticed": 4,
+        "rate": 0.0385
+      },
+      {
+        "hour": 15,
+        "type": "commercial",
+        "enc": 0,
+        "noticed": 0,
+        "rate": 0.0
+      },
+      {
+        "hour": 16,
+        "type": "commercial",
+        "enc": 0,
+        "noticed": 0,
+        "rate": 0.0
+      },
+      {
+        "hour": 17,
+        "type": "commercial",
+        "enc": 0,
+        "noticed": 0,
+        "rate": 0.0
+      },
+      {
+        "hour": 18,
+        "type": "commercial",
+        "enc": 0,
+        "noticed": 0,
+        "rate": 0.0
+      },
+      {
+        "hour": 19,
+        "type": "commercial",
+        "enc": 0,
+        "noticed": 0,
+        "rate": 0.0
+      },
+      {
+        "hour": 20,
+        "type": "commercial",
+        "enc": 152,
+        "noticed": 18,
+        "rate": 0.1184
+      },
+      {
+        "hour": 21,
+        "type": "commercial",
+        "enc": 0,
+        "noticed": 0,
+        "rate": 0.0
+      },
+      {
+        "hour": 22,
+        "type": "commercial",
+        "enc": 0,
+        "noticed": 0,
+        "rate": 0.0
+      },
+      {
+        "hour": 23,
+        "type": "commercial",
+        "enc": 0,
+        "noticed": 0,
+        "rate": 0.0
+      }
+    ],
+    "office": [
+      {
+        "hour": 0,
+        "type": "office",
+        "enc": 148,
+        "noticed": 16,
+        "rate": 0.1081
+      },
+      {
+        "hour": 1,
+        "type": "office",
+        "enc": 0,
+        "noticed": 0,
+        "rate": 0.0
+      },
+      {
+        "hour": 2,
+        "type": "office",
+        "enc": 0,
+        "noticed": 0,
+        "rate": 0.0
+      },
+      {
+        "hour": 3,
+        "type": "office",
+        "enc": 0,
+        "noticed": 0,
+        "rate": 0.0
+      },
+      {
+        "hour": 4,
+        "type": "office",
+        "enc": 30,
+        "noticed": 2,
+        "rate": 0.0667
+      },
+      {
+        "hour": 5,
+        "type": "office",
+        "enc": 0,
+        "noticed": 0,
+        "rate": 0.0
+      },
+      {
+        "hour": 6,
+        "type": "office",
+        "enc": 0,
+        "noticed": 0,
+        "rate": 0.0
+      },
+      {
+        "hour": 7,
+        "type": "office",
+        "enc": 1426,
+        "noticed": 226,
+        "rate": 0.1585
+      },
+      {
+        "hour": 8,
+        "type": "office",
+        "enc": 4872,
+        "noticed": 652,
+        "rate": 0.1338
+      },
+      {
+        "hour": 9,
+        "type": "office",
+        "enc": 924,
+        "noticed": 134,
+        "rate": 0.145
+      },
+      {
+        "hour": 10,
+        "type": "office",
+        "enc": 0,
+        "noticed": 0,
+        "rate": 0.0
+      },
+      {
+        "hour": 11,
+        "type": "office",
+        "enc": 0,
+        "noticed": 0,
+        "rate": 0.0
+      },
+      {
+        "hour": 12,
+        "type": "office",
+        "enc": 138,
+        "noticed": 18,
+        "rate": 0.1304
+      },
+      {
+        "hour": 13,
+        "type": "office",
+        "enc": 58,
+        "noticed": 10,
+        "rate": 0.1724
+      },
+      {
+        "hour": 14,
+        "type": "office",
+        "enc": 54,
+        "noticed": 10,
+        "rate": 0.1852
+      },
+      {
+        "hour": 15,
+        "type": "office",
+        "enc": 0,
+        "noticed": 0,
+        "rate": 0.0
+      },
+      {
+        "hour": 16,
+        "type": "office",
+        "enc": 0,
+        "noticed": 0,
+        "rate": 0.0
+      },
+      {
+        "hour": 17,
+        "type": "office",
+        "enc": 0,
+        "noticed": 0,
+        "rate": 0.0
+      },
+      {
+        "hour": 18,
+        "type": "office",
+        "enc": 0,
+        "noticed": 0,
+        "rate": 0.0
+      },
+      {
+        "hour": 19,
+        "type": "office",
+        "enc": 0,
+        "noticed": 0,
+        "rate": 0.0
+      },
+      {
+        "hour": 20,
+        "type": "office",
+        "enc": 14,
+        "noticed": 0,
+        "rate": 0.0
+      },
+      {
+        "hour": 21,
+        "type": "office",
+        "enc": 0,
+        "noticed": 0,
+        "rate": 0.0
+      },
+      {
+        "hour": 22,
+        "type": "office",
+        "enc": 0,
+        "noticed": 0,
+        "rate": 0.0
+      },
+      {
+        "hour": 23,
+        "type": "office",
+        "enc": 0,
+        "noticed": 0,
+        "rate": 0.0
+      }
+    ]
+  },
+  "deepest_3_hours": [
+    {
+      "hour": 1,
+      "enc": 0,
+      "noticed": 0,
+      "rate": 0.0
+    },
+    {
+      "hour": 2,
+      "enc": 0,
+      "noticed": 0,
+      "rate": 0.0
+    },
+    {
+      "hour": 3,
+      "enc": 0,
+      "noticed": 0,
+      "rate": 0.0
+    }
+  ],
+  "brightest_3_hours": [
+    {
+      "hour": 22,
+      "enc": 214,
+      "noticed": 24,
+      "rate": 0.1121
+    },
+    {
+      "hour": 8,
+      "enc": 25118,
+      "noticed": 2858,
+      "rate": 0.1138
+    },
+    {
+      "hour": 9,
+      "enc": 4534,
+      "noticed": 602,
+      "rate": 0.1328
+    }
+  ],
+  "day_coverage": {
+    "2026-05-04": {
+      "enc": 81276,
+      "noticed": 7366,
+      "rate": 0.0906
+    },
+    "2026-05-05": {
+      "enc": 80886,
+      "noticed": 6910,
+      "rate": 0.0854
+    }
+  }
+}

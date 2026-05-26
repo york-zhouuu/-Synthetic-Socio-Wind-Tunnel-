@@ -1,0 +1,105 @@
+{
+  "method": "agent_events[kind=encounter, 'noticed' in tags] · bucket by dist from home",
+  "seeds": [
+    44,
+    45
+  ],
+  "combined": {
+    "baseline": {
+      "total_noticed_with_loc": 16704,
+      "n_noticed_total": 16704,
+      "n_encounter_total": 175844,
+      "notice_rate": 0.095,
+      "buckets_count": {
+        "2-5km": 950,
+        "0-100m": 2892,
+        "500-1000m": 4063,
+        "300-500m": 1384,
+        "1-2km": 6323,
+        "100-300m": 1092
+      },
+      "buckets_pct": {
+        "0-100m": 17.31,
+        "100-300m": 6.54,
+        "300-500m": 8.29,
+        "500-1000m": 24.32,
+        "1-2km": 37.85,
+        "2-5km": 5.69,
+        "5km+": 0.0
+      },
+      "local_500m_share_pct": 32.14
+    },
+    "hyperlocal_push": {
+      "total_noticed_with_loc": 39190,
+      "n_noticed_total": 39190,
+      "n_encounter_total": 380454,
+      "notice_rate": 0.103,
+      "buckets_count": {
+        "1-2km": 15276,
+        "2-5km": 7787,
+        "0-100m": 3177,
+        "500-1000m": 7924,
+        "300-500m": 3110,
+        "100-300m": 1916
+      },
+      "buckets_pct": {
+        "0-100m": 8.11,
+        "100-300m": 4.89,
+        "300-500m": 7.94,
+        "500-1000m": 20.22,
+        "1-2km": 38.98,
+        "2-5km": 19.87,
+        "5km+": 0.0
+      },
+      "local_500m_share_pct": 20.93
+    },
+    "global_distraction": {
+      "total_noticed_with_loc": 16912,
+      "n_noticed_total": 16912,
+      "n_encounter_total": 175290,
+      "notice_rate": 0.0965,
+      "buckets_count": {
+        "0-100m": 2713,
+        "500-1000m": 3750,
+        "2-5km": 2030,
+        "1-2km": 6098,
+        "300-500m": 1282,
+        "100-300m": 1039
+      },
+      "buckets_pct": {
+        "0-100m": 16.04,
+        "100-300m": 6.14,
+        "300-500m": 7.58,
+        "500-1000m": 22.17,
+        "1-2km": 36.06,
+        "2-5km": 12.0,
+        "5km+": 0.0
+      },
+      "local_500m_share_pct": 29.77
+    },
+    "phone_friction": {
+      "total_noticed_with_loc": 43896,
+      "n_noticed_total": 43896,
+      "n_encounter_total": 300742,
+      "notice_rate": 0.146,
+      "buckets_count": {
+        "500-1000m": 11973,
+        "2-5km": 1645,
+        "1-2km": 22280,
+        "0-100m": 2710,
+        "300-500m": 2853,
+        "100-300m": 2435
+      },
+      "buckets_pct": {
+        "0-100m": 6.17,
+        "100-300m": 5.55,
+        "300-500m": 6.5,
+        "500-1000m": 27.28,
+        "1-2km": 50.76,
+        "2-5km": 3.75,
+        "5km+": 0.0
+      },
+      "local_500m_share_pct": 18.22
+    }
+  }
+}

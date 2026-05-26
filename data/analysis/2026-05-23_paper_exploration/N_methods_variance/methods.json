@@ -1,0 +1,23 @@
+{
+  "43": {
+    "code_commit": null,
+    "encounter_total": 7513376.0,
+    "weak_tie": 12548,
+    "dialogue_count": 749,
+    "fork_dir_name": "20260521_185100_publishable_v6_day4to13_fork_seed43"
+  },
+  "44": {
+    "code_commit": null,
+    "encounter_total": 7913095.0,
+    "weak_tie": 17816,
+    "dialogue_count": 752,
+    "fork_dir_name": "20260522_165045_publishable_v7_day4to13_fork_seed44"
+  },
+  "45": {
+    "code_commit": null,
+    "encounter_total": 8734049.0,
+    "weak_tie": 17155,
+    "dialogue_count": 744,
+    "fork_dir_name": "20260522_212423_publishable_v7_day4to13_fork_seed45"
+  }
+}

@@ -1,0 +1,1257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Three pushes, three cities — what intervention design does to neighbourhood attention</title>
+<style>
+  :root {
+    --bg: #FCFAF6;
+    --ink: #1B1F2A;
+    --ink-soft: #3a3a3a;
+    --text: #2a2a2a;
+    --muted: #6a6358;
+    --rule: #d8d0c2;
+    --pink: #FF4D8F;
+    --pink-deep: #C8245E;
+    --grey-warm: #9E988C;
+    --highlight: #FFF4E6;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    padding: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Charter", "Source Serif Pro", Georgia, "Songti SC", serif;
+    font-size: 17px;
+    line-height: 1.7;
+    -webkit-font-smoothing: antialiased;
+  }
+  .container {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 80px 56px 140px;
+  }
+  .wide {
+    max-width: 1280px;
+    margin: 50px auto;
+    padding: 0 32px;
+  }
+
+  /* Eyebrow / tagline / kicker */
+  .eyebrow {
+    font-family: "Inter", -apple-system, "Helvetica Neue", sans-serif;
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--pink-deep);
+    margin: 0 0 14px;
+  }
+
+  /* Hero header */
+  header.lead h1 {
+    font-family: "Inter", -apple-system, "Helvetica Neue", sans-serif;
+    font-size: 50px;
+    font-weight: 800;
+    line-height: 1.1;
+    letter-spacing: -0.025em;
+    color: var(--ink);
+    margin: 0 0 24px;
+  }
+  header.lead .deck {
+    font-family: "Inter", -apple-system, "Helvetica Neue", sans-serif;
+    font-size: 18px;
+    font-weight: 400;
+    color: var(--muted);
+    margin: 0 0 40px;
+    letter-spacing: 0.01em;
+  }
+  blockquote.opener {
+    margin: 36px 0 24px;
+    padding: 28px 32px;
+    border: none;
+    border-left: 4px solid var(--pink);
+    background: linear-gradient(90deg, rgba(255,77,143,0.06) 0%, rgba(255,77,143,0.00) 100%);
+    font-family: "Charter", Georgia, serif;
+    font-size: 23px;
+    font-style: italic;
+    font-weight: 400;
+    line-height: 1.5;
+    color: var(--ink);
+  }
+  blockquote.opener cite {
+    display: block;
+    margin-top: 14px;
+    font-family: "Inter", sans-serif;
+    font-style: normal;
+    font-size: 13px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  /* Section headings */
+  h2.section {
+    font-family: "Inter", -apple-system, "Helvetica Neue", sans-serif;
+    font-size: 30px;
+    font-weight: 800;
+    letter-spacing: -0.015em;
+    color: var(--ink);
+    margin: 100px 0 8px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid var(--ink);
+    line-height: 1.2;
+  }
+  h2.section .num {
+    color: var(--pink-deep);
+    font-weight: 700;
+    margin-right: 14px;
+  }
+  .section-deck {
+    font-family: "Charter", Georgia, serif;
+    font-style: italic;
+    font-size: 20px;
+    color: var(--ink-soft);
+    margin: 0 0 32px;
+    line-height: 1.45;
+  }
+
+  /* Body paragraphs */
+  p { margin: 0 0 18px; }
+  p.drop::first-letter {
+    font-family: "Inter", sans-serif;
+    font-weight: 800;
+    font-size: 4.4em;
+    float: left;
+    line-height: 0.95;
+    margin: 5px 12px 0 0;
+    color: var(--pink-deep);
+  }
+  strong { color: var(--ink); font-weight: 700; }
+  em { font-style: italic; color: var(--ink-soft); }
+  a { color: var(--pink-deep); text-decoration: none; border-bottom: 1px dotted var(--pink-deep); }
+  a:hover { color: var(--pink); }
+
+  /* Pullquote */
+  .pullquote {
+    margin: 50px -20px;
+    padding: 36px 40px;
+    border-top: 1px solid var(--ink);
+    border-bottom: 1px solid var(--ink);
+    font-family: "Charter", Georgia, serif;
+    font-size: 26px;
+    font-weight: 400;
+    font-style: italic;
+    line-height: 1.4;
+    color: var(--ink);
+    text-align: center;
+  }
+  .pullquote .pq-sub {
+    display: block;
+    margin-top: 18px;
+    font-family: "Inter", sans-serif;
+    font-style: normal;
+    font-size: 13px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  /* Big stat box */
+  .headline-stat {
+    margin: 36px auto 28px;
+    padding: 30px 36px;
+    background: #fff;
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    display: grid;
+    grid-template-columns: 130px 1fr;
+    gap: 28px;
+    align-items: center;
+  }
+  .headline-stat .hs-num {
+    font-family: "Inter", sans-serif;
+    font-size: 76px;
+    font-weight: 800;
+    line-height: 1;
+    letter-spacing: -0.04em;
+    color: var(--pink-deep);
+    text-align: right;
+  }
+  .headline-stat .hs-body p { margin: 0; }
+  .headline-stat .hs-body .hs-lab {
+    font-family: "Inter", sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin: 0 0 6px;
+  }
+  .headline-stat .hs-body .hs-cap {
+    font-family: "Charter", Georgia, serif;
+    font-size: 17px;
+    color: var(--ink);
+    line-height: 1.5;
+  }
+  .headline-stat .hs-body .hs-fine {
+    font-family: "Inter", sans-serif;
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 8px;
+    letter-spacing: 0.03em;
+  }
+
+  /* Figures */
+  figure.hero, figure.companion {
+    margin: 50px 0 30px;
+    padding: 0;
+  }
+  figure.hero {
+    margin-left: calc(-1 * (50vw - 50%) + 32px);
+    margin-right: calc(-1 * (50vw - 50%) + 32px);
+    max-width: 1280px;
+  }
+  figure object.svg-fig {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+  figure figcaption {
+    margin-top: 14px;
+    padding: 0 4px;
+    font-family: "Inter", sans-serif;
+    font-size: 13px;
+    line-height: 1.55;
+    color: var(--muted);
+    text-align: left;
+  }
+  figure figcaption strong {
+    color: var(--ink);
+    font-weight: 700;
+  }
+  figure figcaption .fig-num {
+    font-family: "Inter", sans-serif;
+    font-weight: 800;
+    letter-spacing: 0.18em;
+    color: var(--pink-deep);
+    margin-right: 8px;
+    text-transform: uppercase;
+    font-size: 12px;
+  }
+
+  /* Stub section */
+  .stub {
+    margin: 24px 0;
+    padding: 22px 26px;
+    background: #fff;
+    border: 1px dashed var(--rule);
+    border-radius: 4px;
+    font-family: "Inter", sans-serif;
+    font-size: 14px;
+    color: var(--muted);
+  }
+  .stub .stub-lab {
+    font-weight: 700;
+    color: var(--pink-deep);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    font-size: 11px;
+    margin-bottom: 6px;
+  }
+  .stub ul { margin: 8px 0 0 0; padding-left: 22px; }
+  .stub li { margin: 4px 0; }
+
+  /* Footnote / reference */
+  .footnote {
+    margin: 24px 0;
+    padding-top: 18px;
+    border-top: 1px solid var(--rule);
+    font-family: "Inter", sans-serif;
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.55;
+  }
+  .footnote .fn-lab {
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    font-size: 11px;
+    color: var(--ink);
+  }
+
+  /* Footer */
+  footer.site {
+    margin: 100px 0 0;
+    padding: 36px 0 12px;
+    border-top: 1px solid var(--rule);
+    font-family: "Inter", sans-serif;
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.6;
+    letter-spacing: 0.02em;
+  }
+  footer.site .footer-stack { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  footer.site strong { color: var(--ink); }
+
+  /* Inline mini stat (for inline emphasis) */
+  .pct {
+    font-family: "Inter", sans-serif;
+    font-weight: 700;
+    color: var(--pink-deep);
+  }
+
+  /* Section TOC at top */
+  nav.toc {
+    margin: 30px 0 50px;
+    padding: 18px 22px;
+    background: #fff;
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    font-family: "Inter", sans-serif;
+    font-size: 13px;
+  }
+  nav.toc .toc-lab {
+    display: block;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    font-size: 11px;
+    color: var(--muted);
+    margin-bottom: 10px;
+  }
+  nav.toc a {
+    display: inline-block;
+    margin-right: 14px;
+    color: var(--ink);
+    border-bottom: 1px solid transparent;
+    padding-bottom: 1px;
+    line-height: 2;
+  }
+  nav.toc a:hover { border-bottom-color: var(--pink); color: var(--pink-deep); }
+  nav.toc a.ready { color: var(--pink-deep); border-bottom: 1px dotted var(--pink-deep); }
+</style>
+</head>
+<body>
+
+<style>
+  .lang-switch {
+    position: fixed; top: 22px; right: 28px;
+    font-family: "Inter", sans-serif; font-size: 12px; letter-spacing: 0.14em;
+    background: #fff; padding: 7px 14px; border: 1px solid var(--rule);
+    border-radius: 24px; color: var(--ink); z-index: 100;
+  }
+  .lang-switch a { color: var(--muted); border: none; text-decoration: none; }
+  .lang-switch a:hover { color: var(--pink-deep); }
+  .lang-switch .cur { color: var(--pink-deep); font-weight: 700; }
+</style>
+<div class="lang-switch">
+  <a href="项目实验结果_v7_zh.html">中文</a> · <span class="cur">EN</span>
+</div>
+
+<div class="container">
+
+  <!-- ===================== HERO HEADER ===================== -->
+  <header class="lead">
+    <p class="eyebrow">A wind tunnel for attention-mediated urban interventions</p>
+    <h1>Three pushes, three cities — what intervention design actually does to a neighbourhood</h1>
+    <p class="deck">
+      One thousand residents, fourteen days, four parallel conditions:
+      hyperlocal push · global distraction · phone friction · no app.
+      A test bed for how attention-mediated interventions reshape who
+      notices whom in Lane Cove.
+    </p>
+
+    <blockquote class="opener">
+      A push recommender was given three rules — <em>nearby</em>,
+      <em>underused</em>, <em>reachable</em> — and turned loose on a
+      thousand simulated Lane Cove residents for fourteen days. With
+      no information about which places matter to whom, it identified
+      five: a preschool, a church, a gym, a road, an outdoor area.
+      Together they absorbed <strong>80%</strong> of all redistributed
+      attention. The recommender-system literature calls this
+      <em>popularity bias</em>; in fully observable conditions it
+      reads as an unsupervised detector of community anchors.
+      <cite>Hyperlocal-push condition vs no-app baseline · 1,000 residents · 14 days · seed 43</cite>
+    </blockquote>
+
+    <div class="tldr">
+      <span class="tldr-lab">TL;DR · THREE FINDINGS IN THREE LINES</span>
+      <ol>
+        <li>A push billed as "hyperlocal" produces a <strong>digital stampede</strong> in physical space — 80% of redistributed dwell time gets absorbed by 5 community anchors.</li>
+        <li>Putting the phone down (friction) generates more <strong>"blind-box" social encounters</strong> than any algorithmic recommendation can — and reaches a different five anchors entirely.</li>
+        <li>No algorithm changes the routine-locked. Whether a resident responds at all is decided not by personality but by the <strong>schedule slack</strong> in their daily life.</li>
+      </ol>
+    </div>
+
+    <nav class="toc">
+      <span class="toc-lab">Sections</span>
+      <a href="#intro">1 · Introduction</a>
+      <a href="#background">2 · Background</a>
+      <a href="#method">3 · Method</a>
+      <a class="ready" href="#f1">4 · Finding 1 · Anchors</a>
+      <a class="ready" href="#f2">5 · Finding 2 · Friction</a>
+      <a class="ready" href="#f3">6 · Finding 3 · Reach</a>
+      <a href="#synthesis">7 · Synthesis</a>
+      <a href="#discussion">8 · Discussion</a>
+    </nav>
+  </header>
+
+  <!-- ===================== § 1 INTRODUCTION ===================== -->
+  <section id="intro">
+    <h2 class="section"><span class="num">1</span>Introduction</h2>
+    <p class="section-deck">
+      Cities in the 21st century have a new class of border: ones that do not block the body but block attention. This paper asks what happens when we try to push that attention back.
+    </p>
+
+    <p>
+      A neighbour two metres away who is reading a phone is, for the purposes of acknowledgment, in a different city. The smartphone is the most visible instrument of this attention-mediated separation, but the phenomenon precedes any single technology — it sits inside the structure of how attention is solicited and competed for in public space. Empirical observation now confirms what design intuition has suggested for a decade. Hampton, Goulet &amp; Albanesius (2025, <em>PNAS</em>) re-shot William H. Whyte's 1970s public-space footage at major urban sites; the share of pedestrians joining a group has dropped from 5.5% to 2%. Whether this represents a long-run depletion of what Jane Jacobs (1961) called the urban "sidewalk ballet" is a methodological question; that the depletion is measurable is no longer in doubt.
+    </p>
+
+    <p>
+      Several intervention archetypes have been proposed to push attention back toward what is physically near. <em>Hyperlocal recommendation</em> apps suggest underused nearby places. <em>Friction-by-design</em> interfaces (greyscale phones, time limits, microboundaries; Cox et al., CHI EA 2016) reduce phone compellingness to release in-person attention. <em>Civic-tech content interventions</em> surface local rather than national stories. Each archetype has been studied at the individual level. The question of how each one reshapes attention at the <em>city-population encounter scale</em> — across thousands of residents over many days, with the social context of every venue and the routine adherence of every resident known to the analyst — has been out of reach of real-world deployment studies.
+    </p>
+
+    <p>
+      This paper addresses that question with a fully observable simulation. One thousand residents of a simulated Lane Cove (a Sydney North Shore suburb) live, work, and move for fourteen simulated days, under four parallel conditions: no app (baseline), hyperlocal push, global distraction, and phone friction. Every physical co-presence between residents is recorded and passed through an attention gate that decides whether the encounter registers as <em>noticed</em>. The findings that follow are <strong>comparative</strong> across these conditions. They ask:
+    </p>
+
+    <ol style="margin: 8px 0 18px 22px; padding: 0;">
+      <li style="margin: 8px 0;">When a small-radius recommender is instructed to push attention toward "nearby underused places," where does the attention actually go? <strong>(Finding 1)</strong></li>
+      <li style="margin: 8px 0;">Does removing attention from competing platforms produce comparable in-person tie formation to actively recommending nearby places? <strong>(Finding 2)</strong></li>
+      <li style="margin: 8px 0;">What fraction of a population responds to attention-mediated interventions at all, and what predicts response? <strong>(Finding 3)</strong></li>
+    </ol>
+
+    <p>
+      None of the three mechanisms surfaced is novel in isolation. Each finding extends a published literature — recommender-system popularity bias, HCI friction-as-design, habit research on intervention reach. What the fully observable simulation contributes is the ability to read these mechanisms <em>against each other</em> in a single setting, with full social context. The contribution should be read as methodological as much as empirical. The findings are not point estimates of any real neighbourhood's absolute rates; they are comparative shapes that the wind tunnel makes directly visible.
+    </p>
+  </section>
+
+  <!-- ===================== § 2 BACKGROUND ===================== -->
+  <section id="background">
+    <h2 class="section"><span class="num">2</span>Background</h2>
+    <p class="section-deck">
+      Four literatures converge on the same gap. The paper sits at their intersection.
+    </p>
+
+    <h3 style="font-family:Inter,sans-serif; font-size:16px; font-weight:700; color:var(--ink); margin:24px 0 8px;">Urban sociology of attention</h3>
+    <p>
+      Jane Jacobs's <em>The Death and Life of Great American Cities</em> (1961) treats sidewalk-level co-presence as the substrate of urban social life — the "sidewalk ballet" that produces familiar strangers, weak ties, and stewardship. Mark Granovetter (1973, <em>AJS</em>) formalised the social-network analogue: novel information and opportunity flow disproportionately through weak ties, making chance public encounters structurally important. Stanley Milgram (1972) named the unit — the <em>familiar stranger</em> — as constituted by observation, repetition, and lack of interaction. The smartphone-era literature documents the mechanism by which this substrate is depleting: Hatuka &amp; Toch (2014) on portable private territories; Hampton et al. (2025, <em>PNAS</em>) on the measurable drop in group-joining behaviour in public space; Misra et al. (2016) on the social-emotional cost of mere phone presence.
+    </p>
+
+    <h3 style="font-family:Inter,sans-serif; font-size:16px; font-weight:700; color:var(--ink); margin:24px 0 8px;">Recommender-system popularity bias</h3>
+    <p>
+      Location-based recommender systems have been studied extensively for their tendency to concentrate attention onto popular venues while appearing to diversify individual feeds. Sànchez-Moreno et al. (2022, <em>Data Mining and Knowledge Discovery</em>) characterise four forms of polarisation. Bertelli et al. (2025, <em>Machine Learning</em>) report that recommender systems "consistently increase individual-level diversity in visited venues" but "may simultaneously amplify collective inequality by concentrating visits on a limited subset of popular places." Remediations have been developed (Qin et al. 2023; Klimashevskaia et al. 2024). What this literature has lacked access to is the social context of the venues being concentrated onto. Finding 1 sits in this gap.
+    </p>
+
+    <h3 style="font-family:Inter,sans-serif; font-size:16px; font-weight:700; color:var(--ink); margin:24px 0 8px;">HCI: friction vs nudge as parallel design archetypes</h3>
+    <p>
+      Anna Cox et al. (CHI EA 2016) coined the canonical HCI framing for intentional friction as "microboundaries" — small obstacles that disrupt automatic interaction to prompt reflection. Mejtoft, Parsjö &amp; Norlin (2023, <em>ECCE</em>) explicitly contrast friction and nudge as opposite intervention archetypes. The individual-level evidence on friction-by-removal effects is consistent: Hunt et al. (2018, <em>J. Social and Clinical Psychology</em>) reduced platform use to ten minutes per day per platform for three weeks and observed reductions in loneliness and depression; Allcott et al. (2020, NBER w25514) deactivated Facebook accounts for four weeks and observed increased offline socialising. Direct city-population-scale comparison of push and friction archetypes has been absent. Finding 2 sits in this gap.
+    </p>
+
+    <h3 style="font-family:Inter,sans-serif; font-size:16px; font-weight:700; color:var(--ink); margin:24px 0 8px;">Habit research and intervention reach</h3>
+    <p>
+      Wood, Quinn &amp; Kashy (2002, <em>J. Personality and Social Psychology</em>) tracked 209 undergraduates by hourly diary and found 43% of behaviour was repeated daily in the same context. Verplanken &amp; Orbell (2003) operationalised this via the Self-Report Habit Index and observed that habit's automaticity makes it "quite resistant to modification." Hägerstrand's time geography (1970, <em>Papers of the Regional Science Association</em>) provides the geographic mechanism: daily space-time paths are structured by capability, coupling, and authority constraints, leaving a "space-time prism" within which substitution is possible. The digital-intervention engagement literature consistently reports Pareto-shaped response (JMIR 2024 systematic review of mHealth: sustained engagement 0.5–28.6%) without naming the structural predictor. Finding 3 sits in this gap.
+    </p>
+
+    <p>
+      This paper does not attempt to resolve any of these four literatures internally. It uses a fully observable simulation to surface the structure each one names from its own angle, in a setting where all four are visible at once.
+    </p>
+  </section>
+
+  <!-- ===================== § 3 METHOD ===================== -->
+  <section id="method">
+    <h2 class="section"><span class="num">3</span>Method</h2>
+    <p class="section-deck">
+      A fully instrumented simulation of a 1,000-resident Sydney suburb, 14 days, four parallel intervention conditions sharing biographies, routines, and attention gate.
+    </p>
+
+    <h3 style="font-family:Inter,sans-serif; font-size:16px; font-weight:700; color:var(--ink); margin:24px 0 8px;">The simulator</h3>
+    <p>
+      Lane Cove SA2 (Sydney North Shore) is reconstructed from OpenStreetMap geometry at building and outdoor-area resolution: ~5,000 buildings and ~2,400 active points of interest within a 1,000-metre radius of the suburb's community hub. 1,000 simulated residents are populated with full biographies (occupation, household, age, routines, Big Five personality, routine adherence) informed by 2021 Australian Census distributions for this SA2. Each resident's daily plan is generated by a large language model conditioned on the biography, then executed tick-by-tick (one tick = five simulated minutes) by a planner that selects destinations, moves the agent through the atlas, and emits encounter events at every physical co-presence within five metres.
+    </p>
+
+    <h3 style="font-family:Inter,sans-serif; font-size:16px; font-weight:700; color:var(--ink); margin:24px 0 8px;">The attention gate and the <em>noticed</em> event</h3>
+    <p>
+      When two residents come within five metres at the same tick, the simulator emits an <em>encounter</em> event for each observer perspective. Each event passes through an attention gate that decides — based on phone-use state, current activity focus, and cognitive load — whether to tag the event as <em>noticed</em> or <em>unnoticed</em>. A pair is <em>mutually noticed</em> when both observers cleared the gate at the same physical co-presence. This paper's primary data unit is the noticed-event subset across all four conditions; comparative findings are computed against it.
+    </p>
+
+    <h3 style="font-family:Inter,sans-serif; font-size:16px; font-weight:700; color:var(--ink); margin:24px 0 8px;">Four parallel conditions</h3>
+    <p>
+      The four experimental conditions share the same 1,000 residents, the same biographies, the same routine generation, and the same atlas. They differ only in the intervention applied to phones:
+    </p>
+    <ul style="margin: 8px 0 18px 22px;">
+      <li style="margin: 6px 0;"><strong>Baseline (no app)</strong> — no push, no friction, no content competition. Residents follow their generated routines.</li>
+      <li style="margin: 6px 0;"><strong>Hyperlocal push</strong> — a recommendation algorithm scans a 1,000-metre radius around each resident at scheduled push moments, identifies an "underused + reachable + appealing" nearby place, and pushes the recommendation. 30 pushes per resident over 14 days.</li>
+      <li style="margin: 6px 0;"><strong>Global distraction</strong> — a content-stream substitution that displaces local attention with non-local content (national news, viral posts). Same push cadence; no spatial recommendation.</li>
+      <li style="margin: 6px 0;"><strong>Phone friction</strong> — attention-reducing modifications to the phone interface (notification suppression, greyscale, time limits). No recommendation. No content substitution. Just less compelling phone.</li>
+    </ul>
+
+    <h3 style="font-family:Inter,sans-serif; font-size:16px; font-weight:700; color:var(--ink); margin:24px 0 8px;">Scale and protocol</h3>
+    <p>
+      Each condition runs for 14 simulated days at 5-minute tick resolution (4,032 ticks per condition). Two seeds (44 and 45) are run per condition for variance estimation, plus a longer single-seed run (seed 43) used for the position-trace redistribution analysis. The full run produces approximately 700,000 physical encounter events across all four conditions, of which approximately 80,000 clear the attention gate as noticed.
+    </p>
+
+    <h3 style="font-family:Inter,sans-serif; font-size:16px; font-weight:700; color:var(--ink); margin:24px 0 8px;">What each finding draws from</h3>
+    <p>
+      Finding 1 uses hyperlocal-push-vs-baseline dwell-time redistribution across all atlas POIs (seed 43). Finding 2 uses mutually-noticed-pair counts and novelty share across all four conditions (seeds 44 and 45 pooled). Finding 3 uses end-of-day position relocation across baseline vs interventions (seed 43), joined to each resident's traits.
+    </p>
+
+    <h3 style="font-family:Inter,sans-serif; font-size:16px; font-weight:700; color:var(--ink); margin:24px 0 8px;">Scope of claim</h3>
+    <p>
+      All claims in this paper are <strong>comparative</strong> — across the four conditions and across structural layers of attention — rather than point estimates of any real neighbourhood's absolute rates. The attention gate's parameters are simulator-designed; absolute notice rates are setting-specific. Direction, ranking, and structural shape of effects are robust within the setting and form the unit of finding throughout.
+    </p>
+  </section>
+
+  <!-- ===================== § 4 FINDING 1 · SIPHON PARADOX ===================== -->
+  <section id="f1">
+    <h2 class="section"><span class="num">4</span>Finding 1 · The recommender as accidental urbanist</h2>
+    <p class="section-deck">
+      A small-radius recommender, blind to social meaning, identified Lane Cove's five community anchors. The recommender-system literature reads this as popularity bias; in fully observable conditions it reads as accidental community-anchor detection.
+    </p>
+    <nav class="finding-nav">
+      <span class="fn-arc">← Previous</span>
+      <a href="#method">Method</a>
+      <span class="fn-cur">· Finding 1 of 3 · Anchors ·</span>
+      <a href="#f2">Finding 2 · Friction</a>
+      <span class="fn-arc">Next →</span>
+    </nav>
+
+
+    <div class="headline-stat">
+      <div class="hs-num">1<span style="font-size: 0.55em">:6</span></div>
+      <div class="hs-body">
+        <p class="hs-lab">Gainers : losers · 14-day hyperlocal run</p>
+        <p class="hs-cap">
+          The recommender's selection criteria knew nothing about
+          parents, congregants, gym regulars, or weekend joggers; yet
+          the five places it activated are unambiguously this
+          neighbourhood's community anchors. <strong>249</strong> places
+          gain dwell time under the push; <strong>1,556</strong> lose
+          it. The top five jointly absorb <strong>80%</strong> of all
+          redistributed dwell. PLC Sydney Preschool alone multiplies
+          its baseline dwell time 56-fold.
+        </p>
+        <p class="hs-fine">
+          1,000 residents · 30 pushes/agent over 14 days · seed 43 ·
+          dwell ticks measured as time-on-location · HP vs BL comparison
+        </p>
+      </div>
+    </div>
+
+    <p>
+      The term <em>hyperlocal</em> commits to one property: a very small
+      geographical area (Merriam-Webster; first attested 1921, modern
+      sense popularised by the <em>Washington Post</em>, 1989). Its
+      subsequent application across urban governance (Brookings 2020),
+      location-based marketing (typical radius ~300–450 m), and
+      community journalism preserves this commitment. The term does
+      <em>not</em> specify whether attention, once routed to that
+      radius, should disperse across many local destinations or
+      concentrate on a few. The design intuition that hyperlocal
+      interventions should produce diffuse <em>rediscovery</em> of the
+      neighbourhood — the working hypothesis at the start of this
+      study — is added by the designer, not by the word.
+    </p>
+
+    <p>
+      The recommender-system literature has long documented that the
+      "concentrate on a few" outcome is the default. Sànchez-Moreno et
+      al. (2022, <em>Data Mining and Knowledge Discovery</em>)
+      characterise four forms of polarisation in location-based
+      recommenders. Bertelli et al. (2025, <em>Machine Learning</em>)
+      conclude that "while recommender systems consistently increase
+      individual-level diversity in visited venues, they may
+      simultaneously amplify collective inequality by concentrating
+      visits on a limited subset of popular places." These studies
+      establish <em>that</em> hub-concentration happens; what they
+      cannot establish, working from Foursquare or Yelp check-in
+      traces, is <em>what the hubs are</em> in any given neighbourhood,
+      or whether the concentration is on places that already matter
+      socially. Real-world venue data lacks the social context.
+    </p>
+
+    <p>
+      The simulation places this in a setting where the social context
+      is observable. Under the hyperlocal-push condition — 30
+      notifications per resident over 14 days, each recommending an
+      underused place within a 1,000-metre radius — dwell time
+      redistributed across Lane Cove's approximately 1,800 active
+      places. 249 places gained dwell; 1,556 lost dwell. The five
+      places absorbing the largest dwell gains were
+      <strong>PLC Sydney Preschool</strong> (+380,000 dwell ticks, 56×
+      baseline), <strong>Mowbray Road segment</strong> (+25,000, 71×),
+      <strong>Anytime Fitness Australia</strong> (+39,000, 11×),
+      <strong>area_105</strong> (+33,000, 10×), and the
+      <strong>Anglican Church of Australia Lane Cove</strong>
+      (+18,000, 2×). They jointly absorbed 80% of all redistributed
+      dwell. Naming the five exposes the result that the published
+      literature has been unable to name: <strong>the five are not
+      arbitrary popular venues; they are the community anchors any
+      urban planner familiar with Lane Cove would nominate</strong> —
+      a preschool (parents at drop-off and pickup), a church
+      (congregants), a gym (repeat customers), a main road segment
+      (foot-traffic spine), and an outdoor area (weekend joggers).
+      The recommender was given no information about parents,
+      congregants, regulars, or joggers. It found them anyway.
+    </p>
+
+    <figure class="hero">
+      <img src="figures_v7/f1_siphon_hero.png"
+           alt="Side-by-side maps of Lane Cove showing baseline POI dwell as evenly distributed coral circles vs HP dwell concentrated around PLC Sydney Preschool and 4 other named anchors."
+           style="display:block; width:100%; height:auto;">
+      <figcaption>
+        <span class="fig-num">Figure 1</span>
+        <strong>Hyperlocal in practice is centralising.</strong>
+        Same 1,000 residents, 14 days, two parallel conditions.
+        <em>Left:</em> baseline — dwell distributed across ~2,400 POIs.
+        <em>Right:</em> HP after 30 pushes/agent — dwell collapses into
+        five named anchors (PLC Sydney Preschool absorbing 62% alone),
+        with 1,556 POIs <em>losing</em> dwell relative to baseline. The
+        coral circle area scales with dwell time at each location.
+      </figcaption>
+    </figure>
+
+    <div class="pullquote">
+      “The recommender, blind to social meaning, surfaced this
+      neighbourhood's social meaning. Five places — a preschool, a
+      church, a gym, a road, an outdoor area — and no urbanist would
+      have to be told why. The hub-concentration the literature treats
+      as popularity bias, in fully observable conditions, reads as
+      <em>accidental community-anchor detection</em>.”
+      <span class="pq-sub">Finding 1 · the recommender as accidental urbanist</span>
+    </div>
+
+    <p>
+      The mechanism is preferential attachment within a constrained
+      candidate set: at any moment only a small number of nearby
+      places satisfy the algorithm's joint criteria; those places win
+      the recommendation; nearby residents converge; over the fourteen
+      days the same small set wins repeatedly. What is novel here is
+      not the mechanism but what the mechanism happens to grip. In a
+      Foursquare-trace study, the same dynamic would produce a list
+      of high-rated cafés and viral bars; in this simulation, where
+      every resident has a full biography and every venue a typed
+      role, it produces the list a planner would draw. Hub-concentration
+      and community-anchor detection are <em>the same effect read
+      under two different lenses</em>. The recommender-system
+      literature has had access only to the first lens. The fully
+      observable simulator makes the second available.
+    </p>
+
+    <p>
+      This reframing changes the design implication. The standard
+      recommender-system response to hub-concentration is to install
+      remediation — diversity-aware re-ranking (Sànchez-Moreno et al.
+      2022), novelty bonuses (Qin et al. 2023, arXiv:2304.07041),
+      popularity-bias correction (Klimashevskaia et al. 2024,
+      <em>User Modeling and User-Adapted Interaction</em>) — on the
+      assumption that the concentrated venues are arbitrary popularity
+      artefacts. If, instead, the concentrated venues are the
+      neighbourhood's community anchors, the remediation suppresses a
+      signal rather than a bias. The decision about whether to remediate
+      is therefore not a technical default but a substantive choice
+      between two design intents: <em>dispersed rediscovery</em>
+      (anti-concentration tools needed) and <em>community-anchor
+      activation</em> (default mechanics suffice). The term
+      <em>hyperlocal</em>, committing only to the small radius, does
+      not say which.
+    </p>
+
+    <div class="footnote">
+      <span class="fn-lab">Notes &amp; lineage</span>
+      <p>
+        Dwell ticks measured per place per resident per 5-minute tick
+        from <code>positions.json</code>; baseline (no-app) and
+        hyperlocal-push runs share the same 1,000 residents, biographies,
+        and routine generation — only the push condition differs.
+        Place categorisation joins <code>location_id</code> with atlas
+        <code>building_type</code> / <code>area_type</code>; top-five
+        absorbers selected by absolute dwell gain over baseline.
+        Generator: <code>tools/hero_figure_siphon.py</code>.
+        Cited literature:
+        Bertelli et al. 2025, "The urban impact of AI: modelling
+        feedback loops in location-based recommender systems,"
+        <em>Machine Learning</em>
+        (<a href="https://link.springer.com/article/10.1007/s10994-025-06904-z">link</a>);
+        Sànchez-Moreno et al. 2022, "Bias characterization, evaluation,
+        and mitigation in location-based recommender systems,"
+        <em>Data Mining and Knowledge Discovery</em>
+        (<a href="https://link.springer.com/article/10.1007/s10618-022-00913-5">link</a>);
+        Qin et al. 2023, "A Diffusion model for POI recommendation,"
+        arXiv:2304.07041
+        (<a href="https://arxiv.org/abs/2304.07041">link</a>);
+        Klimashevskaia et al. 2024, "A survey on popularity bias in
+        recommendation," <em>User Modeling and User-Adapted Interaction</em>
+        (<a href="https://link.springer.com/article/10.1007/s11257-024-09406-0">link</a>);
+        Merriam-Webster, "hyperlocal";
+        Brookings (2020), <em>Hyperlocal: Place Governance in a
+        Fragmented World</em>.
+      </p>
+    </div>
+  </section>
+
+
+  <!-- ===================== § 5 FINDING 2 · FRICTION VS PUSH ===================== -->
+  <section id="f2">
+    <h2 class="section"><span class="num">5</span>Finding 2 · The route that prescribed nothing produced the most new ties</h2>
+    <p class="section-deck">
+      Two intervention archetypes — recommendation push and attention friction — produced comparable magnitudes of new-tie formation. The intervention that told residents nothing about where to go produced slightly more.
+    </p>
+    <nav class="finding-nav">
+      <span class="fn-arc">← Previous</span>
+      <a href="#f1">Finding 1 · Anchors</a>
+      <span class="fn-cur">· Finding 2 of 3 · Friction ·</span>
+      <a href="#f3">Finding 3 · Reach</a>
+      <span class="fn-arc">Next →</span>
+    </nav>
+
+
+    <div class="headline-stat">
+      <div class="hs-num">2.6<span style="font-size: 0.55em">×</span></div>
+      <div class="hs-body">
+        <p class="hs-lab">Noticed-pair ratio vs baseline · phone-friction condition</p>
+        <p class="hs-cap">
+          The phone-friction condition (which made smartphones less
+          engaging without recommending any destination) produced
+          <strong>2.62×</strong> as many noticed pairs as the no-app
+          baseline. The hyperlocal-push condition (which recommended a
+          nearby underused place 30 times per resident) produced
+          <strong>2.29×</strong>. <strong>94.8%</strong> of phone-
+          friction's noticed pairs and <strong>94.3%</strong> of
+          hyperlocal-push's were pairs that never noticed each other in
+          baseline — different residents, not the same residents
+          noticing each other more often.
+        </p>
+        <p class="hs-fine">
+          BL: 8,080 noticed pairs · HP: 18,534 (94.3% new) · GD: 8,183
+          (85.0% new) · PF: 21,163 (94.8% new) · seeds 44+45 pooled
+        </p>
+      </div>
+    </div>
+
+    <p>
+      HCI design literature distinguishes two intervention archetypes
+      for digital attention. <em>Recommendation push</em> (sometimes
+      called <em>nudge</em>; Caraban et al., CHI 2019, "23 Ways to
+      Nudge") adds prescriptions: notifications, suggestions, prompts
+      designed to "invoke automatic behavior and quickly guide users
+      towards helpful decisions" (Mejtoft, Parsjö &amp; Norlin 2023,
+      <em>ECCE</em>). <em>Attention friction</em> — formalised by Cox
+      et al. (CHI EA 2016) as "microboundaries" and developed in Cho et
+      al. (CHI 2024, "A Longitudinal In-the-Wild Investigation of
+      Design Frictions to Prevent Smartphone Overuse") — subtracts
+      engagement: it adds small obstacles to phone use so that users
+      "reflect" rather than act automatically. The two archetypes
+      operate through opposite mechanics. Both have been studied at the
+      individual level. They have not, to our knowledge, been directly
+      compared at the city-population encounter level.
+    </p>
+
+    <p>
+      The relevant individual-level evidence is consistent. Hunt et al.
+      (2018, <em>J. Social and Clinical Psychology</em>) found that
+      capping Facebook, Instagram and Snapchat use to ten minutes per
+      platform per day for three weeks reduced loneliness and
+      depression. Allcott et al. (2020, NBER w25514) deactivated 2,743
+      Facebook accounts for four weeks and reported that deactivation
+      "increased offline activities such as watching TV alone and
+      socializing with family and friends." Hampton et al. (2025,
+      <em>PNAS</em>) re-shot William H. Whyte's 1970s footage in
+      public spaces and found the share of pedestrians joining a group
+      had fallen from 5.5% to 2%. The friction lens predicts that
+      removing phone competition for attention should release dormant
+      capacity for in-person encounters in public space. What it has
+      not been able to test is whether that release matches, exceeds,
+      or falls short of an active push intervention deployed in the
+      same setting.
+    </p>
+
+    <figure class="hero">
+      <img src="figures_v7/f2_friction_vs_push.png"
+           alt="Two-panel bar chart: left shows total noticed pairs across four conditions (BL 8,080, HP 18,534, GD 8,183, PF 21,163); right shows novelty share above 85% for all three interventions."
+           style="display:block; width:100%; height:auto;">
+      <figcaption>
+        <span class="fig-num">Figure 2</span>
+        <strong>Friction and recommendation both roughly triple noticed
+        pairs over baseline; both swap the residents involved.</strong>
+        <em>Left:</em> total noticed pairs by condition (seeds 44+45
+        pooled, 14 days). The hyperlocal-push condition (recommendation,
+        pink) and the phone-friction condition (removal, deep pink)
+        reach 2.29× and 2.62× the baseline respectively; global
+        distraction does not move the count. <em>Right:</em> share of
+        each condition's noticed pairs that did not exist in baseline.
+        Across all three interventions, > 85% are new pairs — the
+        interventions are not making the same residents notice each
+        other more often; they are putting different residents in
+        notice-distance of one another.
+      </figcaption>
+    </figure>
+
+    <figure class="hero">
+      <img src="figures_v7/f2_geographic_3panel.png"
+           alt="Three-panel map of Lane Cove showing dwell distribution under baseline, hyperlocal push, and phone friction. Both interventions concentrate dwell onto five named anchors, but onto different five — push picks PLC Preschool, friction picks Anglican Church as its top absorber."
+           style="display:block; width:100%; height:auto;">
+      <figcaption>
+        <span class="fig-num">Figure 2B</span>
+        <strong>Same outcome scale, different anchor geometry.</strong>
+        Lane Cove dwell distribution under three conditions. <em>Left:</em>
+        baseline — dwell spread across ~2,400 places. <em>Centre:</em>
+        hyperlocal push concentrates onto a preschool (PLC Sydney
+        Preschool), a gym, a road segment, an outdoor area, and a
+        church — the recommendation algorithm's choice. <em>Right:</em>
+        phone friction also concentrates, but onto a different
+        five — a church (Anglican Church of Australia, this time
+        absorbing the most), a gym, a park, an outdoor area, and a
+        bank — anchors that emerge when phone competition for attention
+        is removed and residents drift toward existing routines.
+        Top-five share of gains: 83% under push, 82% under friction.
+      </figcaption>
+    </figure>
+
+    <div class="pullquote">
+      "Recommendation push and attention friction reach comparable
+      magnitudes of new-tie formation in this setting. The route that
+      prescribed thirty destinations per resident produced 17,500 new
+      noticed pairs. The route that prescribed nothing — that simply
+      removed phone competition for attention — produced 20,000."
+      <span class="pq-sub">Finding 2 · friction and recommendation as parallel routes to new ties</span>
+    </div>
+
+    <p>
+      The simulation result extends the friction-lens prediction from
+      the individual level (Hunt 2018; Allcott 2020) to the
+      city-population encounter level: removing phone attention is
+      sufficient to produce as many novel-pair noticed encounters in
+      Lane Cove as actively recommending nearby destinations to every
+      resident. The recommendation lens is not redundant. The
+      geographic comparison (Figure 2B) shows that both interventions
+      concentrate dwell time onto a small set of anchors — top five
+      places absorb 83% of dwell gains under hyperlocal push and 82%
+      under phone friction — but onto two <em>different</em> sets.
+      The two five-anchor sets overlap on three places — a gym, an outdoor area, and the Anglican Church — but diverge on the other two. Hyperlocal push uniquely activates a preschool (PLC Sydney) and a road segment (Mowbray Road) — anchors selected by the
+      algorithm's "underused + reachable + appealing" criteria. phone friction uniquely activates a park (Longueville Park) and a bank (ANZ) — anchors that residents drift toward organically once
+      phone competition for attention is reduced. The two routes
+      converge to similar magnitudes of new-tie formation but expose
+      different latent anchor structures. The global-distraction
+      condition, which neither prescribes nor removes attention but
+      substitutes phone content, produces no change in noticed-pair
+      count, yet 85% of its noticed pairs are still new pairs. Same
+      number, different residents. <strong>Global distraction
+      produces neither physical concentration nor a comparable lift
+      in new pair formation; it accomplishes, perfectly and silently,
+      the extraction of local attention — without leaving a footprint
+      in either the dwell map or the noticed-pair count.</strong> This
+      "silent content swap" is a third intervention archetype that
+      has no obvious name in the design literature; the data here
+      surface it as a distinct pattern.
+    </p>
+
+    <p>
+      The design implication is that the choice between push-based and
+      friction-based interventions for in-person social outcomes is
+      not a choice between effective and ineffective, but between two
+      different mechanisms producing comparable outcomes through
+      opposite means. A recommendation push commits a designer to
+      curating and ranking destinations, accepting hub-concentration
+      onto whichever places the recommender picks (Finding 1). A
+      friction intervention commits a designer to reducing the
+      attention infrastructure of a platform, accepting that the
+      resulting in-person encounters cannot be steered. Neither is
+      free; the costs are different in kind. The contribution of the
+      fully observable simulation is that it makes the magnitudes
+      directly comparable in a setting where the underlying encounter
+      stream is recorded with the same instruments under all
+      conditions.
+    </p>
+
+    <div class="footnote">
+      <span class="fn-lab">Notes &amp; lineage</span>
+      <p>
+        Noticed pairs counted at the unique-pair level over the full
+        14-day window, deduplicated on sorted (agent_a, agent_b).
+        Novelty share computed as pairs not appearing in baseline ÷
+        total pairs in that condition. Both seeds 44 and 45 pooled.
+        Generator: <code>tools/h17_h19_noticed_redo.py</code> (analysis)
+        + <code>tools/f2_friction_figure.py</code> (figure).
+        Cited literature:
+        Cox, Gould, Cecchinato, Iacovides &amp; Renfree 2016, "Design
+        Frictions for Mindful Interactions: The Case for
+        Microboundaries," CHI EA
+        (<a href="https://discovery.ucl.ac.uk/id/eprint/10130282/">link</a>);
+        Mejtoft, Parsjö &amp; Norlin 2023, "Design Friction and Digital
+        Nudging," ECCE
+        (<a href="https://dl.acm.org/doi/fullHtml/10.1145/3591156.3591183">link</a>);
+        Cho et al. 2024, "A Longitudinal In-the-Wild Investigation of
+        Design Frictions to Prevent Smartphone Overuse," CHI
+        (<a href="https://dl.acm.org/doi/10.1145/3613904.3642370">link</a>);
+        Hunt, Marx, Lipson &amp; Young 2018, "No More FOMO,"
+        <em>J. Social and Clinical Psychology</em>
+        (<a href="https://guilfordjournals.com/doi/10.1521/jscp.2018.37.10.751">link</a>);
+        Allcott, Braghieri, Eichmeyer &amp; Gentzkow 2020, "The Welfare
+        Effects of Social Media," NBER w25514
+        (<a href="https://www.nber.org/papers/w25514">link</a>);
+        Hampton, Goulet &amp; Albanesius 2025, "Exploring the social
+        life of urban spaces through AI," <em>PNAS</em>
+        (<a href="https://www.pnas.org/doi/10.1073/pnas.2424662122">link</a>);
+        Caraban et al. 2019, "23 Ways to Nudge," CHI.
+      </p>
+    </div>
+  </section>
+
+  <!-- ===================== § 6 FINDING 3 · REACH ===================== -->
+  <section id="f3">
+    <h2 class="section"><span class="num">6</span>Finding 3 · Routine adherence, not personality, gates intervention reach</h2>
+    <p class="section-deck">
+      Across all three interventions, the responding fraction of the population was the same — about a third. Routine adherence accounted for the variance; extraversion, income, age, gender, and household composition did not.
+    </p>
+    <nav class="finding-nav">
+      <span class="fn-arc">← Previous</span>
+      <a href="#f2">Finding 2 · Friction</a>
+      <span class="fn-cur">· Finding 3 of 3 · Reach ·</span>
+      <a href="#synthesis">Synthesis</a>
+      <span class="fn-arc">Next →</span>
+    </nav>
+
+
+    <div class="headline-stat">
+      <div class="hs-num">3.1<span style="font-size: 0.55em">×</span></div>
+      <div class="hs-body">
+        <p class="hs-lab">Movability spread · low vs high routine adherence</p>
+        <p class="hs-cap">
+          Of 1,000 simulated residents, <strong>29.4%</strong> relocated
+          at least 100 metres from their baseline end-position under at
+          least one intervention (the "movable" fraction). The fraction
+          ranges from <strong>44.8%</strong> among residents with low
+          routine adherence to <strong>14.3%</strong> among those with
+          high routine adherence — a 3.1× spread. Equivalent splits by
+          extraversion (1.13× spread), income, household, gender, and
+          age range produced no comparable gradient.
+        </p>
+        <p class="hs-fine">
+          Movability defined as ≥100 m relocation of end-of-day position
+          under any of HP / GD / PF vs baseline · seed 43 · 1,000 residents
+        </p>
+      </div>
+    </div>
+
+    <p>
+      Habit research has long established two things about behavioural
+      change. The first: a substantial share of daily behaviour is
+      habitual. Wood, Quinn &amp; Kashy (2002, <em>J. Personality and
+      Social Psychology</em>) tracked 209 undergraduates by hourly
+      diary and found 43% of behaviours were performed almost daily in
+      the same context; Neal, Wood &amp; Quinn (2006, <em>Current
+      Directions in Psychological Science</em>) replicated the figure
+      at ~45%. The second: high-habit-strength individuals are
+      empirically resistant to interventions. Verplanken &amp; Orbell
+      (2003, <em>J. Applied Social Psychology</em>) operationalised
+      this with the Self-Report Habit Index and observed that "the
+      automatic features of the habit construct make it quite resistant
+      to modification." Wood &amp; Neal (2007, <em>Psychological
+      Review</em>) trace the mechanism: context-cue associations,
+      once laid down, do not update in response to one-shot
+      interventions.
+    </p>
+
+    <p>
+      The digital intervention literature reports a structurally
+      compatible pattern: only a minority of an addressed population
+      engages. A 2024 JMIR systematic review of mHealth interventions
+      for chronic conditions found "sustained engagement" between 0.5%
+      and 28.6% across studies; a 2025 npj Digital Medicine
+      meta-analysis of 92 mental-health-app trials shows steep
+      engagement decay across every persuasive-design category. The
+      Nielsen Norman Group's "90-9-1" rule and Pareto-shaped engagement
+      curves across product analytics describe the same shape from a
+      different angle. What none of these findings name precisely is
+      the <em>structural</em> predictor of who responds and who does
+      not. Personality is the obvious candidate but is empirically
+      weak; demographics (age, income, gender) are weaker still.
+    </p>
+
+    <figure class="hero">
+      <img src="figures_v7/f3_reach_routine.png"
+           alt="Two-panel bar chart: left shows movability rate by routine adherence (low 44.8%, mid 29.1%, high 14.3%) with 3.1× spread highlighted; right shows movability rate by extraversion (low 26.9%, mid 30.4%, high 28.6%) — essentially flat."
+           style="display:block; width:100%; height:auto;">
+      <figcaption>
+        <span class="fig-num">Figure 3</span>
+        <strong>Routine adherence gates reach; personality does not.</strong>
+        <em>Left:</em> the share of residents who relocate ≥ 100 m
+        under any intervention, split by routine-adherence tercile
+        (low &lt; 0.33, high &gt; 0.67). Low-adherence residents are
+        3.1× as likely to move as high-adherence residents.
+        <em>Right:</em> the same outcome split by extraversion shows a
+        1.13× spread — essentially flat. The same pattern holds for
+        income, gender, household composition, and most age bands;
+        among the demographic and personality variables tested,
+        routine adherence is the only strong predictor.
+      </figcaption>
+    </figure>
+
+    <figure class="hero">
+      <img src="figures_v7/f3_movable_map.png"
+           alt="Lane Cove map with 1,000 resident dots: 310 pink (movable under hyperlocal push, relocate >=100m) interleaved with 690 grey (locked, same end position)."
+           style="display:block; width:100%; height:auto;">
+      <figcaption>
+        <span class="fig-num">Figure 3B</span>
+        <strong>The responding 30% are not clustered in one corner — they are interleaved with the locked 70%.</strong>
+        Each dot is one Lane Cove resident, plotted at their baseline end-of-run position. Pink dots (n=310) are residents whose end position under hyperlocal push differs by ≥ 100 m from baseline — the population's responding fraction. Grey dots (n=690) are routine-locked. The pink and grey are spatially interleaved, not segregated by neighbourhood block, postcode, or housing type. The gate that selects responders (per Hägerstrand's time geography and Verplanken's habit research) is an individual's schedule rigidity, not their address.
+      </figcaption>
+    </figure>
+
+    <div class="pullquote">
+      "The literature on digital intervention engagement has long
+      observed Pareto-shaped response — most users do not engage —
+      without naming a structural predictor for the asymmetry. The
+      candidate the simulation surfaces is the one habit research has
+      named since Verplanken (2003): habit strength. Routine adherence
+      separates a 14.3% responding fraction from a 44.8% responding
+      fraction; extraversion, income, age, gender, household
+      composition do not."
+      <span class="pq-sub">Finding 3 · the intervention denominator is not the population</span>
+    </div>
+
+    <p>
+      Hägerstrand's time geography (1970, <em>Papers of the Regional
+      Science Association</em>) provides the geographic mechanism.
+      Daily space-time paths are constrained by <em>capability</em>
+      (biological — sleep, movement), <em>coupling</em> (must be
+      co-present with others — work, school, family), and
+      <em>authority</em> (rules — work hours, store hours). The
+      residual discretionary window between fixed anchors is the
+      "space-time prism" within which an individual can substitute one
+      activity for another. A resident with dense coupling and
+      authority anchors — and, correspondingly, high routine adherence
+      — has a small prism: physically less room to relocate even if a
+      push is received. The habit-research finding (Wood et al.) and
+      the time-geography finding (Hägerstrand) name the same
+      structural constraint from two disciplines. The simulation
+      identifies it as the primary gatekeeper of reach in attention-
+      mediated urban interventions.
+    </p>
+
+    <p>
+      Two design implications follow. First, the effective denominator
+      for any attention-mediated intervention is not the addressed
+      population (1,000 residents in this study) but the responding
+      fraction (~30%). Reach KPIs computed against the addressed
+      population overstate effect size by a factor of roughly three
+      and obscure the structural gating. Second, the routine-adherence
+      gradient is itself a design lever. Interventions that target
+      residents within their existing routine anchors (the school
+      gate, the church pew, the morning commute) operate on a
+      different constraint than interventions that require relocation
+      outside the routine. The wind tunnel suggests that the latter
+      will, by default, reach only the third of the population whose
+      routine is loose enough to relocate.
+    </p>
+
+    <div class="footnote">
+      <span class="fn-lab">Notes &amp; lineage</span>
+      <p>
+        Movability defined as Euclidean distance ≥ 100 metres between
+        an individual's baseline end-of-day position and the
+        corresponding end-of-day position under any of the three
+        intervention conditions (HP, GD, PF). Routine adherence is a
+        simulator-assigned trait scored 0–1 governing the rigidity of
+        each resident's generated daily schedule (low &lt; 0.33,
+        high &gt; 0.67). Analysis covers seed 43 and 1,000 residents.
+        Generators: <code>tools/n4_movable_profile.py</code> (analysis)
+        + <code>tools/f3_reach_figure.py</code> (figure).
+        Cited literature:
+        Wood, Quinn &amp; Kashy 2002, "Habits in Everyday Life,"
+        <em>J. Personality and Social Psychology</em>
+        (<a href="https://dornsife.usc.edu/wendy-wood/wp-content/uploads/sites/183/2023/10/Wood.Quinn_.Kashy_.2002_Habits_in_everyday_life.pdf">PDF</a>);
+        Neal, Wood &amp; Quinn 2006, "Habits — A Repeat Performance,"
+        <em>Current Directions in Psychological Science</em>
+        (<a href="https://journals.sagepub.com/doi/10.1111/j.1467-8721.2006.00435.x">link</a>);
+        Verplanken &amp; Orbell 2003, "Reflections on Past Behavior:
+        A Self-Report Index of Habit Strength,"
+        <em>J. Applied Social Psychology</em>
+        (<a href="https://onlinelibrary.wiley.com/doi/10.1111/j.1559-1816.2003.tb01951.x">link</a>);
+        Wood &amp; Neal 2007, "A New Look at Habits and the
+        Habit–Goal Interface," <em>Psychological Review</em>
+        (<a href="https://dornsife.usc.edu/wendy-wood/wp-content/uploads/sites/183/2023/10/wood.neal_.2007psychrev_a_new_look_at_habits_and_the_interface_between_habits_and_goals.pdf">PDF</a>);
+        Hägerstrand 1970, "What about people in regional science?"
+        <em>Papers of the Regional Science Association</em>
+        (<a href="https://liu.diva-portal.org/smash/get/diva2:544278/FULLTEXT01">link</a>);
+        2024 JMIR systematic review of mHealth engagement (e50508)
+        (<a href="https://www.jmir.org/2024/1/e50508">link</a>).
+      </p>
+    </div>
+  </section>
+
+  <!-- ===================== § 7 SYNTHESIS ===================== -->
+  <section id="synthesis">
+    <h2 class="section"><span class="num">7</span>Synthesis · Three interventions, three different surgeries</h2>
+    <p class="section-deck">
+      Across the three findings, each intervention archetype rewrites a different layer of attention structure. The choice between them is not a choice of strength; it is a choice of what to rewrite.
+    </p>
+
+    <figure class="hero">
+      <img src="figures_v7/synthesis_hero.png"
+           alt="Lane Cove map with all three findings overlaid: 690 grey dots (locked residents), 310 pink dots (movable residents), 5 orange rings for hyperlocal-push anchors, 5 deep-pink rings for phone-friction anchors. Three rings have both colors — the shared anchors. The map shows the interventions activate overlapping but distinct anchor sets, and the responding 30% is geographically interleaved with the locked 70%."
+           style="display:block; width:100%; height:auto;">
+      <figcaption>
+        <span class="fig-num">Figure 4 · Synthesis</span>
+        <strong>One Lane Cove, three findings.</strong>
+        Each dot is a resident at baseline end-of-run position (pink = the 310 movable; grey = the 690 routine-locked). Each orange ring is a hyperlocal-push anchor (Finding 1's top-five places absorbing 80% of redirected dwell). Each deep-pink ring is a phone-friction anchor (Finding 2's top-five). Where both rings appear at one place, that anchor wins under both interventions — three of five do (a gym, an outdoor area, the Anglican Church); the remaining two diverge (push picks a preschool and a road; friction picks a park and a bank). The pink residents are interleaved with the grey, not segregated by neighbourhood — routine adherence (Finding 3) gates response without spatial clustering. Three findings, one map, one substantive choice for any intervention designer: which layer to write to, accepting the trade-off the wind tunnel shows.
+      </figcaption>
+    </figure>
+
+    <p>
+      The three findings together describe three different forms of
+      surgery on the same neighbourhood. <strong>Hyperlocal push</strong>
+      acts on <em>where attention concentrates</em>: a 1,000-metre-radius
+      recommender, operating on three abstract criteria, identifies and
+      amplifies a small set of community anchors — accidentally
+      functioning as an automated detector of the places the
+      neighbourhood already gathers (Finding 1).
+      <strong>Phone friction</strong> acts on <em>how much attention
+      is competing</em>: reducing smartphone engagement releases capacity
+      for in-person encounters, producing a magnitude of new-tie
+      formation comparable to active recommendation without prescribing
+      any destination (Finding 2). <strong>Reach</strong>, the
+      cross-cutting constraint, acts on <em>whom any intervention can
+      touch at all</em>: only about a third of residents respond to
+      attention-mediated interventions in this setting, and that third
+      is selected by routine adherence rather than by personality,
+      income, age, gender, or household composition (Finding 3).
+    </p>
+
+    <div class="pullquote">
+      "The three interventions are not stronger or weaker than each
+      other. They write to different layers — anchor concentration,
+      attention competition, and the routine-gated reach floor. A
+      designer choosing among them is choosing which layer to rewrite,
+      and accepting the cost of that particular rewrite."
+      <span class="pq-sub">Synthesis · the design-diagnostic frame</span>
+    </div>
+
+    <p>
+      None of the three findings is novel in isolation. Hub-concentration
+      in location-based recommendation is documented in
+      recommender-system literature (Bertelli et al. 2025;
+      Sànchez-Moreno et al. 2022). The contrast between push (nudge)
+      and friction as design archetypes is formalised in HCI (Cox et al.
+      2016; Mejtoft et al. 2023), and the individual-level effects of
+      attention reduction are documented in social-media-cessation
+      studies (Hunt et al. 2018; Allcott et al. 2020). Pareto-shaped
+      engagement in digital interventions is reported across mHealth
+      systematic reviews, and habit research has long named habit
+      strength as the structural barrier to behaviour change
+      (Verplanken &amp; Orbell 2003; Wood &amp; Neal 2007). What the
+      fully observable simulation contributes is the ability to read
+      all three mechanisms <em>against each other</em> in a setting
+      where the social context of every venue and the routine
+      adherence of every agent is known — making it possible to name
+      the specific anchors that absorb the concentration, to compare
+      the magnitudes of push and friction at the same encounter scale,
+      and to identify routine adherence as the responsible variable
+      where personality is not.
+    </p>
+
+    <p>
+      The design-diagnostic frame that follows is direct. An
+      intervention claim of the form "this improves nearby awareness"
+      is, on the evidence here, under-specified. The same claim can
+      describe a recommendation push that concentrates attention onto
+      five community anchors (gaining 80% of redistributed dwell at
+      those anchors, losing dwell at 1,556 other places); a friction
+      intervention that produces 20,000 new noticed pairs across the
+      population without selecting any destination; or a content swap
+      that holds aggregate counts constant while replacing 85% of the
+      pairs underneath. All three would register positive on a coarse
+      aggregate KPI; none of the three describes the same outcome.
+      The diagnostic question is which layer the designer intends to
+      rewrite — concentration, competition, or reach — and which cost
+      the designer is willing to accept.
+    </p>
+  </section>
+
+  <!-- ===================== § 8 DISCUSSION ===================== -->
+  <section id="discussion">
+    <h2 class="section"><span class="num">8</span>Discussion · The wind-tunnel as method, and other invisible borders</h2>
+    <p class="section-deck">
+      What the fully observable simulator contributes is a method, not new mechanisms. The same diagnostic frame applies wherever attention mediates between presence and recognition — algorithmic feeds, search, recommendation, public space.
+    </p>
+
+    <p>
+      The simulator's contribution across the three findings has a
+      consistent shape. Each finding corroborates a mechanism already
+      documented in a published literature — hub-concentration in
+      recommender systems, friction-as-design in HCI, routine-strength
+      as habit-research's predictor of intervention resistance — and
+      adds what the corresponding real-world studies cannot easily
+      provide: the social context of the venues being concentrated
+      onto (Finding 1), a direct city-scale comparison of intervention
+      archetypes addressed to the same population (Finding 2), and
+      structural identification of which residents respond and why
+      (Finding 3). The fully observable setting trades absolute
+      ground-truth calibration (the simulator's attention parameters
+      are not derived from human eye-tracking data) for full
+      observability of mechanism and context. The findings should be
+      read as <em>comparative</em> — across conditions, across
+      structural layers — rather than as point estimates of any real
+      neighbourhood's behaviour.
+    </p>
+
+    <p>
+      The diagnostic frame generalises to other settings in which
+      attention mediates between presence and recognition.
+      Algorithmic feeds exhibit the same hub-concentration default
+      (popularity bias) that Finding 1 documents; the literature's
+      response (diversity-aware re-ranking, novelty bonuses,
+      popularity-bias correction) is the same set of remediations.
+      Friction-as-design and push-as-design exist as parallel
+      archetypes in search-interface and recommendation-system design;
+      the trade-offs Finding 2 surfaces — prescription cost vs
+      unsteered outcome — apply identically. Routine-gated reach is
+      the structural shape of engagement in mobile-health apps,
+      civic-tech tools, public-health messaging, and political
+      mobilisation; the variable Finding 3 names (habit strength,
+      operationalised through routine adherence) is the same variable
+      Verplanken &amp; Orbell (2003) identified two decades ago and
+      that mHealth meta-analyses continue to under-name.
+    </p>
+
+    <p>
+      The limitation is that the wind tunnel does not replace
+      empirical field studies; it sequences them. Where a field study
+      would observe a recommendation system in deployment and report
+      that hub-concentration occurred, the simulator can ask the
+      question in reverse — given a candidate intervention design,
+      which layer of attention structure will it most likely rewrite,
+      what cost will that rewrite carry, and which fraction of the
+      population will it reach? The answers do not substitute for
+      deployment, but they reframe what the deployment should measure.
+      For an attention-mediated urban intervention, the relevant
+      measurement is not "did awareness improve" but "which layer did
+      it rewrite, at what concentration cost, with what routine-gated
+      reach." That reframing is the methodological contribution this
+      paper carries forward.
+    </p>
+  </section>
+
+  <!-- ===================== FOOTER ===================== -->
+  <footer class="site">
+    <div class="footer-stack">
+      <div>
+        <strong>Synthetic Socio Wind Tunnel</strong> · Lane Cove Attention Atlas ·
+        v7 draft · 2026-05-25 · paper-style register · notice口径 throughout
+      </div>
+      <div style="text-align: right;">
+        Data: 2 seeds pooled · 1,000 residents × 14 days × 4 conditions ·
+        ~700K encounter events · ~80K noticed
+      </div>
+    </div>
+  </footer>
+
+</div>
+
+</body>
+</html>

@@ -1,0 +1,550 @@
+{
+  "method": "BL vs HP end_location drift >100m = movable",
+  "movable_n": 587,
+  "nonmovable_n": 1413,
+  "movable_rate": 0.2935,
+  "by_age": [
+    {
+      "cat": "25-34",
+      "movable": 105,
+      "nonmov": 206,
+      "total": 311,
+      "rate": 0.3376
+    },
+    {
+      "cat": "65-74",
+      "movable": 47,
+      "nonmov": 93,
+      "total": 140,
+      "rate": 0.3357
+    },
+    {
+      "cat": "55-64",
+      "movable": 59,
+      "nonmov": 124,
+      "total": 183,
+      "rate": 0.3224
+    },
+    {
+      "cat": "45-54",
+      "movable": 82,
+      "nonmov": 190,
+      "total": 272,
+      "rate": 0.3015
+    },
+    {
+      "cat": "35-44",
+      "movable": 114,
+      "nonmov": 269,
+      "total": 383,
+      "rate": 0.2977
+    },
+    {
+      "cat": "75+",
+      "movable": 41,
+      "nonmov": 98,
+      "total": 139,
+      "rate": 0.295
+    },
+    {
+      "cat": "child<18",
+      "movable": 115,
+      "nonmov": 338,
+      "total": 453,
+      "rate": 0.2539
+    },
+    {
+      "cat": "18-24",
+      "movable": 24,
+      "nonmov": 95,
+      "total": 119,
+      "rate": 0.2017
+    }
+  ],
+  "by_occupation": [
+    {
+      "cat": "tutor",
+      "movable": 2,
+      "nonmov": 2,
+      "total": 4,
+      "rate": 0.5
+    },
+    {
+      "cat": "tradesperson",
+      "movable": 33,
+      "nonmov": 43,
+      "total": 76,
+      "rate": 0.4342
+    },
+    {
+      "cat": "teacher",
+      "movable": 16,
+      "nonmov": 27,
+      "total": 43,
+      "rate": 0.3721
+    },
+    {
+      "cat": "engineer",
+      "movable": 25,
+      "nonmov": 43,
+      "total": 68,
+      "rate": 0.3676
+    },
+    {
+      "cat": "lawyer",
+      "movable": 19,
+      "nonmov": 33,
+      "total": 52,
+      "rate": 0.3654
+    },
+    {
+      "cat": "caregiver",
+      "movable": 13,
+      "nonmov": 23,
+      "total": 36,
+      "rate": 0.3611
+    },
+    {
+      "cat": "software_dev",
+      "movable": 29,
+      "nonmov": 53,
+      "total": 82,
+      "rate": 0.3537
+    },
+    {
+      "cat": "consultant",
+      "movable": 30,
+      "nonmov": 63,
+      "total": 93,
+      "rate": 0.3226
+    },
+    {
+      "cat": "retired",
+      "movable": 81,
+      "nonmov": 176,
+      "total": 257,
+      "rate": 0.3152
+    },
+    {
+      "cat": "doctor",
+      "movable": 16,
+      "nonmov": 35,
+      "total": 51,
+      "rate": 0.3137
+    },
+    {
+      "cat": "unemployed",
+      "movable": 20,
+      "nonmov": 44,
+      "total": 64,
+      "rate": 0.3125
+    },
+    {
+      "cat": "analyst",
+      "movable": 9,
+      "nonmov": 20,
+      "total": 29,
+      "rate": 0.3103
+    },
+    {
+      "cat": "writer",
+      "movable": 10,
+      "nonmov": 23,
+      "total": 33,
+      "rate": 0.303
+    },
+    {
+      "cat": "manager",
+      "movable": 15,
+      "nonmov": 35,
+      "total": 50,
+      "rate": 0.3
+    },
+    {
+      "cat": "security_guard",
+      "movable": 9,
+      "nonmov": 21,
+      "total": 30,
+      "rate": 0.3
+    },
+    {
+      "cat": "designer",
+      "movable": 25,
+      "nonmov": 61,
+      "total": 86,
+      "rate": 0.2907
+    },
+    {
+      "cat": "volunteer_coordinator",
+      "movable": 2,
+      "nonmov": 5,
+      "total": 7,
+      "rate": 0.2857
+    },
+    {
+      "cat": "homemaker",
+      "movable": 11,
+      "nonmov": 28,
+      "total": 39,
+      "rate": 0.2821
+    },
+    {
+      "cat": "barista",
+      "movable": 10,
+      "nonmov": 26,
+      "total": 36,
+      "rate": 0.2778
+    },
+    {
+      "cat": "nurse",
+      "movable": 27,
+      "nonmov": 72,
+      "total": 99,
+      "rate": 0.2727
+    },
+    {
+      "cat": "warehouse",
+      "movable": 6,
+      "nonmov": 17,
+      "total": 23,
+      "rate": 0.2609
+    },
+    {
+      "cat": "marketer",
+      "movable": 10,
+      "nonmov": 29,
+      "total": 39,
+      "rate": 0.2564
+    },
+    {
+      "cat": "student",
+      "movable": 113,
+      "nonmov": 347,
+      "total": 460,
+      "rate": 0.2457
+    },
+    {
+      "cat": "retail_worker",
+      "movable": 18,
+      "nonmov": 56,
+      "total": 74,
+      "rate": 0.2432
+    },
+    {
+      "cat": "construction",
+      "movable": 15,
+      "nonmov": 47,
+      "total": 62,
+      "rate": 0.2419
+    },
+    {
+      "cat": "hospitality",
+      "movable": 8,
+      "nonmov": 28,
+      "total": 36,
+      "rate": 0.2222
+    },
+    {
+      "cat": "accountant",
+      "movable": 15,
+      "nonmov": 56,
+      "total": 71,
+      "rate": 0.2113
+    }
+  ],
+  "by_household": [
+    {
+      "cat": "family_with_kids",
+      "movable": 219,
+      "nonmov": 427,
+      "total": 646,
+      "rate": 0.339
+    },
+    {
+      "cat": "single",
+      "movable": 144,
+      "nonmov": 366,
+      "total": 510,
+      "rate": 0.2824
+    },
+    {
+      "cat": "couple",
+      "movable": 224,
+      "nonmov": 620,
+      "total": 844,
+      "rate": 0.2654
+    }
+  ],
+  "by_income": [
+    {
+      "cat": "high",
+      "movable": 235,
+      "nonmov": 547,
+      "total": 782,
+      "rate": 0.3005
+    },
+    {
+      "cat": "low",
+      "movable": 196,
+      "nonmov": 477,
+      "total": 673,
+      "rate": 0.2912
+    },
+    {
+      "cat": "mid",
+      "movable": 156,
+      "nonmov": 389,
+      "total": 545,
+      "rate": 0.2862
+    }
+  ],
+  "by_housing_tenure": [
+    {
+      "cat": "public_housing",
+      "movable": 14,
+      "nonmov": 26,
+      "total": 40,
+      "rate": 0.35
+    },
+    {
+      "cat": "owner_occupier",
+      "movable": 263,
+      "nonmov": 592,
+      "total": 855,
+      "rate": 0.3076
+    },
+    {
+      "cat": "renter",
+      "movable": 310,
+      "nonmov": 795,
+      "total": 1105,
+      "rate": 0.2805
+    }
+  ],
+  "by_ethnicity": [
+    {
+      "cat": "Hong_Kong_SAR_Ch",
+      "movable": 12,
+      "nonmov": 20,
+      "total": 32,
+      "rate": 0.375
+    },
+    {
+      "cat": "Philippines",
+      "movable": 10,
+      "nonmov": 18,
+      "total": 28,
+      "rate": 0.3571
+    },
+    {
+      "cat": "other",
+      "movable": 148,
+      "nonmov": 310,
+      "total": 458,
+      "rate": 0.3231
+    },
+    {
+      "cat": "Australia",
+      "movable": 334,
+      "nonmov": 797,
+      "total": 1131,
+      "rate": 0.2953
+    },
+    {
+      "cat": "South_Africa",
+      "movable": 7,
+      "nonmov": 17,
+      "total": 24,
+      "rate": 0.2917
+    },
+    {
+      "cat": "New_Zealand",
+      "movable": 9,
+      "nonmov": 23,
+      "total": 32,
+      "rate": 0.2812
+    },
+    {
+      "cat": "England",
+      "movable": 28,
+      "nonmov": 88,
+      "total": 116,
+      "rate": 0.2414
+    },
+    {
+      "cat": "India",
+      "movable": 15,
+      "nonmov": 50,
+      "total": 65,
+      "rate": 0.2308
+    },
+    {
+      "cat": "China",
+      "movable": 19,
+      "nonmov": 68,
+      "total": 87,
+      "rate": 0.2184
+    },
+    {
+      "cat": "USA",
+      "movable": 4,
+      "nonmov": 16,
+      "total": 20,
+      "rate": 0.2
+    },
+    {
+      "cat": "Vietnam",
+      "movable": 1,
+      "nonmov": 6,
+      "total": 7,
+      "rate": 0.1429
+    }
+  ],
+  "by_gender": [
+    {
+      "cat": "male",
+      "movable": 293,
+      "nonmov": 685,
+      "total": 978,
+      "rate": 0.2996
+    },
+    {
+      "cat": "female",
+      "movable": 294,
+      "nonmov": 728,
+      "total": 1022,
+      "rate": 0.2877
+    }
+  ],
+  "by_protagonist": [
+    {
+      "cat": "protagonist",
+      "movable": 336,
+      "nonmov": 664,
+      "total": 1000,
+      "rate": 0.336
+    },
+    {
+      "cat": "non-protagonist",
+      "movable": 251,
+      "nonmov": 749,
+      "total": 1000,
+      "rate": 0.251
+    }
+  ],
+  "by_extraversion": [
+    {
+      "cat": "extraversion mid",
+      "movable": 368,
+      "nonmov": 844,
+      "total": 1212,
+      "rate": 0.3036
+    },
+    {
+      "cat": "extraversion high (>0.67)",
+      "movable": 115,
+      "nonmov": 287,
+      "total": 402,
+      "rate": 0.2861
+    },
+    {
+      "cat": "extraversion low (<0.33)",
+      "movable": 104,
+      "nonmov": 282,
+      "total": 386,
+      "rate": 0.2694
+    }
+  ],
+  "by_openness": [
+    {
+      "cat": "openness high (>0.67)",
+      "movable": 133,
+      "nonmov": 238,
+      "total": 371,
+      "rate": 0.3585
+    },
+    {
+      "cat": "openness mid",
+      "movable": 345,
+      "nonmov": 871,
+      "total": 1216,
+      "rate": 0.2837
+    },
+    {
+      "cat": "openness low (<0.33)",
+      "movable": 109,
+      "nonmov": 304,
+      "total": 413,
+      "rate": 0.2639
+    }
+  ],
+  "by_neuroticism": [
+    {
+      "cat": "neuroticism high (>0.67)",
+      "movable": 131,
+      "nonmov": 284,
+      "total": 415,
+      "rate": 0.3157
+    },
+    {
+      "cat": "neuroticism mid",
+      "movable": 350,
+      "nonmov": 864,
+      "total": 1214,
+      "rate": 0.2883
+    },
+    {
+      "cat": "neuroticism low (<0.33)",
+      "movable": 106,
+      "nonmov": 265,
+      "total": 371,
+      "rate": 0.2857
+    }
+  ],
+  "by_risk_tolerance": [
+    {
+      "cat": "risk_tolerance high (>0.67)",
+      "movable": 140,
+      "nonmov": 274,
+      "total": 414,
+      "rate": 0.3382
+    },
+    {
+      "cat": "risk_tolerance mid",
+      "movable": 356,
+      "nonmov": 860,
+      "total": 1216,
+      "rate": 0.2928
+    },
+    {
+      "cat": "risk_tolerance low (<0.33)",
+      "movable": 91,
+      "nonmov": 279,
+      "total": 370,
+      "rate": 0.2459
+    }
+  ],
+  "by_routine_adherence": [
+    {
+      "cat": "routine_adherence low (<0.33)",
+      "movable": 181,
+      "nonmov": 223,
+      "total": 404,
+      "rate": 0.448
+    },
+    {
+      "cat": "routine_adherence mid",
+      "movable": 350,
+      "nonmov": 854,
+      "total": 1204,
+      "rate": 0.2907
+    },
+    {
+      "cat": "routine_adherence high (>0.67)",
+      "movable": 56,
+      "nonmov": 336,
+      "total": 392,
+      "rate": 0.1429
+    }
+  ]
+}

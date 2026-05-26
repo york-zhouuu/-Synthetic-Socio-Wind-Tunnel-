@@ -1,0 +1,122 @@
+[
+  {
+    "loc_id": "shinnyo_australia",
+    "name": "Shinnyo Australia",
+    "type": "worship",
+    "bl_days_with_dwell": 13,
+    "hp_days_with_dwell": 12,
+    "growth": 0.9230769230769231
+  },
+  {
+    "loc_id": "st_aidans_anglican_church",
+    "name": "St Aidan's Anglican Church",
+    "type": "worship",
+    "bl_days_with_dwell": 14,
+    "hp_days_with_dwell": 14,
+    "growth": 1.0
+  },
+  {
+    "loc_id": "plc_sydney_preschool,_lane_cove_campus",
+    "name": "PLC Sydney Preschool, Lane Cove Campus",
+    "type": "worship",
+    "bl_days_with_dwell": 13.666666666666666,
+    "hp_days_with_dwell": 13,
+    "growth": 0.951219512195122
+  },
+  {
+    "loc_id": "anytime_fitness_australia",
+    "name": "Anytime Fitness Australia",
+    "type": "entertainment",
+    "bl_days_with_dwell": 14,
+    "hp_days_with_dwell": 14,
+    "growth": 1.0
+  },
+  {
+    "loc_id": "1021_mediterranean",
+    "name": "1021 Mediterranean",
+    "type": "restaurant",
+    "bl_days_with_dwell": 14,
+    "hp_days_with_dwell": 14,
+    "growth": 1.0
+  },
+  {
+    "loc_id": "longueville_park",
+    "name": "Longueville Park",
+    "type": "residential",
+    "bl_days_with_dwell": 0,
+    "hp_days_with_dwell": 10,
+    "growth": Infinity
+  },
+  {
+    "loc_id": "anglican_church_of_australia_lane_cove",
+    "name": "Anglican Church of Australia Lane Cove",
+    "type": "worship",
+    "bl_days_with_dwell": 13.333333333333334,
+    "hp_days_with_dwell": 13.666666666666666,
+    "growth": 1.025
+  },
+  {
+    "loc_id": "area_105",
+    "name": "area_105",
+    "type": "playground",
+    "bl_days_with_dwell": 4.666666666666667,
+    "hp_days_with_dwell": 4.666666666666667,
+    "growth": 1.0
+  },
+  {
+    "loc_id": "anz",
+    "name": "ANZ",
+    "type": "cafe",
+    "bl_days_with_dwell": 13.666666666666666,
+    "hp_days_with_dwell": 14,
+    "growth": 1.024390243902439
+  },
+  {
+    "loc_id": "longueville_road_seg_1_35",
+    "name": "Longueville Road (1)",
+    "type": "street",
+    "bl_days_with_dwell": 0,
+    "hp_days_with_dwell": 3.3333333333333335,
+    "growth": Infinity
+  },
+  {
+    "loc_id": "road_4504_seg_2",
+    "name": "road_4504 (2)",
+    "type": "street",
+    "bl_days_with_dwell": 7.666666666666667,
+    "hp_days_with_dwell": 11,
+    "growth": 1.434782608695652
+  },
+  {
+    "loc_id": "mowbray_road_seg_4",
+    "name": "Mowbray Road (4)",
+    "type": "street",
+    "bl_days_with_dwell": 0.3333333333333333,
+    "hp_days_with_dwell": 4.666666666666667,
+    "growth": 14.000000000000002
+  },
+  {
+    "loc_id": "7-eleven",
+    "name": "7-Eleven",
+    "type": "shop",
+    "bl_days_with_dwell": 14,
+    "hp_days_with_dwell": 14,
+    "growth": 1.0
+  },
+  {
+    "loc_id": "akira_sushi",
+    "name": "Akira Sushi",
+    "type": "restaurant",
+    "bl_days_with_dwell": 14,
+    "hp_days_with_dwell": 14,
+    "growth": 1.0
+  },
+  {
+    "loc_id": "gallery_lane_cove",
+    "name": "Gallery Lane Cove",
+    "type": "entertainment",
+    "bl_days_with_dwell": 14,
+    "hp_days_with_dwell": 14,
+    "growth": 1.0
+  }
+]

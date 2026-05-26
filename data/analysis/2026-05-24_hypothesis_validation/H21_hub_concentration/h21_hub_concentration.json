@@ -1,0 +1,2244 @@
+{
+  "seeds": [
+    44,
+    45
+  ],
+  "per_seed": {
+    "44": {
+      "hyperlocal_push": {
+        "top_hot": [
+          {
+            "loc": "plc_sydney_preschool,_lane_cove_campus",
+            "name": "PLC Sydney Preschool, Lane Cove Campus",
+            "type": "worship",
+            "dwell_bl": 6870,
+            "dwell_v": 387825,
+            "delta": 380955,
+            "ratio": 56.444
+          },
+          {
+            "loc": "anytime_fitness_australia",
+            "name": "Anytime Fitness Australia",
+            "type": "entertainment",
+            "dwell_bl": 3888,
+            "dwell_v": 43426,
+            "delta": 39538,
+            "ratio": 11.167
+          },
+          {
+            "loc": "area_105",
+            "name": "area_105",
+            "type": "playground",
+            "dwell_bl": 3881,
+            "dwell_v": 36953,
+            "delta": 33072,
+            "ratio": 9.519
+          },
+          {
+            "loc": "mowbray_road_seg_4",
+            "name": "Mowbray Road (4)",
+            "type": "street",
+            "dwell_bl": 356,
+            "dwell_v": 25519,
+            "delta": 25163,
+            "ratio": 71.485
+          },
+          {
+            "loc": "anglican_church_of_australia_lane_cove",
+            "name": "Anglican Church of Australia Lane Cove",
+            "type": "worship",
+            "dwell_bl": 17035,
+            "dwell_v": 35342,
+            "delta": 18307,
+            "ratio": 2.075
+          },
+          {
+            "loc": "longueville_park",
+            "name": "Longueville Park",
+            "type": "residential",
+            "dwell_bl": 26,
+            "dwell_v": 18000,
+            "delta": 17974,
+            "ratio": 666.704
+          },
+          {
+            "loc": "centennial_avenue_seg_2_1",
+            "name": "Centennial Avenue (2)",
+            "type": "street",
+            "dwell_bl": 216,
+            "dwell_v": 13354,
+            "delta": 13138,
+            "ratio": 61.544
+          },
+          {
+            "loc": "7-eleven",
+            "name": "7-Eleven",
+            "type": "shop",
+            "dwell_bl": 5283,
+            "dwell_v": 16076,
+            "delta": 10793,
+            "ratio": 3.043
+          },
+          {
+            "loc": "1021_mediterranean",
+            "name": "1021 Mediterranean",
+            "type": "restaurant",
+            "dwell_bl": 6469,
+            "dwell_v": 17096,
+            "delta": 10627,
+            "ratio": 2.643
+          },
+          {
+            "loc": "karilla_avenue_seg_1_1",
+            "name": "Karilla Avenue (1)",
+            "type": "street",
+            "dwell_bl": 932,
+            "dwell_v": 11373,
+            "delta": 10441,
+            "ratio": 12.191
+          },
+          {
+            "loc": "anz",
+            "name": "ANZ",
+            "type": "cafe",
+            "dwell_bl": 5821,
+            "dwell_v": 15032,
+            "delta": 9211,
+            "ratio": 2.582
+          },
+          {
+            "loc": "lane_cove_library",
+            "name": "Lane Cove Library",
+            "type": "community",
+            "dwell_bl": 15,
+            "dwell_v": 4851,
+            "delta": 4836,
+            "ratio": 303.25
+          },
+          {
+            "loc": "centennial_avenue_seg_3_1",
+            "name": "Centennial Avenue (3)",
+            "type": "street",
+            "dwell_bl": 116,
+            "dwell_v": 3876,
+            "delta": 3760,
+            "ratio": 33.137
+          },
+          {
+            "loc": "landers_road_seg_1",
+            "name": "Landers Road (1)",
+            "type": "street",
+            "dwell_bl": 311,
+            "dwell_v": 3537,
+            "delta": 3226,
+            "ratio": 11.34
+          },
+          {
+            "loc": "lane_cove_tunnel_seg_4_3",
+            "name": "Lane Cove Tunnel (4)",
+            "type": "street",
+            "dwell_bl": 8,
+            "dwell_v": 3172,
+            "delta": 3164,
+            "ratio": 352.556
+          },
+          {
+            "loc": "gallery_lane_cove",
+            "name": "Gallery Lane Cove",
+            "type": "entertainment",
+            "dwell_bl": 3875,
+            "dwell_v": 6792,
+            "delta": 2917,
+            "ratio": 1.753
+          },
+          {
+            "loc": "road_3854_seg_1",
+            "name": "road_3854 (1)",
+            "type": "street",
+            "dwell_bl": 41,
+            "dwell_v": 1532,
+            "delta": 1491,
+            "ratio": 36.5
+          },
+          {
+            "loc": "longueville_road_seg_1_19",
+            "name": "Longueville Road (1)",
+            "type": "street",
+            "dwell_bl": 205,
+            "dwell_v": 1312,
+            "delta": 1107,
+            "ratio": 6.374
+          },
+          {
+            "loc": "all_types_of_rubbish",
+            "name": "All Types of Rubbish",
+            "type": "shop",
+            "dwell_bl": 7086,
+            "dwell_v": 8049,
+            "delta": 963,
+            "ratio": 1.136
+          },
+          {
+            "loc": "building_5195",
+            "name": "building_5195",
+            "type": "residential",
+            "dwell_bl": 4053,
+            "dwell_v": 4854,
+            "delta": 801,
+            "ratio": 1.198
+          }
+        ],
+        "top_cold": [
+          {
+            "loc": "go_vita_lane_cove",
+            "name": "Go Vita Lane Cove",
+            "type": "commercial",
+            "dwell_bl": 61249,
+            "dwell_v": 51227,
+            "delta": -10022,
+            "ratio": 0.836
+          },
+          {
+            "loc": "building_4540",
+            "name": "building_4540",
+            "type": "residential",
+            "dwell_bl": 24769,
+            "dwell_v": 15467,
+            "delta": -9302,
+            "ratio": 0.624
+          },
+          {
+            "loc": "building_879",
+            "name": "building_879",
+            "type": "commercial",
+            "dwell_bl": 46358,
+            "dwell_v": 37295,
+            "delta": -9063,
+            "ratio": 0.805
+          },
+          {
+            "loc": "building_2333",
+            "name": "building_2333",
+            "type": "residential",
+            "dwell_bl": 16524,
+            "dwell_v": 9839,
+            "delta": -6685,
+            "ratio": 0.595
+          },
+          {
+            "loc": "building_652",
+            "name": "building_652",
+            "type": "residential",
+            "dwell_bl": 18209,
+            "dwell_v": 12106,
+            "delta": -6103,
+            "ratio": 0.665
+          },
+          {
+            "loc": "building_708",
+            "name": "building_708",
+            "type": "residential",
+            "dwell_bl": 11762,
+            "dwell_v": 5716,
+            "delta": -6046,
+            "ratio": 0.486
+          },
+          {
+            "loc": "building_4068",
+            "name": "building_4068",
+            "type": "residential",
+            "dwell_bl": 12362,
+            "dwell_v": 6345,
+            "delta": -6017,
+            "ratio": 0.513
+          },
+          {
+            "loc": "building_2926",
+            "name": "building_2926",
+            "type": "residential",
+            "dwell_bl": 17268,
+            "dwell_v": 11946,
+            "delta": -5322,
+            "ratio": 0.692
+          },
+          {
+            "loc": "jmd_business_solutions",
+            "name": "Jmd Business Solutions",
+            "type": "office",
+            "dwell_bl": 30083,
+            "dwell_v": 24767,
+            "delta": -5316,
+            "ratio": 0.823
+          },
+          {
+            "loc": "building_237",
+            "name": "building_237",
+            "type": "residential",
+            "dwell_bl": 25943,
+            "dwell_v": 20958,
+            "delta": -4985,
+            "ratio": 0.808
+          },
+          {
+            "loc": "rv_100",
+            "name": "House",
+            "type": "residential",
+            "dwell_bl": 11688,
+            "dwell_v": 7117,
+            "delta": -4571,
+            "ratio": 0.609
+          },
+          {
+            "loc": "building_2166",
+            "name": "building_2166",
+            "type": "residential",
+            "dwell_bl": 14710,
+            "dwell_v": 10196,
+            "delta": -4514,
+            "ratio": 0.693
+          },
+          {
+            "loc": "tim_holgate_team",
+            "name": "Tim Holgate Team",
+            "type": "office",
+            "dwell_bl": 16856,
+            "dwell_v": 12342,
+            "delta": -4514,
+            "ratio": 0.732
+          },
+          {
+            "loc": "rv_267",
+            "name": "House",
+            "type": "residential",
+            "dwell_bl": 13704,
+            "dwell_v": 9304,
+            "delta": -4400,
+            "ratio": 0.679
+          },
+          {
+            "loc": "building_1291",
+            "name": "building_1291",
+            "type": "residential",
+            "dwell_bl": 13713,
+            "dwell_v": 9323,
+            "delta": -4390,
+            "ratio": 0.68
+          },
+          {
+            "loc": "building_3462",
+            "name": "building_3462",
+            "type": "residential",
+            "dwell_bl": 15453,
+            "dwell_v": 11116,
+            "delta": -4337,
+            "ratio": 0.719
+          },
+          {
+            "loc": "rv_183",
+            "name": "House",
+            "type": "residential",
+            "dwell_bl": 10166,
+            "dwell_v": 5839,
+            "delta": -4327,
+            "ratio": 0.574
+          },
+          {
+            "loc": "building_3408",
+            "name": "building_3408",
+            "type": "residential",
+            "dwell_bl": 15520,
+            "dwell_v": 11216,
+            "delta": -4304,
+            "ratio": 0.723
+          },
+          {
+            "loc": "building_2382",
+            "name": "building_2382",
+            "type": "residential",
+            "dwell_bl": 10377,
+            "dwell_v": 6139,
+            "delta": -4238,
+            "ratio": 0.592
+          },
+          {
+            "loc": "building_1430",
+            "name": "building_1430",
+            "type": "residential",
+            "dwell_bl": 10775,
+            "dwell_v": 6627,
+            "delta": -4148,
+            "ratio": 0.615
+          }
+        ],
+        "n_locations_with_gain": 228,
+        "n_locations_with_loss": 1516,
+        "sum_pos_dwell_delta": 602408,
+        "top1_share_of_pos": 0.6324,
+        "top5_share_of_pos": 0.8251,
+        "top20_share_of_pos": 0.9819
+      },
+      "global_distraction": {
+        "top_hot": [
+          {
+            "loc": "area_253",
+            "name": "area_253",
+            "type": "playground",
+            "dwell_bl": 3091,
+            "dwell_v": 155520,
+            "delta": 152429,
+            "ratio": 50.298
+          },
+          {
+            "loc": "anytime_fitness_australia",
+            "name": "Anytime Fitness Australia",
+            "type": "entertainment",
+            "dwell_bl": 3888,
+            "dwell_v": 25428,
+            "delta": 21540,
+            "ratio": 6.539
+          },
+          {
+            "loc": "kenneth_street_seg_1_5",
+            "name": "Kenneth Street (1)",
+            "type": "street",
+            "dwell_bl": 161,
+            "dwell_v": 12348,
+            "delta": 12187,
+            "ratio": 76.228
+          },
+          {
+            "loc": "area_105",
+            "name": "area_105",
+            "type": "playground",
+            "dwell_bl": 3881,
+            "dwell_v": 12335,
+            "delta": 8454,
+            "ratio": 3.178
+          },
+          {
+            "loc": "longueville_park",
+            "name": "Longueville Park",
+            "type": "residential",
+            "dwell_bl": 26,
+            "dwell_v": 6211,
+            "delta": 6185,
+            "ratio": 230.074
+          },
+          {
+            "loc": "1021_mediterranean",
+            "name": "1021 Mediterranean",
+            "type": "restaurant",
+            "dwell_bl": 6469,
+            "dwell_v": 11341,
+            "delta": 4872,
+            "ratio": 1.753
+          },
+          {
+            "loc": "road_4021_seg_3",
+            "name": "road_4021 (3)",
+            "type": "street",
+            "dwell_bl": 291,
+            "dwell_v": 5153,
+            "delta": 4862,
+            "ratio": 17.651
+          },
+          {
+            "loc": "tambourine_bay_road_seg_3_1",
+            "name": "Tambourine Bay Road (3)",
+            "type": "street",
+            "dwell_bl": 787,
+            "dwell_v": 3511,
+            "delta": 2724,
+            "ratio": 4.457
+          },
+          {
+            "loc": "7-eleven",
+            "name": "7-Eleven",
+            "type": "shop",
+            "dwell_bl": 5283,
+            "dwell_v": 7082,
+            "delta": 1799,
+            "ratio": 1.34
+          },
+          {
+            "loc": "building_5440",
+            "name": "building_5440",
+            "type": "residential",
+            "dwell_bl": 14419,
+            "dwell_v": 15604,
+            "delta": 1185,
+            "ratio": 1.082
+          },
+          {
+            "loc": "building_4284",
+            "name": "building_4284",
+            "type": "residential",
+            "dwell_bl": 9330,
+            "dwell_v": 9996,
+            "delta": 666,
+            "ratio": 1.071
+          },
+          {
+            "loc": "building_1754",
+            "name": "building_1754",
+            "type": "residential",
+            "dwell_bl": 11590,
+            "dwell_v": 12173,
+            "delta": 583,
+            "ratio": 1.05
+          },
+          {
+            "loc": "building_4060",
+            "name": "building_4060",
+            "type": "residential",
+            "dwell_bl": 6381,
+            "dwell_v": 6756,
+            "delta": 375,
+            "ratio": 1.059
+          },
+          {
+            "loc": "building_2077",
+            "name": "building_2077",
+            "type": "residential",
+            "dwell_bl": 8869,
+            "dwell_v": 9241,
+            "delta": 372,
+            "ratio": 1.042
+          },
+          {
+            "loc": "road_3629_seg_1",
+            "name": "road_3629 (1)",
+            "type": "street",
+            "dwell_bl": 92,
+            "dwell_v": 396,
+            "delta": 304,
+            "ratio": 4.269
+          },
+          {
+            "loc": "road_4510_seg_3",
+            "name": "road_4510 (3)",
+            "type": "street",
+            "dwell_bl": 387,
+            "dwell_v": 666,
+            "delta": 279,
+            "ratio": 1.719
+          },
+          {
+            "loc": "road_4586_seg_1",
+            "name": "road_4586 (1)",
+            "type": "street",
+            "dwell_bl": 83,
+            "dwell_v": 309,
+            "delta": 226,
+            "ratio": 3.69
+          },
+          {
+            "loc": "building_1696",
+            "name": "building_1696",
+            "type": "residential",
+            "dwell_bl": 2286,
+            "dwell_v": 2497,
+            "delta": 211,
+            "ratio": 1.092
+          },
+          {
+            "loc": "douglas_hanly_moir_pathology",
+            "name": "Douglas Hanly Moir Pathology",
+            "type": "hospital",
+            "dwell_bl": 3948,
+            "dwell_v": 4157,
+            "delta": 209,
+            "ratio": 1.053
+          },
+          {
+            "loc": "building_878",
+            "name": "building_878",
+            "type": "shop",
+            "dwell_bl": 3773,
+            "dwell_v": 3935,
+            "delta": 162,
+            "ratio": 1.043
+          }
+        ],
+        "top_cold": [
+          {
+            "loc": "building_879",
+            "name": "building_879",
+            "type": "commercial",
+            "dwell_bl": 46358,
+            "dwell_v": 42383,
+            "delta": -3975,
+            "ratio": 0.914
+          },
+          {
+            "loc": "building_3317",
+            "name": "building_3317",
+            "type": "residential",
+            "dwell_bl": 11566,
+            "dwell_v": 7616,
+            "delta": -3950,
+            "ratio": 0.659
+          },
+          {
+            "loc": "go_vita_lane_cove",
+            "name": "Go Vita Lane Cove",
+            "type": "commercial",
+            "dwell_bl": 61249,
+            "dwell_v": 57375,
+            "delta": -3874,
+            "ratio": 0.937
+          },
+          {
+            "loc": "building_4096",
+            "name": "building_4096",
+            "type": "residential",
+            "dwell_bl": 16143,
+            "dwell_v": 12890,
+            "delta": -3253,
+            "ratio": 0.799
+          },
+          {
+            "loc": "building_2926",
+            "name": "building_2926",
+            "type": "residential",
+            "dwell_bl": 17268,
+            "dwell_v": 14082,
+            "delta": -3186,
+            "ratio": 0.816
+          },
+          {
+            "loc": "bliss_hair_lane_cove",
+            "name": "Bliss Hair Lane Cove",
+            "type": "residential",
+            "dwell_bl": 9777,
+            "dwell_v": 6786,
+            "delta": -2991,
+            "ratio": 0.694
+          },
+          {
+            "loc": "building_1291",
+            "name": "building_1291",
+            "type": "residential",
+            "dwell_bl": 13713,
+            "dwell_v": 10770,
+            "delta": -2943,
+            "ratio": 0.785
+          },
+          {
+            "loc": "building_3462",
+            "name": "building_3462",
+            "type": "residential",
+            "dwell_bl": 15453,
+            "dwell_v": 12518,
+            "delta": -2935,
+            "ratio": 0.81
+          },
+          {
+            "loc": "building_5208",
+            "name": "building_5208",
+            "type": "residential",
+            "dwell_bl": 17877,
+            "dwell_v": 14944,
+            "delta": -2933,
+            "ratio": 0.836
+          },
+          {
+            "loc": "building_774",
+            "name": "building_774",
+            "type": "residential",
+            "dwell_bl": 6758,
+            "dwell_v": 3834,
+            "delta": -2924,
+            "ratio": 0.567
+          },
+          {
+            "loc": "building_1402",
+            "name": "building_1402",
+            "type": "residential",
+            "dwell_bl": 4032,
+            "dwell_v": 1162,
+            "delta": -2870,
+            "ratio": 0.288
+          },
+          {
+            "loc": "tim_holgate_team",
+            "name": "Tim Holgate Team",
+            "type": "office",
+            "dwell_bl": 16856,
+            "dwell_v": 13994,
+            "delta": -2862,
+            "ratio": 0.83
+          },
+          {
+            "loc": "building_3252",
+            "name": "building_3252",
+            "type": "residential",
+            "dwell_bl": 16466,
+            "dwell_v": 13883,
+            "delta": -2583,
+            "ratio": 0.843
+          },
+          {
+            "loc": "building_3455",
+            "name": "building_3455",
+            "type": "residential",
+            "dwell_bl": 14920,
+            "dwell_v": 12478,
+            "delta": -2442,
+            "ratio": 0.836
+          },
+          {
+            "loc": "building_2333",
+            "name": "building_2333",
+            "type": "residential",
+            "dwell_bl": 16524,
+            "dwell_v": 14103,
+            "delta": -2421,
+            "ratio": 0.853
+          },
+          {
+            "loc": "building_5014",
+            "name": "building_5014",
+            "type": "residential",
+            "dwell_bl": 10449,
+            "dwell_v": 8045,
+            "delta": -2404,
+            "ratio": 0.77
+          },
+          {
+            "loc": "building_5538",
+            "name": "building_5538",
+            "type": "residential",
+            "dwell_bl": 10105,
+            "dwell_v": 7709,
+            "delta": -2396,
+            "ratio": 0.763
+          },
+          {
+            "loc": "building_1414",
+            "name": "building_1414",
+            "type": "residential",
+            "dwell_bl": 8796,
+            "dwell_v": 6418,
+            "delta": -2378,
+            "ratio": 0.73
+          },
+          {
+            "loc": "lane_cove_swim_club",
+            "name": "Lane Cove Swim Club",
+            "type": "commercial",
+            "dwell_bl": 26758,
+            "dwell_v": 24470,
+            "delta": -2288,
+            "ratio": 0.914
+          },
+          {
+            "loc": "building_652",
+            "name": "building_652",
+            "type": "residential",
+            "dwell_bl": 18209,
+            "dwell_v": 15975,
+            "delta": -2234,
+            "ratio": 0.877
+          }
+        ],
+        "n_locations_with_gain": 222,
+        "n_locations_with_loss": 1060,
+        "sum_pos_dwell_delta": 223863,
+        "top1_share_of_pos": 0.6809,
+        "top5_share_of_pos": 0.897,
+        "top20_share_of_pos": 0.9811
+      },
+      "phone_friction": {
+        "top_hot": [
+          {
+            "loc": "anglican_church_of_australia_lane_cove",
+            "name": "Anglican Church of Australia Lane Cove",
+            "type": "worship",
+            "dwell_bl": 17035,
+            "dwell_v": 408016,
+            "delta": 390981,
+            "ratio": 23.95
+          },
+          {
+            "loc": "anytime_fitness_australia",
+            "name": "Anytime Fitness Australia",
+            "type": "entertainment",
+            "dwell_bl": 3888,
+            "dwell_v": 47096,
+            "delta": 43208,
+            "ratio": 12.11
+          },
+          {
+            "loc": "longueville_park",
+            "name": "Longueville Park",
+            "type": "residential",
+            "dwell_bl": 26,
+            "dwell_v": 39795,
+            "delta": 39769,
+            "ratio": 1473.926
+          },
+          {
+            "loc": "area_105",
+            "name": "area_105",
+            "type": "playground",
+            "dwell_bl": 3881,
+            "dwell_v": 33771,
+            "delta": 29890,
+            "ratio": 8.7
+          },
+          {
+            "loc": "anz",
+            "name": "ANZ",
+            "type": "cafe",
+            "dwell_bl": 5821,
+            "dwell_v": 26969,
+            "delta": 21148,
+            "ratio": 4.632
+          },
+          {
+            "loc": "centennial_avenue_seg_1_5",
+            "name": "Centennial Avenue (1)",
+            "type": "street",
+            "dwell_bl": 109,
+            "dwell_v": 15885,
+            "delta": 15776,
+            "ratio": 144.418
+          },
+          {
+            "loc": "1021_mediterranean",
+            "name": "1021 Mediterranean",
+            "type": "restaurant",
+            "dwell_bl": 6469,
+            "dwell_v": 20463,
+            "delta": 13994,
+            "ratio": 3.163
+          },
+          {
+            "loc": "lane_cove_plaza_seg_1",
+            "name": "Lane Cove Plaza (1)",
+            "type": "street",
+            "dwell_bl": 179,
+            "dwell_v": 12082,
+            "delta": 11903,
+            "ratio": 67.128
+          },
+          {
+            "loc": "road_4508_seg_1",
+            "name": "road_4508 (1)",
+            "type": "street",
+            "dwell_bl": 74,
+            "dwell_v": 10028,
+            "delta": 9954,
+            "ratio": 133.72
+          },
+          {
+            "loc": "akira_sushi",
+            "name": "Akira Sushi",
+            "type": "restaurant",
+            "dwell_bl": 5692,
+            "dwell_v": 14204,
+            "delta": 8512,
+            "ratio": 2.495
+          },
+          {
+            "loc": "rosenthal_avenue_seg_2",
+            "name": "Rosenthal Avenue (2)",
+            "type": "street",
+            "dwell_bl": 176,
+            "dwell_v": 7494,
+            "delta": 7318,
+            "ratio": 42.345
+          },
+          {
+            "loc": "lane_cove_library",
+            "name": "Lane Cove Library",
+            "type": "community",
+            "dwell_bl": 15,
+            "dwell_v": 6420,
+            "delta": 6405,
+            "ratio": 401.312
+          },
+          {
+            "loc": "gallery_lane_cove",
+            "name": "Gallery Lane Cove",
+            "type": "entertainment",
+            "dwell_bl": 3875,
+            "dwell_v": 9299,
+            "delta": 5424,
+            "ratio": 2.399
+          },
+          {
+            "loc": "river_road_west_seg_1_14",
+            "name": "River Road West (1)",
+            "type": "street",
+            "dwell_bl": 270,
+            "dwell_v": 5664,
+            "delta": 5394,
+            "ratio": 20.904
+          },
+          {
+            "loc": "all_types_of_rubbish",
+            "name": "All Types of Rubbish",
+            "type": "shop",
+            "dwell_bl": 7086,
+            "dwell_v": 11786,
+            "delta": 4700,
+            "ratio": 1.663
+          },
+          {
+            "loc": "road_4519_seg_1",
+            "name": "road_4519 (1)",
+            "type": "street",
+            "dwell_bl": 326,
+            "dwell_v": 4772,
+            "delta": 4446,
+            "ratio": 14.596
+          },
+          {
+            "loc": "finlayson_street_seg_2_1",
+            "name": "Finlayson Street (2)",
+            "type": "street",
+            "dwell_bl": 1174,
+            "dwell_v": 5576,
+            "delta": 4402,
+            "ratio": 4.746
+          },
+          {
+            "loc": "stuart_street_seg_1",
+            "name": "Stuart Street (1)",
+            "type": "street",
+            "dwell_bl": 61,
+            "dwell_v": 2530,
+            "delta": 2469,
+            "ratio": 40.823
+          },
+          {
+            "loc": "finlayson_street_seg_1_2",
+            "name": "Finlayson Street (1)",
+            "type": "street",
+            "dwell_bl": 165,
+            "dwell_v": 2610,
+            "delta": 2445,
+            "ratio": 15.729
+          },
+          {
+            "loc": "road_5086_seg_1",
+            "name": "road_5086 (1)",
+            "type": "street",
+            "dwell_bl": 96,
+            "dwell_v": 2331,
+            "delta": 2235,
+            "ratio": 24.041
+          }
+        ],
+        "top_cold": [
+          {
+            "loc": "go_vita_lane_cove",
+            "name": "Go Vita Lane Cove",
+            "type": "commercial",
+            "dwell_bl": 61249,
+            "dwell_v": 47625,
+            "delta": -13624,
+            "ratio": 0.778
+          },
+          {
+            "loc": "building_879",
+            "name": "building_879",
+            "type": "commercial",
+            "dwell_bl": 46358,
+            "dwell_v": 39248,
+            "delta": -7110,
+            "ratio": 0.847
+          },
+          {
+            "loc": "lane_cove_swim_club",
+            "name": "Lane Cove Swim Club",
+            "type": "commercial",
+            "dwell_bl": 26758,
+            "dwell_v": 19738,
+            "delta": -7020,
+            "ratio": 0.738
+          },
+          {
+            "loc": "building_3455",
+            "name": "building_3455",
+            "type": "residential",
+            "dwell_bl": 14920,
+            "dwell_v": 8739,
+            "delta": -6181,
+            "ratio": 0.586
+          },
+          {
+            "loc": "building_3462",
+            "name": "building_3462",
+            "type": "residential",
+            "dwell_bl": 15453,
+            "dwell_v": 10124,
+            "delta": -5329,
+            "ratio": 0.655
+          },
+          {
+            "loc": "building_3317",
+            "name": "building_3317",
+            "type": "residential",
+            "dwell_bl": 11566,
+            "dwell_v": 6302,
+            "delta": -5264,
+            "ratio": 0.545
+          },
+          {
+            "loc": "jmd_business_solutions",
+            "name": "Jmd Business Solutions",
+            "type": "office",
+            "dwell_bl": 30083,
+            "dwell_v": 25018,
+            "delta": -5065,
+            "ratio": 0.832
+          },
+          {
+            "loc": "building_3678",
+            "name": "building_3678",
+            "type": "residential",
+            "dwell_bl": 16948,
+            "dwell_v": 12173,
+            "delta": -4775,
+            "ratio": 0.718
+          },
+          {
+            "loc": "building_4096",
+            "name": "building_4096",
+            "type": "residential",
+            "dwell_bl": 16143,
+            "dwell_v": 11561,
+            "delta": -4582,
+            "ratio": 0.716
+          },
+          {
+            "loc": "building_3252",
+            "name": "building_3252",
+            "type": "residential",
+            "dwell_bl": 16466,
+            "dwell_v": 12087,
+            "delta": -4379,
+            "ratio": 0.734
+          },
+          {
+            "loc": "rv_45",
+            "name": "House",
+            "type": "residential",
+            "dwell_bl": 15277,
+            "dwell_v": 10972,
+            "delta": -4305,
+            "ratio": 0.718
+          },
+          {
+            "loc": "standen_-_lower_north_shore",
+            "name": "Standen - Lower North Shore",
+            "type": "office",
+            "dwell_bl": 18634,
+            "dwell_v": 14336,
+            "delta": -4298,
+            "ratio": 0.769
+          },
+          {
+            "loc": "building_5208",
+            "name": "building_5208",
+            "type": "residential",
+            "dwell_bl": 17877,
+            "dwell_v": 13676,
+            "delta": -4201,
+            "ratio": 0.765
+          },
+          {
+            "loc": "building_1758",
+            "name": "building_1758",
+            "type": "residential",
+            "dwell_bl": 20640,
+            "dwell_v": 16508,
+            "delta": -4132,
+            "ratio": 0.8
+          },
+          {
+            "loc": "building_1291",
+            "name": "building_1291",
+            "type": "residential",
+            "dwell_bl": 13713,
+            "dwell_v": 9609,
+            "delta": -4104,
+            "ratio": 0.701
+          },
+          {
+            "loc": "building_3061",
+            "name": "building_3061",
+            "type": "residential",
+            "dwell_bl": 19050,
+            "dwell_v": 14981,
+            "delta": -4069,
+            "ratio": 0.786
+          },
+          {
+            "loc": "building_4053",
+            "name": "building_4053",
+            "type": "residential",
+            "dwell_bl": 14514,
+            "dwell_v": 10459,
+            "delta": -4055,
+            "ratio": 0.721
+          },
+          {
+            "loc": "building_5014",
+            "name": "building_5014",
+            "type": "residential",
+            "dwell_bl": 10449,
+            "dwell_v": 6412,
+            "delta": -4037,
+            "ratio": 0.614
+          },
+          {
+            "loc": "building_1673",
+            "name": "building_1673",
+            "type": "residential",
+            "dwell_bl": 23740,
+            "dwell_v": 19741,
+            "delta": -3999,
+            "ratio": 0.832
+          },
+          {
+            "loc": "building_1659",
+            "name": "building_1659",
+            "type": "residential",
+            "dwell_bl": 20295,
+            "dwell_v": 16318,
+            "delta": -3977,
+            "ratio": 0.804
+          }
+        ],
+        "n_locations_with_gain": 170,
+        "n_locations_with_loss": 1661,
+        "sum_pos_dwell_delta": 640674,
+        "top1_share_of_pos": 0.6103,
+        "top5_share_of_pos": 0.8194,
+        "top20_share_of_pos": 0.9839
+      }
+    },
+    "45": {
+      "hyperlocal_push": {
+        "top_hot": [
+          {
+            "loc": "st_aidans_anglican_church",
+            "name": "St Aidan's Anglican Church",
+            "type": "worship",
+            "dwell_bl": 2904,
+            "dwell_v": 425315,
+            "delta": 422411,
+            "ratio": 146.408
+          },
+          {
+            "loc": "1021_mediterranean",
+            "name": "1021 Mediterranean",
+            "type": "restaurant",
+            "dwell_bl": 13586,
+            "dwell_v": 49995,
+            "delta": 36409,
+            "ratio": 3.68
+          },
+          {
+            "loc": "longueville_park",
+            "name": "Longueville Park",
+            "type": "residential",
+            "dwell_bl": 7,
+            "dwell_v": 28011,
+            "delta": 28004,
+            "ratio": 3501.5
+          },
+          {
+            "loc": "anytime_fitness_australia",
+            "name": "Anytime Fitness Australia",
+            "type": "entertainment",
+            "dwell_bl": 6951,
+            "dwell_v": 33776,
+            "delta": 26825,
+            "ratio": 4.859
+          },
+          {
+            "loc": "road_4504_seg_2",
+            "name": "road_4504 (2)",
+            "type": "street",
+            "dwell_bl": 752,
+            "dwell_v": 26984,
+            "delta": 26232,
+            "ratio": 35.837
+          },
+          {
+            "loc": "anglican_church_of_australia_lane_cove",
+            "name": "Anglican Church of Australia Lane Cove",
+            "type": "worship",
+            "dwell_bl": 4290,
+            "dwell_v": 26433,
+            "delta": 22143,
+            "ratio": 6.16
+          },
+          {
+            "loc": "area_114",
+            "name": "area_114",
+            "type": "playground",
+            "dwell_bl": 4270,
+            "dwell_v": 18087,
+            "delta": 13817,
+            "ratio": 4.235
+          },
+          {
+            "loc": "anz",
+            "name": "ANZ",
+            "type": "cafe",
+            "dwell_bl": 4287,
+            "dwell_v": 17350,
+            "delta": 13063,
+            "ratio": 4.046
+          },
+          {
+            "loc": "area_130",
+            "name": "area_130",
+            "type": "playground",
+            "dwell_bl": 8968,
+            "dwell_v": 21348,
+            "delta": 12380,
+            "ratio": 2.38
+          },
+          {
+            "loc": "akira_sushi",
+            "name": "Akira Sushi",
+            "type": "restaurant",
+            "dwell_bl": 5894,
+            "dwell_v": 16695,
+            "delta": 10801,
+            "ratio": 2.832
+          },
+          {
+            "loc": "richardson_street_east_seg_1",
+            "name": "Richardson Street East (1)",
+            "type": "street",
+            "dwell_bl": 23,
+            "dwell_v": 8833,
+            "delta": 8810,
+            "ratio": 368.083
+          },
+          {
+            "loc": "road_4510_seg_1",
+            "name": "road_4510 (1)",
+            "type": "street",
+            "dwell_bl": 238,
+            "dwell_v": 7404,
+            "delta": 7166,
+            "ratio": 30.983
+          },
+          {
+            "loc": "road_4510_seg_5",
+            "name": "road_4510 (5)",
+            "type": "street",
+            "dwell_bl": 165,
+            "dwell_v": 6740,
+            "delta": 6575,
+            "ratio": 40.608
+          },
+          {
+            "loc": "river_road_west_seg_1_2",
+            "name": "River Road West (1)",
+            "type": "street",
+            "dwell_bl": 68,
+            "dwell_v": 6223,
+            "delta": 6155,
+            "ratio": 90.203
+          },
+          {
+            "loc": "road_4510_seg_3",
+            "name": "road_4510 (3)",
+            "type": "street",
+            "dwell_bl": 393,
+            "dwell_v": 6473,
+            "delta": 6080,
+            "ratio": 16.431
+          },
+          {
+            "loc": "7-eleven",
+            "name": "7-Eleven",
+            "type": "shop",
+            "dwell_bl": 5493,
+            "dwell_v": 11223,
+            "delta": 5730,
+            "ratio": 2.043
+          },
+          {
+            "loc": "austin_street_seg_1",
+            "name": "Austin Street (1)",
+            "type": "street",
+            "dwell_bl": 123,
+            "dwell_v": 5424,
+            "delta": 5301,
+            "ratio": 43.75
+          },
+          {
+            "loc": "area_125",
+            "name": "area_125",
+            "type": "playground",
+            "dwell_bl": 3762,
+            "dwell_v": 8779,
+            "delta": 5017,
+            "ratio": 2.333
+          },
+          {
+            "loc": "gallery_lane_cove",
+            "name": "Gallery Lane Cove",
+            "type": "entertainment",
+            "dwell_bl": 6768,
+            "dwell_v": 11212,
+            "delta": 4444,
+            "ratio": 1.657
+          },
+          {
+            "loc": "river_road_west_seg_1_14",
+            "name": "River Road West (1)",
+            "type": "street",
+            "dwell_bl": 197,
+            "dwell_v": 4291,
+            "delta": 4094,
+            "ratio": 21.677
+          }
+        ],
+        "top_cold": [
+          {
+            "loc": "go_vita_lane_cove",
+            "name": "Go Vita Lane Cove",
+            "type": "commercial",
+            "dwell_bl": 81976,
+            "dwell_v": 65452,
+            "delta": -16524,
+            "ratio": 0.798
+          },
+          {
+            "loc": "building_1122",
+            "name": "building_1122",
+            "type": "residential",
+            "dwell_bl": 24740,
+            "dwell_v": 16102,
+            "delta": -8638,
+            "ratio": 0.651
+          },
+          {
+            "loc": "building_2939",
+            "name": "building_2939",
+            "type": "residential",
+            "dwell_bl": 15856,
+            "dwell_v": 8785,
+            "delta": -7071,
+            "ratio": 0.554
+          },
+          {
+            "loc": "building_2725",
+            "name": "building_2725",
+            "type": "residential",
+            "dwell_bl": 33251,
+            "dwell_v": 27053,
+            "delta": -6198,
+            "ratio": 0.814
+          },
+          {
+            "loc": "building_3944",
+            "name": "building_3944",
+            "type": "residential",
+            "dwell_bl": 23980,
+            "dwell_v": 17822,
+            "delta": -6158,
+            "ratio": 0.743
+          },
+          {
+            "loc": "building_2309",
+            "name": "building_2309",
+            "type": "residential",
+            "dwell_bl": 13186,
+            "dwell_v": 7234,
+            "delta": -5952,
+            "ratio": 0.549
+          },
+          {
+            "loc": "building_5101",
+            "name": "building_5101",
+            "type": "residential",
+            "dwell_bl": 18288,
+            "dwell_v": 12630,
+            "delta": -5658,
+            "ratio": 0.691
+          },
+          {
+            "loc": "building_5109",
+            "name": "building_5109",
+            "type": "residential",
+            "dwell_bl": 22602,
+            "dwell_v": 17114,
+            "delta": -5488,
+            "ratio": 0.757
+          },
+          {
+            "loc": "building_5464",
+            "name": "building_5464",
+            "type": "residential",
+            "dwell_bl": 10500,
+            "dwell_v": 5317,
+            "delta": -5183,
+            "ratio": 0.506
+          },
+          {
+            "loc": "rv_8",
+            "name": "House",
+            "type": "residential",
+            "dwell_bl": 15425,
+            "dwell_v": 10258,
+            "delta": -5167,
+            "ratio": 0.665
+          },
+          {
+            "loc": "sitchu",
+            "name": "Sitchu",
+            "type": "residential",
+            "dwell_bl": 13339,
+            "dwell_v": 8336,
+            "delta": -5003,
+            "ratio": 0.625
+          },
+          {
+            "loc": "omdigi_group",
+            "name": "OMDIGI Group",
+            "type": "residential",
+            "dwell_bl": 12753,
+            "dwell_v": 7899,
+            "delta": -4854,
+            "ratio": 0.619
+          },
+          {
+            "loc": "building_1279",
+            "name": "building_1279",
+            "type": "residential",
+            "dwell_bl": 17265,
+            "dwell_v": 12487,
+            "delta": -4778,
+            "ratio": 0.723
+          },
+          {
+            "loc": "building_889",
+            "name": "building_889",
+            "type": "residential",
+            "dwell_bl": 10734,
+            "dwell_v": 6043,
+            "delta": -4691,
+            "ratio": 0.563
+          },
+          {
+            "loc": "building_1648",
+            "name": "building_1648",
+            "type": "residential",
+            "dwell_bl": 13945,
+            "dwell_v": 9342,
+            "delta": -4603,
+            "ratio": 0.67
+          },
+          {
+            "loc": "building_593",
+            "name": "building_593",
+            "type": "residential",
+            "dwell_bl": 21925,
+            "dwell_v": 17487,
+            "delta": -4438,
+            "ratio": 0.798
+          },
+          {
+            "loc": "rv_60",
+            "name": "House",
+            "type": "residential",
+            "dwell_bl": 11157,
+            "dwell_v": 6765,
+            "delta": -4392,
+            "ratio": 0.606
+          },
+          {
+            "loc": "building_715",
+            "name": "building_715",
+            "type": "residential",
+            "dwell_bl": 12956,
+            "dwell_v": 8646,
+            "delta": -4310,
+            "ratio": 0.667
+          },
+          {
+            "loc": "lane_cove_swim_club",
+            "name": "Lane Cove Swim Club",
+            "type": "commercial",
+            "dwell_bl": 28748,
+            "dwell_v": 24502,
+            "delta": -4246,
+            "ratio": 0.852
+          },
+          {
+            "loc": "building_2769",
+            "name": "building_2769",
+            "type": "residential",
+            "dwell_bl": 11782,
+            "dwell_v": 7560,
+            "delta": -4222,
+            "ratio": 0.642
+          }
+        ],
+        "n_locations_with_gain": 270,
+        "n_locations_with_loss": 1596,
+        "sum_pos_dwell_delta": 695313,
+        "top1_share_of_pos": 0.6075,
+        "top5_share_of_pos": 0.7765,
+        "top20_share_of_pos": 0.9657
+      },
+      "global_distraction": {
+        "top_hot": [
+          {
+            "loc": "area_224",
+            "name": "area_224",
+            "type": "playground",
+            "dwell_bl": 4385,
+            "dwell_v": 131567,
+            "delta": 127182,
+            "ratio": 29.997
+          },
+          {
+            "loc": "anytime_fitness_australia",
+            "name": "Anytime Fitness Australia",
+            "type": "entertainment",
+            "dwell_bl": 6951,
+            "dwell_v": 22707,
+            "delta": 15756,
+            "ratio": 3.266
+          },
+          {
+            "loc": "anglican_church_of_australia_lane_cove",
+            "name": "Anglican Church of Australia Lane Cove",
+            "type": "worship",
+            "dwell_bl": 4290,
+            "dwell_v": 18878,
+            "delta": 14588,
+            "ratio": 4.4
+          },
+          {
+            "loc": "longueville_park",
+            "name": "Longueville Park",
+            "type": "residential",
+            "dwell_bl": 7,
+            "dwell_v": 6197,
+            "delta": 6190,
+            "ratio": 774.75
+          },
+          {
+            "loc": "road_3235_seg_1",
+            "name": "road_3235 (1)",
+            "type": "street",
+            "dwell_bl": 299,
+            "dwell_v": 5225,
+            "delta": 4926,
+            "ratio": 17.42
+          },
+          {
+            "loc": "1021_mediterranean",
+            "name": "1021 Mediterranean",
+            "type": "restaurant",
+            "dwell_bl": 13586,
+            "dwell_v": 17853,
+            "delta": 4267,
+            "ratio": 1.314
+          },
+          {
+            "loc": "area_130",
+            "name": "area_130",
+            "type": "playground",
+            "dwell_bl": 8968,
+            "dwell_v": 12935,
+            "delta": 3967,
+            "ratio": 1.442
+          },
+          {
+            "loc": "coxs_lane_seg_1",
+            "name": "Coxs Lane (1)",
+            "type": "street",
+            "dwell_bl": 695,
+            "dwell_v": 4301,
+            "delta": 3606,
+            "ratio": 6.181
+          },
+          {
+            "loc": "lane_cove_library",
+            "name": "Lane Cove Library",
+            "type": "community",
+            "dwell_bl": 955,
+            "dwell_v": 3694,
+            "delta": 2739,
+            "ratio": 3.865
+          },
+          {
+            "loc": "road_2501_seg_3",
+            "name": "road_2501 (3)",
+            "type": "street",
+            "dwell_bl": 191,
+            "dwell_v": 2671,
+            "delta": 2480,
+            "ratio": 13.917
+          },
+          {
+            "loc": "building_1627",
+            "name": "building_1627",
+            "type": "residential",
+            "dwell_bl": 4289,
+            "dwell_v": 6369,
+            "delta": 2080,
+            "ratio": 1.485
+          },
+          {
+            "loc": "anz",
+            "name": "ANZ",
+            "type": "cafe",
+            "dwell_bl": 4287,
+            "dwell_v": 6020,
+            "delta": 1733,
+            "ratio": 1.404
+          },
+          {
+            "loc": "akira_sushi",
+            "name": "Akira Sushi",
+            "type": "restaurant",
+            "dwell_bl": 5894,
+            "dwell_v": 7495,
+            "delta": 1601,
+            "ratio": 1.272
+          },
+          {
+            "loc": "building_662",
+            "name": "building_662",
+            "type": "residential",
+            "dwell_bl": 3498,
+            "dwell_v": 4873,
+            "delta": 1375,
+            "ratio": 1.393
+          },
+          {
+            "loc": "building_3939",
+            "name": "building_3939",
+            "type": "residential",
+            "dwell_bl": 7395,
+            "dwell_v": 8493,
+            "delta": 1098,
+            "ratio": 1.148
+          },
+          {
+            "loc": "building_4989",
+            "name": "building_4989",
+            "type": "residential",
+            "dwell_bl": 13639,
+            "dwell_v": 14561,
+            "delta": 922,
+            "ratio": 1.068
+          },
+          {
+            "loc": "building_1024",
+            "name": "building_1024",
+            "type": "residential",
+            "dwell_bl": 15021,
+            "dwell_v": 15813,
+            "delta": 792,
+            "ratio": 1.053
+          },
+          {
+            "loc": "gallery_lane_cove",
+            "name": "Gallery Lane Cove",
+            "type": "entertainment",
+            "dwell_bl": 6768,
+            "dwell_v": 7270,
+            "delta": 502,
+            "ratio": 1.074
+          },
+          {
+            "loc": "ferndale_park",
+            "name": "Ferndale Park",
+            "type": "park",
+            "dwell_bl": 3674,
+            "dwell_v": 3996,
+            "delta": 322,
+            "ratio": 1.088
+          },
+          {
+            "loc": "sam_lloyd",
+            "name": "Sam Lloyd",
+            "type": "office",
+            "dwell_bl": 11853,
+            "dwell_v": 12119,
+            "delta": 266,
+            "ratio": 1.022
+          }
+        ],
+        "top_cold": [
+          {
+            "loc": "go_vita_lane_cove",
+            "name": "Go Vita Lane Cove",
+            "type": "commercial",
+            "dwell_bl": 81976,
+            "dwell_v": 76734,
+            "delta": -5242,
+            "ratio": 0.936
+          },
+          {
+            "loc": "omdigi_group",
+            "name": "OMDIGI Group",
+            "type": "residential",
+            "dwell_bl": 12753,
+            "dwell_v": 9175,
+            "delta": -3578,
+            "ratio": 0.719
+          },
+          {
+            "loc": "lane_cove_swim_club",
+            "name": "Lane Cove Swim Club",
+            "type": "commercial",
+            "dwell_bl": 28748,
+            "dwell_v": 25409,
+            "delta": -3339,
+            "ratio": 0.884
+          },
+          {
+            "loc": "building_1724",
+            "name": "building_1724",
+            "type": "residential",
+            "dwell_bl": 12580,
+            "dwell_v": 9357,
+            "delta": -3223,
+            "ratio": 0.744
+          },
+          {
+            "loc": "rv_8",
+            "name": "House",
+            "type": "residential",
+            "dwell_bl": 15425,
+            "dwell_v": 12237,
+            "delta": -3188,
+            "ratio": 0.793
+          },
+          {
+            "loc": "castle_driving_school",
+            "name": "Castle Driving School",
+            "type": "residential",
+            "dwell_bl": 8587,
+            "dwell_v": 5551,
+            "delta": -3036,
+            "ratio": 0.646
+          },
+          {
+            "loc": "building_2725",
+            "name": "building_2725",
+            "type": "residential",
+            "dwell_bl": 33251,
+            "dwell_v": 30273,
+            "delta": -2978,
+            "ratio": 0.91
+          },
+          {
+            "loc": "building_889",
+            "name": "building_889",
+            "type": "residential",
+            "dwell_bl": 10734,
+            "dwell_v": 7841,
+            "delta": -2893,
+            "ratio": 0.731
+          },
+          {
+            "loc": "building_2266",
+            "name": "building_2266",
+            "type": "residential",
+            "dwell_bl": 14403,
+            "dwell_v": 11519,
+            "delta": -2884,
+            "ratio": 0.8
+          },
+          {
+            "loc": "rv_106",
+            "name": "House",
+            "type": "residential",
+            "dwell_bl": 12401,
+            "dwell_v": 9531,
+            "delta": -2870,
+            "ratio": 0.769
+          },
+          {
+            "loc": "building_5430",
+            "name": "building_5430",
+            "type": "residential",
+            "dwell_bl": 17400,
+            "dwell_v": 14530,
+            "delta": -2870,
+            "ratio": 0.835
+          },
+          {
+            "loc": "building_2939",
+            "name": "building_2939",
+            "type": "residential",
+            "dwell_bl": 15856,
+            "dwell_v": 13031,
+            "delta": -2825,
+            "ratio": 0.822
+          },
+          {
+            "loc": "building_4530",
+            "name": "building_4530",
+            "type": "residential",
+            "dwell_bl": 6417,
+            "dwell_v": 3740,
+            "delta": -2677,
+            "ratio": 0.583
+          },
+          {
+            "loc": "rv_70",
+            "name": "House",
+            "type": "residential",
+            "dwell_bl": 8552,
+            "dwell_v": 6120,
+            "delta": -2432,
+            "ratio": 0.716
+          },
+          {
+            "loc": "building_93",
+            "name": "building_93",
+            "type": "residential",
+            "dwell_bl": 30650,
+            "dwell_v": 28268,
+            "delta": -2382,
+            "ratio": 0.922
+          },
+          {
+            "loc": "building_1279",
+            "name": "building_1279",
+            "type": "residential",
+            "dwell_bl": 17265,
+            "dwell_v": 14894,
+            "delta": -2371,
+            "ratio": 0.863
+          },
+          {
+            "loc": "building_2919",
+            "name": "building_2919",
+            "type": "residential",
+            "dwell_bl": 24528,
+            "dwell_v": 22327,
+            "delta": -2201,
+            "ratio": 0.91
+          },
+          {
+            "loc": "building_5618",
+            "name": "building_5618",
+            "type": "residential",
+            "dwell_bl": 18468,
+            "dwell_v": 16302,
+            "delta": -2166,
+            "ratio": 0.883
+          },
+          {
+            "loc": "rv_85",
+            "name": "House",
+            "type": "residential",
+            "dwell_bl": 19827,
+            "dwell_v": 17674,
+            "delta": -2153,
+            "ratio": 0.891
+          },
+          {
+            "loc": "building_4999",
+            "name": "building_4999",
+            "type": "residential",
+            "dwell_bl": 12212,
+            "dwell_v": 10065,
+            "delta": -2147,
+            "ratio": 0.824
+          }
+        ],
+        "n_locations_with_gain": 319,
+        "n_locations_with_loss": 948,
+        "sum_pos_dwell_delta": 200298,
+        "top1_share_of_pos": 0.635,
+        "top5_share_of_pos": 0.842,
+        "top20_share_of_pos": 0.9805
+      },
+      "phone_friction": {
+        "top_hot": [
+          {
+            "loc": "anglican_church_of_australia_lane_cove",
+            "name": "Anglican Church of Australia Lane Cove",
+            "type": "worship",
+            "dwell_bl": 4290,
+            "dwell_v": 393721,
+            "delta": 389431,
+            "ratio": 91.755
+          },
+          {
+            "loc": "anytime_fitness_australia",
+            "name": "Anytime Fitness Australia",
+            "type": "entertainment",
+            "dwell_bl": 6951,
+            "dwell_v": 52957,
+            "delta": 46006,
+            "ratio": 7.618
+          },
+          {
+            "loc": "akira_sushi",
+            "name": "Akira Sushi",
+            "type": "restaurant",
+            "dwell_bl": 5894,
+            "dwell_v": 23015,
+            "delta": 17121,
+            "ratio": 3.904
+          },
+          {
+            "loc": "centennial_avenue_seg_1_12",
+            "name": "Centennial Avenue (1)",
+            "type": "street",
+            "dwell_bl": 820,
+            "dwell_v": 17269,
+            "delta": 16449,
+            "ratio": 21.035
+          },
+          {
+            "loc": "road_4508_seg_1",
+            "name": "road_4508 (1)",
+            "type": "street",
+            "dwell_bl": 108,
+            "dwell_v": 15821,
+            "delta": 15713,
+            "ratio": 145.156
+          },
+          {
+            "loc": "longueville_park",
+            "name": "Longueville Park",
+            "type": "residential",
+            "dwell_bl": 7,
+            "dwell_v": 14520,
+            "delta": 14513,
+            "ratio": 1815.125
+          },
+          {
+            "loc": "1021_mediterranean",
+            "name": "1021 Mediterranean",
+            "type": "restaurant",
+            "dwell_bl": 13586,
+            "dwell_v": 27687,
+            "delta": 14101,
+            "ratio": 2.038
+          },
+          {
+            "loc": "anz",
+            "name": "ANZ",
+            "type": "cafe",
+            "dwell_bl": 4287,
+            "dwell_v": 17592,
+            "delta": 13305,
+            "ratio": 4.103
+          },
+          {
+            "loc": "area_125",
+            "name": "area_125",
+            "type": "playground",
+            "dwell_bl": 3762,
+            "dwell_v": 14123,
+            "delta": 10361,
+            "ratio": 3.753
+          },
+          {
+            "loc": "rosenthal_avenue_seg_2",
+            "name": "Rosenthal Avenue (2)",
+            "type": "street",
+            "dwell_bl": 163,
+            "dwell_v": 10379,
+            "delta": 10216,
+            "ratio": 63.293
+          },
+          {
+            "loc": "lane_cove_library",
+            "name": "Lane Cove Library",
+            "type": "community",
+            "dwell_bl": 955,
+            "dwell_v": 10852,
+            "delta": 9897,
+            "ratio": 11.353
+          },
+          {
+            "loc": "area_114",
+            "name": "area_114",
+            "type": "playground",
+            "dwell_bl": 4270,
+            "dwell_v": 14111,
+            "delta": 9841,
+            "ratio": 3.304
+          },
+          {
+            "loc": "area_130",
+            "name": "area_130",
+            "type": "playground",
+            "dwell_bl": 8968,
+            "dwell_v": 18286,
+            "delta": 9318,
+            "ratio": 2.039
+          },
+          {
+            "loc": "lane_cove_plaza_seg_1",
+            "name": "Lane Cove Plaza (1)",
+            "type": "street",
+            "dwell_bl": 230,
+            "dwell_v": 9123,
+            "delta": 8893,
+            "ratio": 39.498
+          },
+          {
+            "loc": "road_5086_seg_1",
+            "name": "road_5086 (1)",
+            "type": "street",
+            "dwell_bl": 30,
+            "dwell_v": 7641,
+            "delta": 7611,
+            "ratio": 246.516
+          },
+          {
+            "loc": "austin_street_seg_1",
+            "name": "Austin Street (1)",
+            "type": "street",
+            "dwell_bl": 123,
+            "dwell_v": 4955,
+            "delta": 4832,
+            "ratio": 39.968
+          },
+          {
+            "loc": "lane_cove_plaza_seg_2",
+            "name": "Lane Cove Plaza (2)",
+            "type": "street",
+            "dwell_bl": 284,
+            "dwell_v": 4590,
+            "delta": 4306,
+            "ratio": 16.109
+          },
+          {
+            "loc": "gallery_lane_cove",
+            "name": "Gallery Lane Cove",
+            "type": "entertainment",
+            "dwell_bl": 6768,
+            "dwell_v": 10590,
+            "delta": 3822,
+            "ratio": 1.565
+          },
+          {
+            "loc": "7-eleven",
+            "name": "7-Eleven",
+            "type": "shop",
+            "dwell_bl": 5493,
+            "dwell_v": 8701,
+            "delta": 3208,
+            "ratio": 1.584
+          },
+          {
+            "loc": "river_road_west_seg_1_14",
+            "name": "River Road West (1)",
+            "type": "street",
+            "dwell_bl": 197,
+            "dwell_v": 3025,
+            "delta": 2828,
+            "ratio": 15.283
+          }
+        ],
+        "top_cold": [
+          {
+            "loc": "go_vita_lane_cove",
+            "name": "Go Vita Lane Cove",
+            "type": "commercial",
+            "dwell_bl": 81976,
+            "dwell_v": 67381,
+            "delta": -14595,
+            "ratio": 0.822
+          },
+          {
+            "loc": "building_2725",
+            "name": "building_2725",
+            "type": "residential",
+            "dwell_bl": 33251,
+            "dwell_v": 24011,
+            "delta": -9240,
+            "ratio": 0.722
+          },
+          {
+            "loc": "building_5618",
+            "name": "building_5618",
+            "type": "residential",
+            "dwell_bl": 18468,
+            "dwell_v": 12881,
+            "delta": -5587,
+            "ratio": 0.697
+          },
+          {
+            "loc": "building_4564",
+            "name": "building_4564",
+            "type": "residential",
+            "dwell_bl": 8624,
+            "dwell_v": 3186,
+            "delta": -5438,
+            "ratio": 0.37
+          },
+          {
+            "loc": "building_5109",
+            "name": "building_5109",
+            "type": "residential",
+            "dwell_bl": 22602,
+            "dwell_v": 17253,
+            "delta": -5349,
+            "ratio": 0.763
+          },
+          {
+            "loc": "building_1671",
+            "name": "building_1671",
+            "type": "residential",
+            "dwell_bl": 28619,
+            "dwell_v": 23475,
+            "delta": -5144,
+            "ratio": 0.82
+          },
+          {
+            "loc": "castle_driving_school",
+            "name": "Castle Driving School",
+            "type": "residential",
+            "dwell_bl": 8587,
+            "dwell_v": 3538,
+            "delta": -5049,
+            "ratio": 0.412
+          },
+          {
+            "loc": "building_4470",
+            "name": "building_4470",
+            "type": "residential",
+            "dwell_bl": 11363,
+            "dwell_v": 6339,
+            "delta": -5024,
+            "ratio": 0.558
+          },
+          {
+            "loc": "building_1762",
+            "name": "building_1762",
+            "type": "residential",
+            "dwell_bl": 14963,
+            "dwell_v": 10057,
+            "delta": -4906,
+            "ratio": 0.672
+          },
+          {
+            "loc": "building_93",
+            "name": "building_93",
+            "type": "residential",
+            "dwell_bl": 30650,
+            "dwell_v": 25928,
+            "delta": -4722,
+            "ratio": 0.846
+          },
+          {
+            "loc": "building_1122",
+            "name": "building_1122",
+            "type": "residential",
+            "dwell_bl": 24740,
+            "dwell_v": 20071,
+            "delta": -4669,
+            "ratio": 0.811
+          },
+          {
+            "loc": "sales_and_telesales_solutions",
+            "name": "Sales and Telesales Solutions",
+            "type": "office",
+            "dwell_bl": 13905,
+            "dwell_v": 9409,
+            "delta": -4496,
+            "ratio": 0.677
+          },
+          {
+            "loc": "rv_194",
+            "name": "House",
+            "type": "residential",
+            "dwell_bl": 21805,
+            "dwell_v": 17349,
+            "delta": -4456,
+            "ratio": 0.796
+          },
+          {
+            "loc": "building_3811",
+            "name": "building_3811",
+            "type": "residential",
+            "dwell_bl": 13924,
+            "dwell_v": 9489,
+            "delta": -4435,
+            "ratio": 0.682
+          },
+          {
+            "loc": "building_2939",
+            "name": "building_2939",
+            "type": "residential",
+            "dwell_bl": 15856,
+            "dwell_v": 11624,
+            "delta": -4232,
+            "ratio": 0.733
+          },
+          {
+            "loc": "building_5492",
+            "name": "building_5492",
+            "type": "residential",
+            "dwell_bl": 12004,
+            "dwell_v": 7840,
+            "delta": -4164,
+            "ratio": 0.653
+          },
+          {
+            "loc": "omdigi_group",
+            "name": "OMDIGI Group",
+            "type": "residential",
+            "dwell_bl": 12753,
+            "dwell_v": 8686,
+            "delta": -4067,
+            "ratio": 0.681
+          },
+          {
+            "loc": "building_2266",
+            "name": "building_2266",
+            "type": "residential",
+            "dwell_bl": 14403,
+            "dwell_v": 10364,
+            "delta": -4039,
+            "ratio": 0.72
+          },
+          {
+            "loc": "building_1279",
+            "name": "building_1279",
+            "type": "residential",
+            "dwell_bl": 17265,
+            "dwell_v": 13230,
+            "delta": -4035,
+            "ratio": 0.766
+          },
+          {
+            "loc": "building_2919",
+            "name": "building_2919",
+            "type": "residential",
+            "dwell_bl": 24528,
+            "dwell_v": 20566,
+            "delta": -3962,
+            "ratio": 0.838
+          }
+        ],
+        "n_locations_with_gain": 233,
+        "n_locations_with_loss": 1658,
+        "sum_pos_dwell_delta": 645821,
+        "top1_share_of_pos": 0.603,
+        "top5_share_of_pos": 0.7505,
+        "top20_share_of_pos": 0.9473
+      }
+    }
+  }
+}

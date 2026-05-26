@@ -1,0 +1,56 @@
+{
+  "hyperlocal_push": {
+    "neighbor_radius_m": 200.0,
+    "non_protag_near_protag_responder": {
+      "n": 1170,
+      "responders": 231,
+      "rate": 0.19743589743589743
+    },
+    "non_protag_near_protag_NON_responder": {
+      "n": 207,
+      "responders": 5,
+      "rate": 0.024154589371980676
+    },
+    "non_protag_NO_protag_neighbor": {
+      "n": 15,
+      "responders": 2,
+      "rate": 0.13333333333333333
+    }
+  },
+  "global_distraction": {
+    "neighbor_radius_m": 200.0,
+    "non_protag_near_protag_responder": {
+      "n": 1025,
+      "responders": 258,
+      "rate": 0.25170731707317073
+    },
+    "non_protag_near_protag_NON_responder": {
+      "n": 352,
+      "responders": 7,
+      "rate": 0.019886363636363636
+    },
+    "non_protag_NO_protag_neighbor": {
+      "n": 15,
+      "responders": 1,
+      "rate": 0.06666666666666667
+    }
+  },
+  "phone_friction": {
+    "neighbor_radius_m": 200.0,
+    "non_protag_near_protag_responder": {
+      "n": 1199,
+      "responders": 201,
+      "rate": 0.16763969974979148
+    },
+    "non_protag_near_protag_NON_responder": {
+      "n": 178,
+      "responders": 4,
+      "rate": 0.02247191011235955
+    },
+    "non_protag_NO_protag_neighbor": {
+      "n": 15,
+      "responders": 2,
+      "rate": 0.13333333333333333
+    }
+  }
+}
