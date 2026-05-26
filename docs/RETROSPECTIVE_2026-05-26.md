@@ -18,6 +18,7 @@ publishable run 1000 agent × 14 day × 4 variant × N seed 这条管线累计
 | **测试覆盖盲区** | unit test 全绿 / integration 失败 / 真 worker 报废 | 7 个产线事故 | 部分 |
 | **agent 故事内容真实性** ⭐ | phantom 女儿 / retail_worker drift / 双重计数 / 物理 impossibility | 6+ 处 | 部分 (有约定无 audit 工具) |
 | **系统评测全缺** ⭐ | 4 个 finding · 0 个评测维度 · n=1 anecdotal evidence | **整个项目周期** | ❌ 完全空白 |
+| **agent 系统架构 framework-borrow** ⭐ | 接成熟 framework 启动 MVP, 没 retrospect 顶层抽象是否服务 thesis — attention/4-archetype 等核心都 bolt-on | 6 处 架构层 | ❌ root cause 级 |
 
 外加 **publishing 侧** (portfolio 网站 + 对外文档) 几个独立教训, 跟仿真
 管线无关但属于同一项目交付的一部分, 也一起记下。
@@ -570,7 +571,99 @@ evaluation 这步** — 没评测, 故事再好 = 装饰; 有评测, 即使部�
 
 ---
 
-## 11 · 对外写作 / 文档约定
+## 11 · Agent 系统架构 — 接 framework 而非按 thesis 设计
+
+**核心矛盾**: 项目最初为快出 MVP 直接 fork / port 已有 generative agent
+框架 (Park 2023 generative agents + Concordia / AgentSociety 等 inspiration),
+拿来跑出 demo 之后**所有后续工作都在 patch 框架以服务 thesis**, 而不是
+按 thesis 反推架构。 后果是 thesis-critical 的概念 (attention gate /
+4-archetype intervention / noticed encounter) 都是 **bolt-on, 不是
+first-class citizen**。 这是比 wiring-gap bug (Section 4) 更深一层的
+root cause。
+
+### 11.1 6 个具体表现
+
+**(1) Attention gate 是 add-on, 不是核心**
+- 现在: encounter event 先生成 (基于物理 proximity), 再做 attention filter
+  决定 noticed / unnoticed
+- 应是: agent 的 perception 本来就 attention-bottlenecked, encounter
+  detection 走 attention 通道
+- 后果: noticed vs unnoticed 永远存在歧义 ("看到但忽略" vs "根本没看到")
+- 修起来需要重写 perception layer
+
+**(2) Memory model 沿用 generative agents 套件**
+- encounter / reflection / importance score 这套来自 Park 2023, 设计
+  目标是 sandbox sim 通用性
+- SSWT thesis 关心的是 attention budget 怎么花 — generic memory 没这层
+- 后果: 没有 "她今天的注意力预算被 X 件事吃掉 Y%" 这种 thesis-aligned 量纲
+
+**(3) Personality 5-trait big-five 直接套**
+- extraversion / openness 等是 big-five 标配 (McCrae 1992)
+- 跟 thesis "attention-induced nearby blindness" 没正面挂钩, 哪些 trait
+  影响 nearby noticing 是**ad-hoc 后挂**, 数据反推不是机制预测
+- 后果: responder profile 分析全是后验, 没有先验机制
+
+**(4) Tick / day / phase 时间粒度跟 thesis 不匹配**
+- 288 ticks/day = 5 min/tick — 从 generative agents 模板继承
+- thesis 关心的 attention switch 秒级 / dwell 分钟级 / narrative arc 小时级
+  — 全在不同 scale
+- 后果: 看不到秒级 attention dynamics, dwell 统计粒度粗到几乎没法测
+
+**(5) Push system 接进 do_something operation**
+- generative agents 的 do_something 是 "agent 决定下一个 action"
+- push 作为 input feed 给 do_something, 但**跟 routine adherence /
+  personality 怎么交互全在 LLM 黑盒里**
+- 应是: push → attention salience 调整 → behavior change 三步分离可测
+- 后果: 4-archetype 差异在 LLM 黑盒里, 没 inspectable mechanism layer
+  (这条直接 enable 了 [10.6.4 reflexivity bias](#1064-⭐-reflexivity-bias-最严重--最难解决))
+
+**(6) DialogueService / operation pool 等 framework 残留**
+- 从框架借来用着, 但 thesis 不关心 dialogue 内容 quality, 只关心
+  dialogue 是否发生
+- 后果: DialogueService 持久化 / dialogue counter wiring gap 等问题都
+  因为它**跟 thesis 不直接相关 → 没人 own → 容易忽视**
+
+### 11.2 Root cause
+
+MVP 启动时**借框架是合理选择** (快出 demo, 不重新发明轮子)。 错的不
+是借, 是**没在迭代过程中 retrospect 架构是否还服务 thesis**。 thesis
+是 attention-induced nearby blindness, 但 codebase 顶层抽象到现在仍然
+是 "generative agents 通用 sim", 中间没有 thesis-derived layer。
+
+### 11.3 已经付出的代价 (跟其他 Section 联系起来看)
+
+| 表层问题 | 真因 (本节) |
+|---|---|
+| Section 4 · 4 个同模式 wiring gap bug | thesis-critical 字段是后挂的, 没 owner |
+| Section 8 · 数据分析口径混乱 (noticed vs distinct_pairs) | noticed 是后挂概念, 不是 first-class |
+| Section 10.6.4 · reflexivity bias | attention 行为完全依赖 LLM 决策, 没 attention-budget 层独立 |
+| Section 5 · test 8 类问题 | 大部分 thesis-critical invariant 没在 framework 抽象里, test 抓不到 |
+
+### 11.4 未做 — 3 种取舍
+
+| 路径 | 工作量 | 何时选 |
+|---|---|---|
+| **A. 重写 attention layer** 让它独立于 LLM 决策 — attention 有自己的 budget / decay / refresh, LLM 只 sample from attention state | 大, 3-4 个月重构 | 如果继续 push 这个 thesis 当主项目 |
+| **B. 诚实承认 + enumerate** — paper Architecture section 明确"这是 framework-borrow that we adapt", 列哪些 borrowed vs custom | 小, 1 周写作 | 如果走 design venue (CHI/DIS) — reviewer 看到诚实承认反而加分 |
+| **C. 下一个 thesis 时复用教训** — 先写 thesis 1-pager, 再决定借哪个 framework, 哪些必须自己写 | 0 工作量, 元规则 | 项目 wrap up 之后 |
+
+### 11.5 元规则 — 给下一个项目
+
+借成熟 framework 启动 MVP 是合理选择, 但**必须每隔几周 retrospect "框架
+的顶层抽象还服务 thesis 吗"**。 不 retrospect 就会渐进式偏离, 等到发现
+已经付了很多技术债 + thesis-critical 概念全是后挂。
+
+具体的工程约定:
+- 新 OpenSpec change 的 design.md SHALL 显式问 "这次改动让 framework
+  顶层抽象更 thesis-aligned 还是更通用 sandbox sim?"
+- thesis-critical 概念 SHALL 有 dedicated module / first-class type, 不
+  能只是 string tag (现在 "noticed" 是 `tags: list[str]` 里的一个 string)
+- bolt-on 接进 framework 的新概念 SHALL 列 owner — 谁负责跨整个 codebase
+  保证它的语义一致
+
+---
+
+## 12 · 对外写作 / 文档约定
 
 (这一节跟仿真管线无关, 是 publishing 侧的累积约定 — 但属于同一项目
 交付)
@@ -600,7 +693,7 @@ evaluation 这步** — 没评测, 故事再好 = 装饰; 有评测, 即使部�
 
 ---
 
-## 12 · Publishing 侧 (portfolio 网站) 教训
+## 13 · Publishing 侧 (portfolio 网站) 教训
 
 跟仿真无关但属于同一项目交付。 5 月 25-26 累计:
 
@@ -629,7 +722,7 @@ evaluation 这步** — 没评测, 故事再好 = 装饰; 有评测, 即使部�
 
 ---
 
-## 13 · 横切观察 · 模式与下一步
+## 14 · 横切观察 · 模式与下一步
 
 ### 反复出现的元模式
 
