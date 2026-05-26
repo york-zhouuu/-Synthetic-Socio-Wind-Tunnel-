@@ -405,7 +405,125 @@ observation**, 没经过任何科学口径 validation。 报告写得再漂亮, 
 | **Counterfactual validity** | 4-universe 差异是干预 vs LLM 噪声 | hold seed fixed, 同 variant 重跑 5 次 LLM seed, 看 within-variant 方差 |
 | **Cross-version regression** | longform v3 vs v2 哪个好 | rubric scoring (5 criteria × Likert), pre-registered |
 
-### Why we haven't done this yet (诚实复盘)
+### 10.3 关键 reframe — generative social science 的判定标准
+
+上面 8 个维度都假设"评测 = 验证 finding 真的会在现实发生"。 这是
+**错误的目标** — 项目本来就不是 prediction tool, 强行往这个 bar 上靠
+永远 defend 不了。 generative social science 这个领域 30 年来 (Schelling
+1971 偏见模型, Epstein-Axtell 1996 sugarscape, Axelrod 1997 文化扩散,
+Reynolds 1986 boids) **没人用 ground-truth 验证 ABM**, paper 照样发,
+学术价值站得住。
+
+**领域共识**: 这类工作的 value 不是 "预测 X 数字", 是 "**让 X 这个
+mechanism 进入可讨论 vocabulary**" — Epstein 称之为 "if you didn't grow
+it, you didn't explain it"。 Schelling 71 年 paper 从来 never 校准 30%
+同质偏好参数, never 拿模型跟真 census 比, 但它**第一次**让 "微弱
+同质偏好 → 强 segregation" 这条 mechanism 进入了公共讨论 vocabulary。
+20 年后这条 insight 重塑了住房政策 debate。
+
+**对应到 SSWT**:
+
+| 旧 framing (无法 defend) | 新 framing (可 defend) |
+|---|---|
+| "推送会让人走出附近性盲区" | "在 attention-gated 仿真里, hyperlocal push archetype 会产生 anchor concentration 而非 proximity dispersion — 是 attention 落点重分布而非物理 proximity 增加" |
+| 要求: ground-truth real-world data | 要求: 仿真内部一致 + 跨 seed robust + 跟 literature 三角对 |
+| 读者收获: "下次 deployment 会怎样" | 读者收获: "原来 attention 这块 design space 里有这种 dynamic, 之前没人指着它说过话" |
+
+把 finding 从"现实预测"改成"仿真器内 emergent pattern + 机制依赖", **claim
+变小, defend 边界一下子清晰** — 不是 lower the bar, 是这个领域的诚实
+写法。 而且反直觉地, **scope 越窄的 finding 越值钱**, 因为读者知道
+作者 know what they can and can't claim。
+
+### 10.4 项目当前真做到了什么 (vocab / viz / affordance audit)
+
+按 mechanism legibility 三层标准 audit SSWT 的实际贡献:
+
+| 层 | 现状 | 评估 |
+|---|---|---|
+| **Vocabulary** | △ 部分 | "附近性盲区 / noticed vs 物理同框 / 4-archetype" 在项目内 well-defined, 但还没被外界 cite。 Schelling 用了 20 年才让"residential preference cascade" 进入主流 — 你有 vocabulary candidate, 是否真 pick up 看后面 1-3 年 |
+| **Visualization** | ✓ **强** | 5 张 v7 figure + 2.5D anchor 地图 + 3 篇 longform 4-universe 对比 + 滚动 cinema — 项目最强部分。 "attention 落点重分布" 在 SSWT 之前没有可视化语言能指着说, 现在有了 |
+| **Affordance** | △ 部分 | 4 archetype (BL/HP/PF/GD) 是真设计 dial, 但 currently tied to simulator — 真 designer 要套到 Apple Maps 具体决策, 缺一层"archetype → 真 product feature" 翻译 |
+
+**Honest conclusion**: legibility 是个 N 年 process, **你做到了"建出可能
+legible 化的 artifact"**, 还没到 "verified legible" — 但你能 verify 的
+也就这一步, 剩下的看外界 uptake, 不可控。
+
+### 10.5 能做的 3 种 reality-bridge + 1 个硬上限
+
+**不需要 ground-truth 也能做的**:
+
+| 方法 | 不需要 | 能 defend |
+|---|---|---|
+| **Baseline 跟真 Lane Cove 数据校准** | 不需要"真有人推过 hyperlocal" | "BL 仿真器无干预下的 POI visit 分布 / 通勤 / 走路 footprint 跟真 Lane Cove 对得上 (Wasserstein distance < X)" — Google Popular Times, ABS 2021 census, OSM, Strava 都能爬 |
+| **Intervention effect 跟 literature 三角对** | 不需要 deploy | 你的 ×2.3 effect 跟 Nextdoor (Easton 2019) / hyperlocal app (Bertelli 2025) / attention spillover (Wood 2002) 的 +12-30% range 同向且量级相当 → 校准。 跑偏一个数量级 → 你有问题 |
+| **真居民 baseline 描述 interview** | 不需要 deploy 干预 | 20-30 真郊区居民 30min 半结构化, validate 你**baseline 描述** 是否准确 — 真人是否真的有"附近性盲区"感觉? 描述方式像你 finding 1 吗? 不像说明 thesis 本身有问题 |
+
+**永远做不到的硬上限**: 真去 Lane Cove deploy hyperlocal push 14 天后
+测 noticed encounter 变化 — 这是唯一能 "100% 对应现实" 的方法, 也是 PhD
+论文里都不会要求的 (cost/ethics/timeline 不可行)。 任何 reviewer 都不会
+卡这个。
+
+### 10.6 LLM bias — 项目最深的 open issue
+
+LLM-driven agent 仿真有 **5 种 bias**, 全部跟 SSWT 相关:
+
+**10.6.1 Demographic stereotype bias** — LLM 训练数据过表 WEIRD
+(Western/Educated/Industrial/Rich/Democratic), "Lane Cove ICU 护士" 不
+是真 Lane Cove ICU 护士, 是 LLM training data 里**"郊区 ICU 护士" 这个
+stereotype 的 distillation**。
+
+**10.6.2 Cultural narrative bias** — LLM 写 "Sydney 郊区生活" 时 filter
+是英文主流叙事, 可能偷换成 generic-suburban-America 假设。 6 顶帽子 ICU
+护士的情绪曲线 / 凌晨 2 点哭这种 narrative arc, 可能更多是 LLM "什么是
+好故事" 的偏好, 不是真 ICU 护士经验。
+
+**10.6.3 Behavioral pattern bias** — LLM 决定 "agent 在 HP variant tick
+1234 会做什么" 时 pattern-match training data 里 **人们 respond hyperlocal
+push 的 discourse** — 主要来自 tech-critical 媒体的 essay, 不是行为实测。
+
+**10.6.4 ⭐ Reflexivity bias (最严重 / 最难解决)** — LLM 读过大量
+"smartphone addiction / attention crisis / 附近性消失" 的 discourse。 你
+让 LLM 模拟 "phone-distracted urban resident", 它返回的就是 training
+data 里那些 essay 描述的样子。 finding "attention 被 phone 抢走" 是真在
+simulator 里 emerge, 还是 LLM 把训练数据里的 attention-crisis discourse
+**fed back to you** — **几乎无法区分**。 这是循环论证风险。
+
+**10.6.5 Narrative resolution bias** — LLM 倾向 produce "起-承-转-合 +
+insight" 结构, longform emotional climax 可能更多是 LLM 偏好, 不是数据
+驱动 (#158 phantom 女儿 / a0290 v3 6 顶帽子的情感闭环都跟这条相关)。
+
+### 10.7 LLM bias mitigation — 实际能做的 4 件事
+
+| 方法 | 解决哪些 bias | 工作量 | 优先级 |
+|---|---|---|---|
+| **Multi-LLM 复现** — 同 setup 用 DeepSeek + Claude + GPT-4o 跑, finding 一致吗 | 10.6.1 / 10.6.2 / 部分 10.6.3 | 中, ~$300 × 3 model | 中 |
+| **⭐ Rule-based agent ablation** — LLM 决策换成简单 rule (随机游走 / 固定 routine), finding 还在吗? 在 → LLM 不是 cause; 不在 → finding 可能是 LLM artifact | **关键**, 解决 10.6.4 reflexivity | 1-2 周 | **高** |
+| **Census / ABS 校准 baseline 分布** — 1000 agent demographic 是否 match 真 Lane Cove (age × occupation × household) | 部分 10.6.1 | 1 周 | 高 |
+| **真居民 interview 三角对** | 部分 10.6.1 / 10.6.2 / 10.6.5 | 1-2 月 | 中 |
+
+**永远做不到** (诚实承认):
+- Reflexivity bias **没法完全消除** — 只要用 LLM 模拟 "现代 urban 注意力",
+  就有 LLM 把 attention-crisis discourse 喂回来的风险
+- 能做的是: 把它**写进 limitation section**, 并用 rule-based ablation
+  证明 finding 不只是 LLM artifact
+
+### 10.8 Venue 适配性 — 项目去哪发
+
+| 受众 | defensibility | 需要做什么 |
+|---|---|---|
+| **CHI / DIS / Critical Computing / Digital Humanities** | ⭐⭐⭐ 强 | 重 mechanism + provocation + viz, 不卡 ground truth — 当前工作量大概够投 CHI long paper / DIS critical design |
+| **Generative agent papers** (Park 2023 同类) | ⭐⭐⭐ 强 | city-scale + attention + LLM narrative 是 unique 组合, 现在就能站 |
+| **HCI urban computing / smart city** | ⭐⭐ 中 | 明确 reframe 为 "design space exploration" 而非 "real-world prediction" |
+| **真 stakeholder (Apple/Google design)** | ⭐⭐ 中 | 把 archetype 从 simulator 解耦成独立 product 词汇 |
+| **Quantitative social science / PNAS / AJS** | ⭐ 弱 | 当前不行, 补 cross-seed × literature 三角对 × ablation 1-2 周 + reframe 后可能勉强 |
+
+**最 honest 评估**: 项目最独特的是**视觉表达 + LLM agent + 城市尺度 +
+attention thesis** 的组合, 不是任一单维度。 强项 = 弱项的同一面: 量化
+rigor 永远不会赢专做 quant 的人, 但在 design + visualization + LLM-mediated
+urbanism 这个 niche 几乎没人 sit there。 **走 design venue 是 path of
+least resistance + highest leverage**。
+
+### 10.9 Why we haven't done this yet (诚实复盘)
 
 - **Cost 心理门槛**: publishable run ~$300 / 4 variant × 14 day × β=4
   seed, 重跑做 cross-seed test 直觉上"贵"
