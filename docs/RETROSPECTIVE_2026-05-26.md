@@ -257,6 +257,12 @@ git 历史。
   PDF / poster SVG 5-15 MB 已经在 git 里 OK, 但下次有更大的就 LFS
 - 一个 `tools/check_git_hygiene.py` pre-commit hook, 阻止 >50 MB
   单文件 + 任何 `data/experiments*/` 路径意外入仓
+- ⏸ **disk space relief** (2026-05-27 挂起, 等买外置硬盘): `data/` 现在
+  131 GB (149 个 snapshot.json = 126.9 GB / 96.9% 体积), 计划是把
+  `data/experiments_archive_pre_2026_05_21/` (32 GB) + 完成 cell 的
+  中间 snapshot 整个搬到外置硬盘, 本机只留 active run + final aggregate。
+  可选: tar.zst 先压缩到 ~5 GB 再搬。 工具未写, 走到那一步再写
+  `tools/cleanup_completed_cell_snapshots.py` 跟 archive 打包脚本
 
 ---
 
